@@ -786,3 +786,161 @@ def test_table_neighbor_expansion_prefers_matching_rows_and_headers() -> None:
     assert any("TABLE_HEADER" in content for content in contents)
     assert any("Area: Data" in content for content in contents)
     assert all("Tran Van An" not in content for content in contents)
+
+
+def test_entity_summary_expansion_uses_table_ids_metadata() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    document_id = uuid4()
+    summary_chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=10,
+        content="ENTITY_SUMMARY entity=Nguyen Quang Lam\nRows:\n- ...",
+        chunk_metadata={
+            "chunk_type": "entity_summary",
+            "table_ids": ["pdf_p1_1", "pdf_p1_2"],
+        },
+    )
+    table_a_row = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=11,
+        content=(
+            "TABLE_ROW table_id=pdf_p1_1 page=1 row=6 | Name: Nguyen Quang Lam | "
+            "Area: Platform AI"
+        ),
+        chunk_metadata={"table_id": "pdf_p1_1", "chunk_type": "table_row"},
+    )
+    table_b_header = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=12,
+        content="TABLE_HEADER table_id=pdf_p1_2 page=1 | Name | Area",
+        chunk_metadata={"table_id": "pdf_p1_2", "chunk_type": "table_header"},
+    )
+    table_b_row = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=13,
+        content=(
+            "TABLE_ROW table_id=pdf_p1_2 page=1 row=2 | Name: Nguyen Quang Lam | "
+            "Area: OCR"
+        ),
+        chunk_metadata={"table_id": "pdf_p1_2", "chunk_type": "table_row"},
+    )
+
+    class FakeRepoWithMultipleTables:
+        async def get_table_chunks(self, *, document_id, table_id, exclude_ids):
+            if table_id == "pdf_p1_1":
+                return [table_a_row]
+            if table_id == "pdf_p1_2":
+                return [table_b_header, table_b_row]
+            return []
+
+    service = RagAnswerService(
+        chat_repository=FakeRepoWithMultipleTables(),  # type: ignore[arg-type]
+        reranking_service=SimpleNamespace(),  # type: ignore[arg-type]
+        llm_provider=SimpleNamespace(),  # type: ignore[arg-type]
+    )
+
+    expanded = asyncio.run(
+        service._expand_with_neighbors(
+            query="Nguyen Quang Lam tham gia nhung mang cong nghe nao?",
+            context_chunks=[ContextChunk(citation_index=1, chunk=summary_chunk)],
+            max_context_chars=1000,
+        )
+    )
+
+    contents = [item.chunk.content for item in expanded]
+    assert any("Platform AI" in content for content in contents)
+    assert any("TABLE_HEADER table_id=pdf_p1_2" in content for content in contents)
+    assert any("Area: OCR" in content for content in contents)
+
+
+def test_entity_coverage_lookup_adds_all_matching_table_rows_only() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    document_id = uuid4()
+    primary = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=0,
+        content="ENTITY_SUMMARY entity=Nguyen Quang Lam\nRows:\n- partial summary",
+        chunk_metadata={"chunk_type": "entity_summary", "table_ids": ["tbl_1"]},
+    )
+    matching_rows = [
+        SimpleNamespace(
+            id=uuid4(),
+            document_id=document_id,
+            chunk_index=index,
+            content=row_content,
+            chunk_metadata={"chunk_type": "table_row", "table_id": "tbl_1"},
+        )
+        for index, row_content in enumerate(
+            [
+                (
+                    "TABLE_ROW table_id=tbl_1 row=3 | Nhom nhiem vu: Xay dung nen tang "
+                    "RAG tren du lieu noi bo | Danh sach: Tong Phuoc Lam; Nguyen Quang Lam"
+                ),
+                (
+                    "TABLE_ROW table_id=tbl_1 row=4 | Nhom nhiem vu: Xay dung dich vu OCR "
+                    "dung chung | Danh sach: Trinh Thanh Tinh; Nguyen Quang Lam"
+                ),
+                (
+                    "TABLE_ROW table_id=tbl_1 row=5 | Nhom nhiem vu: Kho du lieu AI dung "
+                    "chung | Danh sach: Nguyen Quang Lam; Nguyen Trong Hung"
+                ),
+                (
+                    "TABLE_ROW table_id=tbl_1 row=6 | Nhom nhiem vu: Platform AI | Danh "
+                    "sach: Cac nhan su trong ke hoach PoC ThinkLabs; Nguyen Quang Lam; "
+                    "Vo Van Phuc"
+                ),
+            ],
+            start=1,
+        )
+    ]
+    unrelated_row = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=99,
+        content=(
+            "TABLE_ROW table_id=tbl_1 row=7 | Nhom nhiem vu: Xay dung nang luc mo hinh "
+            "ngon ngu noi bo | Danh sach: Tran Van An"
+        ),
+        chunk_metadata={"chunk_type": "table_row", "table_id": "tbl_1"},
+    )
+
+    class FakeCoverageRepo:
+        async def get_entity_coverage_chunks(self, *, document_id, search_terms, exclude_ids):
+            assert any("Nguyen Quang Lam" in term for term in search_terms)
+            return [*matching_rows, unrelated_row]
+
+        async def get_table_chunks(self, *, document_id, table_id, exclude_ids):
+            return []
+
+    service = RagAnswerService(
+        chat_repository=FakeCoverageRepo(),  # type: ignore[arg-type]
+        reranking_service=SimpleNamespace(),  # type: ignore[arg-type]
+        llm_provider=SimpleNamespace(),  # type: ignore[arg-type]
+    )
+
+    expanded = asyncio.run(
+        service._expand_with_neighbors(
+            query="Nguyen Quang Lam tham gia nhung mang cong nghe nao?",
+            context_chunks=[ContextChunk(citation_index=1, chunk=primary)],
+            max_context_chars=4000,
+        )
+    )
+
+    contents = [item.chunk.content for item in expanded]
+    assert sum("Nguyen Quang Lam" in content for content in contents) >= 5
+    assert any("RAG tren du lieu noi bo" in content for content in contents)
+    assert any("OCR dung chung" in content for content in contents)
+    assert any("Kho du lieu AI dung chung" in content for content in contents)
+    assert any("Platform AI" in content for content in contents)
+    assert all("Xay dung nang luc mo hinh ngon ngu noi bo" not in content for content in contents)

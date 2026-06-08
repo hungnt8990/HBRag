@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -92,6 +92,41 @@ class ChatRepository:
             .where(
                 Chunk.document_id == document_id,
                 Chunk.chunk_metadata["table_id"].astext == table_id,
+            )
+            .order_by(Chunk.chunk_index)
+        )
+        if exclude_ids:
+            statement = statement.where(Chunk.id.notin_(list(exclude_ids)))
+        result = await self._session.execute(statement)
+        return list(result.scalars().all())
+
+    async def get_entity_coverage_chunks(
+        self,
+        *,
+        document_id: UUID,
+        search_terms: Sequence[str],
+        exclude_ids: Sequence[UUID] = (),
+    ) -> list[Chunk]:
+        normalized_terms = [
+            " ".join(term.split()).strip()
+            for term in search_terms
+            if " ".join(term.split()).strip()
+        ]
+        if not normalized_terms:
+            return []
+
+        content_clauses = [
+            Chunk.content.ilike(f"%{term}%")
+            for term in normalized_terms
+        ]
+        statement = (
+            select(Chunk)
+            .where(
+                Chunk.document_id == document_id,
+                Chunk.chunk_metadata["chunk_type"].astext.in_(
+                    ["table_row", "table_block", "entity_summary"]
+                ),
+                or_(*content_clauses),
             )
             .order_by(Chunk.chunk_index)
         )

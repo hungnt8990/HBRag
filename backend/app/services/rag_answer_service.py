@@ -467,12 +467,22 @@ class RagAnswerService:
             return context_chunks
 
         get_article_neighbors = getattr(self._chat_repository, "get_neighbor_chunks", None)
+        get_entity_coverage_chunks = getattr(
+            self._chat_repository,
+            "get_entity_coverage_chunks",
+            None,
+        )
         get_table_chunks = getattr(self._chat_repository, "get_table_chunks", None)
-        if get_article_neighbors is None and get_table_chunks is None:
+        if (
+            get_article_neighbors is None
+            and get_table_chunks is None
+            and get_entity_coverage_chunks is None
+        ):
             return context_chunks
 
         existing_ids: set[UUID] = {context_chunk.chunk.id for context_chunk in context_chunks}
         seen_articles: set[tuple[UUID, str]] = set()
+        seen_documents: set[UUID] = set()
         seen_tables: set[tuple[UUID, str]] = set()
         total_chars = sum(len(item.chunk.content) for item in context_chunks)
         query_terms = self._query_terms(query)
@@ -482,15 +492,57 @@ class RagAnswerService:
 
         for context_chunk in context_chunks:
             metadata = context_chunk.chunk.chunk_metadata or {}
-            table_id = metadata.get("table_id")
-            if table_id and get_table_chunks is not None:
-                table_key = (context_chunk.chunk.document_id, str(table_id))
-                if table_key not in seen_tables:
+            document_id = context_chunk.chunk.document_id
+            if (
+                query_terms
+                and get_entity_coverage_chunks is not None
+                and document_id not in seen_documents
+            ):
+                seen_documents.add(document_id)
+                try:
+                    coverage_chunks = await get_entity_coverage_chunks(
+                        document_id=document_id,
+                        search_terms=query_terms,
+                        exclude_ids=tuple(existing_ids),
+                    )
+                except Exception:
+                    coverage_chunks = []
+
+                for coverage_chunk in self._prioritize_entity_coverage_chunks(
+                    chunks=coverage_chunks,
+                    query_terms=query_terms,
+                ):
+                    if coverage_chunk.id in existing_ids:
+                        continue
+                    coverage_len = len(coverage_chunk.content or "")
+                    if total_chars + coverage_len > max_context_chars:
+                        return expanded
+                    expanded.append(
+                        ContextChunk(
+                            citation_index=next_index,
+                            chunk=coverage_chunk,
+                            source_type="neighbor",
+                            source_flags=[
+                                *(context_chunk.source_flags or [context_chunk.source_type]),
+                                "neighbor",
+                            ],
+                        )
+                    )
+                    existing_ids.add(coverage_chunk.id)
+                    total_chars += coverage_len
+                    next_index += 1
+
+            table_refs = self._table_references(metadata)
+            if table_refs and get_table_chunks is not None:
+                for table_id in table_refs:
+                    table_key = (document_id, table_id)
+                    if table_key in seen_tables:
+                        continue
                     seen_tables.add(table_key)
                     try:
                         neighbors = await get_table_chunks(
-                            document_id=context_chunk.chunk.document_id,
-                            table_id=str(table_id),
+                            document_id=document_id,
+                            table_id=table_id,
                             exclude_ids=tuple(existing_ids),
                         )
                     except Exception:
@@ -525,14 +577,14 @@ class RagAnswerService:
             if not article_number or get_article_neighbors is None:
                 continue
 
-            key = (context_chunk.chunk.document_id, str(article_number))
+            key = (document_id, str(article_number))
             if key in seen_articles:
                 continue
             seen_articles.add(key)
 
             try:
                 neighbors = await get_article_neighbors(
-                    document_id=context_chunk.chunk.document_id,
+                    document_id=document_id,
                     article_number=str(article_number),
                     exclude_ids=tuple(existing_ids),
                 )
@@ -580,6 +632,27 @@ class RagAnswerService:
         return ordered
 
     @staticmethod
+    def _table_references(metadata: dict[str, Any]) -> list[str]:
+        refs: list[str] = []
+        table_id = metadata.get("table_id")
+        if table_id is not None:
+            refs.append(str(table_id))
+
+        table_ids = metadata.get("table_ids")
+        if isinstance(table_ids, list):
+            refs.extend(str(item) for item in table_ids if item is not None)
+
+        ordered: list[str] = []
+        seen: set[str] = set()
+        for ref in refs:
+            key = ref.strip()
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            ordered.append(key)
+        return ordered
+
+    @staticmethod
     def _prioritize_table_neighbors(
         *,
         neighbors: list[Chunk],
@@ -608,6 +681,32 @@ class RagAnswerService:
             seen_ids.add(chunk.id)
             ordered.append(chunk)
         return ordered or neighbors
+
+    @staticmethod
+    def _prioritize_entity_coverage_chunks(
+        *,
+        chunks: list[Chunk],
+        query_terms: list[str],
+    ) -> list[Chunk]:
+        matches: list[Chunk] = []
+        supporting: list[Chunk] = []
+        for chunk in chunks:
+            metadata = chunk.chunk_metadata or {}
+            chunk_type = str(metadata.get("chunk_type") or "")
+            content = chunk.content.casefold()
+            if any(term.casefold() in content for term in query_terms):
+                matches.append(chunk)
+            elif chunk_type in {"entity_summary", "table_block"}:
+                supporting.append(chunk)
+
+        ordered: list[Chunk] = []
+        seen_ids: set[UUID] = set()
+        for chunk in [*matches, *supporting]:
+            if chunk.id in seen_ids:
+                continue
+            seen_ids.add(chunk.id)
+            ordered.append(chunk)
+        return ordered or chunks
 
     def _deduplicate_context_chunks(
         self,
