@@ -1,3 +1,4 @@
+import sys
 from datetime import datetime
 from types import SimpleNamespace
 from uuid import UUID
@@ -296,3 +297,125 @@ def test_parse_pdf_serializes_detected_tables(monkeypatch) -> None:
     assert "TABLE_ROW table_id=pdf_p1_1 page=1 row=1" in parsed.text
     assert "Name: Nguyen Quang Lam" in parsed.text
     assert "Area: Infrastructure" in parsed.text
+
+
+def test_table_serialization_preserves_multiline_cells_and_width() -> None:
+    from app.services.parsers.table_serialization import serialize_table
+
+    rows = [
+        ["STT", "Nhom nhiem vu", "Don vi", "Danh sach"],
+        [
+            "3",
+            "Xay dung nen tang RAG tren du lieu noi bo",
+            "PTUD",
+            "1. Tong Phuoc Lam\n2. Nguyen Quang Lam\n3. Nguyen Trong Hung",
+        ],
+        [
+            "4",
+            "Xay dung dich vu OCR dung chung",
+            "PM",
+            "1. Trinh Thanh Tinh\n2. Duong Sinh Sinh\n3. Nguyen Quang Lam",
+        ],
+        [
+            "5",
+            "Kho du lieu AI dung chung",
+            "VH",
+            "1. Doan Gia Hy\n2. Vo Van Phuc\n3. Vo Van Hoa\n4. Nguyen Quang Lam",
+        ],
+        [
+            "6",
+            "Platform AI",
+            "PTUD",
+            "Cac nhan su trong ke hoach PoC ThinkLabs:\n"
+            "1. Phan Anh Tuan\n2. Tran Huy\n3. Nguyen Quang Lam",
+        ],
+    ]
+
+    serialized = serialize_table(table_id="fixture_t1", rows=rows, page_number=5)
+    table_rows = [
+        line for line in serialized.splitlines()
+        if line.startswith("TABLE_ROW")
+    ]
+
+    assert len(table_rows) == 4
+    assert all("STT:" in row for row in table_rows)
+    assert all("Nhom nhiem vu:" in row for row in table_rows)
+    assert all("Don vi:" in row for row in table_rows)
+    assert all("Danh sach:" in row for row in table_rows)
+    assert any("Platform AI" in row and "Nguyen Quang Lam" in row for row in table_rows)
+    assert not any(
+        "cell_1: Xay dung nen tang RAG tren du lieu noi bo | cell_2: 2. Nguyen Quang Lam"
+        in row
+        for row in table_rows
+    )
+
+
+def test_pdf_parser_uses_pdfplumber_table_cells(monkeypatch) -> None:
+    rows = [
+        ["STT", "Nhom nhiem vu", "Don vi", "Danh sach"],
+        [
+            "3",
+            "Xay dung nen tang RAG tren du lieu noi bo",
+            "PTUD",
+            "1. Tong Phuoc Lam\n2. Nguyen Quang Lam\n3. Nguyen Trong Hung",
+        ],
+        [
+            "4",
+            "Xay dung dich vu OCR dung chung",
+            "PM",
+            "1. Trinh Thanh Tinh\n2. Duong Sinh Sinh\n3. Nguyen Quang Lam",
+        ],
+        [
+            "5",
+            "Kho du lieu AI dung chung",
+            "VH",
+            "1. Doan Gia Hy\n2. Vo Van Phuc\n3. Vo Van Hoa\n4. Nguyen Quang Lam",
+        ],
+        [
+            "6",
+            "Platform AI",
+            "PTUD",
+            "Cac nhan su trong ke hoach PoC ThinkLabs:\n"
+            "1. Phan Anh Tuan\n2. Tran Huy\n3. Nguyen Quang Lam",
+        ],
+    ]
+
+    class FakePage:
+        def extract_text(self):
+            return "Intro text outside the table."
+
+        def extract_tables(self, *, table_settings):
+            if table_settings["vertical_strategy"] == "lines":
+                return [rows]
+            return []
+
+    class FakePdf:
+        pages = [FakePage()]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    fake_pdfplumber = SimpleNamespace(open=lambda _stream: FakePdf())
+    monkeypatch.setitem(sys.modules, "pdfplumber", fake_pdfplumber)
+    monkeypatch.setattr(
+        PdfParserImpl,
+        "_parse_with_pypdf",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("pypdf fallback not expected")),
+    )
+
+    parsed = PdfParserImpl().parse(b"%PDF-1.4 fake")
+
+    assert "Intro text outside the table." in parsed.text
+    assert parsed.text.count("TABLE_ROW table_id=pdf_p1_1 page=1 row=") == 4
+    assert "Xay dung nen tang RAG tren du lieu noi bo" in parsed.text
+    assert "Xay dung dich vu OCR dung chung" in parsed.text
+    assert "Kho du lieu AI dung chung" in parsed.text
+    assert "Platform AI" in parsed.text
+    assert all(
+        "Nguyen Quang Lam" in line
+        for line in parsed.text.splitlines()
+        if line.startswith("TABLE_ROW")
+    )
