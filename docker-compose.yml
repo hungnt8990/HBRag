@@ -1,0 +1,96 @@
+name: hbrag
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hbrag-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hbrag}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hbrag_password}
+      POSTGRES_DB: ${POSTGRES_DB:-hbrag}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - hbrag
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: hbrag-qdrant
+    ports:
+      - "${QDRANT_HTTP_PORT:-6333}:6333"
+      - "${QDRANT_GRPC_PORT:-6334}:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+    networks:
+      - hbrag
+
+  minio:
+    image: minio/minio:latest
+    container_name: hbrag-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+    networks:
+      - hbrag
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: hbrag-minio-init
+    depends_on:
+      - minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      MINIO_BUCKET: ${MINIO_BUCKET:-hbrag-documents}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        until mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"; do
+          sleep 2
+        done
+        mc mb --ignore-existing "local/$$MINIO_BUCKET"
+    networks:
+      - hbrag
+
+  neo4j:
+    image: neo4j:5.16.0
+    container_name: hbrag-neo4j
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/hbrag_password
+      - NEO4J_dbms_memory_heap_initial__size=512m
+      - NEO4J_dbms_memory_heap_max__size=1G
+    volumes:
+      - neo4j_data:/data
+    restart: unless-stopped
+    networks:
+      - hbrag
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  minio_data:
+  neo4j_data:
+
+networks:
+  hbrag:
+    driver: bridge

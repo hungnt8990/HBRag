@@ -1,0 +1,194 @@
+﻿MaDviqly,MaDviqlyCha,TenDviqly,DviLevel
+CPC,P,Tổng Công ty Điện lực Miền Trung,1
+CT18,PB18,Xí nghiệp lưới điện cao thế Khánh Hoà - KHoPC,3
+PB18,CPC,Công ty Điện lực Khánh Hòa - KHoPC,2
+PB1801,PB18,Điện lực Phan Rang,3
+PB1802,PB18,Điện lực Ninh Hải,3
+PB1803,PB18,Điện lực Ninh Sơn,3
+PB1804,PB18,Điện lực Ninh phước,3
+PB1805,PB18,Điện lực Thuận Bắc,3
+PB1806,PB18,Điện lực Thuận Nam,3
+PB1807,PB18,Điện lực Trường Sa,3
+PC00AA,CPC,Công ty Dịch Vụ Đội quản lý điện miền Trung,2
+PC00AA0,PC00AA,XNDV Điện lực Quảng Bình,3
+PC00AA1,PC00AA,XNDV Điện lực Quảng Trị,3
+PC00AA10,PC00AA,XNDV Điện lực Đăk Nông,3
+PC00AA11,PC00AA,XNTĐ A Roàng,3
+PC00AA12,PC00AA,XNTĐ An Điềm,3
+PC00AA13,PC00AA,XNTĐ Đăk Pring,3
+PC00AA14,PC00AA,XNTĐ Đrây H’Linh,3
+PC00AA15,PC00AA,XNTĐ Ry Ninh,3
+PC00AA16,PC00AA,Xí nghiệp Sửa chữa - Thí nghiệm,3
+PC00AA17,PC00AA,NMĐMT Điện lực miền Trung,3
+PC00AA2,PC00AA,XNDV Điện lực Thừa Thiên Huế,3
+PC00AA3,PC00AA,XNDV Điện lực Quảng Nam,3
+PC00AA4,PC00AA,XNDV Điện lực Quảng Ngãi,3
+PC00AA5,PC00AA,XNDV Điện lực Bình Định,3
+PC00AA6,PC00AA,XNDV Điện lực Phú Yên,3
+PC00AA7,PC00AA,XNDV Điện lực Gia Lai,3
+PC00AA8,PC00AA,XNDV Điện lực Kon Tum,3
+PC00AA9,PC00AA,XNDV Điện lực Đăk Lăk,3
+PC01AA,PC02,Điện lực Đồng Hới,3
+PC01BB,PC02,Điện lực Quảng Trạch,3
+PC01CC,PC02,Điện lực Quảng Ninh,3
+PC01DD,PC02,Điện lực Bố Trạch,3
+PC01EE,PC02,Điện lực Tuyên Hóa,3
+PC01FF,PC02,Điện lực Lệ Thuỷ,3
+PC01MM,PC02,Điện lực Minh Hóa,3
+PC02,CPC,Công ty Điện lực Quảng Trị,2
+PC02AA,PC02,Điện lực Đông Hà,3
+PC02BB,PC02,Điện lực Thành Cổ,3
+PC02CC,PC02,Điện lực Gio Linh,3
+PC02DD,PC02,Điện lực Vĩnh Linh,3
+PC02FF,PC02,Điện lực Khe Sanh,3
+PC02GG,PC02,Điện lực Cam Lộ,3
+PC02HH,PC02,Điện lực Triệu Phong,3
+PC02KK,PC02,Điện lực Hải Lăng,3
+PC02LL,PC02,Điện lực ĐaKrông,3
+PC02MM,PC02,Trạm Điện Cồn Cỏ,3
+PC03,CPC,Công ty Điện lực Huế,2
+PC03AA,PC03,Điện lực Nam Sông Hương,3
+PC03BB,PC03,Điện lực Bắc Sông Hương,3
+PC03CC,PC03,Điện lực Phong Điền,3
+PC03DD,PC03,Điện lực Phú Vang,3
+PC03EE,PC03,Điện lực A Lưới,3
+PC03FF,PC03,Điện lực Nam Đông,3
+PC03GG,PC03,Điện lực Phú Lộc,3
+PC03HH,PC03,Điện lực Quảng Điền,3
+PC03II,PC03,Xí nghiệp điện cơ,3
+PC03PP,PC03,Điện lực Hương Thủy,3
+PC03TT,PC03,Điện lực Hương Trà,3
+PC05AA,PP,Điện lực Tam Kỳ,3
+PC05BB,PP,Điện lực Núi Thành,3
+PC05CC,PP,Điện lực Hội An,3
+PC05DD,PP,Điện lực Duy Xuyên,3
+PC05EE,PP,Điện lực Tiên Phước,3
+PC05FF,PP,Điện lực Thăng Bình,3
+PC05GG,PP,Điện lực Đại Lộc,3
+PC05HH,PP,Điện lực Hiệp Đức,3
+PC05II,PP,Điện lực Điện Bàn,3
+PC05KK,PP,Điện lực Đông Giang,3
+PC05MM,PP,Điện lực Quế Sơn,3
+PC05NN,PP,Điện lực Trà My,3
+PC05PP,PP,Điện lực Nam Giang,3
+PC05QQ,PP,Xí nghiệp điện cơ,3
+PC06,CPC,Công ty Điện lực Quảng Ngãi,2
+PC06AA,PC06,Điện lực TP Quảng Ngãi,3
+PC06BB,PC06,Điện lực Bình Sơn,3
+PC06CC,PC06,Điện lực Ba Tơ,3
+PC06DD,PC06,Điện lực Đức Phổ,3
+PC06EE,PC06,Điện lực Tư Nghĩa,3
+PC06HH,PC06,Điện lực Sơn Hà,3
+PC06LL,PC06,Điện lực Lý Sơn,3
+PC06MM,PC06,Điện lực Mộ Đức,3
+PC06NN,PC06,Điện lực Nghĩa Hành,3
+PC06SS,PC06,Điện lực Sơn Tịnh,3
+PC06TT,PC06,Điện lực Trà Bồng,3
+PC06VV,PC06,Xí nghiệp điện cơ,3
+PC07AA,PC10,Điện lực Quy Nhơn,3
+PC07BB,PC10,Điện lực An Nhơn,3
+PC07CC,PC10,Điện lực Bồng Sơn,3
+PC07DD,PC10,Điện lực Phú Phong,3
+PC07EE,PC10,Điện lực Phù Mỹ,3
+PC07FF,PC10,Điện lực Phú Tài,3
+PC07GG,PC10,Điện lực Phù Cát,3
+PC07HH,PC10,Điện lực Tuy Phước,3
+PC07II,PC10,Điện lực Hoài Ân,3
+PC07JJ,PC10,Xí nghiệp cơ điện,3
+PC08AA,PC12,Điện lực Tuy Hoà,3
+PC08BB,PC12,Điện lực Sông Cầu,3
+PC08CC,PC12,Điện lực Đông Hòa,3
+PC08DD,PC12,Điện lực Sơn Hòa,3
+PC08EE,PC12,Điện lực Tuy An,3
+PC08FF,PC12,Điện lực Sông Hinh,3
+PC08GG,PC12,Điện lực Đồng Xuân,3
+PC08HH,PC12,Điện lực  Phú Hòa,3
+PC08II,PC12,Điện lực Tây Hoà,3
+PC08VV,PC12,Xí nghiệp điện cơ,3
+PC10,CPC,Công ty Điện lực Gia Lai,2
+PC10AA,PC10,Điện lực Pleiku,3
+PC10BB,PC10,Điện lực An Khê,3
+PC10CC,PC10,Điện lực Ayunpa,3
+PC10DD,PC10,Điện lực KrôngPa,3
+PC10EE,PC10,Điện lực Chư Sê,3
+PC10FF,PC10,Điện lực KBang,3
+PC10GG,PC10,Điện lực Đức cơ,3
+PC10HH,PC10,Điện lực Đak Đoa,3
+PC10II,PC10,Điện lực Chư  Păh,3
+PC10KK,PC10,Điện lực IaGrai,3
+PC10LL,PC10,Điện lực Kông Chro,3
+PC10MM,PC10,Điện lực  Mang Yang,3
+PC10NN,PC10,Điện lực Chư Prông,3
+PC10OO,PC10,Điện lực Phú Thiện,3
+PC10PP,PC10,Điện lực Chư  Puh,3
+PC10VV,PC10,Xí nghiệp điện cơ,3
+PC11AA,PC06,Điện lực TP Kon Tum,3
+PC11BB,PC06,Điện lực  Kon Rẫy,3
+PC11CC,PC06,Điện lực  Đăk Tô,3
+PC11DD,PC06,Điện lực Đăk Hà,3
+PC11EE,PC06,Điện lực Sa Thầy,3
+PC11FF,PC06,Điện lực  Ngọc Hồi,3
+PC11GG,PC06,Điện lực  Đăk Glei,3
+PC11II,PC06,Điện lực Kon Plong,3
+PC11KK,PC06,Điện lực Tu Mơ Rông,3
+PC11VV,PC06,Xí nghiệp điện cơ,3
+PC12,CPC,Công ty Điện lực Đăk Lăk,2
+PC12AA,PC12,Điện lực Bắc Buôn Ma Thuột,3
+PC12BB,PC12,Điện lực Krông Pắc,3
+PC12CC,PC12,Điện lực Nam Buôn Ma Thuột,3
+PC12DD,PC12,Điện lực Buôn Hồ,3
+PC12EE,PC12,Điện lực Buôn Đôn,3
+PC12GG,PC12,Điện lực CưMgar,3
+PC12HH,PC12,Điện lực Cư Kuin,3
+PC12II,PC12,Điện lực EaHLeo,3
+PC12JJ,PC12,Điện lực Krông Năng,3
+PC12KK,PC12,Điện lực  Eakar,3
+PC12LL,PC12,Điện lực Krông Ana,3
+PC12MM,PC12,Điện lực EaSúp,3
+PC12NN,PC12,Điện lực Krông Bông,3
+PC12PP,PC12,Điện lực Lăk,3
+PC12VV,PC12,Xí nghiệp điện cơ,3
+PC13BB,PC13,Điện lực ĐắkR`Lấp,3
+PC13CC,PC13,Điện lực Cư Jút,3
+PC13DD,PC13,Điện lực Đắk Mil,3
+PC13EE,PC13,Điện lực Krông Nô,3
+PC13FF,PC13,Điện lực Gia Nghĩa,3
+PC13HH,PC13,Điện lực Đăk Song,3
+PC13II,PC13,Điện lực Tuy Đức,3
+PC14BB,PC02,Xí nghiệp lưới điện Cao thế Quảng Trị,3
+PC14CC,PC03,Xí nghiệp Lưới điện cao thế Huế,3
+PC14EE,PC06,Xí nghiệp lưới điện Cao thế Quảng Ngãi,3
+PC14HH,PC10,Xí nghiệp lưới điện Cao thế Gia Lai,3
+PC14JJ,PC12,Xí nghiệp lưới điện Cao thế Đăk Lăk,3
+PC14KK,PC13,Xí nghiệp lưới điện Cao thế Đăk Nông,3
+PC15,CPC,Công ty TNHH MTV Thí nghiệm Điện Miền Trung,3
+PC16,CPC,Trung tâm sản xuất thiết bị đo điện tử Điện lực miền Trung,2
+PC17,CPC,Trung tâm chăm sóc khách hàng Điện lực miền Trung,2
+PC18,CPC,Công ty Công nghệ thông tin Điện lực miền Trung,2
+PC19,CPC,Trường Cao đẳng Điện lực Miền Trung,2
+PC20,CPC,Ban QLDA Điện nông thôn miền Trung,2
+PC21,CPC,Công ty Tư vấn Điện miền Trung,2
+PC22,CPC,Ban QLDA lưới điện miền Trung,2
+PC23,CPC,Công ty CP Đầu tư Điện lực 3,2
+PP,CPC,Công ty Điện lực Đà Nẵng,2
+PP00ZZ,PP,Xí nghiệp Lưới điện Cao thế Đà Nẵng,3
+PP0100,PP,Điện lực Hải Châu,3
+PP0300,PP,Điện lực Liên Chiểu,3
+PP0500,PP,Điện lực Sơn Trà,3
+PP0700,PP,Điện lực Cẩm Lệ,3
+PP0800,PP,Điện lực Hòa Vang,3
+PP0900,PP,Điện lực Thanh Khê,3
+PP1000,PP,Xí nghiệp điện cơ,3
+PP1100,PP,Đội Thí nghiệm -  Đo lường,3
+PQ,CPC,Cty Cổ Phần ĐL Khánh Hoà,2
+PQ0100,PQ,Phòng Kinh doanh,3
+PQ0200,PQ,Điện lực Trung Tâm Nha Trang,3
+PQ0300,PQ,Điện lực Cam Ranh - Khánh Sơn,3
+PQ0400,PQ,Điện lực Ninh Hòa,3
+PQ0500,PQ,Điện lực Diên Khánh - Khánh Vĩnh,3
+PQ0600,PQ,Điện lực Vạn Ninh,3
+PQ0900,PQ,Điện lực Vĩnh Hải,3
+PQ1000,PQ,Điện lực Vĩnh Nguyên,3
+PQ1100,PQ,Điện lực Cam Lâm,3
+PQ1300,PQ,Xí nghiệp cơ điện - Thí Nghiệm,3
+PQ1400,PQ,Xí nghiệp lưới điện cao thế Khánh Hoà - KHPC,3

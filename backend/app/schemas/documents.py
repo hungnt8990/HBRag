@@ -1,0 +1,270 @@
+from datetime import datetime
+from typing import Annotated, Literal
+from uuid import UUID
+
+from pydantic import BaseModel, Field, StringConstraints, model_validator
+
+SearchQuery = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+
+
+class DocumentUploadResponse(BaseModel):
+    document_id: UUID
+    filename: str
+    status: str
+    storage_path: str
+
+
+class DocumentBatchUploadItem(BaseModel):
+    filename: str
+    document_id: UUID | None = None
+    status: str
+    success: bool
+    error: str | None = None
+
+
+class DocumentBatchUploadResponse(BaseModel):
+    items: list[DocumentBatchUploadItem]
+    success_count: int
+    failed_count: int
+
+
+class DocumentParseResponse(BaseModel):
+    document_id: UUID
+    status: str
+    character_count: int
+    preview: str
+
+
+class ChunkPreview(BaseModel):
+    chunk_index: int
+    content: str
+    start_char: int
+    end_char: int
+
+
+class DocumentChunkRequest(BaseModel):
+    chunk_size: int | None = Field(default=None, ge=300, le=4000)
+    chunk_overlap: int | None = Field(default=None, ge=0)
+    chunk_mode: Literal["recursive", "legal_article"] | None = None
+    profile: Literal[
+        "auto", "legal_admin", "general", "technical", "faq", "spreadsheet"
+    ] | None = None
+
+    @model_validator(mode="after")
+    def validate_overlap(self) -> "DocumentChunkRequest":
+        if self.chunk_overlap is not None:
+            limit = (self.chunk_size if self.chunk_size is not None else 4000) // 2
+            if self.chunk_overlap > limit:
+                raise ValueError(
+                    "chunk_overlap must be between 0 and half of chunk_size."
+                )
+        return self
+
+
+class DocumentChunkResponse(BaseModel):
+    document_id: UUID
+    status: str
+    chunk_count: int
+    preview: list[ChunkPreview]
+
+
+class DocumentVectorIndexResponse(BaseModel):
+    document_id: UUID
+    status: str
+    indexed_chunk_count: int
+
+
+class GraphIndexRequest(BaseModel):
+    force_rebuild: bool = False
+    extractor_provider: Literal["fake", "llm"] = "llm"
+    max_entities_per_chunk: int = Field(default=30, ge=1, le=200)
+    max_relations_per_chunk: int = Field(default=40, ge=0, le=200)
+
+
+class GraphIndexResponse(BaseModel):
+    document_id: UUID
+    chunks_processed: int
+    entities_extracted: int
+    relations_extracted: int
+    merged_entities: int
+    merged_relations: int
+    status: str
+
+
+class DocumentPerson(BaseModel):
+    id: UUID
+    username: str
+    full_name: str | None = None
+
+
+class DocumentOrganization(BaseModel):
+    id: UUID
+    ma_dviqly: str
+    ten_dviqly: str
+    dvi_level: int
+
+
+class DocumentListItem(BaseModel):
+    document_id: UUID
+    title: str
+    status: str
+    filename: str | None
+    organization: DocumentOrganization | None
+    uploaded_by: DocumentPerson | None
+    visibility: str
+    parsed_character_count: int
+    created_at: datetime
+    updated_at: datetime
+    chunk_count: int
+    vector_indexed_count: int | None = None
+    pipeline_logs_count: int = 0
+    graph_indexed: bool = False
+
+
+class DocumentListResponse(BaseModel):
+    items: list[DocumentListItem]
+    total: int
+    limit: int
+    offset: int
+
+
+class DocumentFileResponse(BaseModel):
+    id: str
+    filename: str
+    mime_type: str
+    storage_path: str
+    file_size: int
+    created_at: str
+
+
+class DocumentPipelineLogResponse(BaseModel):
+    action: str
+    status: str
+    message: str | None
+    metadata: dict[str, object] | None
+    created_at: datetime
+
+
+class GraphExtractionLogResponse(BaseModel):
+    status: str
+    entity_count: int
+    relation_count: int
+    merged_entity_count: int
+    merged_relation_count: int
+    error_message: str | None
+    metadata: dict[str, object] | None
+    created_at: datetime
+
+
+class GraphDocumentStatusResponse(BaseModel):
+    graph_indexed: bool
+    chunks_processed: int
+    entity_count: int
+    relation_count: int
+    last_indexed_at: datetime | None
+    error_message: str | None
+
+
+class DocumentDetailResponse(DocumentListItem):
+    preview_text: str | None = None
+    files: list[DocumentFileResponse]
+    pipeline_logs: list[DocumentPipelineLogResponse]
+    access_logs_summary: dict[str, int]
+    latest_retrieval_logs: list[dict[str, object]]
+    graph_status: GraphDocumentStatusResponse | None = None
+    graph_extraction_logs: list[GraphExtractionLogResponse] = []
+
+
+class VectorSearchRequest(BaseModel):
+    query: str = Field(min_length=1)
+    top_k: int = Field(default=5, ge=1, le=50)
+
+
+class VectorSearchResult(BaseModel):
+    chunk_id: UUID | str
+    document_id: UUID | str
+    score: float
+    content_preview: str
+    metadata: dict[str, object]
+
+
+class VectorSearchResponse(BaseModel):
+    query: str
+    top_k: int
+    results: list[VectorSearchResult]
+
+
+class KeywordSearchRequest(BaseModel):
+    query: SearchQuery
+    top_k: int = Field(default=5, ge=1, le=50)
+
+
+class KeywordSearchResult(BaseModel):
+    chunk_id: UUID | str
+    document_id: UUID | str
+    score: float
+    content_preview: str
+    metadata: dict[str, object]
+
+
+class KeywordSearchResponse(BaseModel):
+    query: str
+    top_k: int
+    results: list[KeywordSearchResult]
+
+
+class HybridSearchRequest(BaseModel):
+    query: SearchQuery
+    top_k: int = Field(default=5, ge=1, le=50)
+    vector_weight: float = Field(default=1.0, ge=0.0)
+    keyword_weight: float = Field(default=1.0, ge=0.0)
+
+
+class HybridSearchResult(BaseModel):
+    chunk_id: UUID | str
+    document_id: UUID | str
+    fused_score: float
+    vector_score: float | None = None
+    keyword_score: float | None = None
+    content_preview: str
+    metadata: dict[str, object]
+    source_flags: list[Literal["vector", "keyword", "graph", "neighbor"]]
+
+
+class HybridSearchResponse(BaseModel):
+    query: str
+    top_k: int
+    vector_weight: float
+    keyword_weight: float
+    results: list[HybridSearchResult]
+
+
+class RerankSearchRequest(BaseModel):
+    query: SearchQuery
+    top_k: int = Field(default=5, ge=1, le=50)
+    candidate_k: int = Field(default=20, ge=1, le=200)
+
+    @model_validator(mode="after")
+    def validate_candidate_window(self) -> "RerankSearchRequest":
+        if self.candidate_k < self.top_k:
+            raise ValueError("candidate_k must be greater than or equal to top_k.")
+        return self
+
+
+class RerankSearchResult(BaseModel):
+    chunk_id: UUID | str
+    document_id: UUID | str
+    rerank_score: float
+    fused_score: float
+    vector_score: float | None = None
+    keyword_score: float | None = None
+    content_preview: str
+    metadata: dict[str, object]
+    source_flags: list[Literal["vector", "keyword", "graph", "neighbor"]]
+
+
+class RerankSearchResponse(BaseModel):
+    query: str
+    top_k: int
+    candidate_k: int
+    results: list[RerankSearchResult]
