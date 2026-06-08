@@ -45,7 +45,7 @@ class ChunkPreview(BaseModel):
 class DocumentChunkRequest(BaseModel):
     chunk_size: int | None = Field(default=None, ge=300, le=4000)
     chunk_overlap: int | None = Field(default=None, ge=0)
-    chunk_mode: Literal["recursive", "legal_article"] | None = None
+    chunk_mode: Literal["recursive", "legal_article", "table_aware"] | None = None
     profile: Literal[
         "auto", "legal_admin", "general", "technical", "faq", "spreadsheet"
     ] | None = None

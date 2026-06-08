@@ -364,6 +364,7 @@ def test_rag_endpoint_response_schema_is_correct() -> None:
                     "article_number": "10",
                     "article_title": "Nguyen tac ap dung",
                     "chapter_title": "Chuong I",
+                    "source_type": "vector",
                     "source_flags": ["vector", "keyword"],
                 },
             }

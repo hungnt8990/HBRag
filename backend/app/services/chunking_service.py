@@ -15,7 +15,7 @@ DEFAULT_CHUNK_OVERLAP = settings.default_chunk_overlap
 CHUNK_PREVIEW_LIMIT = 2
 MIN_SPLIT_RATIO = 0.5
 
-ChunkMode = Literal["recursive", "legal_article"]
+ChunkMode = Literal["recursive", "legal_article", "table_aware"]
 DEFAULT_CHUNK_MODE: ChunkMode = "recursive"
 
 # Vietnamese legal-document heading patterns. The article pattern is the
@@ -295,30 +295,75 @@ class ChunkingService:
             resolved_overlap = max(0, resolved_size // 2)
         mode: ChunkMode = chunk_mode or config["chunk_mode"]
 
-        if mode == "legal_article":
+        if mode == "table_aware":
+            from app.services.table_aware_chunking import table_aware_chunk_text
+
+            raw_chunks, _entity_index = table_aware_chunk_text(
+                document.parsed_text,
+                chunk_size=resolved_size,
+                chunk_overlap=resolved_overlap,
+            )
+            chunk_records = [
+                ChunkCreate(
+                    chunk_index=chunk_dict["chunk_index"],
+                    content=chunk_dict["content"],
+                    metadata={
+                        **chunk_dict.get("metadata", {}),
+                        "chunk_size": resolved_size,
+                        "chunk_overlap": resolved_overlap,
+                        "document_profile": effective_profile,
+                    },
+                )
+                for chunk_dict in raw_chunks
+            ]
+            text_chunks_for_preview = [
+                TextChunk(
+                    content=c["content"],
+                    start_char=c.get("metadata", {}).get("start_char", 0),
+                    end_char=c.get("metadata", {}).get("end_char", 0),
+                )
+                for c in raw_chunks[:CHUNK_PREVIEW_LIMIT]
+            ]
+        elif mode == "legal_article":
             chunker: RecursiveTextChunker | LegalArticleChunker = LegalArticleChunker(
                 chunk_size=resolved_size, chunk_overlap=resolved_overlap
             )
+            text_chunks = chunker.chunk_text(document.parsed_text)
+            chunk_records = [
+                ChunkCreate(
+                    chunk_index=index,
+                    content=text_chunk.content,
+                    metadata=self._build_metadata(
+                        chunk_size=resolved_size,
+                        chunk_overlap=resolved_overlap,
+                        chunk_mode=mode,
+                        profile=effective_profile,
+                        text_chunk=text_chunk,
+                    ),
+                )
+                for index, text_chunk in enumerate(text_chunks)
+            ]
+            text_chunks_for_preview = text_chunks[:CHUNK_PREVIEW_LIMIT]
         else:
             chunker = RecursiveTextChunker(
                 chunk_size=resolved_size, chunk_overlap=resolved_overlap
             )
-
-        text_chunks = chunker.chunk_text(document.parsed_text)
-        chunk_records = [
-            ChunkCreate(
-                chunk_index=index,
-                content=text_chunk.content,
-                metadata=self._build_metadata(
-                    chunk_size=resolved_size,
-                    chunk_overlap=resolved_overlap,
-                    chunk_mode=mode,
-                    profile=effective_profile,
-                    text_chunk=text_chunk,
-                ),
-            )
-            for index, text_chunk in enumerate(text_chunks)
-        ]
+            text_chunks = chunker.chunk_text(document.parsed_text)
+            chunk_records = [
+                ChunkCreate(
+                    chunk_index=index,
+                    content=text_chunk.content,
+                    metadata=self._build_metadata(
+                        chunk_size=resolved_size,
+                        chunk_overlap=resolved_overlap,
+                        chunk_mode=mode,
+                        profile=effective_profile,
+                        text_chunk=text_chunk,
+                    ),
+                )
+                for index, text_chunk in enumerate(text_chunks)
+            ]
+            text_chunks_for_preview = text_chunks[:CHUNK_PREVIEW_LIMIT]
 
         try:
             document.document_profile = effective_profile
@@ -337,11 +382,11 @@ class ChunkingService:
             preview=[
                 ChunkPreview(
                     chunk_index=index,
-                    content=text_chunk.content,
-                    start_char=text_chunk.start_char,
-                    end_char=text_chunk.end_char,
+                    content=tc.content,
+                    start_char=tc.start_char,
+                    end_char=tc.end_char,
                 )
-                for index, text_chunk in enumerate(text_chunks[:CHUNK_PREVIEW_LIMIT])
+                for index, tc in enumerate(text_chunks_for_preview)
             ],
         )
 

@@ -76,10 +76,24 @@ POLICY_EXPLAINER_STYLE = (
     "Do not invent information."
 )
 
+TABLE_QA_STYLE = (
+    "Answer style: Table QA. "
+    "You are a document QA assistant. Answer only from the provided context. "
+    "If the context contains tables, synthesize information by row and column. "
+    "Do not assume fixed column names. Use the original column names from context. "
+    "Do not use legal/policy language if the document is not a legal/policy document. "
+    "If multiple rows contain the same entity, list all related rows. "
+    "For each row, show the most descriptive columns (exclude ordinal-only columns). "
+    "Keep original column names so the user understands the data source. "
+    "If there is not enough information, say so clearly. "
+    "Do not invent information."
+)
+
 ANSWER_STYLE_INSTRUCTIONS = {
     "concise": CONCISE_STYLE,
     "detailed": DETAILED_STYLE,
     "policy_explainer": POLICY_EXPLAINER_STYLE,
+    "table_qa": TABLE_QA_STYLE,
 }
 DEFAULT_ANSWER_STYLE = "policy_explainer"
 

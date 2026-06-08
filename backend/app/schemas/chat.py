@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, StringConstraints, model_validator
 
 SearchQuery = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 AnswerMode = Literal["generative", "extractive", "hybrid"]
-AnswerStyle = Literal["concise", "detailed", "policy_explainer"]
+AnswerStyle = Literal["concise", "detailed", "policy_explainer", "table_qa"]
 ProfileName = Literal[
     "auto", "legal_admin", "general", "technical", "faq", "spreadsheet"
 ]
