@@ -80,6 +80,8 @@ POLICY_EXPLAINER_STYLE = (
 TABLE_QA_STYLE = (
     "Answer style: Table QA. "
     "You are a document QA assistant. Answer only from the provided context. "
+    "When ENTITY_MATCHED_ROWS exists, use only ENTITY_MATCHED_ROWS for the main answer; "
+    "TABLE_SUPPORT is only title/header/caption support, not a result list. "
     "If the context contains TABLE_ROW records, treat each TABLE_ROW as one record. "
     "When the question asks about an entity, find every TABLE_ROW containing that entity "
     "and answer from fields in the same row. "
@@ -91,6 +93,7 @@ TABLE_QA_STYLE = (
     "Do not infer missing fields. "
     "Do not use legal/policy language if the document is not a legal/policy document. "
     "If there is not enough information, say so clearly. "
+    "Answer in Vietnamese. Do not use foreign words when Vietnamese wording is available. "
     "Do not invent information."
 )
 
@@ -101,6 +104,15 @@ ANSWER_STYLE_INSTRUCTIONS = {
     "table_qa": TABLE_QA_STYLE,
 }
 DEFAULT_ANSWER_STYLE = "policy_explainer"
+PUBLIC_SOURCE_FLAGS = {"vector", "keyword", "graph", "neighbor"}
+SOURCE_FLAG_ALIASES = {
+    "lexical_exact": "keyword",
+    "exact": "keyword",
+    "entity_exact": "keyword",
+    "keyword_exact": "keyword",
+    "primary": "vector",
+    "semantic": "vector",
+}
 
 
 def system_prompt_for_mode(answer_mode: str | None) -> str:
@@ -776,13 +788,78 @@ class RagAnswerService:
         if session_summary:
             sections.append(f"Session Summary:\n{session_summary}")
 
-        context = "\n".join(
-            f"[{context_chunk.citation_index}] {context_chunk.chunk.content}"
-            for context_chunk in context_chunks
+        query_terms = RagAnswerService._query_terms(query)
+        matched_rows, table_support = RagAnswerService._table_context_sections(
+            context_chunks=context_chunks,
+            query_terms=query_terms,
         )
-        sections.append(f"Retrieved Document Context:\n{context}")
+
+        if matched_rows:
+            sections.append("ENTITY_MATCHED_ROWS:\n" + "\n".join(matched_rows))
+            if table_support:
+                sections.append("TABLE_SUPPORT:\n" + "\n".join(table_support))
+        else:
+            context = "\n".join(
+                f"[{context_chunk.citation_index}] {context_chunk.chunk.content}"
+                for context_chunk in context_chunks
+            )
+            sections.append(f"Retrieved Document Context:\n{context}")
+
         sections.append(f"Question:\n{query}")
         return "\n\n".join(sections)
+
+    @staticmethod
+    def _table_context_sections(
+        *,
+        context_chunks: list[ContextChunk],
+        query_terms: list[str],
+    ) -> tuple[list[str], list[str]]:
+        matched_rows: list[str] = []
+        support: list[str] = []
+        seen_rows: set[str] = set()
+        seen_support: set[str] = set()
+
+        for context_chunk in context_chunks:
+            content = context_chunk.chunk.content
+            citation = context_chunk.citation_index
+            metadata = context_chunk.chunk.chunk_metadata or {}
+            chunk_type = str(metadata.get("chunk_type") or "")
+
+            for line in RagAnswerService._table_context_lines(content):
+                normalized_line = line.casefold()
+                formatted = f"[{citation}] {line}"
+                if "table_row" in normalized_line and RagAnswerService._contains_any_query_term(
+                    line,
+                    query_terms,
+                ):
+                    if formatted not in seen_rows:
+                        seen_rows.add(formatted)
+                        matched_rows.append(formatted)
+                    continue
+
+                is_support_line = (
+                    "table_title" in normalized_line
+                    or "table_header" in normalized_line
+                    or "table_caption" in normalized_line
+                    or chunk_type in {"table_title", "table_header", "table_caption"}
+                )
+                if is_support_line and formatted not in seen_support:
+                    seen_support.add(formatted)
+                    support.append(formatted)
+
+        return matched_rows, support
+
+    @staticmethod
+    def _table_context_lines(content: str) -> list[str]:
+        lines = [line.strip() for line in content.splitlines() if line.strip()]
+        return lines or [content.strip()]
+
+    @staticmethod
+    def _contains_any_query_term(text: str, query_terms: list[str]) -> bool:
+        if not query_terms:
+            return False
+        normalized = text.casefold()
+        return any(term.casefold() in normalized for term in query_terms)
 
     @staticmethod
     def _session_title(query: str) -> str:
@@ -802,7 +879,20 @@ class RagAnswerService:
         metadata = self._metadata(context_chunk.chunk.chunk_metadata)
         document = getattr(context_chunk.chunk, "document", None)
         files = getattr(document, "files", None) or []
-        source_flags = list(context_chunk.source_flags or [context_chunk.source_type])
+        raw_source_flags = list(context_chunk.source_flags or [context_chunk.source_type])
+        source_flags = self._public_source_flags(raw_source_flags)
+        if not source_flags:
+            source_flags = self._public_source_flags([context_chunk.source_type]) or ["vector"]
+
+        response_metadata = {
+            **metadata,
+            "source_type": context_chunk.source_type,
+            "source_flags": source_flags,
+        }
+        if raw_source_flags != source_flags:
+            response_metadata["raw_source_flags"] = raw_source_flags
+        if "lexical_exact" in raw_source_flags:
+            response_metadata["match_type"] = "lexical_exact"
 
         return RagCitationResponse(
             citation_index=context_chunk.citation_index,
@@ -817,12 +907,20 @@ class RagAnswerService:
             chapter_title=self._string_or_none(metadata.get("chapter_title")),
             page_number=self._page_number(metadata),
             source_flags=source_flags,
-            metadata={
-                **metadata,
-                "source_type": context_chunk.source_type,
-                "source_flags": source_flags,
-            },
+            metadata=response_metadata,
         )
+
+    @staticmethod
+    def _public_source_flags(source_flags: list[str]) -> list[str]:
+        public_flags: list[str] = []
+        seen: set[str] = set()
+        for flag in source_flags:
+            normalized = SOURCE_FLAG_ALIASES.get(flag, flag)
+            if normalized not in PUBLIC_SOURCE_FLAGS or normalized in seen:
+                continue
+            seen.add(normalized)
+            public_flags.append(normalized)
+        return public_flags
 
     @staticmethod
     def _metadata(metadata: dict[str, Any] | None) -> dict[str, object]:

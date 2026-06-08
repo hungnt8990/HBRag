@@ -469,6 +469,40 @@ def test_build_system_prompt_includes_policy_explainer_instructions() -> None:
     assert "thorough" in detailed.lower()
 
 
+def test_citation_response_maps_lexical_exact_to_public_keyword_flag() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=uuid4(),
+        chunk_index=1,
+        content="exact lexical match",
+        chunk_metadata={},
+    )
+    service = RagAnswerService(
+        chat_repository=SimpleNamespace(),  # type: ignore[arg-type]
+        reranking_service=SimpleNamespace(),  # type: ignore[arg-type]
+        llm_provider=SimpleNamespace(),  # type: ignore[arg-type]
+    )
+
+    citation = service._build_citation_response(
+        context_chunk=ContextChunk(
+            citation_index=1,
+            chunk=chunk,
+            source_type="primary",
+            source_flags=["keyword", "lexical_exact"],
+        ),
+        quote="exact lexical match",
+    )
+
+    assert citation.source_flags == ["keyword"]
+    assert "lexical_exact" not in citation.source_flags
+    assert citation.metadata["raw_source_flags"] == ["keyword", "lexical_exact"]
+    assert citation.metadata["match_type"] == "lexical_exact"
+
+
 def test_neighbor_expansion_fetches_same_article_chunks() -> None:
     import asyncio
     from uuid import uuid4
@@ -944,3 +978,48 @@ def test_entity_coverage_lookup_adds_all_matching_table_rows_only() -> None:
     assert any("Kho du lieu AI dung chung" in content for content in contents)
     assert any("Platform AI" in content for content in contents)
     assert all("Xay dung nang luc mo hinh ngon ngu noi bo" not in content for content in contents)
+
+
+def test_user_prompt_separates_entity_matched_rows_from_table_support() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    table_chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=uuid4(),
+        chunk_index=1,
+        content=(
+            "TABLE_TITLE table_id=tbl_1 | Ke hoach cong nghe\n"
+            "TABLE_HEADER table_id=tbl_1 | STT | Nhom nhiem vu | Danh sach\n"
+            "TABLE_ROW table_id=tbl_1 row=2 | STT: 2 | Nhom nhiem vu: Xay dung nang "
+            "luc mo hinh ngon ngu noi bo | Danh sach: Tran Van An\n"
+            "TABLE_ROW table_id=tbl_1 row=3 | STT: 3 | Nhom nhiem vu: Xay dung nen "
+            "tang RAG tren du lieu noi bo | Danh sach: Tong Phuoc Lam; Nguyen Quang Lam\n"
+            "TABLE_ROW table_id=tbl_1 row=4 | STT: 4 | Nhom nhiem vu: Xay dung dich "
+            "vu OCR dung chung | Danh sach: Trinh Thanh Tinh; Nguyen Quang Lam\n"
+            "TABLE_ROW table_id=tbl_1 row=5 | STT: 5 | Nhom nhiem vu: Kho du lieu AI "
+            "dung chung | Danh sach: Nguyen Quang Lam; Nguyen Trong Hung\n"
+            "TABLE_ROW table_id=tbl_1 row=6 | STT: 6 | Nhom nhiem vu: Platform AI | "
+            "Danh sach: Cac nhan su trong ke hoach PoC ThinkLabs; Nguyen Quang Lam"
+        ),
+        chunk_metadata={"chunk_type": "table_block", "table_id": "tbl_1"},
+    )
+
+    prompt = RagAnswerService._build_user_prompt(
+        query="Nguyen Quang Lam tham gia nhung mang cong nghe nao?",
+        context_chunks=[ContextChunk(citation_index=1, chunk=table_chunk)],
+    )
+
+    entity_section = prompt.split("ENTITY_MATCHED_ROWS:\n", 1)[1].split(
+        "\n\nTABLE_SUPPORT:",
+        1,
+    )[0]
+    assert "row=3" in entity_section
+    assert "row=4" in entity_section
+    assert "row=5" in entity_section
+    assert "row=6" in entity_section
+    assert "row=2" not in entity_section
+    assert "Xay dung nang luc mo hinh ngon ngu noi bo" not in entity_section
+    assert "TABLE_SUPPORT:" in prompt
+    assert "TABLE_HEADER table_id=tbl_1" in prompt
