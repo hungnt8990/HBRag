@@ -512,6 +512,7 @@ def test_neighbor_expansion_fetches_same_article_chunks() -> None:
 
     expanded = asyncio.run(
         service._expand_with_neighbors(
+            query="Dieu 10",
             context_chunks=primary_chunks,
             max_context_chars=1000,
         )
@@ -559,6 +560,7 @@ def test_neighbor_expansion_respects_max_context_chars() -> None:
 
     expanded = asyncio.run(
         service._expand_with_neighbors(
+            query="Dieu 10",
             context_chunks=[ContextChunk(citation_index=1, chunk=primary)],
             max_context_chars=200,
         )
@@ -719,3 +721,68 @@ def test_deduplicated_prompt_has_no_repeated_lines() -> None:
     )
     prompt = service._build_user_prompt(query="q", context_chunks=deduped)
     assert prompt.count(same) == 1
+
+
+def test_table_neighbor_expansion_prefers_matching_rows_and_headers() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    document_id = uuid4()
+    primary = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=3,
+        content=(
+            "TABLE_ROW table_id=pdf_p1_1 page=1 row=1 | Name: Nguyen Quang Lam | "
+            "Area: Infrastructure"
+        ),
+        chunk_metadata={"table_id": "pdf_p1_1", "chunk_type": "table_row"},
+    )
+    header = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=1,
+        content="TABLE_HEADER table_id=pdf_p1_1 page=1 | Name | Area",
+        chunk_metadata={"table_id": "pdf_p1_1", "chunk_type": "table_header"},
+    )
+    related = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=4,
+        content=(
+            "TABLE_ROW table_id=pdf_p1_1 page=1 row=2 | Name: Nguyen Quang Lam | "
+            "Area: Data"
+        ),
+        chunk_metadata={"table_id": "pdf_p1_1", "chunk_type": "table_row"},
+    )
+    unrelated = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=5,
+        content="TABLE_ROW table_id=pdf_p1_1 page=1 row=3 | Name: Tran Van An | Area: QA",
+        chunk_metadata={"table_id": "pdf_p1_1", "chunk_type": "table_row"},
+    )
+
+    class FakeRepoWithTableNeighbors:
+        async def get_table_chunks(self, **kwargs):
+            return [header, related, unrelated]
+
+    service = RagAnswerService(
+        chat_repository=FakeRepoWithTableNeighbors(),  # type: ignore[arg-type]
+        reranking_service=SimpleNamespace(),  # type: ignore[arg-type]
+        llm_provider=SimpleNamespace(),  # type: ignore[arg-type]
+    )
+
+    expanded = asyncio.run(
+        service._expand_with_neighbors(
+            query="Nguyen Quang Lam tham gia mang nao?",
+            context_chunks=[ContextChunk(citation_index=1, chunk=primary)],
+            max_context_chars=1000,
+        )
+    )
+
+    contents = [item.chunk.content for item in expanded]
+    assert any("TABLE_HEADER" in content for content in contents)
+    assert any("Area: Data" in content for content in contents)
+    assert all("Tran Van An" not in content for content in contents)

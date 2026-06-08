@@ -228,7 +228,7 @@ class HybridSearchResult(BaseModel):
     keyword_score: float | None = None
     content_preview: str
     metadata: dict[str, object]
-    source_flags: list[Literal["vector", "keyword", "graph", "neighbor"]]
+    source_flags: list[Literal["vector", "keyword", "graph", "neighbor", "lexical_exact"]]
 
 
 class HybridSearchResponse(BaseModel):
@@ -260,7 +260,7 @@ class RerankSearchResult(BaseModel):
     keyword_score: float | None = None
     content_preview: str
     metadata: dict[str, object]
-    source_flags: list[Literal["vector", "keyword", "graph", "neighbor"]]
+    source_flags: list[Literal["vector", "keyword", "graph", "neighbor", "lexical_exact"]]
 
 
 class RerankSearchResponse(BaseModel):

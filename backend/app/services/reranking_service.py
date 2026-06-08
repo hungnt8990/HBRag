@@ -2,14 +2,15 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from app.repositories.documents import DocumentRepository
 from app.repositories.retrieval_logs import RetrievalLogRepository
-from app.services.graph.graph_retrieval_service import GraphRetrievalService
-from app.services.graph.models import GraphChunkCandidate
 from app.schemas.documents import (
     HybridSearchResult,
     RerankSearchResponse,
     RerankSearchResult,
 )
+from app.services.graph.graph_retrieval_service import GraphRetrievalService
+from app.services.graph.models import GraphChunkCandidate
 from app.services.hybrid_search import HybridSearchService
 from app.services.rerankers import RerankCandidate, Reranker
 
@@ -28,11 +29,13 @@ class RerankingService:
         hybrid_search_service: HybridSearchService,
         reranker: Reranker,
         retrieval_log_repository: RetrievalLogRepository,
+        chunk_repository: DocumentRepository,
         graph_retrieval_service: GraphRetrievalService | None = None,
     ) -> None:
         self._hybrid_search_service = hybrid_search_service
         self._reranker = reranker
         self._retrieval_log_repository = retrieval_log_repository
+        self._chunk_repository = chunk_repository
         self._graph_retrieval_service = graph_retrieval_service
 
     async def search(
@@ -81,10 +84,14 @@ class RerankingService:
                     )
                 except Exception:
                     pass
+            full_content_by_chunk_id = await self._load_full_content(hybrid_results)
             candidates = [
                 RerankCandidate(
                     chunk_id=str(result.chunk_id),
-                    content=result.content_preview,
+                    content=full_content_by_chunk_id.get(
+                        str(result.chunk_id),
+                        result.content_preview,
+                    ),
                 )
                 for result in hybrid_results
             ]
@@ -119,6 +126,14 @@ class RerankingService:
             raise RerankingError("Failed to run reranking search.") from exc
 
         return response
+
+    async def _load_full_content(
+        self,
+        hybrid_results: list[HybridSearchResult],
+    ) -> dict[str, str]:
+        chunk_ids = [UUID(str(result.chunk_id)) for result in hybrid_results]
+        chunks = await self._chunk_repository.get_chunks_by_ids(chunk_ids)
+        return {str(chunk.id): chunk.content for chunk in chunks}
 
     @staticmethod
     def _merge_graph_candidates(

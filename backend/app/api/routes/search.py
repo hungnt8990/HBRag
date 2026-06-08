@@ -112,6 +112,7 @@ def get_reranking_service(
         RetrievalLogRepository,
         Depends(get_retrieval_log_repository),
     ],
+    chunk_repository: Annotated[DocumentRepository, Depends(get_search_repository)],
     graph_retrieval_service: Annotated[
         GraphRetrievalService,
         Depends(get_graph_retrieval_service),
@@ -121,6 +122,7 @@ def get_reranking_service(
         hybrid_search_service=hybrid_search_service,
         reranker=reranker,
         retrieval_log_repository=retrieval_log_repository,
+        chunk_repository=chunk_repository,
         graph_retrieval_service=graph_retrieval_service,
     )
 

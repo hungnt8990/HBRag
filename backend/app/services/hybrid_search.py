@@ -18,7 +18,7 @@ from app.services.vector_indexing_service import VectorIndexingService
 
 DEFAULT_RRF_K = 60
 HYBRID_DEPTH_MULTIPLIER = 3
-SourceFlag = Literal["vector", "keyword"]
+SourceFlag = Literal["vector", "keyword", "lexical_exact"]
 
 
 class HybridSearchError(RuntimeError):
@@ -198,6 +198,8 @@ class HybridSearchService:
                 rrf_k=rrf_k,
             )
             HybridSearchService._append_source_flag(item, "keyword")
+            if result.metadata.get("exact_match_terms"):
+                HybridSearchService._append_source_flag(item, "lexical_exact")
 
         ranked = sorted(
             fused.values(),

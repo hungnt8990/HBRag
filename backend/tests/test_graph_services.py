@@ -227,10 +227,18 @@ def test_reranking_service_merges_graph_candidates_with_hybrid_results() -> None
         async def rollback(self):
             return None
 
+    class FakeChunkRepository:
+        async def get_chunks_by_ids(self, chunk_ids):
+            return [
+                SimpleNamespace(id=hybrid_chunk_id, content="hybrid full content"),
+                SimpleNamespace(id=graph_chunk_id, content="graph full content"),
+            ]
+
     service = RerankingService(
         hybrid_search_service=FakeHybridSearchService(),  # type: ignore[arg-type]
         reranker=FakeReranker(),  # type: ignore[arg-type]
         retrieval_log_repository=FakeLogRepository(),  # type: ignore[arg-type]
+        chunk_repository=FakeChunkRepository(),  # type: ignore[arg-type]
         graph_retrieval_service=FakeGraphRetrievalService(),  # type: ignore[arg-type]
     )
 
@@ -247,5 +255,9 @@ def test_reranking_service_merges_graph_candidates_with_hybrid_results() -> None
         str(hybrid_chunk_id),
         str(graph_chunk_id),
     }
-    graph_result = next(result for result in response.results if str(result.chunk_id) == str(graph_chunk_id))
+    graph_result = next(
+        result
+        for result in response.results
+        if str(result.chunk_id) == str(graph_chunk_id)
+    )
     assert graph_result.source_flags == ["graph"]

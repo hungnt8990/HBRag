@@ -23,11 +23,14 @@ LEGAL_TEXT = (
     "Điều 3. Giải thích từ ngữ\nNội dung điều 3.\n"
 )
 GENERAL_TEXT = (
-    "Đây là một tài liệu mô tả chung về quy trình làm việc của nhóm. "
-    "Nội dung trình bày các bước thực hiện và lưu ý liên quan."
+    "This is a general process document describing team workflows and operating notes."
 )
 SPREADSHEET_TEXT = "\n".join(
-    f"Cột A {i} | Cột B {i} | Cột C {i}" for i in range(20)
+    f"Column A {index} | Column B {index} | Column C {index}" for index in range(20)
+)
+SERIALIZED_TABLE_TEXT = (
+    "TABLE_ROW table_id=docx_t1 row=1 | cell_1: Alice | cell_2: Platform\n"
+    "TABLE_ROW table_id=docx_t1 row=2 | cell_1: Bob | cell_2: QA\n"
 )
 
 
@@ -72,6 +75,7 @@ def test_detect_profile_legal_admin() -> None:
 def test_detect_profile_general_and_spreadsheet() -> None:
     assert detect_profile(GENERAL_TEXT) == "general"
     assert detect_profile(SPREADSHEET_TEXT) == "spreadsheet"
+    assert detect_profile(SERIALIZED_TABLE_TEXT) == "spreadsheet"
 
 
 def test_resolve_profile_auto_uses_detection() -> None:
@@ -151,3 +155,5 @@ def test_admin_profiles_endpoint_returns_configs() -> None:
     assert payload["configs"]["legal_admin"]["answer_style"] == "policy_explainer"
     assert payload["configs"]["general"]["chunk_mode"] == "recursive"
     assert payload["configs"]["general"]["answer_style"] == "detailed"
+    assert payload["configs"]["spreadsheet"]["chunk_mode"] == "table_aware"
+    assert payload["configs"]["spreadsheet"]["answer_style"] == "table_qa"

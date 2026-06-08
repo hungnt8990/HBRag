@@ -6,9 +6,8 @@ from docx.table import Table
 from docx.text.paragraph import Paragraph
 
 from app.services.parsers.base import DocumentParser, ParsedDocument
+from app.services.parsers.table_serialization import maybe_table_title, serialize_table
 
-CELL_SEPARATOR = " | "
-ROW_SEPARATOR = "\n"
 BLOCK_SEPARATOR = "\n\n"
 
 
@@ -21,32 +20,40 @@ class DocxParser(DocumentParser):
     def parse(self, file_content: bytes) -> ParsedDocument:
         document = Document(BytesIO(file_content))
         blocks: list[str] = []
+        previous_paragraph_text: str | None = None
+        table_counter = 0
 
-        # Iterate the document body in source order so that paragraphs and
-        # tables are preserved interleaved (Vietnamese legal/admin documents
-        # frequently put substantive content in tables).
+        # Preserve source order so paragraph context remains adjacent to tables.
         for child in document.element.body.iterchildren():
             if child.tag == qn("w:p"):
                 paragraph = Paragraph(child, document)
                 text = paragraph.text.strip()
                 if text:
                     blocks.append(text)
+                    previous_paragraph_text = text
             elif child.tag == qn("w:tbl"):
                 table = Table(child, document)
-                rendered = self._render_table(table)
+                table_counter += 1
+                rendered = self._render_table(
+                    table,
+                    table_id=f"docx_t{table_counter}",
+                    title=maybe_table_title(previous_paragraph_text),
+                )
                 if rendered:
                     blocks.append(rendered)
 
         return ParsedDocument(text=BLOCK_SEPARATOR.join(blocks))
 
     @staticmethod
-    def _render_table(table: Table) -> str:
-        rows: list[str] = []
+    def _render_table(
+        table: Table,
+        *,
+        table_id: str,
+        title: str | None,
+    ) -> str:
+        rows: list[list[str]] = []
         for row in table.rows:
-            # Keep each row on a single line so chunkers do not break between
-            # a label and its adjacent value.
-            cells = [cell.text.replace("\n", " ").strip() for cell in row.cells]
-            cells = [cell for cell in cells if cell]
-            if cells:
-                rows.append(CELL_SEPARATOR.join(cells))
-        return ROW_SEPARATOR.join(rows)
+            cells = [cell.text for cell in row.cells]
+            if any(cell.strip() for cell in cells):
+                rows.append(cells)
+        return serialize_table(table_id=table_id, rows=rows, title=title)

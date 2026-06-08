@@ -92,3 +92,20 @@ def test_keyword_search_service_builds_query_safely() -> None:
     assert "plainto_tsquery('simple'," in sql
     assert f"%({KEYWORD_QUERY_PARAM})s" in sql
     assert compiled.params[KEYWORD_QUERY_PARAM] == malicious_query
+
+
+def test_keyword_search_extracts_unicode_entity_terms_for_exact_matching() -> None:
+    terms = KeywordSearchService._extract_exact_terms("Nguyễn Quang Lâm tham gia mảng nào?")
+
+    assert any(term == "Nguyễn Quang Lâm" for term in terms)
+
+
+def test_keyword_search_statement_includes_exact_match_clause() -> None:
+    statement = KeywordSearchService.build_statement(
+        query="Nguyễn Quang Lâm tham gia mảng nào?",
+        top_k=5,
+    )
+    compiled = statement.compile(dialect=postgresql.dialect())
+    sql = str(compiled)
+
+    assert "ILIKE" in sql

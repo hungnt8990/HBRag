@@ -80,6 +80,26 @@ class ChatRepository:
         result = await self._session.execute(statement)
         return list(result.scalars().all())
 
+    async def get_table_chunks(
+        self,
+        *,
+        document_id: UUID,
+        table_id: str,
+        exclude_ids: Sequence[UUID] = (),
+    ) -> list[Chunk]:
+        statement = (
+            select(Chunk)
+            .where(
+                Chunk.document_id == document_id,
+                Chunk.chunk_metadata["table_id"].astext == table_id,
+            )
+            .order_by(Chunk.chunk_index)
+        )
+        if exclude_ids:
+            statement = statement.where(Chunk.id.notin_(list(exclude_ids)))
+        result = await self._session.execute(statement)
+        return list(result.scalars().all())
+
     async def create_citations(
         self,
         *,

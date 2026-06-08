@@ -8,6 +8,7 @@ from app.api.routes.documents import get_document_repository, get_storage_client
 from app.main import app
 from app.services.document_parser_service import DocumentParserService
 from app.services.parsers import MarkdownParser, PdfParser, TextParser
+from app.services.parsers.pdf_parser import PdfParser as PdfParserImpl
 
 DOCUMENT_ID = UUID("22222222-2222-2222-2222-222222222222")
 
@@ -187,21 +188,20 @@ def _build_docx_with_tables(target_chars: int) -> bytes:
     from docx import Document
 
     doc = Document()
-    doc.add_paragraph("CHƯƠNG I QUY ĐỊNH CHUNG")
-    doc.add_paragraph("Điều 1. Phạm vi điều chỉnh")
-    doc.add_paragraph("Văn bản này quy định nội dung mở đầu.")
+    doc.add_paragraph("CHUONG I QUY DINH CHUNG")
+    doc.add_paragraph("Dieu 1. Pham vi dieu chinh")
+    doc.add_paragraph("Van ban nay quy dinh noi dung mo dau.")
 
     table = doc.add_table(rows=0, cols=2)
-    cell_text = "Nội dung dòng bảng dài hơn để đạt số ký tự cần thiết. " * 4
+    cell_text = "Noi dung dong bang dai hon de dat so ky tu can thiet. " * 4
     while True:
         row = table.add_row().cells
-        row[0].text = "Tiêu chí"
+        row[0].text = "Tieu chi"
         row[1].text = cell_text
-        # Estimate accumulated char count from paragraphs and table rows.
-        accumulated = sum(len(p.text) for p in doc.paragraphs)
-        for tbl in doc.tables:
-            for r in tbl.rows:
-                for cell in r.cells:
+        accumulated = sum(len(paragraph.text) for paragraph in doc.paragraphs)
+        for current_table in doc.tables:
+            for current_row in current_table.rows:
+                for cell in current_row.cells:
                     accumulated += len(cell.text)
         if accumulated >= target_chars:
             break
@@ -213,13 +213,9 @@ def _build_docx_with_tables(target_chars: int) -> bytes:
 
 def test_parse_docx_extracts_tables_and_does_not_truncate() -> None:
     docx_bytes = _build_docx_with_tables(target_chars=4500)
-    assert len(docx_bytes) > 0
-
     repository = FakeDocumentRepository(
         filename="legal.docx",
-        mime_type=(
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        ),
+        mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         storage_path="documents/legal.docx",
     )
     storage = FakeStorageClient({"documents/legal.docx": docx_bytes})
@@ -234,11 +230,69 @@ def test_parse_docx_extracts_tables_and_does_not_truncate() -> None:
 
     assert response.status_code == 200
     payload = response.json()
-    # Statistics must reflect full parsed text, not the preview limit.
     assert payload["character_count"] > 4000
-    # Preview is capped at 500 chars but parsed_text in storage is the full document.
     assert len(payload["preview"]) <= 500
     assert repository.document.parsed_text is not None
     assert len(repository.document.parsed_text) == payload["character_count"]
-    # Table content must be present (table cells contain "Tiêu chí").
-    assert "Tiêu chí" in repository.document.parsed_text
+    assert "TABLE_ROW table_id=docx_t1" in repository.document.parsed_text
+    assert "Tieu chi" in repository.document.parsed_text
+
+
+def test_parse_docx_keeps_empty_cells_with_generic_headers() -> None:
+    from io import BytesIO
+
+    from docx import Document
+
+    doc = Document()
+    table = doc.add_table(rows=2, cols=3)
+    table.cell(0, 0).text = "Alice"
+    table.cell(0, 1).text = ""
+    table.cell(0, 2).text = "Platform"
+    table.cell(1, 0).text = "Bob"
+    table.cell(1, 1).text = "QA"
+    table.cell(1, 2).text = ""
+
+    buffer = BytesIO()
+    doc.save(buffer)
+
+    repository = FakeDocumentRepository(
+        filename="matrix.docx",
+        mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        storage_path="documents/matrix.docx",
+    )
+    storage = FakeStorageClient({"documents/matrix.docx": buffer.getvalue()})
+    app.dependency_overrides[get_document_repository] = lambda: repository
+    app.dependency_overrides[get_storage_client] = lambda: storage
+
+    try:
+        client = TestClient(app)
+        response = client.post(f"/api/documents/{DOCUMENT_ID}/parse")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert "cell_1: Alice" in repository.document.parsed_text
+    assert "cell_2:" in repository.document.parsed_text
+    assert "cell_3: Platform" in repository.document.parsed_text
+
+
+def test_parse_pdf_serializes_detected_tables(monkeypatch) -> None:
+    class FakePage:
+        def extract_text(self, extraction_mode=None):
+            return (
+                "Name    Area\n"
+                "Nguyen Quang Lam    Infrastructure\n"
+                "Tran Van An    QA\n"
+            )
+
+    class FakeReader:
+        def __init__(self, _stream):
+            self.pages = [FakePage()]
+
+    monkeypatch.setattr("app.services.parsers.pdf_parser.PdfReader", FakeReader)
+
+    parsed = PdfParserImpl().parse(b"%PDF-1.4 fake")
+
+    assert "TABLE_ROW table_id=pdf_p1_1 page=1 row=1" in parsed.text
+    assert "Name: Nguyen Quang Lam" in parsed.text
+    assert "Area: Infrastructure" in parsed.text

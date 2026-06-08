@@ -164,6 +164,21 @@ class FakeRetrievalLogRepository:
         self.rolled_back = True
 
 
+class FakeChunkRepository:
+    def __init__(self) -> None:
+        self.content_by_chunk_id = {
+            str(RELEVANT_CHUNK_ID): "python rag search result with full content",
+            str(UNRELATED_CHUNK_ID): "unrelated finance result with full content",
+        }
+
+    async def get_chunks_by_ids(self, chunk_ids):
+        return [
+            SimpleNamespace(id=UUID(str(chunk_id)), content=self.content_by_chunk_id[str(chunk_id)])
+            for chunk_id in chunk_ids
+            if str(chunk_id) in self.content_by_chunk_id
+        ]
+
+
 def test_fake_reranker_prefers_token_overlap_content() -> None:
     async def run_test() -> None:
         reranker = FakeReranker()
@@ -250,6 +265,7 @@ def test_reranked_results_saved_in_retrieval_log() -> None:
             hybrid_search_service=hybrid_service,  # type: ignore[arg-type]
             reranker=FakeReranker(),
             retrieval_log_repository=log_repository,  # type: ignore[arg-type]
+            chunk_repository=FakeChunkRepository(),  # type: ignore[arg-type]
         )
 
         response = await service.search(query="python rag search", top_k=1, candidate_k=2)
@@ -274,5 +290,35 @@ def test_reranked_results_saved_in_retrieval_log() -> None:
         assert saved_log["reranked_results"]["top_k"] == 1
         assert saved_log["reranked_results"]["candidate_k"] == 2
         assert saved_log["reranked_results"]["results"][0]["chunk_id"] == str(RELEVANT_CHUNK_ID)
+
+    asyncio.run(run_test())
+
+
+def test_reranking_service_uses_full_chunk_content_not_preview() -> None:
+    async def run_test() -> None:
+        class PreviewOnlyHybridSearchService(FakeHybridSearchService):
+            async def run_search(self, **kwargs) -> HybridSearchRun:
+                run = await super().run_search(**kwargs)
+                run.hybrid_response.results[1].content_preview = "truncated preview"
+                return run
+
+        hybrid_service = PreviewOnlyHybridSearchService()
+        log_repository = FakeRetrievalLogRepository()
+        chunk_repository = FakeChunkRepository()
+        chunk_repository.content_by_chunk_id[str(RELEVANT_CHUNK_ID)] = (
+            "irrelevant prefix " + ("x" * 350) + " python rag search"
+        )
+        chunk_repository.content_by_chunk_id[str(UNRELATED_CHUNK_ID)] = "finance report"
+
+        service = RerankingService(
+            hybrid_search_service=hybrid_service,  # type: ignore[arg-type]
+            reranker=FakeReranker(),
+            retrieval_log_repository=log_repository,  # type: ignore[arg-type]
+            chunk_repository=chunk_repository,  # type: ignore[arg-type]
+        )
+
+        response = await service.search(query="python rag search", top_k=1, candidate_k=2)
+
+        assert response.results[0].chunk_id == RELEVANT_CHUNK_ID
 
     asyncio.run(run_test())

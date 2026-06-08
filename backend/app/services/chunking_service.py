@@ -294,6 +294,8 @@ class ChunkingService:
         if resolved_overlap >= resolved_size:
             resolved_overlap = max(0, resolved_size // 2)
         mode: ChunkMode = chunk_mode or config["chunk_mode"]
+        if "TABLE_ROW " in document.parsed_text:
+            mode = "table_aware"
 
         if mode == "table_aware":
             from app.services.table_aware_chunking import table_aware_chunk_text

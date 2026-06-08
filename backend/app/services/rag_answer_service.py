@@ -15,6 +15,7 @@ from app.schemas.documents import RerankSearchResult
 from app.services.llms import LLMProvider
 from app.services.memory.base import MemoryResult
 from app.services.reranking_service import RerankingService
+from app.services.table_aware_chunking import extract_entities_from_text
 
 MEMORY_RULES = (
     "User Memory and Session Summary are background context only: never cite them, and if "
@@ -79,12 +80,16 @@ POLICY_EXPLAINER_STYLE = (
 TABLE_QA_STYLE = (
     "Answer style: Table QA. "
     "You are a document QA assistant. Answer only from the provided context. "
-    "If the context contains tables, synthesize information by row and column. "
-    "Do not assume fixed column names. Use the original column names from context. "
+    "If the context contains TABLE_ROW records, treat each TABLE_ROW as one record. "
+    "When the question asks about an entity, find every TABLE_ROW containing that entity "
+    "and answer from fields in the same row. "
+    "Do not assume fixed column names. Use the original field labels from context. "
+    "Use TABLE_TITLE and TABLE_HEADER context when available to explain the row. "
+    "If multiple rows contain the same entity, list all non-duplicate matching rows. "
+    "For each row, prefer descriptive fields over ordinal-only fields. "
+    "If a row has only generic labels such as cell_1 or cell_2, use those labels as-is. "
+    "Do not infer missing fields. "
     "Do not use legal/policy language if the document is not a legal/policy document. "
-    "If multiple rows contain the same entity, list all related rows. "
-    "For each row, show the most descriptive columns (exclude ordinal-only columns). "
-    "Keep original column names so the user understands the data source. "
     "If there is not enough information, say so clearly. "
     "Do not invent information."
 )
@@ -206,6 +211,7 @@ class RagAnswerService:
                 rerank_results=rerank_response.results,
             )
             context_chunks = await self._expand_with_neighbors(
+                query=query,
                 context_chunks=context_chunks,
                 max_context_chars=max_context_chars,
             )
@@ -326,6 +332,7 @@ class RagAnswerService:
                 rerank_results=rerank_response.results,
             )
             context_chunks = await self._expand_with_neighbors(
+                query=query,
                 context_chunks=context_chunks,
                 max_context_chars=max_context_chars,
             )
@@ -452,27 +459,70 @@ class RagAnswerService:
     async def _expand_with_neighbors(
         self,
         *,
+        query: str,
         context_chunks: list[ContextChunk],
         max_context_chars: int,
     ) -> list[ContextChunk]:
         if not context_chunks:
             return context_chunks
 
-        get_neighbors = getattr(self._chat_repository, "get_neighbor_chunks", None)
-        if get_neighbors is None:
+        get_article_neighbors = getattr(self._chat_repository, "get_neighbor_chunks", None)
+        get_table_chunks = getattr(self._chat_repository, "get_table_chunks", None)
+        if get_article_neighbors is None and get_table_chunks is None:
             return context_chunks
 
         existing_ids: set[UUID] = {context_chunk.chunk.id for context_chunk in context_chunks}
         seen_articles: set[tuple[UUID, str]] = set()
+        seen_tables: set[tuple[UUID, str]] = set()
         total_chars = sum(len(item.chunk.content) for item in context_chunks)
+        query_terms = self._query_terms(query)
 
         expanded = list(context_chunks)
         next_index = max((item.citation_index for item in context_chunks), default=0) + 1
 
         for context_chunk in context_chunks:
             metadata = context_chunk.chunk.chunk_metadata or {}
+            table_id = metadata.get("table_id")
+            if table_id and get_table_chunks is not None:
+                table_key = (context_chunk.chunk.document_id, str(table_id))
+                if table_key not in seen_tables:
+                    seen_tables.add(table_key)
+                    try:
+                        neighbors = await get_table_chunks(
+                            document_id=context_chunk.chunk.document_id,
+                            table_id=str(table_id),
+                            exclude_ids=tuple(existing_ids),
+                        )
+                    except Exception:
+                        neighbors = []
+
+                    relevant_neighbors = self._prioritize_table_neighbors(
+                        neighbors=neighbors,
+                        query_terms=query_terms,
+                    )
+                    for neighbor in relevant_neighbors:
+                        if neighbor.id in existing_ids:
+                            continue
+                        neighbor_len = len(neighbor.content or "")
+                        if total_chars + neighbor_len > max_context_chars:
+                            return expanded
+                        expanded.append(
+                            ContextChunk(
+                                citation_index=next_index,
+                                chunk=neighbor,
+                                source_type="neighbor",
+                                source_flags=[
+                                    *(context_chunk.source_flags or [context_chunk.source_type]),
+                                    "neighbor",
+                                ],
+                            )
+                        )
+                        existing_ids.add(neighbor.id)
+                        total_chars += neighbor_len
+                        next_index += 1
+
             article_number = metadata.get("article_number")
-            if not article_number:
+            if not article_number or get_article_neighbors is None:
                 continue
 
             key = (context_chunk.chunk.document_id, str(article_number))
@@ -481,7 +531,7 @@ class RagAnswerService:
             seen_articles.add(key)
 
             try:
-                neighbors = await get_neighbors(
+                neighbors = await get_article_neighbors(
                     document_id=context_chunk.chunk.document_id,
                     article_number=str(article_number),
                     exclude_ids=tuple(existing_ids),
@@ -511,6 +561,53 @@ class RagAnswerService:
                 next_index += 1
 
         return expanded
+
+    @staticmethod
+    def _query_terms(query: str) -> list[str]:
+        terms = extract_entities_from_text(query)
+        normalized_query = " ".join(query.split()).strip(" ?!.,;:")
+        if normalized_query:
+            terms.insert(0, normalized_query)
+
+        ordered: list[str] = []
+        seen: set[str] = set()
+        for term in terms:
+            key = term.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            ordered.append(term)
+        return ordered
+
+    @staticmethod
+    def _prioritize_table_neighbors(
+        *,
+        neighbors: list[Chunk],
+        query_terms: list[str],
+    ) -> list[Chunk]:
+        if not query_terms:
+            return neighbors
+
+        high_priority: list[Chunk] = []
+        supporting: list[Chunk] = []
+        for neighbor in neighbors:
+            metadata = neighbor.chunk_metadata or {}
+            chunk_type = str(metadata.get("chunk_type") or "")
+            content = neighbor.content.casefold()
+            if chunk_type in {"table_title", "table_header"}:
+                supporting.append(neighbor)
+                continue
+            if any(term.casefold() in content for term in query_terms):
+                high_priority.append(neighbor)
+
+        ordered: list[Chunk] = []
+        seen_ids: set[UUID] = set()
+        for chunk in [*supporting, *high_priority]:
+            if chunk.id in seen_ids:
+                continue
+            seen_ids.add(chunk.id)
+            ordered.append(chunk)
+        return ordered or neighbors
 
     def _deduplicate_context_chunks(
         self,

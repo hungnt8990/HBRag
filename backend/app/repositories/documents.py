@@ -164,6 +164,14 @@ class DocumentRepository:
         result = await self._session.execute(statement)
         return list(result.scalars().all())
 
+    async def get_chunks_by_ids(self, chunk_ids: Sequence[UUID]) -> list[Chunk]:
+        if not chunk_ids:
+            return []
+
+        statement = select(Chunk).where(Chunk.id.in_(chunk_ids))
+        result = await self._session.execute(statement)
+        return list(result.scalars().all())
+
     async def list_documents(
         self,
         *,

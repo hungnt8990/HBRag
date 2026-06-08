@@ -77,13 +77,13 @@ PROFILE_CONFIGS: dict[str, dict[str, Any]] = {
         "max_context_chars": 5000,
     },
     "spreadsheet": {
-        "chunk_mode": "recursive",
+        "chunk_mode": "table_aware",
         "chunk_size": 1800,
         "chunk_overlap": 200,
         "top_k": 8,
         "candidate_k": 40,
         "answer_mode": "extractive",
-        "answer_style": "detailed",
+        "answer_style": "table_qa",
         "max_context_chars": 9000,
     },
 }
@@ -111,8 +111,11 @@ def detect_profile(text: str | None) -> str:
 
     lines = [line for line in sample.splitlines() if line.strip()]
     if lines:
-        table_lines = sum(1 for line in lines if " | " in line)
-        if table_lines / len(lines) >= 0.4:
+        serialized_row_lines = sum(1 for line in lines if line.startswith("TABLE_ROW "))
+        pipe_lines = sum(1 for line in lines if " | " in line)
+        if serialized_row_lines >= 2:
+            return "spreadsheet"
+        if pipe_lines / len(lines) >= 0.3:
             return "spreadsheet"
 
     if len(_FAQ_RE.findall(sample)) >= 3:
