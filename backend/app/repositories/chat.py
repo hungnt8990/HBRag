@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import or_, select
+from sqlalchemy import case, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -106,6 +106,7 @@ class ChatRepository:
         document_id: UUID,
         search_terms: Sequence[str],
         exclude_ids: Sequence[UUID] = (),
+        max_matches: int = 50,
     ) -> list[Chunk]:
         normalized_terms = [
             " ".join(term.split()).strip()
@@ -119,16 +120,23 @@ class ChatRepository:
             Chunk.content.ilike(f"%{term}%")
             for term in normalized_terms
         ]
+        chunk_type = Chunk.chunk_metadata["chunk_type"].astext
+        chunk_type_priority = case(
+            (chunk_type == "table_row", 1),
+            (chunk_type == "entity_summary", 2),
+            (chunk_type == "table_block", 3),
+            (chunk_type == "text", 4),
+            else_=5,
+        )
         statement = (
             select(Chunk)
             .where(
                 Chunk.document_id == document_id,
-                Chunk.chunk_metadata["chunk_type"].astext.in_(
-                    ["table_row", "table_block", "entity_summary"]
-                ),
+                chunk_type.in_(["table_row", "entity_summary", "table_block", "text"]),
                 or_(*content_clauses),
             )
-            .order_by(Chunk.chunk_index)
+            .order_by(chunk_type_priority, Chunk.chunk_index)
+            .limit(max_matches)
         )
         if exclude_ids:
             statement = statement.where(Chunk.id.notin_(list(exclude_ids)))

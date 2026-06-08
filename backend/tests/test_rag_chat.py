@@ -980,6 +980,64 @@ def test_entity_coverage_lookup_adds_all_matching_table_rows_only() -> None:
     assert all("Xay dung nang luc mo hinh ngon ngu noi bo" not in content for content in contents)
 
 
+def test_entity_coverage_repository_queries_full_content_with_priority_order() -> None:
+    from uuid import uuid4
+
+    from app.repositories.chat import ChatRepository
+
+    document_id = uuid4()
+    chunks = [
+        SimpleNamespace(chunk_index=3, content="TABLE_ROW row=3 Nguyen Quang Lam"),
+        SimpleNamespace(chunk_index=4, content="TABLE_ROW row=4 Nguyen Quang Lam"),
+        SimpleNamespace(chunk_index=5, content="TABLE_ROW row=5 Nguyen Quang Lam"),
+        SimpleNamespace(chunk_index=6, content="TABLE_ROW row=6 Nguyen Quang Lam"),
+    ]
+
+    class FakeScalars:
+        def all(self):
+            return chunks
+
+    class FakeResult:
+        def scalars(self):
+            return FakeScalars()
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.statement = None
+
+        async def execute(self, statement):
+            self.statement = statement
+            return FakeResult()
+
+    fake_session = FakeSession()
+    repository = ChatRepository(fake_session)  # type: ignore[arg-type]
+
+    result = asyncio.run(
+        repository.get_entity_coverage_chunks(
+            document_id=document_id,
+            search_terms=["Nguyen Quang Lam"],
+            max_matches=50,
+        )
+    )
+
+    statement_text = str(fake_session.statement)
+    statement_params = fake_session.statement.compile().params
+    param_values = []
+    for value in statement_params.values():
+        if isinstance(value, list):
+            param_values.extend(value)
+        else:
+            param_values.append(value)
+    assert result == chunks
+    assert "chunks.content" in statement_text
+    assert "content_preview" not in statement_text
+    assert "table_row" in param_values
+    assert "entity_summary" in param_values
+    assert "table_block" in param_values
+    assert "text" in param_values
+    assert fake_session.statement._limit_clause is not None
+
+
 def test_user_prompt_separates_entity_matched_rows_from_table_support() -> None:
     from uuid import uuid4
 
@@ -1023,3 +1081,6 @@ def test_user_prompt_separates_entity_matched_rows_from_table_support() -> None:
     assert "Xay dung nang luc mo hinh ngon ngu noi bo" not in entity_section
     assert "TABLE_SUPPORT:" in prompt
     assert "TABLE_HEADER table_id=tbl_1" in prompt
+    assert "must have N bullet" in RagAnswerService._build_user_prompt.__globals__[
+        "TABLE_QA_STYLE"
+    ]

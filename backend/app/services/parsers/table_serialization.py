@@ -5,6 +5,7 @@ from collections.abc import Iterable
 
 MAX_TITLE_LENGTH = 200
 TITLE_PREFIX = "TABLE_TITLE"
+HEADER_PREFIX = "TABLE_HEADER"
 ROW_PREFIX = "TABLE_ROW"
 
 
@@ -25,6 +26,17 @@ def build_table_title_record(
     return f"{TITLE_PREFIX} table_id={table_id}{page_fragment}: {normalized}"
 
 
+def build_table_header_record(
+    *,
+    table_id: str,
+    headers: list[str],
+    page_number: int | None = None,
+) -> str:
+    page_fragment = f" page={page_number}" if page_number is not None else ""
+    header_text = " | ".join(normalize_cell_text(header) for header in headers)
+    return f"{HEADER_PREFIX} table_id={table_id}{page_fragment} | {header_text}"
+
+
 def build_table_row_record(
     *,
     table_id: str,
@@ -34,9 +46,12 @@ def build_table_row_record(
     page_number: int | None = None,
 ) -> str:
     page_fragment = f" page={page_number}" if page_number is not None else ""
+    width = max(len(headers), len(values))
+    safe_headers = ensure_headers(headers, width)
+    safe_values = values + [""] * (width - len(values))
     fields = [
         f"{header}: {normalize_cell_text(value)}"
-        for header, value in zip(headers, values, strict=False)
+        for header, value in zip(safe_headers, safe_values, strict=True)
     ]
     return (
         f"{ROW_PREFIX} table_id={table_id}{page_fragment} row={row_index} | "
@@ -44,26 +59,44 @@ def build_table_row_record(
     )
 
 
-def infer_headers(
-    rows: Iterable[Iterable[str]],
-) -> tuple[list[str], list[list[str]], bool]:
+def normalize_table_rows(rows: Iterable[Iterable[str]]) -> list[list[str]]:
     normalized_rows = [
         [normalize_cell_text(cell) for cell in row]
         for row in rows
     ]
     normalized_rows = [row for row in normalized_rows if any(cell for cell in row)]
     if not normalized_rows:
-        return [], [], False
+        return []
 
     width = max(len(row) for row in normalized_rows)
-    padded_rows = [row + [""] * (width - len(row)) for row in normalized_rows]
+    return [row + [""] * (width - len(row)) for row in normalized_rows]
+
+
+def ensure_headers(headers: list[str], width: int) -> list[str]:
+    safe_headers = [
+        normalize_cell_text(header) or f"cell_{index + 1}"
+        for index, header in enumerate(headers[:width])
+    ]
+    if len(safe_headers) < width:
+        safe_headers.extend(f"cell_{index + 1}" for index in range(len(safe_headers), width))
+    return safe_headers
+
+
+def infer_headers(
+    rows: Iterable[Iterable[str]],
+) -> tuple[list[str], list[list[str]], bool]:
+    padded_rows = normalize_table_rows(rows)
+    if not padded_rows:
+        return [], [], False
+
+    width = max(len(row) for row in padded_rows)
     first_row = padded_rows[0]
     has_header = _looks_like_header(first_row, padded_rows[1:])
     if has_header:
-        headers = [cell or f"cell_{index + 1}" for index, cell in enumerate(first_row)]
+        headers = ensure_headers(first_row, width)
         return headers, padded_rows[1:], True
 
-    headers = [f"cell_{index + 1}" for index in range(width)]
+    headers = ensure_headers([], width)
     return headers, padded_rows, False
 
 
@@ -74,7 +107,7 @@ def serialize_table(
     title: str | None = None,
     page_number: int | None = None,
 ) -> str:
-    headers, data_rows, _has_header = infer_headers(rows)
+    headers, data_rows, has_header = infer_headers(rows)
     if not headers or not data_rows:
         return ""
 
@@ -87,6 +120,15 @@ def serialize_table(
         )
         if title_record:
             lines.append(title_record)
+
+    if has_header:
+        lines.append(
+            build_table_header_record(
+                table_id=table_id,
+                headers=headers,
+                page_number=page_number,
+            )
+        )
 
     for row_index, row_values in enumerate(data_rows, start=1):
         lines.append(

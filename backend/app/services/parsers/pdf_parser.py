@@ -23,6 +23,8 @@ PDFPLUMBER_TABLE_SETTINGS = (
         "snap_tolerance": 3,
         "join_tolerance": 3,
         "intersection_tolerance": 5,
+        "min_words_vertical": 1,
+        "min_words_horizontal": 1,
     },
 )
 
@@ -97,6 +99,8 @@ class PdfParser(DocumentParser):
 
     @staticmethod
     def _extract_pdfplumber_tables(page: Any) -> list[list[list[str]]]:
+        best_tables: list[list[list[str]]] = []
+        best_score: tuple[int, int, int, int] | None = None
         for table_settings in PDFPLUMBER_TABLE_SETTINGS:
             raw_tables = page.extract_tables(table_settings=table_settings) or []
             tables = [
@@ -104,9 +108,14 @@ class PdfParser(DocumentParser):
                 for table in raw_tables
             ]
             tables = [table for table in tables if table]
-            if tables:
-                return tables
-        return []
+            if not tables:
+                continue
+
+            strategy_score = PdfParser._score_table_set(tables)
+            if best_score is None or strategy_score > best_score:
+                best_score = strategy_score
+                best_tables = tables
+        return best_tables
 
     @staticmethod
     def _normalize_pdfplumber_table(table: list[list[Any]]) -> list[list[str]]:
@@ -116,3 +125,25 @@ class PdfParser(DocumentParser):
                 ["" if cell is None else str(cell) for cell in row]
             )
         return normalized_rows
+
+    @staticmethod
+    def _score_extracted_table(table: list[list[str]]) -> tuple[int, int, int, int]:
+        if not table:
+            return (0, 0, 0, 0)
+
+        width = max((len(row) for row in table), default=0)
+        row_count = len(table)
+        multi_column_rows = sum(1 for row in table if sum(bool(cell.strip()) for cell in row) > 1)
+        non_empty_cells = sum(1 for row in table for cell in row if cell.strip())
+        empty_cells = (row_count * width) - non_empty_cells
+        return (row_count, width, multi_column_rows, -empty_cells)
+
+    @staticmethod
+    def _score_table_set(tables: list[list[list[str]]]) -> tuple[int, int, int, int]:
+        scores = [PdfParser._score_extracted_table(table) for table in tables]
+        return (
+            sum(score[0] for score in scores),
+            max((score[1] for score in scores), default=0),
+            sum(score[2] for score in scores),
+            sum(score[3] for score in scores),
+        )

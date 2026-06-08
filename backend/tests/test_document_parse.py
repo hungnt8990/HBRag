@@ -239,7 +239,7 @@ def test_parse_docx_extracts_tables_and_does_not_truncate() -> None:
     assert "Tieu chi" in repository.document.parsed_text
 
 
-def test_parse_docx_keeps_empty_cells_with_generic_headers() -> None:
+def test_docx_parser_keeps_empty_cells_with_generic_headers() -> None:
     from io import BytesIO
 
     from docx import Document
@@ -337,6 +337,11 @@ def test_table_serialization_preserves_multiline_cells_and_width() -> None:
         if line.startswith("TABLE_ROW")
     ]
 
+    expected_header = (
+        "TABLE_HEADER table_id=fixture_t1 page=5 | "
+        "STT | Nhom nhiem vu | Don vi | Danh sach"
+    )
+    assert expected_header in serialized
     assert len(table_rows) == 4
     assert all("STT:" in row for row in table_rows)
     assert all("Nhom nhiem vu:" in row for row in table_rows)
@@ -348,6 +353,30 @@ def test_table_serialization_preserves_multiline_cells_and_width() -> None:
         in row
         for row in table_rows
     )
+
+
+def test_table_serialization_row_record_preserves_extra_and_missing_columns() -> None:
+    from app.services.parsers.table_serialization import build_table_row_record
+
+    extra_value_record = build_table_row_record(
+        table_id="fixture_t2",
+        row_index=1,
+        headers=["A", "B"],
+        values=["one", "two", "three"],
+    )
+    missing_value_record = build_table_row_record(
+        table_id="fixture_t2",
+        row_index=2,
+        headers=["A", "B", "C"],
+        values=["one"],
+    )
+
+    assert "A: one" in extra_value_record
+    assert "B: two" in extra_value_record
+    assert "cell_3: three" in extra_value_record
+    assert "A: one" in missing_value_record
+    assert "B:" in missing_value_record
+    assert "C:" in missing_value_record
 
 
 def test_pdf_parser_uses_pdfplumber_table_cells(monkeypatch) -> None:
@@ -386,8 +415,13 @@ def test_pdf_parser_uses_pdfplumber_table_cells(monkeypatch) -> None:
 
         def extract_tables(self, *, table_settings):
             if table_settings["vertical_strategy"] == "lines":
-                return [rows]
-            return []
+                return [
+                    [
+                        ["Xay dung nen tang RAG tren du"],
+                        ["2. Nguyen Quang Lam"],
+                    ]
+                ]
+            return [rows]
 
     class FakePdf:
         pages = [FakePage()]
@@ -419,3 +453,4 @@ def test_pdf_parser_uses_pdfplumber_table_cells(monkeypatch) -> None:
         for line in parsed.text.splitlines()
         if line.startswith("TABLE_ROW")
     )
+    assert "cell_1: Xay dung nen tang RAG tren du | cell_2: 2. Nguyen Quang Lam" not in parsed.text
