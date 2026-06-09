@@ -16,7 +16,7 @@ class FakeKeywordSearchService:
     def __init__(self) -> None:
         self.calls: list[dict[str, object]] = []
 
-    async def search(self, *, query: str, top_k: int) -> KeywordSearchResponse:
+    async def search(self, *, query: str, top_k: int, document_ids=None) -> KeywordSearchResponse:
         self.calls.append({"query": query, "top_k": top_k})
         return KeywordSearchResponse(
             query=query,

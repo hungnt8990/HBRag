@@ -4,14 +4,20 @@ from uuid import UUID
 import pytest
 from fastapi.testclient import TestClient
 
+from app.api.dependencies.auth import get_current_user
 from app.api.routes.documents import (
     get_document_repository,
+    get_knowledge_base_repository,
     get_storage_client,
     get_vector_store,
 )
 from app.main import app
 
 DOCUMENT_ID = UUID("11111111-1111-1111-1111-111111111111")
+USER_ID = UUID("22222222-2222-2222-2222-222222222222")
+OTHER_USER_ID = UUID("33333333-3333-3333-3333-333333333333")
+ORG_ID = UUID("44444444-4444-4444-4444-444444444444")
+KNOWLEDGE_BASE_ID = UUID("55555555-5555-5555-5555-555555555555")
 
 
 class FakeDocumentRepository:
@@ -29,6 +35,7 @@ class FakeDocumentRepository:
         status: str = "uploaded",
         uploaded_by_user_id=None,
         organization_id=None,
+        knowledge_base_id=None,
         visibility: str = "organization",
     ) -> SimpleNamespace:
         document = SimpleNamespace(
@@ -38,6 +45,7 @@ class FakeDocumentRepository:
             status=status,
             uploaded_by_user_id=uploaded_by_user_id,
             organization_id=organization_id,
+            knowledge_base_id=knowledge_base_id,
             visibility=visibility,
             files=[],
         )
@@ -108,6 +116,33 @@ class FakeVectorStore:
     async def delete_points_for_document(self, document_id: UUID | str) -> None:
         self.deleted_document_ids.append(document_id)
 
+class FakeKnowledgeBaseRepository:
+    def __init__(self, *, owner_user_id: UUID = USER_ID) -> None:
+        self.knowledge_base = SimpleNamespace(
+            id=KNOWLEDGE_BASE_ID,
+            organization_id=ORG_ID,
+            owner_user_id=owner_user_id,
+            visibility="organization",
+            is_active=True,
+            members=[],
+        )
+
+    async def get_by_id(self, knowledge_base_id: UUID):
+        if knowledge_base_id == KNOWLEDGE_BASE_ID:
+            return self.knowledge_base
+        return None
+
+    async def get_or_create_default(self, **kwargs):
+        return self.knowledge_base
+
+def _user(*, role: str = "UNIT_USER"):
+    return SimpleNamespace(
+        id=USER_ID,
+        organization_id=ORG_ID,
+        roles=[SimpleNamespace(name=role)],
+        is_active=True,
+    )
+
 
 def test_upload_document_creates_document_and_file_rows() -> None:
     repository = FakeDocumentRepository()
@@ -150,6 +185,53 @@ def test_upload_document_creates_document_and_file_rows() -> None:
             "content_type": "application/pdf",
         }
     ]
+
+def test_upload_document_to_owned_knowledge_base_sets_document_scope() -> None:
+    repository = FakeDocumentRepository()
+    storage = FakeStorageClient()
+    app.dependency_overrides[get_current_user] = lambda: _user()
+    app.dependency_overrides[get_document_repository] = lambda: repository
+    app.dependency_overrides[get_storage_client] = lambda: storage
+    app.dependency_overrides[get_knowledge_base_repository] = (
+        lambda: FakeKnowledgeBaseRepository(owner_user_id=USER_ID)
+    )
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/documents/upload",
+            data={"knowledge_base_id": str(KNOWLEDGE_BASE_ID)},
+            files={"file": ("sample.pdf", b"%PDF-1.4 test", "application/pdf")},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 201
+    assert repository.documents[0].knowledge_base_id == KNOWLEDGE_BASE_ID
+
+def test_upload_document_to_knowledge_base_without_editor_permission_returns_403() -> None:
+    repository = FakeDocumentRepository()
+    storage = FakeStorageClient()
+    app.dependency_overrides[get_current_user] = lambda: _user()
+    app.dependency_overrides[get_document_repository] = lambda: repository
+    app.dependency_overrides[get_storage_client] = lambda: storage
+    app.dependency_overrides[get_knowledge_base_repository] = (
+        lambda: FakeKnowledgeBaseRepository(owner_user_id=OTHER_USER_ID)
+    )
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/documents/upload",
+            data={"knowledge_base_id": str(KNOWLEDGE_BASE_ID)},
+            files={"file": ("sample.pdf", b"%PDF-1.4 test", "application/pdf")},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 403
+    assert repository.documents == []
+    assert storage.uploads == []
 
 
 def test_upload_document_rejects_unsupported_file_type() -> None:

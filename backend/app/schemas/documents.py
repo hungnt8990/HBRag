@@ -110,6 +110,13 @@ class DocumentOrganization(BaseModel):
     ten_dviqly: str
     dvi_level: int
 
+class DocumentKnowledgeBase(BaseModel):
+    id: UUID
+    name: str
+    visibility: str
+    organization: DocumentOrganization | None = None
+    owner: DocumentPerson | None = None
+
 
 class DocumentListItem(BaseModel):
     document_id: UUID
@@ -117,6 +124,7 @@ class DocumentListItem(BaseModel):
     status: str
     filename: str | None
     organization: DocumentOrganization | None
+    knowledge_base: DocumentKnowledgeBase | None = None
     uploaded_by: DocumentPerson | None
     visibility: str
     parsed_character_count: int
@@ -151,6 +159,14 @@ class DocumentPipelineLogResponse(BaseModel):
     metadata: dict[str, object] | None
     created_at: datetime
 
+class DocumentChunkDetailResponse(BaseModel):
+    id: UUID
+    chunk_index: int
+    content: str
+    token_count: int | None = None
+    metadata: dict[str, object]
+    created_at: datetime
+
 
 class GraphExtractionLogResponse(BaseModel):
     status: str
@@ -175,6 +191,7 @@ class GraphDocumentStatusResponse(BaseModel):
 class DocumentDetailResponse(DocumentListItem):
     preview_text: str | None = None
     files: list[DocumentFileResponse]
+    chunks: list[DocumentChunkDetailResponse] = []
     pipeline_logs: list[DocumentPipelineLogResponse]
     access_logs_summary: dict[str, int]
     latest_retrieval_logs: list[dict[str, object]]
@@ -185,6 +202,7 @@ class DocumentDetailResponse(DocumentListItem):
 class VectorSearchRequest(BaseModel):
     query: str = Field(min_length=1)
     top_k: int = Field(default=5, ge=1, le=50)
+    knowledge_base_ids: list[UUID] | None = None
 
 
 class VectorSearchResult(BaseModel):
@@ -204,6 +222,7 @@ class VectorSearchResponse(BaseModel):
 class KeywordSearchRequest(BaseModel):
     query: SearchQuery
     top_k: int = Field(default=5, ge=1, le=50)
+    knowledge_base_ids: list[UUID] | None = None
 
 
 class KeywordSearchResult(BaseModel):
@@ -225,6 +244,7 @@ class HybridSearchRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=50)
     vector_weight: float = Field(default=1.0, ge=0.0)
     keyword_weight: float = Field(default=1.0, ge=0.0)
+    knowledge_base_ids: list[UUID] | None = None
 
 
 class HybridSearchResult(BaseModel):
@@ -250,6 +270,7 @@ class RerankSearchRequest(BaseModel):
     query: SearchQuery
     top_k: int = Field(default=5, ge=1, le=50)
     candidate_k: int = Field(default=20, ge=1, le=200)
+    knowledge_base_ids: list[UUID] | None = None
 
     @model_validator(mode="after")
     def validate_candidate_window(self) -> "RerankSearchRequest":

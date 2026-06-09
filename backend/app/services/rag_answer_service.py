@@ -195,6 +195,8 @@ class RagAnswerService:
         graph_expansion_depth: int = 1,
         graph_expansion_limit: int = 20,
     ) -> RagChatResponse:
+        if current_user is not None and document_ids is None:
+            raise RagAnswerError("Scoped document ids are required for authenticated RAG.")
         try:
             chat_session = await self._get_or_create_session(query=query, session_id=session_id)
             user_message = await self._chat_repository.create_message(
@@ -312,6 +314,12 @@ class RagAnswerService:
         graph_expansion_depth: int = 1,
         graph_expansion_limit: int = 20,
     ) -> AsyncIterator[RagStreamEvent]:
+        if current_user is not None and document_ids is None:
+            yield RagStreamEvent(
+                event="error",
+                data={"message": "Scoped document ids are required for authenticated RAG."},
+            )
+            raise RagAnswerError("Scoped document ids are required for authenticated RAG.")
         try:
             chat_session = await self._get_or_create_session(query=query, session_id=session_id)
             user_message = await self._chat_repository.create_message(
@@ -856,7 +864,9 @@ class RagAnswerService:
 
     @staticmethod
     def _table_context_lines(content: str) -> list[str]:
-        marker_pattern = re.compile(r"\s+(?=(?:TABLE_TITLE|TABLE_CAPTION|TABLE_HEADER|TABLE_ROW)\b)")
+        marker_pattern = re.compile(
+            r"\s+(?=(?:TABLE_TITLE|TABLE_CAPTION|TABLE_HEADER|TABLE_ROW)\b)"
+        )
         lines: list[str] = []
         for raw_line in content.splitlines():
             for line in marker_pattern.split(raw_line.strip()):

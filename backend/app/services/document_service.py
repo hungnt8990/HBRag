@@ -49,6 +49,7 @@ class DocumentService:
         *,
         uploaded_by_user_id: UUID | None = None,
         organization_id: UUID | None = None,
+        knowledge_base_id: UUID | None = None,
         visibility: str = "organization",
     ) -> DocumentUploadResponse:
         filename = self._clean_filename(upload_file.filename)
@@ -89,6 +90,7 @@ class DocumentService:
                     status="uploaded",
                     uploaded_by_user_id=uploaded_by_user_id,
                     organization_id=organization_id,
+                    knowledge_base_id=knowledge_base_id,
                     visibility=visibility,
                 )
             except TypeError:

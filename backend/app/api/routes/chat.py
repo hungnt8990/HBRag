@@ -14,6 +14,7 @@ from app.repositories.auth import AuthRepository
 from app.repositories.chat import ChatRepository
 from app.repositories.document_logs import DocumentLogRepository
 from app.repositories.documents import DocumentRepository
+from app.repositories.knowledge_bases import KnowledgeBaseRepository
 from app.repositories.memory import MemoryRepository
 from app.schemas.chat import RagChatRequest, RagChatResponse, RagChatStreamRequest
 from app.services.document_profiles import FALLBACK_CONFIG, profile_config, resolve_profile
@@ -21,7 +22,7 @@ from app.services.llms import LLMProvider
 from app.services.llms.factory import get_llm_provider
 from app.services.memory import MemoryResult, build_memory_provider
 from app.services.memory.memory_service import maybe_auto_save_memory
-from app.services.permissions import can_view_document
+from app.services.permissions import can_view_document, can_view_knowledge_base
 from app.services.rag_answer_service import (
     ChatSessionNotFoundError,
     RagAnswerError,
@@ -56,6 +57,11 @@ def get_auth_repository(
 ) -> AuthRepository:
     return AuthRepository(session)
 
+def get_knowledge_base_repository(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> KnowledgeBaseRepository:
+    return KnowledgeBaseRepository(session)
+
 
 def get_document_log_repository(
     session: Annotated[AsyncSession, Depends(get_db_session)],
@@ -85,6 +91,10 @@ async def rag_chat(
     request: RagChatRequest,
     repository: Annotated[DocumentRepository, Depends(get_document_repository)],
     auth_repository: Annotated[AuthRepository, Depends(get_auth_repository)],
+    knowledge_base_repository: Annotated[
+        KnowledgeBaseRepository,
+        Depends(get_knowledge_base_repository),
+    ],
     memory_repository: Annotated[MemoryRepository, Depends(get_memory_repository)],
     current_user: Annotated[User, Depends(get_current_user)],
     service: Annotated[RagAnswerService, Depends(get_rag_answer_service)],
@@ -93,9 +103,11 @@ async def rag_chat(
         visible_document_ids = await _visible_document_ids(
             repository=repository,
             auth_repository=auth_repository,
+            knowledge_base_repository=knowledge_base_repository,
             current_user=current_user,
             document_id=request.document_id,
             organization_id=request.organization_id,
+            knowledge_base_ids=request.knowledge_base_ids,
             include_descendants=request.include_descendants,
         )
         memory_context, session_summary = await _gather_memory(
@@ -117,32 +129,22 @@ async def rag_chat(
             answer_style=request.answer_style,
             max_context_chars=request.max_context_chars,
         )
-        try:
-            response = await service.answer(
-                query=request.query,
-                session_id=request.session_id,
-                top_k=resolved["top_k"],
-                candidate_k=resolved["candidate_k"],
-                current_user=current_user,
-                document_ids=visible_document_ids,
-                memory_context=memory_context,
-                session_summary=session_summary,
-                answer_mode=resolved["answer_mode"],
-                answer_style=resolved["answer_style"],
-                max_context_chars=resolved["max_context_chars"],
-                use_graph=request.use_graph,
-                graph_expansion_depth=request.graph_expansion_depth,
-                graph_expansion_limit=request.graph_expansion_limit,
-            )
-        except TypeError as exc:
-            if "unexpected keyword argument" not in str(exc):
-                raise
-            response = await service.answer(
-                query=request.query,
-                session_id=request.session_id,
-                top_k=resolved["top_k"],
-                candidate_k=resolved["candidate_k"],
-            )
+        response = await service.answer(
+            query=request.query,
+            session_id=request.session_id,
+            top_k=resolved["top_k"],
+            candidate_k=resolved["candidate_k"],
+            current_user=current_user,
+            document_ids=visible_document_ids,
+            memory_context=memory_context,
+            session_summary=session_summary,
+            answer_mode=resolved["answer_mode"],
+            answer_style=resolved["answer_style"],
+            max_context_chars=resolved["max_context_chars"],
+            use_graph=request.use_graph,
+            graph_expansion_depth=request.graph_expansion_depth,
+            graph_expansion_limit=request.graph_expansion_limit,
+        )
         await _auto_save(
             memory_repository=memory_repository,
             current_user=current_user,
@@ -289,6 +291,10 @@ async def rag_chat_stream(
     request: RagChatStreamRequest,
     repository: Annotated[DocumentRepository, Depends(get_document_repository)],
     auth_repository: Annotated[AuthRepository, Depends(get_auth_repository)],
+    knowledge_base_repository: Annotated[
+        KnowledgeBaseRepository,
+        Depends(get_knowledge_base_repository),
+    ],
     memory_repository: Annotated[MemoryRepository, Depends(get_memory_repository)],
     current_user: Annotated[User, Depends(get_current_user)],
     service: Annotated[RagAnswerService, Depends(get_rag_answer_service)],
@@ -296,9 +302,11 @@ async def rag_chat_stream(
     visible_document_ids = await _visible_document_ids(
         repository=repository,
         auth_repository=auth_repository,
+        knowledge_base_repository=knowledge_base_repository,
         current_user=current_user,
         document_id=request.scope.document_id,
         organization_id=request.scope.organization_id,
+        knowledge_base_ids=request.scope.knowledge_base_ids,
         include_descendants=request.scope.include_descendants,
     )
     memory_context, session_summary = await _gather_memory(
@@ -369,9 +377,11 @@ async def _visible_document_ids(
     *,
     repository: DocumentRepository,
     auth_repository: AuthRepository,
+    knowledge_base_repository: KnowledgeBaseRepository,
     current_user: User,
     document_id,
     organization_id,
+    knowledge_base_ids,
     include_descendants: bool,
 ) -> set:
     descendant_ids = await auth_repository.get_descendant_organization_ids(
@@ -384,7 +394,33 @@ async def _visible_document_ids(
             if include_descendants
             else {organization_id}
         )
-    documents = await repository.list_documents_for_permission_check()
+    requested_knowledge_base_ids = set(knowledge_base_ids or [])
+    if knowledge_base_ids is not None and not requested_knowledge_base_ids:
+        return set()
+    if requested_knowledge_base_ids:
+        knowledge_bases = await knowledge_base_repository.get_by_ids(
+            list(requested_knowledge_base_ids)
+        )
+        if len(knowledge_bases) != len(requested_knowledge_base_ids):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Knowledge base not found.",
+            )
+        for knowledge_base in knowledge_bases:
+            if not can_view_knowledge_base(
+                current_user,
+                knowledge_base,
+                descendant_organization_ids=descendant_ids,
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Knowledge base access is not allowed.",
+                )
+        documents = await repository.list_documents_for_permission_check(
+            knowledge_base_ids=requested_knowledge_base_ids
+        )
+    else:
+        documents = await repository.list_documents_for_permission_check()
     visible_ids = {
         document.id
         for document in documents

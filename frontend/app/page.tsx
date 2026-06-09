@@ -9,14 +9,12 @@ import {
   Clock3,
   Database,
   FileSearch,
-  Gauge,
   GitBranch,
   Layers3,
   Loader2,
   MessageSquareText,
   Play,
   RefreshCw,
-  RotateCcw,
   Rows3,
   Send,
   ServerCog,
@@ -24,13 +22,13 @@ import {
   Trash2,
   Upload,
   Workflow,
+  X,
 } from "lucide-react";
 import {
   type ChangeEvent,
   type FormEvent,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -50,29 +48,21 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   askRagChat,
   clearAccessToken,
-  chunkDocument,
   createMemory,
   deleteDocument,
-  deleteIngestionJob,
   deleteMemory,
   enqueueIngestionJob,
   getDocumentDetail,
   getCurrentUser,
   getErrorMessage,
-  getGraphHealth,
   getMemorySettings,
   getProfiles,
   getRuntimeConfig,
-  indexDocumentGraph,
-  indexDocumentVector,
   listDocuments,
   listIngestionJobs,
   listMemories,
-  parseDocument,
-  type ChunkPreview,
   type DocumentDetailResponse,
   type DocumentListItem,
-  type GraphHealthResponse,
   type IngestionJob,
   type IngestionLog,
   type IngestionStep,
@@ -87,7 +77,6 @@ import {
   type ChunkMode,
   type DocumentProfile,
   type ProfilesResponse,
-  uploadDocument,
 } from "@/lib/api";
 import { streamRagChat } from "@/lib/streaming";
 import { cn } from "@/lib/utils";
@@ -143,15 +132,6 @@ const pipelineDefinitions: Array<{
 
 const SELECTED_DOCUMENT_STORAGE_KEY = "hbrag_selected_document_id";
 
-const initialDebugSteps: DebugStep[] = pipelineDefinitions.map((step) => ({
-  key: step.key,
-  label: step.label,
-  state: "idle",
-  durationMs: null,
-  output: {},
-  error: null,
-}));
-
 const navItems: Array<{
   key: ActiveView;
   label: string;
@@ -170,42 +150,23 @@ export default function Home() {
   const [authChecked, setAuthChecked] = useState(false);
   const [runtimeConfig, setRuntimeConfig] =
     useState<RuntimeConfigResponse | null>(null);
-  const [runtimeExpanded, setRuntimeExpanded] = useState(false);
   const [systemError, setSystemError] = useState<string | null>(null);
-  const [graphHealth, setGraphHealth] = useState<GraphHealthResponse | null>(null);
-  const [graphHealthBusy, setGraphHealthBusy] = useState(false);
   const [documents, setDocuments] = useState<DocumentListItem[]>([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] =
     useState<DocumentDetailResponse | null>(null);
+  const [documentModalOpen, setDocumentModalOpen] = useState(false);
+  const [documentModalLoading, setDocumentModalLoading] = useState(false);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
-  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
-  const [uploadingDocuments, setUploadingDocuments] = useState(false);
   const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
 
   const [autoFile, setAutoFile] = useState<File | null>(null);
   const [autoJobs, setAutoJobs] = useState<IngestionJob[]>([]);
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [autoSubmitting, setAutoSubmitting] = useState(false);
   const [autoUploadMessage, setAutoUploadMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
-
-  const [debugDocumentId, setDebugDocumentId] = useState<string | null>(null);
-  const [debugDocumentStatus, setDebugDocumentStatus] = useState<string>("none");
-  const [debugSteps, setDebugSteps] = useState<DebugStep[]>(initialDebugSteps);
-  const [debugParsedText, setDebugParsedText] = useState("");
-  const [debugParsedCharacterCount, setDebugParsedCharacterCount] = useState(0);
-  const [debugChunks, setDebugChunks] = useState<ChunkPreview[]>([]);
-  const [debugPreviewTab, setDebugPreviewTab] = useState<"parse" | "chunks">(
-    "parse",
-  );
-  const [runningDebugStep, setRunningDebugStep] =
-    useState<PipelineStepKey | null>(null);
-  const [highlightedLogKey, setHighlightedLogKey] = useState<string | null>(
-    null,
-  );
 
   const [question, setQuestion] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -369,33 +330,6 @@ export default function Home() {
     [profilesConfig],
   );
 
-  const selectedJob = useMemo(() => {
-    if (selectedJobId) {
-      return autoJobs.find((job) => job.job_id === selectedJobId) ?? null;
-    }
-    return autoJobs[0] ?? null;
-  }, [autoJobs, selectedJobId]);
-
-  const selectedJobSteps = useMemo(
-    () => buildPipelineStepsFromJob(selectedJob),
-    [selectedJob],
-  );
-
-  const selectedJobLogs = useMemo(
-    () => mapIngestionLogs(selectedJob?.logs ?? []),
-    [selectedJob?.logs],
-  );
-
-  const canDebugParse = Boolean(selectedDocumentId) && selectedDocument?.status === "uploaded";
-  const canDebugChunk =
-    Boolean(selectedDocumentId) && ["parsed", "chunked"].includes(selectedDocument?.status ?? "");
-  const canDebugIndex =
-    Boolean(selectedDocumentId) && ["chunked", "indexed"].includes(selectedDocument?.status ?? "");
-  const canDebugGraph =
-    Boolean(selectedDocumentId) &&
-    selectedDocument?.status === "indexed" &&
-    (runtimeConfig?.graph_enabled ?? false);
-
   const appendLog = useCallback(
     (
       source: LogSource,
@@ -459,24 +393,6 @@ export default function Home() {
     }
   }, [appendLog]);
 
-  const checkGraphHealth = useCallback(async () => {
-    setGraphHealthBusy(true);
-    try {
-      const response = await getGraphHealth();
-      setGraphHealth(response);
-      appendLog(
-        "system",
-        "graph",
-        response.healthy ? "success" : "error",
-        response.message,
-      );
-    } catch (error) {
-      appendLog("system", "graph", "error", getErrorMessage(error));
-    } finally {
-      setGraphHealthBusy(false);
-    }
-  }, [appendLog]);
-
   const refreshMemorySettings = useCallback(async () => {
     try {
       const config = await getMemorySettings();
@@ -502,25 +418,15 @@ export default function Home() {
   }, [appendLog]);
 
   const syncDocumentWorkspace = useCallback(
-    (detail: DocumentDetailResponse | null, options?: { keepChunks?: boolean }) => {
+    (detail: DocumentDetailResponse | null) => {
       setSelectedDocument(detail);
-      setDebugDocumentId(detail?.document_id ?? null);
-      setDebugDocumentStatus(detail?.status ?? "none");
-      setDebugParsedText(detail?.preview_text ?? "");
-      setDebugParsedCharacterCount(detail?.parsed_character_count ?? 0);
-      setDebugSteps(
-        buildDocumentDebugSteps(detail, runtimeConfig?.graph_enabled ?? false),
-      );
-      if (!options?.keepChunks) {
-        setDebugChunks([]);
-      }
       if (detail?.document_id) {
         window.localStorage.setItem(SELECTED_DOCUMENT_STORAGE_KEY, detail.document_id);
       } else {
         window.localStorage.removeItem(SELECTED_DOCUMENT_STORAGE_KEY);
       }
     },
-    [runtimeConfig?.graph_enabled],
+    [],
   );
 
   const refreshSelectedDocument = useCallback(
@@ -571,11 +477,13 @@ export default function Home() {
     try {
       const jobs = await listIngestionJobs();
       setAutoJobs(jobs);
-      setSelectedJobId((current) => current ?? jobs[0]?.job_id ?? null);
+      if (jobs.some((job) => ["succeeded", "failed"].includes(job.status))) {
+        void refreshDocuments(null);
+      }
     } catch (error) {
       appendLog("auto", "queue", "error", getErrorMessage(error));
     }
-  }, [appendLog]);
+  }, [appendLog, refreshDocuments]);
 
   useEffect(() => {
     if (!authChecked) {
@@ -648,56 +556,9 @@ export default function Home() {
     return () => window.clearInterval(timer);
   }, [autoJobs, refreshJobs]);
 
-  useEffect(() => {
-    if (!selectedJobId) {
-      return;
-    }
-
-    const selectedStillExists = autoJobs.some(
-      (job) => job.job_id === selectedJobId,
-    );
-    if (!selectedStillExists) {
-      setSelectedJobId(autoJobs[0]?.job_id ?? null);
-    }
-  }, [autoJobs, selectedJobId]);
-
   const handleAutoFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     setAutoFile(event.target.files?.[0] ?? null);
     setAutoUploadMessage(null);
-  };
-
-  const handleLibraryFilesChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const [file] = Array.from(event.target.files ?? []);
-    setUploadFiles(file ? [file] : []);
-  };
-
-  const handleLibraryUpload = async (): Promise<number> => {
-    if (uploadFiles.length === 0 || uploadingDocuments) {
-      return 0;
-    }
-
-    setUploadingDocuments(true);
-    const started = performance.now();
-    try {
-      const response = await uploadDocument(uploadFiles[0]);
-      await refreshDocuments(response.document_id);
-      const detail = await refreshSelectedDocument(response.document_id);
-      setDebugSteps(buildDocumentDebugSteps(detail, runtimeConfig?.graph_enabled ?? false));
-      appendLog(
-        "system",
-        "upload",
-        "success",
-        `Uploaded ${response.filename}.`,
-        performance.now() - started,
-      );
-      return 1;
-    } catch (error) {
-      appendLog("system", "upload", "error", getErrorMessage(error));
-      return 0;
-    } finally {
-      setUploadFiles([]);
-      setUploadingDocuments(false);
-    }
   };
 
   const handleAutoSubmit = async () => {
@@ -714,7 +575,6 @@ export default function Home() {
       const job = await enqueueIngestionJob(autoFile);
       const durationMs = performance.now() - started;
       setAutoJobs((current) => [job, ...current.filter((item) => item.job_id !== job.job_id)]);
-      setSelectedJobId(job.job_id);
       appendLog(
         "auto",
         "queue",
@@ -735,6 +595,22 @@ export default function Home() {
       setAutoSubmitting(false);
     }
   };
+
+  const handleOpenDocumentModal = useCallback(
+    async (documentId: string) => {
+      setDocumentModalOpen(true);
+      setDocumentModalLoading(true);
+      setSelectedDocumentId(documentId);
+      try {
+        await refreshSelectedDocument(documentId);
+      } catch (error) {
+        appendLog("system", "documents", "error", getErrorMessage(error));
+      } finally {
+        setDocumentModalLoading(false);
+      }
+    },
+    [appendLog, refreshSelectedDocument],
+  );
 
   const handleDeleteDocument = useCallback(
     async (documentId: string) => {
@@ -771,301 +647,6 @@ export default function Home() {
     },
     [appendLog, documents, refreshDocuments, selectedDocumentId, syncDocumentWorkspace],
   );
-
-  const handleDeleteQueuedDocument = useCallback(
-    async (job: IngestionJob) => {
-      if (!job.document_id) {
-        appendLog("auto", "delete", "error", "This job has no document to delete.");
-        return;
-      }
-      const confirmed = window.confirm(
-        `Delete "${job.filename}" from MinIO, Qdrant, and the document database?`,
-      );
-      if (!confirmed) {
-        return;
-      }
-
-      setDeletingDocumentId(job.document_id);
-      const started = performance.now();
-      try {
-        const result = await deleteDocument(job.document_id);
-        try {
-          await deleteIngestionJob(job.job_id);
-        } catch {
-          // The document deletion is the important operation; the in-memory job may already be gone.
-        }
-        setAutoJobs((current) => current.filter((item) => item.job_id !== job.job_id));
-        setSelectedJobId((current) => (current === job.job_id ? null : current));
-        if (selectedDocumentId === job.document_id) {
-          setSelectedDocumentId(null);
-          syncDocumentWorkspace(null);
-        }
-        await refreshDocuments(null);
-        appendLog(
-          "auto",
-          "delete",
-          "success",
-          `Deleted ${job.filename}: ${result.deleted_files} MinIO file(s), Qdrant vectors cleared.`,
-          performance.now() - started,
-        );
-      } catch (error) {
-        appendLog("auto", "delete", "error", getErrorMessage(error));
-      } finally {
-        setDeletingDocumentId(null);
-      }
-    },
-    [appendLog, refreshDocuments, selectedDocumentId, syncDocumentWorkspace],
-  );
-
-  const runDebugStep = async (
-    stepKey: PipelineStepKey,
-    targetDocumentId?: string | null,
-  ) => {
-    if (runningDebugStep) {
-      return;
-    }
-
-    const activeDocumentId = targetDocumentId ?? selectedDocumentId ?? debugDocumentId;
-
-    if (stepKey === "upload" && uploadFiles.length === 0) {
-      appendLog("debug", "upload", "error", "Select a file in Document Library.");
-      return;
-    }
-
-    if (stepKey !== "upload" && !activeDocumentId) {
-      appendLog("debug", stepKey, "error", "Select a document before running this step.");
-      return;
-    }
-
-    setRunningDebugStep(stepKey);
-    setDebugStep(stepKey, {
-      state: "running",
-      durationMs: null,
-      error: null,
-      output: {},
-    });
-    appendLog("debug", stepKey, "info", `Running ${stepKey}.`);
-
-    const started = performance.now();
-
-    try {
-      if (stepKey === "upload") {
-        const successCount = await handleLibraryUpload();
-        const durationMs = performance.now() - started;
-        setDebugStep("upload", {
-          state: successCount > 0 ? "succeeded" : "failed",
-          durationMs,
-          output: {
-            file_count: uploadFiles.length,
-            selected_document_id: selectedDocumentId,
-            success_count: successCount,
-          },
-          error: successCount > 0 ? null : "No documents were uploaded successfully.",
-        });
-        return;
-      }
-
-      if (stepKey === "parse") {
-        const result = await parseDocument(activeDocumentId as string);
-        const durationMs = performance.now() - started;
-        setDebugParsedText(result.preview);
-        setDebugParsedCharacterCount(result.character_count);
-        setDebugChunks([]);
-        setDebugPreviewTab("parse");
-        setDebugDocumentStatus(result.status);
-        await refreshDocuments(activeDocumentId);
-        await refreshSelectedDocument(activeDocumentId as string);
-        setDebugStep("parse", {
-          state: "succeeded",
-          durationMs,
-          output: {
-            character_count: result.character_count,
-            status: result.status,
-          },
-          error: null,
-        });
-        resetDebugStepsAfter("parse");
-        appendLog(
-          "debug",
-          "parse",
-          "success",
-          `Parsed ${result.character_count.toLocaleString()} characters.`,
-          durationMs,
-        );
-        return;
-      }
-
-      if (stepKey === "chunk") {
-        const result = await chunkDocument(activeDocumentId as string, {
-          chunk_size: chunkSize,
-          chunk_overlap: chunkOverlap,
-          chunk_mode: chunkMode,
-          profile,
-        });
-        const durationMs = performance.now() - started;
-        setDebugChunks(result.preview);
-        setDebugPreviewTab("chunks");
-        setDebugDocumentStatus(result.status);
-        await refreshDocuments(activeDocumentId);
-        await refreshSelectedDocument(activeDocumentId as string);
-        setDebugStep("chunk", {
-          state: "succeeded",
-          durationMs,
-          output: {
-            chunk_count: result.chunk_count,
-            preview_count: result.preview.length,
-            status: result.status,
-          },
-          error: null,
-        });
-        resetDebugStepsAfter("chunk");
-        appendLog(
-          "debug",
-          "chunk",
-          "success",
-          `Created ${result.chunk_count.toLocaleString()} chunks.`,
-          durationMs,
-        );
-        return;
-      }
-
-      if (stepKey === "graph") {
-        const result = await indexDocumentGraph(activeDocumentId as string, {
-          extractor_provider: "llm",
-          max_entities_per_chunk: 30,
-          max_relations_per_chunk: 40,
-        });
-        const durationMs = performance.now() - started;
-        setDebugDocumentStatus(result.status);
-        await refreshDocuments(activeDocumentId);
-        await refreshSelectedDocument(activeDocumentId as string);
-        setDebugStep("graph", {
-          state: "succeeded",
-          durationMs,
-          output: {
-            chunks_processed: result.chunks_processed,
-            entities_extracted: result.entities_extracted,
-            relations_extracted: result.relations_extracted,
-            merged_entities: result.merged_entities,
-            merged_relations: result.merged_relations,
-            status: result.status,
-          },
-          error: null,
-        });
-        appendLog(
-          "debug",
-          "graph",
-          "success",
-          `Graph indexed ${result.chunks_processed.toLocaleString()} chunks.`,
-          durationMs,
-        );
-        return;
-      }
-
-      const result = await indexDocumentVector(activeDocumentId as string);
-      const durationMs = performance.now() - started;
-      setDebugDocumentStatus(result.status);
-      await refreshDocuments(activeDocumentId);
-      await refreshSelectedDocument(activeDocumentId as string);
-      setDebugStep("index", {
-        state: "succeeded",
-        durationMs,
-        output: {
-          indexed_chunk_count: result.indexed_chunk_count,
-          status: result.status,
-        },
-        error: null,
-      });
-      appendLog(
-        "debug",
-        "index",
-        "success",
-        `Indexed ${result.indexed_chunk_count.toLocaleString()} chunks.`,
-        durationMs,
-      );
-    } catch (error) {
-      const durationMs = performance.now() - started;
-      const message = getErrorMessage(error);
-      setDebugStep(stepKey, {
-        state: "failed",
-        durationMs,
-        output: {},
-        error: message,
-      });
-      handleFailedDebugStep(stepKey);
-      appendLog("debug", stepKey, "error", message, durationMs);
-    } finally {
-      setRunningDebugStep(null);
-    }
-  };
-
-  const handleFailedDebugStep = (stepKey: PipelineStepKey) => {
-    if (stepKey === "upload") {
-      syncDocumentWorkspace(selectedDocument);
-      return;
-    }
-
-    if (stepKey === "parse") {
-      syncDocumentWorkspace(selectedDocument);
-      setDebugPreviewTab("parse");
-      return;
-    }
-
-    if (stepKey === "chunk") {
-      syncDocumentWorkspace(selectedDocument);
-      setDebugChunks([]);
-      setDebugPreviewTab("chunks");
-      return;
-    }
-
-    if (stepKey === "graph") {
-      syncDocumentWorkspace(selectedDocument);
-      return;
-    }
-
-    syncDocumentWorkspace(selectedDocument);
-  };
-
-  const setDebugStep = (
-    stepKey: PipelineStepKey,
-    patch: Partial<DebugStep>,
-  ) => {
-    setDebugSteps((current) =>
-      current.map((step) =>
-        step.key === stepKey
-          ? {
-              ...step,
-              ...patch,
-            }
-          : step,
-      ),
-    );
-  };
-
-  const resetDebugStepsAfter = (stepKey: PipelineStepKey) => {
-    const stepIndex = pipelineDefinitions.findIndex((step) => step.key === stepKey);
-    setDebugSteps((current) =>
-      current.map((step, index) =>
-        index > stepIndex
-          ? {
-              ...step,
-              state: "idle",
-              durationMs: null,
-              output: {},
-              error: null,
-            }
-          : step,
-      ),
-    );
-  };
-
-  const resetDebugState = () => {
-    setDebugChunks([]);
-    setDebugPreviewTab("parse");
-    setRunningDebugStep(null);
-    setHighlightedLogKey(null);
-    syncDocumentWorkspace(selectedDocument);
-  };
 
   const handleAsk = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1232,21 +813,6 @@ export default function Home() {
     }
   };
 
-  const debugMetrics = [
-    {
-      label: "Document status",
-      value: debugDocumentStatus,
-    },
-    {
-      label: "Parsed characters",
-      value: debugParsedCharacterCount.toLocaleString(),
-    },
-    {
-      label: "Stored chunks",
-      value: (selectedDocument?.chunk_count ?? debugChunks.length).toLocaleString(),
-    },
-  ];
-
   if (!authChecked) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-700">
@@ -1349,23 +915,27 @@ export default function Home() {
         {activeView === "auto" ? (
           <AutoQueueView
             deletingDocumentId={deletingDocumentId}
+            detailLoading={documentModalLoading}
+            detailOpen={documentModalOpen}
+            detailDocument={selectedDocument}
             documents={documents}
             file={autoFile}
             isLoadingDocuments={isLoadingDocuments}
             jobs={autoJobs}
             loading={autoSubmitting}
             message={autoUploadMessage}
+            onCloseDetail={() => setDocumentModalOpen(false)}
             onFileChange={handleAutoFileChange}
-            onDeleteDocument={handleDeleteQueuedDocument}
             onDeletePublishedDocument={handleDeleteDocument}
+            onOpenDocument={handleOpenDocumentModal}
             onRefreshDocuments={() => {
               void refreshDocuments(null);
             }}
-            onSelectJob={setSelectedJobId}
             onSubmit={handleAutoSubmit}
-            selectedJob={selectedJob}
-            selectedJobSteps={selectedJobSteps}
-            logs={[...selectedJobLogs, ...logs.filter((log) => log.source === "auto")]}
+            logs={[
+              ...autoJobs.flatMap((job) => mapIngestionLogs(job.logs)),
+              ...logs.filter((log) => log.source === "auto"),
+            ]}
           />
         ) : null}
 
@@ -1457,6 +1027,9 @@ export default function Home() {
 
 function AutoQueueView({
   deletingDocumentId,
+  detailDocument,
+  detailLoading,
+  detailOpen,
   documents,
   file,
   isLoadingDocuments,
@@ -1464,16 +1037,17 @@ function AutoQueueView({
   loading,
   logs,
   message,
+  onCloseDetail,
   onFileChange,
-  onDeleteDocument,
   onDeletePublishedDocument,
+  onOpenDocument,
   onRefreshDocuments,
-  onSelectJob,
   onSubmit,
-  selectedJob,
-  selectedJobSteps,
 }: {
   deletingDocumentId: string | null;
+  detailDocument: DocumentDetailResponse | null;
+  detailLoading: boolean;
+  detailOpen: boolean;
   documents: DocumentListItem[];
   file: File | null;
   isLoadingDocuments: boolean;
@@ -1481,15 +1055,18 @@ function AutoQueueView({
   loading: boolean;
   logs: UiLog[];
   message: { type: "success" | "error"; text: string } | null;
+  onCloseDetail: () => void;
   onFileChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  onDeleteDocument: (job: IngestionJob) => void;
   onDeletePublishedDocument: (documentId: string) => void;
+  onOpenDocument: (documentId: string) => void;
   onRefreshDocuments: () => void;
-  onSelectJob: (jobId: string) => void;
   onSubmit: () => void;
-  selectedJob: IngestionJob | null;
-  selectedJobSteps: DebugStep[];
 }) {
+  const activeJobsByDocumentId = new Map(
+    jobs
+      .filter((job) => job.document_id && job.status !== "succeeded")
+      .map((job) => [job.document_id as string, job]),
+  );
   const metrics = [
     { label: "Documents", value: documents.length.toLocaleString() },
     {
@@ -1554,29 +1131,7 @@ function AutoQueueView({
         </CardContent>
       </Card>
 
-      <section className="space-y-5">
-        <Card className="bg-white shadow-sm">
-          <CardHeader>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <CardTitle>Queue Monitor Pipeline</CardTitle>
-                <CardDescription>
-                  Selected job: {selectedJob ? selectedJob.filename : "No job selected"}
-                </CardDescription>
-              </div>
-              {selectedJob ? <StatusBadge state={normalizeState(selectedJob.status)} /> : null}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <PipelineStrip
-              dark
-              onStepFocus={() => undefined}
-              runningStep={null}
-              steps={selectedJobSteps}
-            />
-          </CardContent>
-        </Card>
-
+      <section>
         <Card className="bg-white shadow-sm">
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -1604,23 +1159,57 @@ function AutoQueueView({
               ) : documents.length === 0 ? (
                 <EmptyState message="No published documents found." />
               ) : (
-                documents.map((document) => (
+                documents.map((document) => {
+                  const activeJob = activeJobsByDocumentId.get(document.document_id);
+                  const activeJobSteps = buildPipelineStepsFromJob(activeJob ?? null);
+
+                  return (
                   <article
-                    className="rounded-xl border border-slate-100 bg-white px-4 py-3 transition-colors"
+                    className="rounded-xl border border-slate-100 bg-white px-4 py-3 transition-colors hover:border-cyan-200 hover:bg-cyan-50/30"
                     key={document.document_id}
                   >
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="min-w-0">
+                      <button
+                        className="min-w-0 flex-1 cursor-pointer text-left"
+                        onClick={() => onOpenDocument(document.document_id)}
+                        type="button"
+                      >
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="truncate text-sm font-semibold text-slate-800">
                             {document.title}
                           </p>
                           <StatusBadge state={normalizeState(document.status)} />
+                          {activeJob ? (
+                            <StatusBadge state={normalizeState(activeJob.status)} compact />
+                          ) : null}
                         </div>
                         <p className="mt-1 truncate text-xs text-slate-500">
                           {document.filename ?? "No file name"} / {compactId(document.document_id)}
                         </p>
-                      </div>
+                        <div className="mt-2 grid gap-1 text-xs text-slate-500 sm:grid-cols-2">
+                          <span className="truncate" title={formatKnowledgeBase(document)}>
+                            Knowledge base: {formatKnowledgeBase(document)}
+                          </span>
+                          <span className="truncate" title={formatDocumentScope(document)}>
+                            Scope: {formatDocumentScope(document)}
+                          </span>
+                          <span className="truncate" title={formatPerson(document.uploaded_by)}>
+                            Uploader: {formatPerson(document.uploaded_by)}
+                          </span>
+                          <span
+                            className="truncate"
+                            title={formatPerson(document.knowledge_base?.owner ?? null)}
+                          >
+                            Owner: {formatPerson(document.knowledge_base?.owner ?? null)}
+                          </span>
+                          <span
+                            className="truncate sm:col-span-2"
+                            title={document.organization?.ten_dviqly ?? "No organization"}
+                          >
+                            Organization: {document.organization?.ten_dviqly ?? "No organization"}
+                          </span>
+                        </div>
+                      </button>
                       <Button
                         className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50"
                         disabled={deletingDocumentId === document.document_id}
@@ -1652,78 +1241,29 @@ function AutoQueueView({
                         }
                       />
                     </dl>
-                  </article>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white shadow-sm">
-          <CardHeader>
-            <CardTitle>Recent Queue Jobs</CardTitle>
-            <CardDescription>Runtime queue history for the current backend process.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {jobs.length === 0 ? (
-                <EmptyState message="No queue jobs in the current backend run." />
-              ) : (
-                jobs.map((job) => {
-                  const stats = summarizeIngestionJob(job);
-                  return (
-                    <article
-                      className={cn(
-                        "rounded-xl border px-4 py-3 transition-colors",
-                        selectedJob?.job_id === job.job_id
-                          ? "border-cyan-200 bg-cyan-50"
-                          : "border-slate-100 bg-white",
-                      )}
-                      key={job.job_id}
-                    >
-                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-slate-800">
-                            {job.filename}
-                          </p>
-                          <p className="mt-1 font-mono text-xs text-slate-500">
-                            {compactId(job.job_id)}
-                            {job.document_id ? ` / ${compactId(job.document_id)}` : ""}
-                          </p>
+                    {activeJob ? (
+                      <div className="mt-4 rounded-xl border border-cyan-100 bg-cyan-50/60 p-3">
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-cyan-800">
+                            Queue monitor pipeline
+                          </span>
+                          <span className="font-mono text-xs text-cyan-900">
+                            {compactId(activeJob.job_id)}
+                          </span>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <StatusBadge state={normalizeState(job.status)} />
-                          <Button
-                            className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                            onClick={() => onSelectJob(job.job_id)}
-                            type="button"
-                            variant="outline"
-                          >
-                            Select
-                          </Button>
-                          <Button
-                            className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50"
-                            disabled={!job.document_id || deletingDocumentId === job.document_id}
-                            onClick={() => onDeleteDocument(job)}
-                            title="Delete from MinIO, Qdrant, and database"
-                            type="button"
-                            variant="outline"
-                          >
-                            {deletingDocumentId === job.document_id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
-                            Delete
-                          </Button>
-                        </div>
+                        <PipelineStrip
+                          compact
+                          dark={false}
+                          onStepFocus={() => undefined}
+                          runningStep={null}
+                          steps={activeJobSteps}
+                        />
+                        {activeJob.error ? (
+                          <p className="mt-3 text-sm text-rose-700">{activeJob.error}</p>
+                        ) : null}
                       </div>
-                      <dl className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-3">
-                        <QueueMetric label="Parsed chars" value={stats.parsedChars} />
-                        <QueueMetric label="Chunks" value={stats.chunks} />
-                        <QueueMetric label="Vector indexed" value={stats.indexed} />
-                      </dl>
-                    </article>
+                    ) : null}
+                  </article>
                   );
                 })
               )}
@@ -1737,6 +1277,222 @@ function AutoQueueView({
         logs={logs}
         title="Operation Logs"
       />
+
+      <DocumentDetailModal
+        document={detailDocument}
+        loading={detailLoading}
+        onClose={onCloseDetail}
+        open={detailOpen}
+      />
+    </div>
+  );
+}
+
+function DocumentDetailModal({
+  document,
+  loading,
+  onClose,
+  open,
+}: {
+  document: DocumentDetailResponse | null;
+  loading: boolean;
+  onClose: () => void;
+  open: boolean;
+}) {
+  const [activeTab, setActiveTab] = useState<"parse" | "chunk" | "embed">("parse");
+
+  useEffect(() => {
+    if (open) {
+      setActiveTab("parse");
+    }
+  }, [open, document?.document_id]);
+
+  if (!open) {
+    return null;
+  }
+
+  const vectorLogs = document?.pipeline_logs.filter(
+    (log) => log.action === "index_vector",
+  ) ?? [];
+  const tabs = [
+    { key: "parse", label: "Parse", icon: FileSearch },
+    { key: "chunk", label: "Chunk", icon: Rows3 },
+    { key: "embed", label: "Embed", icon: Database },
+  ] as const;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-6">
+      <div className="flex max-h-[90vh] w-full max-w-5xl flex-col rounded-xl bg-white shadow-xl">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="truncate text-lg font-semibold text-slate-900">
+                {document?.title ?? "Document detail"}
+              </h2>
+              {document ? <StatusBadge state={normalizeState(document.status)} /> : null}
+            </div>
+            <p className="mt-1 truncate text-sm text-slate-500">
+              {document?.filename ?? "Loading document data..."}
+            </p>
+          </div>
+          <Button
+            className="h-9 w-9 shrink-0 border-slate-200 bg-white p-0 text-slate-600 hover:bg-slate-50"
+            onClick={onClose}
+            title="Close detail"
+            type="button"
+            variant="outline"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {loading ? (
+          <div className="flex min-h-80 items-center justify-center gap-3 text-sm text-slate-500">
+            <Loader2 className="h-4 w-4 animate-spin text-cyan-700" />
+            Loading document detail...
+          </div>
+        ) : !document ? (
+          <div className="p-5">
+            <EmptyState message="Document detail is unavailable." />
+          </div>
+        ) : (
+          <div className="min-h-0 overflow-auto px-5 py-4">
+            <dl className="mb-4 grid gap-3 text-xs text-slate-600 sm:grid-cols-2 lg:grid-cols-4">
+              <QueueMetric label="Document id" value={compactId(document.document_id)} />
+              <QueueMetric label="Parsed chars" value={document.parsed_character_count.toLocaleString()} />
+              <QueueMetric label="Chunks" value={document.chunk_count.toLocaleString()} />
+              <QueueMetric
+                label="Vector indexed"
+                value={
+                  document.vector_indexed_count === null
+                    ? "--"
+                    : document.vector_indexed_count.toLocaleString()
+                }
+              />
+              <QueueMetric label="Knowledge base" value={formatKnowledgeBase(document)} />
+              <QueueMetric label="Scope" value={formatDocumentScope(document)} />
+              <QueueMetric label="Uploader" value={formatPerson(document.uploaded_by)} />
+              <QueueMetric label="Updated" value={formatDateTime(document.updated_at)} />
+            </dl>
+
+            <div className="mb-4 inline-flex rounded-lg bg-slate-100 p-1">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    className={cn(
+                      "inline-flex cursor-pointer items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                      activeTab === tab.key
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 hover:text-slate-800",
+                    )}
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    type="button"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {activeTab === "parse" ? (
+              <div className="space-y-3">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Parsed text preview
+                  </p>
+                  <pre className="max-h-96 whitespace-pre-wrap rounded-lg bg-slate-950 p-4 text-sm leading-6 text-slate-100">
+                    {document.preview_text || "No parsed text available."}
+                  </pre>
+                </div>
+                <PipelineLogList logs={document.pipeline_logs.filter((log) => log.action === "parse")} />
+              </div>
+            ) : null}
+
+            {activeTab === "chunk" ? (
+              <div className="space-y-3">
+                {document.chunks.length === 0 ? (
+                  <EmptyState message="No chunk data available." />
+                ) : (
+                  document.chunks.map((chunk) => (
+                    <article className="rounded-xl border border-slate-200 bg-white p-4" key={chunk.id}>
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-sm font-semibold text-slate-800">
+                          Chunk #{chunk.chunk_index}
+                        </span>
+                        <span className="font-mono text-xs text-slate-500">
+                          {chunk.token_count === null ? "tokens --" : `${chunk.token_count} tokens`}
+                        </span>
+                      </div>
+                      <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                        {chunk.content}
+                      </p>
+                      {Object.keys(chunk.metadata).length > 0 ? (
+                        <pre className="mt-3 overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+                          {JSON.stringify(chunk.metadata, null, 2)}
+                        </pre>
+                      ) : null}
+                    </article>
+                  ))
+                )}
+              </div>
+            ) : null}
+
+            {activeTab === "embed" ? (
+              <div className="space-y-3">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <dl className="grid gap-3 text-xs text-slate-600 sm:grid-cols-3">
+                    <QueueMetric label="Status" value={document.status} />
+                    <QueueMetric label="Stored chunks" value={document.chunk_count.toLocaleString()} />
+                    <QueueMetric
+                      label="Indexed chunks"
+                      value={
+                        document.vector_indexed_count === null
+                          ? "--"
+                          : document.vector_indexed_count.toLocaleString()
+                      }
+                    />
+                  </dl>
+                </div>
+                <PipelineLogList logs={vectorLogs} />
+              </div>
+            ) : null}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PipelineLogList({ logs }: { logs: DocumentDetailResponse["pipeline_logs"] }) {
+  if (logs.length === 0) {
+    return <EmptyState message="No pipeline logs for this tab." />;
+  }
+
+  return (
+    <div className="space-y-2">
+      {logs.map((log) => (
+        <article
+          className="rounded-xl border border-slate-200 bg-white p-3"
+          key={`${log.action}-${log.created_at}`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-slate-800">{log.action}</span>
+              <StatusBadge state={normalizeState(log.status)} compact />
+            </div>
+            <span className="text-xs text-slate-500">{formatDateTime(log.created_at)}</span>
+          </div>
+          {log.message ? <p className="mt-2 text-sm text-slate-600">{log.message}</p> : null}
+          {log.metadata ? (
+            <pre className="mt-3 overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+              {JSON.stringify(log.metadata, null, 2)}
+            </pre>
+          ) : null}
+        </article>
+      ))}
     </div>
   );
 }
@@ -2563,11 +2319,13 @@ function NumberField({
 }
 
 function PipelineStrip({
+  compact,
   dark,
   onStepFocus,
   runningStep,
   steps,
 }: {
+  compact?: boolean;
   dark?: boolean;
   onStepFocus: (step: PipelineStepKey) => void;
   runningStep: PipelineStepKey | null;
@@ -2576,7 +2334,8 @@ function PipelineStrip({
   return (
     <div
       className={cn(
-        "grid gap-3 rounded-xl p-4 shadow-inner md:grid-cols-5",
+        "grid gap-3 rounded-xl shadow-inner md:grid-cols-5",
+        compact ? "p-3" : "p-4",
         dark ? "bg-[#0b3342]" : "bg-slate-100",
       )}
     >
@@ -2592,7 +2351,8 @@ function PipelineStrip({
             ) : null}
             <button
               className={cn(
-                "flex min-h-32 w-full flex-col justify-between rounded-lg border p-3 text-left transition-colors",
+                "flex w-full flex-col justify-between rounded-lg border p-3 text-left transition-colors",
+                compact ? "min-h-24" : "min-h-32",
                 dark
                   ? "border-cyan-800/50 bg-[#114659] text-white hover:bg-[#15546b]"
                   : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50",
@@ -2736,128 +2496,6 @@ function QueueMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function StepButton({
-  disabled,
-  icon: Icon,
-  label,
-  loading,
-  onClick,
-}: {
-  disabled: boolean;
-  icon: typeof Upload;
-  label: string;
-  loading: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <Button
-      className="justify-start bg-[#0d3b4c] text-white hover:bg-[#114e63]"
-      disabled={disabled || loading}
-      onClick={onClick}
-      type="button"
-    >
-      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
-      {label}
-    </Button>
-  );
-}
-
-function RuntimePanel({
-  config,
-  expanded,
-  graphHealth,
-  graphHealthBusy,
-  onCheckGraphHealth,
-  onToggle,
-}: {
-  config: RuntimeConfigResponse | null;
-  expanded: boolean;
-  graphHealth: GraphHealthResponse | null;
-  graphHealthBusy: boolean;
-  onCheckGraphHealth: () => void;
-  onToggle: () => void;
-}) {
-  const rows = config
-    ? [
-        ["Embedding", config.embedding_provider],
-        ["Embedding model", config.embedding_model ?? "Not set"],
-        ["Dimension", String(config.embedding_dimension)],
-        ["Reranker", config.reranker_provider],
-        ["Reranker model", config.reranker_model ?? "Not set"],
-        ["LLM", config.llm_provider],
-        ["LLM model", config.llm_model ?? "Not set"],
-        ["Collection", config.vector_collection_name],
-        ["Auto recreate", config.auto_recreate_collection ? "true" : "false"],
-        ["Graph", config.graph_provider],
-        ["Graph enabled", config.graph_enabled ? "true" : "false"],
-        ["Graph expansion", config.graph_expansion_enabled ? "true" : "false"],
-        ["Graph depth", String(config.graph_expansion_depth)],
-        ["Graph limit", String(config.graph_expansion_limit)],
-      ]
-    : [];
-
-  return (
-    <Card className="bg-white shadow-sm">
-      <CardHeader className="pb-3">
-        <button
-          className="flex w-full cursor-pointer items-center justify-between gap-3 text-left"
-          onClick={onToggle}
-          type="button"
-        >
-          <span>
-            <CardTitle className="flex items-center gap-2">
-              <ServerCog className="h-5 w-5 text-cyan-700" />
-              Runtime Config
-            </CardTitle>
-            <CardDescription>Safe provider details. API keys are hidden.</CardDescription>
-          </span>
-          <ChevronRight
-            className={cn(
-              "h-4 w-4 text-slate-400 transition-transform",
-              expanded && "rotate-90",
-            )}
-          />
-        </button>
-      </CardHeader>
-      {expanded ? (
-        <CardContent>
-          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <div>
-              <p className="text-sm font-semibold text-slate-800">Graph health</p>
-              <p className="text-xs text-slate-500">
-                {graphHealth?.message ?? "Run a live Neo4j connectivity check."}
-              </p>
-            </div>
-            <Button
-              className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-              disabled={graphHealthBusy}
-              onClick={onCheckGraphHealth}
-              type="button"
-              variant="outline"
-            >
-              {graphHealthBusy ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <GitBranch className="h-4 w-4" />
-              )}
-              Check
-            </Button>
-          </div>
-          {config ? (
-            <dl className="space-y-2">
-              {rows.map(([label, value]) => (
-                <KeyValue key={label} label={label} value={value} />
-              ))}
-            </dl>
-          ) : (
-            <EmptyState message="Runtime config has not loaded." />
-          )}
-        </CardContent>
-      ) : null}
-    </Card>
-  );
-}
-
 function LogPanel({
   highlightedLogKey,
   logs,
@@ -2928,91 +2566,6 @@ function LogPanel({
   );
 }
 
-function ParsePreview({ text }: { text: string }) {
-  if (!text) {
-    return <EmptyState message="Parsed text will appear after Parse succeeds." />;
-  }
-
-  return (
-    <pre className="max-h-[560px] overflow-auto rounded-xl bg-slate-950 p-5 text-sm leading-6 text-slate-100">
-      {text}
-    </pre>
-  );
-}
-
-function ChunkPreviewList({ chunks }: { chunks: ChunkPreview[] }) {
-  if (chunks.length === 0) {
-    return <EmptyState message="Chunk previews will appear after Chunk succeeds." />;
-  }
-
-  return (
-    <div className="max-h-[560px] space-y-3 overflow-auto">
-      {chunks.map((chunk) => (
-        <article
-          className={cn(
-            "rounded-xl border border-slate-100 p-4",
-            chunk.chunk_index % 2 === 0 ? "bg-slate-50" : "bg-white",
-          )}
-          key={`${chunk.chunk_index}-${chunk.start_char}`}
-        >
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
-              <Rows3 className="h-4 w-4 text-cyan-700" />
-              Chunk {chunk.chunk_index}
-            </span>
-            <span className="font-mono text-xs text-slate-500">
-              {chunk.start_char}-{chunk.end_char} / {chunk.content.length} chars
-            </span>
-          </div>
-          <p className="whitespace-pre-wrap border-l-2 border-cyan-600/40 pl-4 text-sm leading-6 text-slate-700">
-            {chunk.content}
-          </p>
-        </article>
-      ))}
-    </div>
-  );
-}
-
-function ErrorPreview({ message }: { message: string }) {
-  return (
-    <div
-      className="rounded-xl border border-rose-200/70 bg-rose-50 p-5 text-sm text-rose-700"
-      role="alert"
-    >
-      <div className="flex items-center gap-2 font-semibold">
-        <AlertCircle className="h-4 w-4" />
-        Step failed
-      </div>
-      <p className="mt-2 leading-6">{message}</p>
-    </div>
-  );
-}
-
-function TabButton({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      className={cn(
-        "cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-        active
-          ? "bg-white text-slate-900 shadow-sm"
-          : "text-slate-500 hover:text-slate-800",
-      )}
-      onClick={onClick}
-      type="button"
-    >
-      {label}
-    </button>
-  );
-}
-
 function RuntimeBadges({ config }: { config: RuntimeConfigResponse | null }) {
   if (!config) {
     return null;
@@ -3066,63 +2619,6 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
-function buildDocumentDebugSteps(
-  detail: DocumentDetailResponse | null,
-  graphEnabled: boolean,
-): DebugStep[] {
-  const latestByAction = new Map<string, { status: string; message: string | null }>();
-  for (const log of detail?.pipeline_logs ?? []) {
-    if (!latestByAction.has(log.action)) {
-      latestByAction.set(log.action, { status: log.status, message: log.message });
-    }
-  }
-
-  return pipelineDefinitions.map((definition) => {
-    let state: RunState = "idle";
-    if (definition.key === "upload") {
-      state = detail ? "succeeded" : "idle";
-    } else if (definition.key === "parse") {
-      state =
-        latestByAction.get("parse")?.status === "failed"
-          ? "failed"
-          : detail && ["parsed", "chunked", "indexed"].includes(detail.status)
-            ? "succeeded"
-            : "idle";
-    } else if (definition.key === "chunk") {
-      state =
-        latestByAction.get("chunk")?.status === "failed"
-          ? "failed"
-          : detail && ["chunked", "indexed"].includes(detail.status)
-            ? "succeeded"
-            : "idle";
-    } else if (definition.key === "index") {
-      state =
-        latestByAction.get("index_vector")?.status === "failed"
-          ? "failed"
-          : detail && detail.vector_indexed_count !== null
-            ? "succeeded"
-            : "idle";
-    } else if (definition.key === "graph") {
-      state =
-        graphEnabled && detail?.graph_status?.graph_indexed ? "succeeded" : "idle";
-    }
-
-    return {
-      key: definition.key,
-      label: definition.label,
-      state,
-      durationMs: null,
-      output: {},
-      error:
-        state === "failed"
-          ? latestByAction.get(
-              definition.key === "index" ? "index_vector" : definition.key,
-            )?.message ?? null
-          : null,
-    };
-  });
-}
-
 function buildPipelineStepsFromJob(job: IngestionJob | null): DebugStep[] {
   return pipelineDefinitions.map((definition) => {
     const jobStep = findJobStep(job?.steps ?? [], definition.key);
@@ -3135,32 +2631,6 @@ function buildPipelineStepsFromJob(job: IngestionJob | null): DebugStep[] {
       error: jobStep?.error ?? null,
     };
   });
-}
-
-function summarizeIngestionJob(job: IngestionJob): {
-  parsedChars: string;
-  chunks: string;
-  indexed: string;
-} {
-  const parseOutput = findJobStep(job.steps, "parse")?.output ?? {};
-  const chunkOutput = findJobStep(job.steps, "chunk")?.output ?? {};
-  const indexOutput = findJobStep(job.steps, "index")?.output ?? {};
-
-  return {
-    parsedChars: formatOptionalCount(parseOutput.character_count),
-    chunks: formatOptionalCount(chunkOutput.chunk_count),
-    indexed: formatOptionalCount(indexOutput.indexed_chunk_count),
-  };
-}
-
-function formatOptionalCount(value: unknown): string {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value.toLocaleString();
-  }
-  if (typeof value === "string" && value.trim() && !Number.isNaN(Number(value))) {
-    return Number(value).toLocaleString();
-  }
-  return "--";
 }
 
 function findJobStep(
@@ -3238,9 +2708,47 @@ function formatTime(timestamp: string): string {
   });
 }
 
+function formatDateTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function compactId(id: string): string {
   if (id.length <= 12) {
     return id;
   }
   return `${id.slice(0, 8)}...${id.slice(-4)}`;
+}
+
+function formatPerson(person: DocumentListItem["uploaded_by"]): string {
+  return person?.full_name ?? person?.username ?? "Unknown";
+}
+
+function formatKnowledgeBase(document: DocumentListItem): string {
+  return document.knowledge_base?.name ?? "No knowledge base";
+}
+
+function formatDocumentScope(document: DocumentListItem): string {
+  if (document.knowledge_base?.visibility === "private") {
+    return "Personal";
+  }
+  if (document.visibility === "private") {
+    return "Personal document";
+  }
+  if (document.knowledge_base?.visibility === "global") {
+    return "Shared global";
+  }
+  if (document.knowledge_base?.visibility === "subtree") {
+    return "Shared subtree";
+  }
+  return "Shared organization";
 }

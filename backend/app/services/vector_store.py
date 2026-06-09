@@ -166,12 +166,20 @@ class QdrantVectorStore:
         query_vector: list[float],
         top_k: int,
         document_ids: set[str] | None = None,
+        knowledge_base_ids: set[str] | None = None,
+        organization_id: str | None = None,
+        visibility: str | None = None,
     ) -> list[VectorSearchResult]:
         await self.ensure_collection()
         response = await self._client.query_points(
             collection_name=self.collection_name,
             query=query_vector,
-            query_filter=self._document_filter(document_ids),
+            query_filter=self._payload_filter(
+                document_ids=document_ids,
+                knowledge_base_ids=knowledge_base_ids,
+                organization_id=organization_id,
+                visibility=visibility,
+            ),
             limit=top_k,
             with_payload=True,
             with_vectors=False,
@@ -188,6 +196,10 @@ class QdrantVectorStore:
         content: str,
         metadata: dict[str, Any],
         vector: list[float],
+        organization_id: UUID | str | None = None,
+        knowledge_base_id: UUID | str | None = None,
+        uploaded_by_user_id: UUID | str | None = None,
+        visibility: str | None = None,
     ) -> PointStruct:
         return PointStruct(
             id=str(chunk_id),
@@ -198,6 +210,12 @@ class QdrantVectorStore:
                 "chunk_index": chunk_index,
                 "content": content,
                 "metadata": metadata,
+                "organization_id": str(organization_id) if organization_id else None,
+                "knowledge_base_id": str(knowledge_base_id) if knowledge_base_id else None,
+                "uploaded_by_user_id": (
+                    str(uploaded_by_user_id) if uploaded_by_user_id else None
+                ),
+                "visibility": visibility,
             },
         )
 
@@ -213,17 +231,45 @@ class QdrantVectorStore:
         )
 
     @staticmethod
-    def _document_filter(document_ids: set[str] | None) -> Filter | None:
-        if document_ids is None:
-            return None
-        return Filter(
-            must=[
+    def _payload_filter(
+        *,
+        document_ids: set[str] | None,
+        knowledge_base_ids: set[str] | None,
+        organization_id: str | None,
+        visibility: str | None,
+    ) -> Filter | None:
+        must: list[FieldCondition] = []
+        if document_ids is not None:
+            must.append(
                 FieldCondition(
                     key="document_id",
                     match=MatchAny(any=sorted(document_ids)),
                 )
-            ]
-        )
+            )
+        if knowledge_base_ids is not None:
+            must.append(
+                FieldCondition(
+                    key="knowledge_base_id",
+                    match=MatchAny(any=sorted(knowledge_base_ids)),
+                )
+            )
+        if organization_id is not None:
+            must.append(
+                FieldCondition(
+                    key="organization_id",
+                    match=MatchValue(value=organization_id),
+                )
+            )
+        if visibility is not None:
+            must.append(
+                FieldCondition(
+                    key="visibility",
+                    match=MatchValue(value=visibility),
+                )
+            )
+        if not must:
+            return None
+        return Filter(must=must)
 
     @staticmethod
     def _batched(points: list[PointStruct], batch_size: int) -> list[list[PointStruct]]:

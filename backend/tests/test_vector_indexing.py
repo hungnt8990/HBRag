@@ -20,6 +20,9 @@ from app.services.vector_store import VectorSearchResult
 
 DOCUMENT_ID = UUID("44444444-4444-4444-4444-444444444444")
 CHUNK_ID = UUID("55555555-5555-5555-5555-555555555555")
+ORGANIZATION_ID = UUID("66666666-6666-6666-6666-666666666666")
+KNOWLEDGE_BASE_ID = UUID("77777777-7777-7777-7777-777777777777")
+USER_ID = UUID("88888888-8888-8888-8888-888888888888")
 
 
 class FakeDocumentRepository:
@@ -29,7 +32,14 @@ class FakeDocumentRepository:
         status: str = "chunked",
         chunks: list[SimpleNamespace] | None = None,
     ) -> None:
-        self.document = SimpleNamespace(id=DOCUMENT_ID, status=status)
+        self.document = SimpleNamespace(
+            id=DOCUMENT_ID,
+            status=status,
+            organization_id=ORGANIZATION_ID,
+            knowledge_base_id=KNOWLEDGE_BASE_ID,
+            uploaded_by_user_id=USER_ID,
+            visibility="organization",
+        )
         self.chunks = chunks if chunks is not None else [self._chunk()]
         self.committed = False
         self.rolled_back = False
@@ -82,7 +92,13 @@ class FakeVectorStore:
         self.collection_ensured = True
         self.upserted_points = points
 
-    async def search(self, *, query_vector: list[float], top_k: int) -> list[VectorSearchResult]:
+    async def search(
+        self,
+        *,
+        query_vector: list[float],
+        top_k: int,
+        document_ids=None,
+    ) -> list[VectorSearchResult]:
         self.collection_ensured = True
         self.searches.append({"query_vector": query_vector, "top_k": top_k})
         return [
@@ -104,6 +120,10 @@ class FakeVectorStore:
         content: str,
         metadata: dict[str, object],
         vector: list[float],
+        organization_id=None,
+        knowledge_base_id=None,
+        uploaded_by_user_id=None,
+        visibility=None,
     ) -> SimpleNamespace:
         return SimpleNamespace(
             id=str(chunk_id),
@@ -114,6 +134,10 @@ class FakeVectorStore:
                 "chunk_index": chunk_index,
                 "content": content,
                 "metadata": metadata,
+                "organization_id": str(organization_id) if organization_id else None,
+                "knowledge_base_id": str(knowledge_base_id) if knowledge_base_id else None,
+                "uploaded_by_user_id": str(uploaded_by_user_id) if uploaded_by_user_id else None,
+                "visibility": visibility,
             },
         )
 
@@ -162,6 +186,10 @@ def test_vector_index_endpoint_upserts_chunk_vectors() -> None:
     assert point.payload["chunk_index"] == 0
     assert point.payload["content"] == "Chunk content for indexing"
     assert point.payload["metadata"] == {"start_char": 0, "end_char": 26}
+    assert point.payload["organization_id"] == str(ORGANIZATION_ID)
+    assert point.payload["knowledge_base_id"] == str(KNOWLEDGE_BASE_ID)
+    assert point.payload["uploaded_by_user_id"] == str(USER_ID)
+    assert point.payload["visibility"] == "organization"
 
 
 def test_vector_index_endpoint_allows_reindexing_indexed_document() -> None:

@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from app.models.citation import Citation
     from app.models.document_log import DocumentAccessLog, DocumentPipelineLog
     from app.models.graph import GraphDocumentStatus, GraphExtractionLog
+    from app.models.knowledge_base import KnowledgeBase
     from app.models.organization import Organization
     from app.models.user import User
 
@@ -54,6 +55,12 @@ class Document(Base, TimestampMixin):
         nullable=True,
         index=True,
     )
+    knowledge_base_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("knowledge_bases.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     visibility: Mapped[str] = mapped_column(
         String(32),
         nullable=False,
@@ -70,6 +77,7 @@ class Document(Base, TimestampMixin):
 
     uploaded_by: Mapped[User | None] = relationship(back_populates="uploaded_documents")
     organization: Mapped[Organization | None] = relationship(back_populates="documents")
+    knowledge_base: Mapped[KnowledgeBase | None] = relationship(back_populates="documents")
     files: Mapped[list[DocumentFile]] = relationship(
         back_populates="document",
         cascade="all, delete-orphan",

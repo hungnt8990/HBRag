@@ -12,6 +12,7 @@ from app.models.chunk import Chunk
 from app.models.document import Document, DocumentFile
 from app.models.document_log import DocumentPipelineLog
 from app.models.graph import GraphDocumentStatus
+from app.models.knowledge_base import KnowledgeBase
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,7 @@ class DocumentRepository:
         status: str = "uploaded",
         uploaded_by_user_id: UUID | None = None,
         organization_id: UUID | None = None,
+        knowledge_base_id: UUID | None = None,
         visibility: str = "organization",
     ) -> Document:
         document = Document(
@@ -53,6 +55,7 @@ class DocumentRepository:
             status=status,
             uploaded_by_user_id=uploaded_by_user_id,
             organization_id=organization_id,
+            knowledge_base_id=knowledge_base_id,
             visibility=visibility,
         )
         self._session.add(document)
@@ -86,6 +89,11 @@ class DocumentRepository:
                 selectinload(Document.files),
                 selectinload(Document.organization),
                 selectinload(Document.uploaded_by),
+                selectinload(Document.knowledge_base),
+                selectinload(Document.knowledge_base).selectinload(KnowledgeBase.owner),
+                selectinload(Document.knowledge_base).selectinload(
+                    KnowledgeBase.organization
+                ),
             )
             .where(Document.id == document_id)
         )
@@ -202,6 +210,7 @@ class DocumentRepository:
         organization_ids: set[UUID] | None = None,
         status: str | None = None,
         uploaded_by: UUID | None = None,
+        knowledge_base_ids: set[UUID] | None = None,
         search: str | None = None,
         limit: int | None = 50,
         offset: int = 0,
@@ -269,6 +278,11 @@ class DocumentRepository:
             .options(
                 selectinload(Document.organization),
                 selectinload(Document.uploaded_by),
+                selectinload(Document.knowledge_base),
+                selectinload(Document.knowledge_base).selectinload(KnowledgeBase.owner),
+                selectinload(Document.knowledge_base).selectinload(
+                    KnowledgeBase.organization
+                ),
             )
             .group_by(
                 Document.id,
@@ -295,6 +309,10 @@ class DocumentRepository:
             statement = statement.where(Document.status == status)
         if uploaded_by:
             statement = statement.where(Document.uploaded_by_user_id == uploaded_by)
+        if knowledge_base_ids is not None:
+            if not knowledge_base_ids:
+                return []
+            statement = statement.where(Document.knowledge_base_id.in_(knowledge_base_ids))
         if search:
             search_value = f"%{search}%"
             statement = statement.where(
@@ -320,11 +338,20 @@ class DocumentRepository:
         result = await self._session.execute(statement)
         return int(result.scalar_one())
 
-    async def list_documents_for_permission_check(self) -> list[Document]:
+    async def list_documents_for_permission_check(
+        self,
+        *,
+        knowledge_base_ids: set[UUID] | None = None,
+    ) -> list[Document]:
+        if knowledge_base_ids is not None and not knowledge_base_ids:
+            return []
         statement = select(Document).options(
             selectinload(Document.organization),
             selectinload(Document.uploaded_by),
+            selectinload(Document.knowledge_base),
         )
+        if knowledge_base_ids is not None:
+            statement = statement.where(Document.knowledge_base_id.in_(knowledge_base_ids))
         result = await self._session.execute(statement)
         return list(result.scalars().all())
 

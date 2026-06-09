@@ -16,6 +16,7 @@ class RagChatRequest(BaseModel):
     session_id: UUID | None = None
     document_id: UUID | None = None
     organization_id: UUID | None = None
+    knowledge_base_ids: list[UUID] | None = None
     include_descendants: bool = False
     profile: ProfileName | None = None
     top_k: int | None = Field(default=None, ge=1, le=50)
@@ -44,6 +45,7 @@ class RagChatRequest(BaseModel):
 class RagChatScope(BaseModel):
     document_id: UUID | None = None
     organization_id: UUID | None = None
+    knowledge_base_ids: list[UUID] | None = None
     include_descendants: bool = False
 
 

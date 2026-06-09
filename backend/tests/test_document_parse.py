@@ -116,6 +116,31 @@ def test_parse_txt_document() -> None:
     assert storage.downloads == ["documents/sample.txt"]
 
 
+def test_parse_removes_nul_characters_before_storing() -> None:
+    repository = FakeDocumentRepository(
+        filename="nul.txt",
+        mime_type="text/plain",
+        storage_path="documents/nul.txt",
+    )
+    storage = FakeStorageClient({"documents/nul.txt": b"\x00Hello\x00 parser"})
+    app.dependency_overrides[get_document_repository] = lambda: repository
+    app.dependency_overrides[get_storage_client] = lambda: storage
+
+    try:
+        client = TestClient(app)
+        response = client.post(f"/api/documents/{DOCUMENT_ID}/parse")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["character_count"] == len("Hello parser")
+    assert payload["preview"] == "Hello parser"
+    assert repository.document.parsed_text == "Hello parser"
+    assert repository.committed is True
+    assert repository.rolled_back is False
+
+
 def test_parse_md_document() -> None:
     repository = FakeDocumentRepository(
         filename="notes.md",

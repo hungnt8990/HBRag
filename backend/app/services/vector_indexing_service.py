@@ -72,6 +72,10 @@ class VectorIndexingService:
                     content=chunk.content,
                     metadata=dict(chunk.chunk_metadata or {}),
                     vector=embedding,
+                    organization_id=getattr(document, "organization_id", None),
+                    knowledge_base_id=getattr(document, "knowledge_base_id", None),
+                    uploaded_by_user_id=getattr(document, "uploaded_by_user_id", None),
+                    visibility=getattr(document, "visibility", None),
                 )
                 for chunk, embedding in zip(chunks, embeddings, strict=True)
             ]
@@ -99,16 +103,11 @@ class VectorIndexingService:
             if document_ids is not None and not document_ids:
                 return VectorSearchResponse(query=query, top_k=top_k, results=[])
             query_vector = await self._embedding_provider.embed_query(query)
-            try:
-                results = await self._vector_store.search(
-                    query_vector=query_vector,
-                    top_k=top_k,
-                    document_ids=document_ids,
-                )
-            except TypeError as exc:
-                if "document_ids" not in str(exc):
-                    raise
-                results = await self._vector_store.search(query_vector=query_vector, top_k=top_k)
+            results = await self._vector_store.search(
+                query_vector=query_vector,
+                top_k=top_k,
+                document_ids=document_ids,
+            )
         except Exception as exc:
             raise VectorSearchError("Failed to run vector search.") from exc
 

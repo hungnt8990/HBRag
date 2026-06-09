@@ -35,6 +35,7 @@ class FakeRerankingService:
         query: str,
         top_k: int,
         candidate_k: int,
+        document_ids=None,
     ) -> RerankSearchResponse:
         self.calls.append({"query": query, "top_k": top_k, "candidate_k": candidate_k})
         return RerankSearchResponse(
@@ -69,6 +70,7 @@ class FakeHybridSearchService:
         vector_weight: float,
         keyword_weight: float,
         save_log: bool,
+        document_ids=None,
     ) -> HybridSearchRun:
         self.calls.append(
             {

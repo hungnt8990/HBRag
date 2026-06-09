@@ -36,6 +36,7 @@ class FakeHybridSearchService:
         top_k: int,
         vector_weight: float,
         keyword_weight: float,
+        document_ids=None,
     ) -> HybridSearchResponse:
         self.calls.append(
             {
@@ -69,7 +70,7 @@ class FakeVectorSearchService:
     def __init__(self) -> None:
         self.calls: list[dict[str, object]] = []
 
-    async def search(self, *, query: str, top_k: int) -> VectorSearchResponse:
+    async def search(self, *, query: str, top_k: int, document_ids=None) -> VectorSearchResponse:
         self.calls.append({"query": query, "top_k": top_k})
         return VectorSearchResponse(
             query=query,
@@ -90,7 +91,7 @@ class FakeKeywordSearchService:
     def __init__(self) -> None:
         self.calls: list[dict[str, object]] = []
 
-    async def search(self, *, query: str, top_k: int) -> KeywordSearchResponse:
+    async def search(self, *, query: str, top_k: int, document_ids=None) -> KeywordSearchResponse:
         self.calls.append({"query": query, "top_k": top_k})
         return KeywordSearchResponse(
             query=query,

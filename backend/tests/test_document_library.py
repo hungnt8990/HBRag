@@ -147,6 +147,20 @@ class FakeDocumentRepository:
     async def count_chunks_for_document(self, document_id: UUID) -> int:
         return 8 if document_id == DOCUMENT_ID else 0
 
+    async def list_chunks_for_document(self, document_id: UUID):
+        if document_id != DOCUMENT_ID:
+            return []
+        return [
+            SimpleNamespace(
+                id=UUID("50000000-0000-0000-0000-000000000001"),
+                chunk_index=0,
+                content="First chunk content",
+                token_count=3,
+                chunk_metadata={"page_number": 1},
+                created_at=datetime(2026, 6, 8, 10, 45, tzinfo=UTC),
+            )
+        ]
+
     async def commit(self) -> None:
         self.commits += 1
 
@@ -306,6 +320,9 @@ def test_document_detail_returns_logs_and_preview() -> None:
     assert payload["parsed_character_count"] == 640
     assert payload["chunk_count"] == 8
     assert payload["preview_text"] == "A" * 640
+    assert payload["chunks"][0]["chunk_index"] == 0
+    assert payload["chunks"][0]["content"] == "First chunk content"
+    assert payload["chunks"][0]["metadata"] == {"page_number": 1}
     assert payload["pipeline_logs"][0]["action"] == "index_vector"
     assert payload["access_logs_summary"] == {"view": 4, "chat": 2}
     assert payload["graph_status"]["graph_indexed"] is True

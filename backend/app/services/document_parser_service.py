@@ -79,16 +79,17 @@ class DocumentParserService:
         try:
             file_content = await self._storage.get_file(object_name=document_file.storage_path)
             parsed = await anyio.to_thread.run_sync(lambda: parser.parse(file_content))
+            parsed_text = _sanitize_parsed_text(parsed.text)
             logger.info(
                 "parsed document=%s parser=%s file_bytes=%d parsed_chars=%d",
                 document.id,
                 type(parser).__name__,
                 len(file_content),
-                len(parsed.text),
+                len(parsed_text),
             )
             await self._repository.update_document_parsed_content(
                 document,
-                parsed_text=parsed.text,
+                parsed_text=parsed_text,
                 parsed_at=datetime.now(UTC),
                 status="parsed",
             )
@@ -97,7 +98,7 @@ class DocumentParserService:
             await self._repository.rollback()
             raise DocumentParsingError("Failed to parse document.") from exc
 
-        text = parsed.text
+        text = parsed_text
         logger.info(
             "parse-response document=%s stored_chars=%d preview_chars=%d",
             document.id,
@@ -117,3 +118,6 @@ class DocumentParserService:
                 return parser
 
         raise UnsupportedDocumentParserError("No parser available for this document type.")
+
+def _sanitize_parsed_text(text: str) -> str:
+    return text.replace("\x00", "")

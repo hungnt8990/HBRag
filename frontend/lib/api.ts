@@ -120,12 +120,21 @@ export type DocumentOrganization = {
   dvi_level: number;
 };
 
+export type DocumentKnowledgeBase = {
+  id: string;
+  name: string;
+  visibility: string;
+  organization: DocumentOrganization | null;
+  owner: DocumentPerson | null;
+};
+
 export type DocumentListItem = {
   document_id: string;
   title: string;
   status: string;
   filename: string | null;
   organization: DocumentOrganization | null;
+  knowledge_base: DocumentKnowledgeBase | null;
   uploaded_by: DocumentPerson | null;
   visibility: string;
   parsed_character_count: number;
@@ -161,6 +170,15 @@ export type DocumentPipelineLog = {
   created_at: string;
 };
 
+export type DocumentChunkDetail = {
+  id: string;
+  chunk_index: number;
+  content: string;
+  token_count: number | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
 export type GraphDocumentStatus = {
   graph_indexed: boolean;
   chunks_processed: number;
@@ -173,6 +191,7 @@ export type GraphDocumentStatus = {
 export type DocumentDetailResponse = DocumentListItem & {
   preview_text: string | null;
   files: DocumentDetailFile[];
+  chunks: DocumentChunkDetail[];
   pipeline_logs: DocumentPipelineLog[];
   access_logs_summary: Record<string, number>;
   latest_retrieval_logs: Array<Record<string, unknown>>;

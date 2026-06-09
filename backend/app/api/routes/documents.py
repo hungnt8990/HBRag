@@ -6,29 +6,32 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies.auth import get_current_user
 from app.db.session import get_db_session
+from app.models.knowledge_base import KnowledgeBase
 from app.models.user import User
 from app.repositories.auth import AuthRepository
 from app.repositories.document_logs import DocumentLogRepository
 from app.repositories.documents import DocumentRepository
 from app.repositories.graph import GraphRepository
+from app.repositories.knowledge_bases import KnowledgeBaseRepository
 from app.schemas.documents import (
     DocumentBatchUploadItem,
     DocumentBatchUploadResponse,
+    DocumentChunkDetailResponse,
     DocumentChunkRequest,
     DocumentChunkResponse,
     DocumentDeleteResponse,
     DocumentDetailResponse,
     DocumentFileResponse,
-    DocumentListResponse,
-    DocumentPipelineLogResponse,
     DocumentListItem,
+    DocumentListResponse,
     DocumentParseResponse,
+    DocumentPipelineLogResponse,
+    DocumentUploadResponse,
+    DocumentVectorIndexResponse,
     GraphDocumentStatusResponse,
     GraphExtractionLogResponse,
     GraphIndexRequest,
     GraphIndexResponse,
-    DocumentUploadResponse,
-    DocumentVectorIndexResponse,
 )
 from app.services.chunking_service import (
     ChunkingService,
@@ -49,8 +52,8 @@ from app.services.document_parser_service import (
 )
 from app.services.document_service import (
     DocumentService,
-    DuplicateDocumentUploadError,
     DocumentUploadError,
+    DuplicateDocumentUploadError,
     EmptyDocumentUploadError,
     UnsupportedDocumentTypeError,
 )
@@ -72,6 +75,7 @@ from app.services.permissions import (
     can_assign_upload_organization,
     can_manage_document,
     can_upload_document,
+    can_upload_to_knowledge_base,
     can_view_document,
 )
 from app.services.storage import StorageClient, get_storage_client
@@ -111,6 +115,11 @@ def get_graph_repository(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> GraphRepository:
     return GraphRepository(session)
+
+def get_knowledge_base_repository(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> KnowledgeBaseRepository:
+    return KnowledgeBaseRepository(session)
 
 
 def get_document_service(
@@ -170,11 +179,16 @@ async def upload_document(
     service: Annotated[DocumentService, Depends(get_document_service)],
     repository: Annotated[DocumentRepository, Depends(get_document_repository)],
     auth_repository: Annotated[AuthRepository, Depends(get_auth_repository)],
+    knowledge_base_repository: Annotated[
+        KnowledgeBaseRepository,
+        Depends(get_knowledge_base_repository),
+    ],
     log_repository: Annotated[DocumentLogRepository, Depends(get_document_log_repository)],
     current_user: Annotated[User, Depends(get_current_user)],
     file: Annotated[UploadFile, File(...)],
     visibility: Annotated[str, Form()] = "organization",
     organization_id: Annotated[UUID | None, Form()] = None,
+    knowledge_base_id: Annotated[UUID | None, Form()] = None,
 ) -> DocumentUploadResponse:
     if not can_upload_document(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Upload is not allowed.")
@@ -187,7 +201,13 @@ async def upload_document(
     descendant_ids = await auth_repository.get_descendant_organization_ids(
         current_user.organization_id
     )
-    target_organization_id = organization_id or current_user.organization_id
+    knowledge_base, target_organization_id = await _resolve_upload_knowledge_base(
+        knowledge_base_repository=knowledge_base_repository,
+        current_user=current_user,
+        requested_organization_id=organization_id,
+        requested_knowledge_base_id=knowledge_base_id,
+        descendant_ids=descendant_ids,
+    )
     if not can_assign_upload_organization(
         current_user,
         target_organization_id,
@@ -203,6 +223,7 @@ async def upload_document(
             file,
             uploaded_by_user_id=current_user.id,
             organization_id=target_organization_id,
+            knowledge_base_id=knowledge_base.id,
             visibility=visibility,
         )
         await log_repository.create_pipeline_log(
@@ -212,7 +233,10 @@ async def upload_document(
             action="upload",
             status="success",
             message=f"Uploaded {response.filename}.",
-            metadata={"storage_path": response.storage_path},
+            metadata={
+                "storage_path": response.storage_path,
+                "knowledge_base_id": str(knowledge_base.id),
+            },
         )
         await repository.commit()
         return response
@@ -242,11 +266,16 @@ async def upload_documents_batch(
     service: Annotated[DocumentService, Depends(get_document_service)],
     repository: Annotated[DocumentRepository, Depends(get_document_repository)],
     auth_repository: Annotated[AuthRepository, Depends(get_auth_repository)],
+    knowledge_base_repository: Annotated[
+        KnowledgeBaseRepository,
+        Depends(get_knowledge_base_repository),
+    ],
     log_repository: Annotated[DocumentLogRepository, Depends(get_document_log_repository)],
     current_user: Annotated[User, Depends(get_current_user)],
     files: Annotated[list[UploadFile], File(...)],
     visibility: Annotated[str, Form()] = "organization",
     organization_id: Annotated[UUID | None, Form()] = None,
+    knowledge_base_id: Annotated[UUID | None, Form()] = None,
 ) -> DocumentBatchUploadResponse:
     if not can_upload_document(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Upload is not allowed.")
@@ -259,7 +288,13 @@ async def upload_documents_batch(
     descendant_ids = await auth_repository.get_descendant_organization_ids(
         current_user.organization_id
     )
-    target_organization_id = organization_id or current_user.organization_id
+    knowledge_base, target_organization_id = await _resolve_upload_knowledge_base(
+        knowledge_base_repository=knowledge_base_repository,
+        current_user=current_user,
+        requested_organization_id=organization_id,
+        requested_knowledge_base_id=knowledge_base_id,
+        descendant_ids=descendant_ids,
+    )
     if not can_assign_upload_organization(
         current_user,
         target_organization_id,
@@ -277,6 +312,7 @@ async def upload_documents_batch(
                 upload_file,
                 uploaded_by_user_id=current_user.id,
                 organization_id=target_organization_id,
+                knowledge_base_id=knowledge_base.id,
                 visibility=visibility,
             )
             await log_repository.create_pipeline_log(
@@ -286,7 +322,10 @@ async def upload_documents_batch(
                 action="upload",
                 status="success",
                 message=f"Uploaded {response.filename}.",
-                metadata={"storage_path": response.storage_path},
+                metadata={
+                    "storage_path": response.storage_path,
+                    "knowledge_base_id": str(knowledge_base.id),
+                },
             )
             await repository.commit()
             results.append(
@@ -321,6 +360,55 @@ async def upload_documents_batch(
         success_count=success_count,
         failed_count=len(results) - success_count,
     )
+
+
+async def _resolve_upload_knowledge_base(
+    *,
+    knowledge_base_repository: KnowledgeBaseRepository,
+    current_user: User,
+    requested_organization_id: UUID | None,
+    requested_knowledge_base_id: UUID | None,
+    descendant_ids: set[UUID],
+) -> tuple[KnowledgeBase, UUID]:
+    target_organization_id = requested_organization_id or current_user.organization_id
+    if requested_knowledge_base_id is None:
+        knowledge_base = await knowledge_base_repository.get_or_create_default(
+            organization_id=target_organization_id,
+            owner_user_id=current_user.id,
+        )
+    else:
+        knowledge_base = await knowledge_base_repository.get_by_id(requested_knowledge_base_id)
+        if knowledge_base is None or not knowledge_base.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Knowledge base not found.",
+            )
+        knowledge_base_organization_id = getattr(knowledge_base, "organization_id", None)
+        if (
+            requested_organization_id is not None
+            and knowledge_base_organization_id is not None
+            and requested_organization_id != knowledge_base_organization_id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Knowledge base does not belong to the selected organization.",
+            )
+        target_organization_id = (
+            requested_organization_id
+            or knowledge_base_organization_id
+            or current_user.organization_id
+        )
+
+    if not can_upload_to_knowledge_base(
+        current_user,
+        knowledge_base,
+        descendant_organization_ids=descendant_ids,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Upload to the selected knowledge base is not allowed.",
+        )
+    return knowledge_base, target_organization_id
 
 
 @router.get("", response_model=DocumentListResponse)
@@ -630,6 +718,7 @@ async def get_document_detail(
     access_summary = await log_repository.access_log_summary(document_id=document.id)
     graph_status = await graph_repository.get_document_status(document.id)
     graph_logs = await graph_repository.list_extraction_logs(document_id=document.id)
+    chunks = await repository.list_chunks_for_document(document.id)
     chunk_count = await repository.count_chunks_for_document(document.id)
     await log_repository.commit()
 
@@ -659,6 +748,17 @@ async def get_document_detail(
                 created_at=file.created_at.isoformat(),
             )
             for file in document.files
+        ],
+        chunks=[
+            DocumentChunkDetailResponse(
+                id=chunk.id,
+                chunk_index=chunk.chunk_index,
+                content=chunk.content,
+                token_count=chunk.token_count,
+                metadata=chunk.chunk_metadata,
+                created_at=chunk.created_at,
+            )
+            for chunk in chunks
         ],
         pipeline_logs=[
             DocumentPipelineLogResponse(
@@ -800,7 +900,9 @@ def _to_document_list_item_from_document(
         filename=filename,
         chunk_count=chunk_count,
         parsed_character_count=len(getattr(document, "parsed_text", "") or ""),
-        vector_indexed_count=(chunk_count if getattr(document, "status", None) == "indexed" else None),
+        vector_indexed_count=(
+            chunk_count if getattr(document, "status", None) == "indexed" else None
+        ),
         pipeline_logs_count=0,
         graph_indexed=False,
     )
@@ -828,6 +930,10 @@ def _to_document_list_item_from_values(
     pipeline_logs_count: int,
     graph_indexed: bool,
 ) -> DocumentListItem:
+    effective_vector_indexed_count = vector_indexed_count
+    if effective_vector_indexed_count is None and getattr(document, "status", None) == "indexed":
+        effective_vector_indexed_count = chunk_count
+
     return DocumentListItem(
         document_id=document.id,
         title=document.title,
@@ -841,6 +947,34 @@ def _to_document_list_item_from_values(
                 "dvi_level": document.organization.dvi_level,
             }
             if document.organization
+            else None
+        ),
+        knowledge_base=(
+            {
+                "id": document.knowledge_base.id,
+                "name": document.knowledge_base.name,
+                "visibility": document.knowledge_base.visibility,
+                "organization": (
+                    {
+                        "id": document.knowledge_base.organization.id,
+                        "ma_dviqly": document.knowledge_base.organization.ma_dviqly,
+                        "ten_dviqly": document.knowledge_base.organization.ten_dviqly,
+                        "dvi_level": document.knowledge_base.organization.dvi_level,
+                    }
+                    if getattr(document.knowledge_base, "organization", None)
+                    else None
+                ),
+                "owner": (
+                    {
+                        "id": document.knowledge_base.owner.id,
+                        "username": document.knowledge_base.owner.username,
+                        "full_name": document.knowledge_base.owner.full_name,
+                    }
+                    if getattr(document.knowledge_base, "owner", None)
+                    else None
+                ),
+            }
+            if getattr(document, "knowledge_base", None)
             else None
         ),
         uploaded_by=(
@@ -857,7 +991,7 @@ def _to_document_list_item_from_values(
         created_at=document.created_at,
         updated_at=document.updated_at,
         chunk_count=chunk_count,
-        vector_indexed_count=vector_indexed_count,
+        vector_indexed_count=effective_vector_indexed_count,
         pipeline_logs_count=pipeline_logs_count,
         graph_indexed=graph_indexed,
     )

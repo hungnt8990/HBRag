@@ -89,6 +89,26 @@ def test_qdrant_vector_store_upserts_points_in_batches() -> None:
     asyncio.run(run_test())
 
 
+def test_qdrant_build_point_includes_access_payload() -> None:
+    point = QdrantVectorStore.build_point(
+        chunk_id=UUID("00000000-0000-0000-0000-000000000001"),
+        document_id=UUID("11111111-1111-1111-1111-111111111111"),
+        chunk_index=0,
+        content="Chunk",
+        metadata={},
+        vector=[0.1, 0.2],
+        organization_id=UUID("22222222-2222-2222-2222-222222222222"),
+        knowledge_base_id=UUID("33333333-3333-3333-3333-333333333333"),
+        uploaded_by_user_id=UUID("44444444-4444-4444-4444-444444444444"),
+        visibility="organization",
+    )
+
+    assert point.payload["organization_id"] == "22222222-2222-2222-2222-222222222222"
+    assert point.payload["knowledge_base_id"] == "33333333-3333-3333-3333-333333333333"
+    assert point.payload["uploaded_by_user_id"] == "44444444-4444-4444-4444-444444444444"
+    assert point.payload["visibility"] == "organization"
+
+
 def test_qdrant_vector_store_creates_missing_collection_with_config() -> None:
     async def run_test() -> None:
         client = FakeQdrantClient(collection_exists=False)
