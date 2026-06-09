@@ -1084,3 +1084,38 @@ def test_user_prompt_separates_entity_matched_rows_from_table_support() -> None:
     assert "must have N bullet" in RagAnswerService._build_user_prompt.__globals__[
         "TABLE_QA_STYLE"
     ]
+
+def test_user_prompt_splits_inline_table_rows_before_matching_entity() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    table_chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=uuid4(),
+        chunk_index=1,
+        content=(
+            "TABLE_HEADER table_id=pdf_p5_1 page=5 | cell_1 | cell_2 | cell_6 "
+            "TABLE_ROW table_id=pdf_p5_1 page=5 row=6 | cell_1: 3 | "
+            "cell_2: Xay dung nen tang RAG tren du lieu noi bo | "
+            "cell_6: Nguyen Quang Lam "
+            "TABLE_ROW table_id=pdf_p5_1 page=5 row=7 | cell_1: 4 | "
+            "cell_2: Xay dung dich vu OCR dung chung | "
+            "cell_6: Trinh Thanh Tinh; Duong Sinh Sinh; Nguyen Quang Lam"
+        ),
+        chunk_metadata={"chunk_type": "table_block", "table_id": "pdf_p5_1"},
+    )
+
+    prompt = RagAnswerService._build_user_prompt(
+        query="Trinh Thanh Tinh tham gia vao cac mang cong nghe nao?",
+        context_chunks=[ContextChunk(citation_index=1, chunk=table_chunk)],
+    )
+
+    entity_section = prompt.split("ENTITY_MATCHED_ROWS:\n", 1)[1].split(
+        "\n\nTABLE_SUPPORT:",
+        1,
+    )[0]
+    assert "row=7" in entity_section
+    assert "Xay dung dich vu OCR dung chung" in entity_section
+    assert "row=6" not in entity_section
+    assert "Xay dung nen tang RAG tren du lieu noi bo" not in entity_section

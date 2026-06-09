@@ -74,6 +74,13 @@ class DocumentVectorIndexResponse(BaseModel):
     indexed_chunk_count: int
 
 
+class DocumentDeleteResponse(BaseModel):
+    document_id: UUID
+    deleted: bool
+    deleted_files: int
+    vector_points_deleted: bool
+
+
 class GraphIndexRequest(BaseModel):
     force_rebuild: bool = False
     extractor_provider: Literal["fake", "llm"] = "llm"

@@ -4,7 +4,11 @@ from uuid import UUID
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api.routes.documents import get_document_repository, get_storage_client
+from app.api.routes.documents import (
+    get_document_repository,
+    get_storage_client,
+    get_vector_store,
+)
 from app.main import app
 
 DOCUMENT_ID = UUID("11111111-1111-1111-1111-111111111111")
@@ -23,12 +27,19 @@ class FakeDocumentRepository:
         title: str,
         source_type: str,
         status: str = "uploaded",
+        uploaded_by_user_id=None,
+        organization_id=None,
+        visibility: str = "organization",
     ) -> SimpleNamespace:
         document = SimpleNamespace(
             id=DOCUMENT_ID,
             title=title,
             source_type=source_type,
             status=status,
+            uploaded_by_user_id=uploaded_by_user_id,
+            organization_id=organization_id,
+            visibility=visibility,
+            files=[],
         )
         self.documents.append(document)
         return document
@@ -51,6 +62,12 @@ class FakeDocumentRepository:
         )
         self.document_files.append(document_file)
         return document_file
+
+    async def get_document(self, document_id: UUID) -> SimpleNamespace | None:
+        return next((document for document in self.documents if document.id == document_id), None)
+
+    async def delete_document(self, document: SimpleNamespace) -> None:
+        self.documents = [item for item in self.documents if item.id != document.id]
 
     async def commit(self) -> None:
         self.committed = True
@@ -83,6 +100,13 @@ class FakeStorageClient:
 
     async def delete_file(self, *, object_name: str) -> None:
         self.deleted.append(object_name)
+
+class FakeVectorStore:
+    def __init__(self) -> None:
+        self.deleted_document_ids: list[UUID | str] = []
+
+    async def delete_points_for_document(self, document_id: UUID | str) -> None:
+        self.deleted_document_ids.append(document_id)
 
 
 def test_upload_document_creates_document_and_file_rows() -> None:
@@ -183,3 +207,43 @@ def test_upload_document_accepts_supported_file_types(
     assert response.json()["filename"] == filename
     assert repository.documents[0].source_type == filename.rsplit(".", 1)[1]
     assert storage.uploads[0]["content_type"] == content_type
+
+def test_delete_document_removes_minio_qdrant_and_database_rows() -> None:
+    repository = FakeDocumentRepository()
+    document = SimpleNamespace(
+        id=DOCUMENT_ID,
+        title="sample",
+        status="indexed",
+        uploaded_by_user_id=None,
+        organization_id=None,
+        visibility="organization",
+        files=[
+            SimpleNamespace(storage_path="documents/sample-1.pdf"),
+            SimpleNamespace(storage_path="documents/sample-2.pdf"),
+        ],
+    )
+    repository.documents.append(document)
+    storage = FakeStorageClient()
+    vector_store = FakeVectorStore()
+    app.dependency_overrides[get_document_repository] = lambda: repository
+    app.dependency_overrides[get_storage_client] = lambda: storage
+    app.dependency_overrides[get_vector_store] = lambda: vector_store
+
+    try:
+        client = TestClient(app)
+        response = client.delete(f"/api/documents/{DOCUMENT_ID}")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "document_id": str(DOCUMENT_ID),
+        "deleted": True,
+        "deleted_files": 2,
+        "vector_points_deleted": True,
+    }
+    assert vector_store.deleted_document_ids == [DOCUMENT_ID]
+    assert storage.deleted == ["documents/sample-1.pdf", "documents/sample-2.pdf"]
+    assert repository.documents == []
+    assert repository.committed is True
+    assert repository.rolled_back is False

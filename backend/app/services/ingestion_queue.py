@@ -103,6 +103,10 @@ class IngestionQueue:
     def get_job(self, job_id: UUID) -> IngestionJob | None:
         return self._jobs.get(job_id)
 
+    def remove_job(self, job_id: UUID) -> bool:
+        self._payloads.pop(job_id, None)
+        return self._jobs.pop(job_id, None) is not None
+
     def list_jobs(self) -> list[IngestionJob]:
         return sorted(self._jobs.values(), key=lambda job: job.created_at, reverse=True)
 

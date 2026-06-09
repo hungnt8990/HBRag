@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi.testclient import TestClient
 
 from app.api.routes import admin as admin_routes
-from app.api.routes.admin import get_ingestion_queue, get_vector_store
+from app.api.routes.admin import get_document_repository, get_ingestion_queue, get_vector_store
 from app.core.config import Settings
 from app.main import app
 from app.services.ingestion_queue import IngestionJob
@@ -56,8 +56,18 @@ class FakeIngestionQueue:
     def list_jobs(self) -> list[IngestionJob]:
         return [self.job]
 
+    def remove_job(self, job_id: object) -> bool:
+        return str(job_id) == str(self.job.job_id)
+
     async def run_job(self, job_id: object) -> None:
         self.run_calls.append(job_id)
+
+class FakeDocumentRepository:
+    def __init__(self, duplicate_file: object | None = None) -> None:
+        self.duplicate_file = duplicate_file
+
+    async def find_document_file_by_signature(self, *, filename: str, file_size: int):
+        return self.duplicate_file
 
 
 def test_admin_recreate_vector_store_endpoint_returns_collection_info() -> None:
@@ -151,6 +161,7 @@ def test_admin_runtime_config_returns_safe_non_secret_settings(monkeypatch) -> N
 def test_admin_enqueue_ingestion_job_returns_queued_job() -> None:
     queue = FakeIngestionQueue()
     app.dependency_overrides[get_ingestion_queue] = lambda: queue
+    app.dependency_overrides[get_document_repository] = lambda: FakeDocumentRepository()
 
     try:
         client = TestClient(app)
@@ -169,3 +180,42 @@ def test_admin_enqueue_ingestion_job_returns_queued_job() -> None:
     assert payload["steps"][0]["name"] == "upload"
     assert payload["logs"] == []
     assert queue.run_calls == [queue.job.job_id]
+
+def test_admin_enqueue_ingestion_job_rejects_duplicate_file() -> None:
+    queue = FakeIngestionQueue()
+    duplicate = type(
+        "DuplicateFile",
+        (),
+        {
+            "document_id": UUID("bbbbbbbb-1111-1111-1111-bbbbbbbbbbbb"),
+            "document": None,
+        },
+    )()
+    app.dependency_overrides[get_ingestion_queue] = lambda: queue
+    app.dependency_overrides[get_document_repository] = lambda: FakeDocumentRepository(duplicate)
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/admin/ingestion-jobs",
+            files={"file": ("sample.pdf", b"%PDF-1.4 test", "application/pdf")},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 409
+    assert "Duplicate file" in response.json()["detail"]
+    assert queue.run_calls == []
+
+def test_admin_delete_ingestion_job_removes_monitor_entry() -> None:
+    queue = FakeIngestionQueue()
+    app.dependency_overrides[get_ingestion_queue] = lambda: queue
+
+    try:
+        client = TestClient(app)
+        response = client.delete(f"/api/admin/ingestion-jobs/{queue.job.job_id}")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"job_id": str(queue.job.job_id), "deleted": True}

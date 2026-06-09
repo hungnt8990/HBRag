@@ -1,7 +1,6 @@
 "use client";
 
-import { Loader2, RefreshCw, Search, Upload } from "lucide-react";
-import type { ChangeEvent } from "react";
+import { Loader2, RefreshCw, Search, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,42 +14,32 @@ import { Input } from "@/components/ui/input";
 import type { DocumentDetailResponse, DocumentListItem } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-type PipelineAction = "parse" | "chunk" | "index" | "graph";
-
 export function DocumentLibraryPanel({
   documents,
-  graphEnabled,
   isLoading,
   search,
   selectedDocument,
   selectedDocumentId,
   statusFilter,
-  uploadFiles,
-  uploading,
+  deletingDocumentId,
+  onDeleteDocument,
   onRefresh,
-  onRunAction,
   onSearchChange,
   onSelectDocument,
   onStatusFilterChange,
-  onUpload,
-  onUploadFilesChange,
 }: {
   documents: DocumentListItem[];
-  graphEnabled: boolean;
   isLoading: boolean;
   search: string;
   selectedDocument: DocumentDetailResponse | null;
   selectedDocumentId: string | null;
   statusFilter: string;
-  uploadFiles: File[];
-  uploading: boolean;
+  deletingDocumentId: string | null;
+  onDeleteDocument: (documentId: string) => void;
   onRefresh: () => void;
-  onRunAction: (action: PipelineAction, documentId: string) => void;
   onSearchChange: (value: string) => void;
   onSelectDocument: (documentId: string) => void;
   onStatusFilterChange: (value: string) => void;
-  onUpload: () => void;
-  onUploadFilesChange: (event: ChangeEvent<HTMLInputElement>) => void;
 }) {
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(360px,0.9fr)]">
@@ -60,7 +49,7 @@ export function DocumentLibraryPanel({
             <div>
               <CardTitle>Document Library</CardTitle>
               <CardDescription>
-                Upload nhiều tài liệu, giữ trạng thái pipeline, và chọn tài liệu làm workspace.
+                Manage uploaded documents, filter pipeline state, and choose the workspace document.
               </CardDescription>
             </div>
             <Button
@@ -75,82 +64,39 @@ export function DocumentLibraryPanel({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto]">
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Upload files
-                </span>
-                <input
-                  className="mt-2 block w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700"
-                  multiple
-                  onChange={onUploadFilesChange}
-                  type="file"
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Search
+              </span>
+              <div className="relative mt-2">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  className="border-slate-200 bg-white pl-9"
+                  onChange={(event) => onSearchChange(event.target.value)}
+                  placeholder="Search by title or file name"
+                  value={search}
                 />
-              </label>
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Status filter
-                </span>
-                <select
-                  className="mt-2 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700"
-                  onChange={(event) => onStatusFilterChange(event.target.value)}
-                  value={statusFilter}
-                >
-                  <option value="all">All statuses</option>
-                  <option value="uploaded">uploaded</option>
-                  <option value="parsed">parsed</option>
-                  <option value="chunked">chunked</option>
-                  <option value="indexed">indexed</option>
-                  <option value="failed">failed</option>
-                </select>
-              </label>
-              <div className="flex items-end">
-                <Button
-                  className="w-full bg-[#0d3b4c] text-white hover:bg-[#114e63]"
-                  disabled={uploadFiles.length === 0 || uploading}
-                  onClick={onUpload}
-                  type="button"
-                >
-                  {uploading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Upload className="h-4 w-4" />
-                  )}
-                  {uploadFiles.length > 1 ? "Upload batch" : "Upload"}
-                </Button>
               </div>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {uploadFiles.length === 0 ? (
-                <span className="text-xs text-slate-500">No files selected.</span>
-              ) : (
-                uploadFiles.map((file) => (
-                  <span
-                    className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600"
-                    key={`${file.name}-${file.size}`}
-                  >
-                    {file.name}
-                  </span>
-                ))
-              )}
-            </div>
+            </label>
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Status filter
+              </span>
+              <select
+                className="mt-2 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700"
+                onChange={(event) => onStatusFilterChange(event.target.value)}
+                value={statusFilter}
+              >
+                <option value="all">All statuses</option>
+                <option value="uploaded">uploaded</option>
+                <option value="parsed">parsed</option>
+                <option value="chunked">chunked</option>
+                <option value="indexed">indexed</option>
+                <option value="failed">failed</option>
+              </select>
+            </label>
           </div>
-
-          <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Search
-            </span>
-            <div className="relative mt-2">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <Input
-                className="border-slate-200 bg-white pl-9"
-                onChange={(event) => onSearchChange(event.target.value)}
-                placeholder="Search by title or file name"
-                value={search}
-              />
-            </div>
-          </label>
 
           <div className="space-y-3">
             {isLoading ? (
@@ -203,26 +149,21 @@ export function DocumentLibraryPanel({
                       >
                         Select
                       </Button>
-                      <SmallActionButton
-                        disabled={document.status !== "uploaded"}
-                        label="Parse"
-                        onClick={() => onRunAction("parse", document.document_id)}
-                      />
-                      <SmallActionButton
-                        disabled={!["parsed", "chunked"].includes(document.status)}
-                        label="Chunk"
-                        onClick={() => onRunAction("chunk", document.document_id)}
-                      />
-                      <SmallActionButton
-                        disabled={!["chunked", "indexed"].includes(document.status)}
-                        label="Index Vector"
-                        onClick={() => onRunAction("index", document.document_id)}
-                      />
-                      <SmallActionButton
-                        disabled={!graphEnabled || document.status !== "indexed"}
-                        label="Graph Index"
-                        onClick={() => onRunAction("graph", document.document_id)}
-                      />
+                      <Button
+                        className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50"
+                        disabled={deletingDocumentId === document.document_id}
+                        onClick={() => onDeleteDocument(document.document_id)}
+                        title="Delete from MinIO, Qdrant, and database"
+                        type="button"
+                        variant="outline"
+                      >
+                        {deletingDocumentId === document.document_id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                        Delete
+                      </Button>
                     </div>
                   </div>
 
@@ -335,28 +276,6 @@ export function DocumentLibraryPanel({
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-function SmallActionButton({
-  disabled,
-  label,
-  onClick,
-}: {
-  disabled: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <Button
-      className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-      disabled={disabled}
-      onClick={onClick}
-      type="button"
-      variant="outline"
-    >
-      {label}
-    </Button>
   );
 }
 

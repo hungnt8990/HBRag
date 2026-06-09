@@ -21,6 +21,7 @@ import {
   Send,
   ServerCog,
   TerminalSquare,
+  Trash2,
   Upload,
   Workflow,
 } from "lucide-react";
@@ -36,7 +37,6 @@ import {
 import { useRouter } from "next/navigation";
 
 import { ChatAnswerPanel } from "@/components/chat-answer-panel";
-import { DocumentLibraryPanel } from "@/components/document-library-panel";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -52,6 +52,8 @@ import {
   clearAccessToken,
   chunkDocument,
   createMemory,
+  deleteDocument,
+  deleteIngestionJob,
   deleteMemory,
   enqueueIngestionJob,
   getDocumentDetail,
@@ -86,17 +88,15 @@ import {
   type DocumentProfile,
   type ProfilesResponse,
   uploadDocument,
-  uploadDocumentBatch,
 } from "@/lib/api";
 import { streamRagChat } from "@/lib/streaming";
 import { cn } from "@/lib/utils";
 
-type ActiveView = "auto" | "debug" | "chat" | "memory";
+type ActiveView = "auto" | "chat" | "settings" | "memory";
 type TypewriterSpeed = "slow" | "normal" | "fast";
 type PipelineStepKey = "upload" | "parse" | "chunk" | "index" | "graph";
 type RunState = "idle" | "running" | "succeeded" | "failed";
 type LogSource = "auto" | "debug" | "chat" | "system";
-type ChatScope = "all" | "document" | "organization";
 
 type DebugStep = {
   key: PipelineStepKey;
@@ -158,8 +158,8 @@ const navItems: Array<{
   icon: typeof Workflow;
 }> = [
   { key: "auto", label: "Auto Queue", icon: Workflow },
-  { key: "debug", label: "Step Debugger", icon: Gauge },
   { key: "chat", label: "RAG Chat", icon: MessageSquareText },
+  { key: "settings", label: "RAG Config", icon: ServerCog },
   { key: "memory", label: "Memory", icon: Brain },
 ];
 
@@ -179,15 +179,18 @@ export default function Home() {
   const [selectedDocument, setSelectedDocument] =
     useState<DocumentDetailResponse | null>(null);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
-  const [documentSearch, setDocumentSearch] = useState("");
-  const [documentStatusFilter, setDocumentStatusFilter] = useState("all");
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadingDocuments, setUploadingDocuments] = useState(false);
+  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
 
   const [autoFile, setAutoFile] = useState<File | null>(null);
   const [autoJobs, setAutoJobs] = useState<IngestionJob[]>([]);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [autoSubmitting, setAutoSubmitting] = useState(false);
+  const [autoUploadMessage, setAutoUploadMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const [debugDocumentId, setDebugDocumentId] = useState<string | null>(null);
   const [debugDocumentStatus, setDebugDocumentStatus] = useState<string>("none");
@@ -236,7 +239,6 @@ export default function Home() {
   const [graphExpansionDepth, setGraphExpansionDepth] = useState(1);
   const [graphExpansionLimit, setGraphExpansionLimit] = useState(20);
   const [profile, setProfile] = useState<DocumentProfile>("auto");
-  const [chatScope, setChatScope] = useState<ChatScope>("all");
   const [profilesConfig, setProfilesConfig] = useState<ProfilesResponse | null>(
     null,
   );
@@ -535,8 +537,6 @@ export default function Home() {
       setIsLoadingDocuments(true);
       try {
         const response = await listDocuments({
-          search: documentSearch.trim() || undefined,
-          status: documentStatusFilter === "all" ? undefined : documentStatusFilter,
           limit: 200,
           offset: 0,
         });
@@ -562,8 +562,6 @@ export default function Home() {
     },
     [
       appendLog,
-      documentSearch,
-      documentStatusFilter,
       selectedDocumentId,
       syncDocumentWorkspace,
     ],
@@ -607,7 +605,7 @@ export default function Home() {
       void refreshDocuments();
     }, 200);
     return () => window.clearTimeout(timer);
-  }, [authChecked, documentSearch, documentStatusFilter, refreshDocuments]);
+  }, [authChecked, refreshDocuments]);
 
   useEffect(() => {
     if (!selectedDocumentId) {
@@ -665,10 +663,12 @@ export default function Home() {
 
   const handleAutoFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     setAutoFile(event.target.files?.[0] ?? null);
+    setAutoUploadMessage(null);
   };
 
   const handleLibraryFilesChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setUploadFiles(Array.from(event.target.files ?? []));
+    const [file] = Array.from(event.target.files ?? []);
+    setUploadFiles(file ? [file] : []);
   };
 
   const handleLibraryUpload = async (): Promise<number> => {
@@ -679,32 +679,20 @@ export default function Home() {
     setUploadingDocuments(true);
     const started = performance.now();
     try {
-      if (uploadFiles.length === 1) {
-        const response = await uploadDocument(uploadFiles[0]);
-        await refreshDocuments(response.document_id);
-        const detail = await refreshSelectedDocument(response.document_id);
-        setDebugSteps(buildDocumentDebugSteps(detail, runtimeConfig?.graph_enabled ?? false));
-        appendLog("debug", "upload", "success", `Uploaded ${response.filename}.`, performance.now() - started);
-        return 1;
-      } else {
-        const response = await uploadDocumentBatch(uploadFiles);
-        const firstSuccessful =
-          response.items.find((item) => item.success && item.document_id)?.document_id ?? null;
-        await refreshDocuments(firstSuccessful);
-        if (firstSuccessful) {
-          await refreshSelectedDocument(firstSuccessful);
-        }
-        appendLog(
-          "debug",
-          "upload",
-          response.failed_count === 0 ? "success" : "info",
-          `Uploaded ${response.success_count}/${response.items.length} documents.`,
-          performance.now() - started,
-        );
-        return response.success_count;
-      }
+      const response = await uploadDocument(uploadFiles[0]);
+      await refreshDocuments(response.document_id);
+      const detail = await refreshSelectedDocument(response.document_id);
+      setDebugSteps(buildDocumentDebugSteps(detail, runtimeConfig?.graph_enabled ?? false));
+      appendLog(
+        "system",
+        "upload",
+        "success",
+        `Uploaded ${response.filename}.`,
+        performance.now() - started,
+      );
+      return 1;
     } catch (error) {
-      appendLog("debug", "upload", "error", getErrorMessage(error));
+      appendLog("system", "upload", "error", getErrorMessage(error));
       return 0;
     } finally {
       setUploadFiles([]);
@@ -718,6 +706,7 @@ export default function Home() {
     }
 
     setAutoSubmitting(true);
+    setAutoUploadMessage(null);
     const started = performance.now();
     appendLog("auto", "queue", "info", `Queued ${autoFile.name}.`);
 
@@ -733,12 +722,100 @@ export default function Home() {
         `Created ingestion job ${compactId(job.job_id)}.`,
         durationMs,
       );
+      setAutoUploadMessage({
+        type: "success",
+        text: `Queued ${autoFile.name} successfully.`,
+      });
+      await refreshDocuments(null);
     } catch (error) {
-      appendLog("auto", "queue", "error", getErrorMessage(error));
+      const message = getErrorMessage(error);
+      appendLog("auto", "queue", "error", message);
+      setAutoUploadMessage({ type: "error", text: message });
     } finally {
       setAutoSubmitting(false);
     }
   };
+
+  const handleDeleteDocument = useCallback(
+    async (documentId: string) => {
+      const target = documents.find((document) => document.document_id === documentId);
+      const title = target?.title ?? documentId;
+      const confirmed = window.confirm(
+        `Delete "${title}" from MinIO, Qdrant, and the document database?`,
+      );
+      if (!confirmed) {
+        return;
+      }
+
+      setDeletingDocumentId(documentId);
+      const started = performance.now();
+      try {
+        const result = await deleteDocument(documentId);
+        if (selectedDocumentId === documentId) {
+          setSelectedDocumentId(null);
+          syncDocumentWorkspace(null);
+        }
+        await refreshDocuments(null);
+        appendLog(
+          "system",
+          "delete",
+          "success",
+          `Deleted ${title}: ${result.deleted_files} MinIO file(s), Qdrant vectors cleared.`,
+          performance.now() - started,
+        );
+      } catch (error) {
+        appendLog("system", "delete", "error", getErrorMessage(error));
+      } finally {
+        setDeletingDocumentId(null);
+      }
+    },
+    [appendLog, documents, refreshDocuments, selectedDocumentId, syncDocumentWorkspace],
+  );
+
+  const handleDeleteQueuedDocument = useCallback(
+    async (job: IngestionJob) => {
+      if (!job.document_id) {
+        appendLog("auto", "delete", "error", "This job has no document to delete.");
+        return;
+      }
+      const confirmed = window.confirm(
+        `Delete "${job.filename}" from MinIO, Qdrant, and the document database?`,
+      );
+      if (!confirmed) {
+        return;
+      }
+
+      setDeletingDocumentId(job.document_id);
+      const started = performance.now();
+      try {
+        const result = await deleteDocument(job.document_id);
+        try {
+          await deleteIngestionJob(job.job_id);
+        } catch {
+          // The document deletion is the important operation; the in-memory job may already be gone.
+        }
+        setAutoJobs((current) => current.filter((item) => item.job_id !== job.job_id));
+        setSelectedJobId((current) => (current === job.job_id ? null : current));
+        if (selectedDocumentId === job.document_id) {
+          setSelectedDocumentId(null);
+          syncDocumentWorkspace(null);
+        }
+        await refreshDocuments(null);
+        appendLog(
+          "auto",
+          "delete",
+          "success",
+          `Deleted ${job.filename}: ${result.deleted_files} MinIO file(s), Qdrant vectors cleared.`,
+          performance.now() - started,
+        );
+      } catch (error) {
+        appendLog("auto", "delete", "error", getErrorMessage(error));
+      } finally {
+        setDeletingDocumentId(null);
+      }
+    },
+    [appendLog, refreshDocuments, selectedDocumentId, syncDocumentWorkspace],
+  );
 
   const runDebugStep = async (
     stepKey: PipelineStepKey,
@@ -751,7 +828,7 @@ export default function Home() {
     const activeDocumentId = targetDocumentId ?? selectedDocumentId ?? debugDocumentId;
 
     if (stepKey === "upload" && uploadFiles.length === 0) {
-      appendLog("debug", "upload", "error", "Select one or more files in Document Library.");
+      appendLog("debug", "upload", "error", "Select a file in Document Library.");
       return;
     }
 
@@ -1005,15 +1082,6 @@ export default function Home() {
     const started = performance.now();
 
     const useStreaming = streamingEnabled && (runtimeConfig?.streaming_supported ?? true);
-    const selectedOrganizationId =
-      selectedDocument?.organization?.id ?? currentUser?.organization.id;
-    const documentScopePayload =
-      chatScope === "document" && selectedDocumentId
-        ? { document_id: selectedDocumentId }
-        : chatScope === "organization" && selectedOrganizationId
-          ? { organization_id: selectedOrganizationId, include_descendants: false }
-          : {};
-
     if (useStreaming) {
       appendLog("chat", "rag", "info", "Streaming grounded answer.");
       const useTypewriter = typewriterEnabled;
@@ -1047,15 +1115,6 @@ export default function Home() {
           {
             query,
             session_id: sessionId ?? undefined,
-            scope:
-              chatScope === "document" && selectedDocumentId
-                ? { document_id: selectedDocumentId }
-                : chatScope === "organization" && selectedOrganizationId
-                  ? {
-                      organization_id: selectedOrganizationId,
-                      include_descendants: false,
-                    }
-                  : undefined,
             top_k: topK,
             candidate_k: candidateK,
             use_memory: useMemory,
@@ -1113,7 +1172,6 @@ export default function Home() {
       const response = await askRagChat({
         query,
         session_id: sessionId ?? undefined,
-        ...documentScopePayload,
         top_k: topK,
         candidate_k: candidateK,
         use_memory: useMemory,
@@ -1288,40 +1346,21 @@ export default function Home() {
           })}
         </nav>
 
-        <div className="mb-5">
-          <DocumentLibraryPanel
-            documents={documents}
-            graphEnabled={runtimeConfig?.graph_enabled ?? false}
-            isLoading={isLoadingDocuments}
-            onRefresh={() => {
-              void refreshDocuments();
-            }}
-            onRunAction={(action, documentId) => {
-              setSelectedDocumentId(documentId);
-              void runDebugStep(action === "index" ? "index" : action, documentId);
-            }}
-            onSearchChange={setDocumentSearch}
-            onSelectDocument={setSelectedDocumentId}
-            onStatusFilterChange={setDocumentStatusFilter}
-            onUpload={() => {
-              void handleLibraryUpload();
-            }}
-            onUploadFilesChange={handleLibraryFilesChange}
-            search={documentSearch}
-            selectedDocument={selectedDocument}
-            selectedDocumentId={selectedDocumentId}
-            statusFilter={documentStatusFilter}
-            uploadFiles={uploadFiles}
-            uploading={uploadingDocuments}
-          />
-        </div>
-
         {activeView === "auto" ? (
           <AutoQueueView
+            deletingDocumentId={deletingDocumentId}
+            documents={documents}
             file={autoFile}
+            isLoadingDocuments={isLoadingDocuments}
             jobs={autoJobs}
             loading={autoSubmitting}
+            message={autoUploadMessage}
             onFileChange={handleAutoFileChange}
+            onDeleteDocument={handleDeleteQueuedDocument}
+            onDeletePublishedDocument={handleDeleteDocument}
+            onRefreshDocuments={() => {
+              void refreshDocuments(null);
+            }}
             onSelectJob={setSelectedJobId}
             onSubmit={handleAutoSubmit}
             selectedJob={selectedJob}
@@ -1330,55 +1369,12 @@ export default function Home() {
           />
         ) : null}
 
-        {activeView === "debug" ? (
-          <DebugView
-            canUpload={uploadFiles.length > 0}
-            canChunk={canDebugChunk}
-            canGraph={canDebugGraph}
-            canIndex={canDebugIndex}
-            canParse={canDebugParse}
-            chunks={debugChunks}
-            documentId={debugDocumentId}
-            documentStatus={debugDocumentStatus}
-            highlightedLogKey={highlightedLogKey}
-            logs={logs}
-            metrics={debugMetrics}
-            onHighlightLog={setHighlightedLogKey}
-            onReset={() => resetDebugState()}
-            onRunStep={(step) => {
-              void runDebugStep(step);
-            }}
-            pendingUploadCount={uploadFiles.length}
-            onSelectPreviewTab={setDebugPreviewTab}
-            parseText={debugParsedText}
-            previewTab={debugPreviewTab}
-            runningStep={runningDebugStep}
-            runtimeConfig={runtimeConfig}
-            runtimeExpanded={runtimeExpanded}
-            setRuntimeExpanded={setRuntimeExpanded}
-            graphHealth={graphHealth}
-            graphHealthBusy={graphHealthBusy}
-            onCheckGraphHealth={() => {
-              void checkGraphHealth();
-            }}
-            steps={debugSteps}
-          />
-        ) : null}
-
         {activeView === "chat" ? (
           <ChatView
             answer={answer}
             asking={asking}
-            answerMode={answerMode}
-            answerStyle={answerStyle}
-            candidateK={candidateK}
-            chatScope={chatScope}
-            chunkOverlap={chunkOverlap}
-            chunkSize={chunkSize}
-            chunkMode={chunkMode}
             citations={citations}
             citationDocuments={citationDocuments}
-            currentUser={currentUser}
             onAsk={handleAsk}
             onCitationClick={(citationIndex) => {
               setSelectedCitationIndex(citationIndex);
@@ -1388,12 +1384,23 @@ export default function Home() {
               }
             }}
             onQuestionChange={setQuestion}
-            onScopeChange={setChatScope}
             question={question}
-            runtimeConfig={runtimeConfig}
-            selectedDocument={selectedDocument}
             selectedCitationIndex={selectedCitationIndex}
             sessionId={sessionId}
+          />
+        ) : null}
+
+        {activeView === "settings" ? (
+          <SettingsPanel
+            answerMode={answerMode}
+            answerStyle={answerStyle}
+            candidateK={candidateK}
+            chunkOverlap={chunkOverlap}
+            chunkSize={chunkSize}
+            chunkMode={chunkMode}
+            memorySettings={memorySettings}
+            maxContextChars={maxContextChars}
+            runtimeConfig={runtimeConfig}
             setCandidateK={setCandidateK}
             setChunkOverlap={setChunkOverlap}
             setChunkSize={setChunkSize}
@@ -1408,12 +1415,10 @@ export default function Home() {
             setUseGraph={setUseGraph}
             setGraphExpansionDepth={setGraphExpansionDepth}
             setGraphExpansionLimit={setGraphExpansionLimit}
-            memorySettings={memorySettings}
             setAnswerMode={handleAnswerModeChange}
             setAnswerStyle={handleAnswerStyleChange}
             profile={profile}
             setProfile={handleProfileChange}
-            maxContextChars={maxContextChars}
             setMaxContextChars={setMaxContextChars}
             streamingEnabled={streamingEnabled}
             topK={topK}
@@ -1451,39 +1456,53 @@ export default function Home() {
 }
 
 function AutoQueueView({
+  deletingDocumentId,
+  documents,
   file,
+  isLoadingDocuments,
   jobs,
   loading,
   logs,
+  message,
   onFileChange,
+  onDeleteDocument,
+  onDeletePublishedDocument,
+  onRefreshDocuments,
   onSelectJob,
   onSubmit,
   selectedJob,
   selectedJobSteps,
 }: {
+  deletingDocumentId: string | null;
+  documents: DocumentListItem[];
   file: File | null;
+  isLoadingDocuments: boolean;
   jobs: IngestionJob[];
   loading: boolean;
   logs: UiLog[];
+  message: { type: "success" | "error"; text: string } | null;
   onFileChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onDeleteDocument: (job: IngestionJob) => void;
+  onDeletePublishedDocument: (documentId: string) => void;
+  onRefreshDocuments: () => void;
   onSelectJob: (jobId: string) => void;
   onSubmit: () => void;
   selectedJob: IngestionJob | null;
   selectedJobSteps: DebugStep[];
 }) {
   const metrics = [
-    { label: "Queued jobs", value: jobs.length.toLocaleString() },
+    { label: "Documents", value: documents.length.toLocaleString() },
     {
-      label: "Active jobs",
-      value: jobs
-        .filter((job) => ["queued", "running"].includes(job.status))
+      label: "Indexed",
+      value: documents
+        .filter((document) => document.status === "indexed")
         .length.toLocaleString(),
     },
     {
-      label: "Completed",
-      value: jobs
-        .filter((job) => job.status === "succeeded")
-        .length.toLocaleString(),
+      label: "Chunks",
+      value: documents
+        .reduce((total, document) => total + document.chunk_count, 0)
+        .toLocaleString(),
     },
   ];
 
@@ -1519,6 +1538,18 @@ function AutoQueueView({
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
             Enqueue ingestion
           </Button>
+          {message ? (
+            <div
+              className={cn(
+                "rounded-xl border px-3 py-2 text-sm",
+                message.type === "error"
+                  ? "border-rose-200 bg-rose-50 text-rose-700"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-700",
+              )}
+            >
+              {message.text}
+            </div>
+          ) : null}
           <MetricStrip metrics={metrics} />
         </CardContent>
       </Card>
@@ -1548,38 +1579,153 @@ function AutoQueueView({
 
         <Card className="bg-white shadow-sm">
           <CardHeader>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle>Published Documents</CardTitle>
+                <CardDescription>
+                  Persistent documents from the database, including uploads from previous backend runs.
+                </CardDescription>
+              </div>
+              <Button
+                className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                onClick={onRefreshDocuments}
+                type="button"
+                variant="outline"
+              >
+                <RefreshCw className={cn("h-4 w-4", isLoadingDocuments && "animate-spin")} />
+                Refresh
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {isLoadingDocuments ? (
+                <EmptyState message="Loading published documents..." />
+              ) : documents.length === 0 ? (
+                <EmptyState message="No published documents found." />
+              ) : (
+                documents.map((document) => (
+                  <article
+                    className="rounded-xl border border-slate-100 bg-white px-4 py-3 transition-colors"
+                    key={document.document_id}
+                  >
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate text-sm font-semibold text-slate-800">
+                            {document.title}
+                          </p>
+                          <StatusBadge state={normalizeState(document.status)} />
+                        </div>
+                        <p className="mt-1 truncate text-xs text-slate-500">
+                          {document.filename ?? "No file name"} / {compactId(document.document_id)}
+                        </p>
+                      </div>
+                      <Button
+                        className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50"
+                        disabled={deletingDocumentId === document.document_id}
+                        onClick={() => onDeletePublishedDocument(document.document_id)}
+                        title="Delete from MinIO, Qdrant, and database"
+                        type="button"
+                        variant="outline"
+                      >
+                        {deletingDocumentId === document.document_id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                        Delete
+                      </Button>
+                    </div>
+                    <dl className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-3">
+                      <QueueMetric
+                        label="Parsed chars"
+                        value={document.parsed_character_count.toLocaleString()}
+                      />
+                      <QueueMetric label="Chunks" value={document.chunk_count.toLocaleString()} />
+                      <QueueMetric
+                        label="Vector indexed"
+                        value={
+                          document.vector_indexed_count === null
+                            ? "--"
+                            : document.vector_indexed_count.toLocaleString()
+                        }
+                      />
+                    </dl>
+                  </article>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white shadow-sm">
+          <CardHeader>
             <CardTitle>Recent Queue Jobs</CardTitle>
-            <CardDescription>Click a job to inspect its pipeline and logs.</CardDescription>
+            <CardDescription>Runtime queue history for the current backend process.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {jobs.length === 0 ? (
-                <EmptyState message="No queue jobs yet." />
+                <EmptyState message="No queue jobs in the current backend run." />
               ) : (
-                jobs.map((job) => (
-                  <button
-                    className={cn(
-                      "flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors",
-                      selectedJob?.job_id === job.job_id
-                        ? "border-cyan-200 bg-cyan-50"
-                        : "border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50",
-                    )}
-                    key={job.job_id}
-                    onClick={() => onSelectJob(job.job_id)}
-                    type="button"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-slate-800">
-                        {job.filename}
-                      </p>
-                      <p className="mt-1 font-mono text-xs text-slate-500">
-                        {compactId(job.job_id)}
-                        {job.document_id ? ` / ${compactId(job.document_id)}` : ""}
-                      </p>
-                    </div>
-                    <StatusBadge state={normalizeState(job.status)} />
-                  </button>
-                ))
+                jobs.map((job) => {
+                  const stats = summarizeIngestionJob(job);
+                  return (
+                    <article
+                      className={cn(
+                        "rounded-xl border px-4 py-3 transition-colors",
+                        selectedJob?.job_id === job.job_id
+                          ? "border-cyan-200 bg-cyan-50"
+                          : "border-slate-100 bg-white",
+                      )}
+                      key={job.job_id}
+                    >
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-800">
+                            {job.filename}
+                          </p>
+                          <p className="mt-1 font-mono text-xs text-slate-500">
+                            {compactId(job.job_id)}
+                            {job.document_id ? ` / ${compactId(job.document_id)}` : ""}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <StatusBadge state={normalizeState(job.status)} />
+                          <Button
+                            className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            onClick={() => onSelectJob(job.job_id)}
+                            type="button"
+                            variant="outline"
+                          >
+                            Select
+                          </Button>
+                          <Button
+                            className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50"
+                            disabled={!job.document_id || deletingDocumentId === job.document_id}
+                            onClick={() => onDeleteDocument(job)}
+                            title="Delete from MinIO, Qdrant, and database"
+                            type="button"
+                            variant="outline"
+                          >
+                            {deletingDocumentId === job.document_id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                      <dl className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-3">
+                        <QueueMetric label="Parsed chars" value={stats.parsedChars} />
+                        <QueueMetric label="Chunks" value={stats.chunks} />
+                        <QueueMetric label="Vector indexed" value={stats.indexed} />
+                      </dl>
+                    </article>
+                  );
+                })
               )}
             </div>
           </CardContent>
@@ -1595,368 +1741,31 @@ function AutoQueueView({
   );
 }
 
-function DebugView({
-  canUpload,
-  canChunk,
-  canGraph,
-  canIndex,
-  canParse,
-  chunks,
-  documentId,
-  documentStatus,
-  highlightedLogKey,
-  logs,
-  metrics,
-  onHighlightLog,
-  onReset,
-  onRunStep,
-  pendingUploadCount,
-  onSelectPreviewTab,
-  parseText,
-  previewTab,
-  runningStep,
-  runtimeConfig,
-  runtimeExpanded,
-  setRuntimeExpanded,
-  graphHealth,
-  graphHealthBusy,
-  onCheckGraphHealth,
-  steps,
-}: {
-  canUpload: boolean;
-  canChunk: boolean;
-  canGraph: boolean;
-  canIndex: boolean;
-  canParse: boolean;
-  chunks: ChunkPreview[];
-  documentId: string | null;
-  documentStatus: string;
-  highlightedLogKey: string | null;
-  logs: UiLog[];
-  metrics: Array<{ label: string; value: string }>;
-  onHighlightLog: (key: string | null) => void;
-  onReset: () => void;
-  onRunStep: (step: PipelineStepKey) => void;
-  pendingUploadCount: number;
-  onSelectPreviewTab: (tab: "parse" | "chunks") => void;
-  parseText: string;
-  previewTab: "parse" | "chunks";
-  runningStep: PipelineStepKey | null;
-  runtimeConfig: RuntimeConfigResponse | null;
-  runtimeExpanded: boolean;
-  setRuntimeExpanded: (expanded: boolean) => void;
-  graphHealth: GraphHealthResponse | null;
-  graphHealthBusy: boolean;
-  onCheckGraphHealth: () => void;
-  steps: DebugStep[];
-}) {
-  const parseStep = steps.find((step) => step.key === "parse");
-  const chunkStep = steps.find((step) => step.key === "chunk");
-  const activeError =
-    previewTab === "parse" ? parseStep?.error ?? null : chunkStep?.error ?? null;
-
-  return (
-    <div className="grid gap-5 xl:grid-cols-[25%_minmax(0,1fr)_25%]">
-      <Card className="bg-white shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Gauge className="h-5 w-5 text-cyan-700" />
-            Step Debugger
-          </CardTitle>
-          <CardDescription>Run each ingestion stage and inspect the output.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-            Upload files from Document Library, then run parse/chunk/index on the selected document.
-          </div>
-
-          <div className="grid gap-2">
-            <StepButton
-              disabled={!canUpload}
-              icon={Upload}
-              label="Upload"
-              loading={runningStep === "upload"}
-              onClick={() => onRunStep("upload")}
-            />
-            <StepButton
-              disabled={!canParse}
-              icon={FileSearch}
-              label="Parse"
-              loading={runningStep === "parse"}
-              onClick={() => onRunStep("parse")}
-            />
-            <StepButton
-              disabled={!canChunk}
-              icon={Layers3}
-              label="Chunk"
-              loading={runningStep === "chunk"}
-              onClick={() => onRunStep("chunk")}
-            />
-            <StepButton
-              disabled={!canIndex}
-              icon={Database}
-              label="Embed + Index"
-              loading={runningStep === "index"}
-              onClick={() => onRunStep("index")}
-            />
-            <StepButton
-              disabled={!canGraph}
-              icon={GitBranch}
-              label="Graph Index"
-              loading={runningStep === "graph"}
-              onClick={() => onRunStep("graph")}
-            />
-          </div>
-
-          <Button
-            className="w-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-            onClick={onReset}
-            type="button"
-            variant="outline"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Reset debugger
-          </Button>
-
-          <div className="rounded-xl bg-slate-50 p-4">
-            <dl className="space-y-3">
-              <KeyValue label="Pending uploads" value={pendingUploadCount.toString()} />
-              <KeyValue label="Document ID" value={documentId ? compactId(documentId) : "None"} />
-              <KeyValue label="Status" value={documentStatus} />
-            </dl>
-          </div>
-        </CardContent>
-      </Card>
-
-      <section className="space-y-5">
-        <Card className="bg-white shadow-sm">
-          <CardHeader>
-            <CardTitle>Pipeline Workspace</CardTitle>
-            <CardDescription>
-              Click a failed node to highlight its corresponding operation log.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <PipelineStrip
-              dark
-              onStepFocus={(step) => onHighlightLog(`debug:${step}`)}
-              runningStep={runningStep}
-              steps={steps}
-            />
-            <MetricStrip metrics={metrics} />
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <CardTitle>Data Preview</CardTitle>
-                <CardDescription>Inspect parsed text or chunk boundaries.</CardDescription>
-              </div>
-              <div className="inline-flex rounded-lg bg-slate-100 p-1">
-                <TabButton
-                  active={previewTab === "parse"}
-                  label="Parsed text"
-                  onClick={() => onSelectPreviewTab("parse")}
-                />
-                <TabButton
-                  active={previewTab === "chunks"}
-                  label="Chunks"
-                  onClick={() => onSelectPreviewTab("chunks")}
-                />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {activeError ? (
-              <ErrorPreview message={activeError} />
-            ) : previewTab === "parse" ? (
-              <ParsePreview text={parseText} />
-            ) : (
-              <ChunkPreviewList chunks={chunks} />
-            )}
-          </CardContent>
-        </Card>
-      </section>
-
-      <aside className="space-y-5">
-        <RuntimePanel
-          config={runtimeConfig}
-          expanded={runtimeExpanded}
-          graphHealth={graphHealth}
-          graphHealthBusy={graphHealthBusy}
-          onCheckGraphHealth={onCheckGraphHealth}
-          onToggle={() => setRuntimeExpanded(!runtimeExpanded)}
-        />
-        <LogPanel
-          highlightedLogKey={highlightedLogKey}
-          logs={logs}
-          title="Operation Logs"
-        />
-      </aside>
-    </div>
-  );
-}
-
 function ChatView({
   answer,
   asking,
-  answerMode,
-  answerStyle,
-  candidateK,
-  chatScope,
-  chunkOverlap,
-  chunkSize,
-  chunkMode,
   citations,
   citationDocuments,
-  currentUser,
   onAsk,
   onCitationClick,
   onQuestionChange,
-  onScopeChange,
   question,
-  runtimeConfig,
-  selectedDocument,
   selectedCitationIndex,
   sessionId,
-  setAnswerMode,
-  setAnswerStyle,
-  profile,
-  setProfile,
-  maxContextChars,
-  setMaxContextChars,
-  setCandidateK,
-  setChunkOverlap,
-  setChunkSize,
-  setChunkMode,
-  setStreamingEnabled,
-  setTopK,
-  setTypewriterEnabled,
-  setTypewriterSpeed,
-  setUseMem0,
-  setUseGraph,
-  setUseMemory,
-  setMemoryTopK,
-  setGraphExpansionDepth,
-  setGraphExpansionLimit,
-  memorySettings,
-  streamingEnabled,
-  topK,
-  typewriterEnabled,
-  typewriterSpeed,
-  useGraph,
-  useMem0,
-  useMemory,
-  memoryTopK,
-  graphExpansionDepth,
-  graphExpansionLimit,
 }: {
   answer: string;
   asking: boolean;
-  answerMode: AnswerMode;
-  answerStyle: AnswerStyle;
-  candidateK: number;
-  chatScope: ChatScope;
-  chunkOverlap: number;
-  chunkSize: number;
-  chunkMode: ChunkMode;
   citations: RagCitation[];
   citationDocuments: Record<string, DocumentDetailResponse>;
-  currentUser: AuthUser | null;
   onAsk: (event: FormEvent<HTMLFormElement>) => void;
   onCitationClick: (citationIndex: number) => void;
   onQuestionChange: (question: string) => void;
-  onScopeChange: (value: ChatScope) => void;
   question: string;
-  runtimeConfig: RuntimeConfigResponse | null;
-  selectedDocument: DocumentDetailResponse | null;
   selectedCitationIndex: number | null;
   sessionId: string | null;
-  setAnswerMode: (value: AnswerMode) => void;
-  setAnswerStyle: (value: AnswerStyle) => void;
-  profile: DocumentProfile;
-  setProfile: (value: DocumentProfile) => void;
-  maxContextChars: number;
-  setMaxContextChars: (value: number) => void;
-  setCandidateK: (value: number) => void;
-  setChunkOverlap: (value: number) => void;
-  setChunkSize: (value: number) => void;
-  setChunkMode: (value: ChunkMode) => void;
-  setStreamingEnabled: (value: boolean) => void;
-  setTopK: (value: number) => void;
-  setTypewriterEnabled: (value: boolean) => void;
-  setTypewriterSpeed: (value: TypewriterSpeed) => void;
-  setUseMem0: (value: boolean) => void;
-  setUseGraph: (value: boolean) => void;
-  setUseMemory: (value: boolean) => void;
-  setMemoryTopK: (value: number) => void;
-  setGraphExpansionDepth: (value: number) => void;
-  setGraphExpansionLimit: (value: number) => void;
-  memorySettings: MemorySettings | null;
-  streamingEnabled: boolean;
-  topK: number;
-  typewriterEnabled: boolean;
-  typewriterSpeed: TypewriterSpeed;
-  useGraph: boolean;
-  useMem0: boolean;
-  useMemory: boolean;
-  memoryTopK: number;
-  graphExpansionDepth: number;
-  graphExpansionLimit: number;
 }) {
-  const scopeDescription =
-    chatScope === "document"
-      ? selectedDocument?.title ?? "No selected document"
-      : chatScope === "organization"
-        ? selectedDocument?.organization?.ten_dviqly ??
-          currentUser?.organization.ten_dviqly ??
-          "Current organization"
-        : "All visible documents";
-
   return (
     <div className="space-y-5">
-        <SettingsPanel
-          answerMode={answerMode}
-          answerStyle={answerStyle}
-          candidateK={candidateK}
-          chunkOverlap={chunkOverlap}
-          chunkSize={chunkSize}
-          chunkMode={chunkMode}
-          memorySettings={memorySettings}
-          memoryTopK={memoryTopK}
-          maxContextChars={maxContextChars}
-          runtimeConfig={runtimeConfig}
-          setAnswerMode={setAnswerMode}
-          setAnswerStyle={setAnswerStyle}
-          profile={profile}
-          setProfile={setProfile}
-          setMaxContextChars={setMaxContextChars}
-          setCandidateK={setCandidateK}
-          setChunkOverlap={setChunkOverlap}
-          setChunkSize={setChunkSize}
-          setChunkMode={setChunkMode}
-          setMemoryTopK={setMemoryTopK}
-          setUseGraph={setUseGraph}
-          setStreamingEnabled={setStreamingEnabled}
-          setTopK={setTopK}
-          setTypewriterEnabled={setTypewriterEnabled}
-          setTypewriterSpeed={setTypewriterSpeed}
-          setUseMem0={setUseMem0}
-          setUseMemory={setUseMemory}
-          setGraphExpansionDepth={setGraphExpansionDepth}
-          setGraphExpansionLimit={setGraphExpansionLimit}
-          streamingEnabled={streamingEnabled}
-          topK={topK}
-          typewriterEnabled={typewriterEnabled}
-          typewriterSpeed={typewriterSpeed}
-          useGraph={useGraph}
-          useMem0={useMem0}
-          useMemory={useMemory}
-          graphExpansionDepth={graphExpansionDepth}
-          graphExpansionLimit={graphExpansionLimit}
-        />
         <Card className="bg-white shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -1979,30 +1788,6 @@ function ChatView({
                   placeholder="Ask about indexed documents..."
                   value={question}
                 />
-              </label>
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Scope
-                </span>
-                <div className="mt-2 grid gap-2 sm:grid-cols-3">
-                  <ScopeButton
-                    active={chatScope === "all"}
-                    label="All visible documents"
-                    onClick={() => onScopeChange("all")}
-                  />
-                  <ScopeButton
-                    active={chatScope === "document"}
-                    disabled={!selectedDocument}
-                    label="Selected document"
-                    onClick={() => onScopeChange("document")}
-                  />
-                  <ScopeButton
-                    active={chatScope === "organization"}
-                    label="Selected organization"
-                    onClick={() => onScopeChange("organization")}
-                  />
-                </div>
-                <p className="mt-2 text-xs text-slate-500">{scopeDescription}</p>
               </label>
               <div className="flex items-center justify-between gap-3">
                 <span className="font-mono text-xs text-slate-500">
@@ -2942,6 +2727,15 @@ function MetricStrip({
   );
 }
 
+function QueueMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-white/70 px-3 py-2 ring-1 ring-slate-100">
+      <dt className="font-semibold uppercase tracking-wider text-slate-400">{label}</dt>
+      <dd className="mt-1 font-mono text-sm font-semibold text-slate-800">{value}</dd>
+    </div>
+  );
+}
+
 function StepButton({
   disabled,
   icon: Icon,
@@ -3219,35 +3013,6 @@ function TabButton({
   );
 }
 
-function ScopeButton({
-  active,
-  disabled,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  disabled?: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      className={cn(
-        "rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
-        active
-          ? "border-cyan-200 bg-cyan-50 text-cyan-800"
-          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
-        disabled && "cursor-not-allowed opacity-50",
-      )}
-      disabled={disabled}
-      onClick={onClick}
-      type="button"
-    >
-      {label}
-    </button>
-  );
-}
-
 function RuntimeBadges({ config }: { config: RuntimeConfigResponse | null }) {
   if (!config) {
     return null;
@@ -3370,6 +3135,32 @@ function buildPipelineStepsFromJob(job: IngestionJob | null): DebugStep[] {
       error: jobStep?.error ?? null,
     };
   });
+}
+
+function summarizeIngestionJob(job: IngestionJob): {
+  parsedChars: string;
+  chunks: string;
+  indexed: string;
+} {
+  const parseOutput = findJobStep(job.steps, "parse")?.output ?? {};
+  const chunkOutput = findJobStep(job.steps, "chunk")?.output ?? {};
+  const indexOutput = findJobStep(job.steps, "index")?.output ?? {};
+
+  return {
+    parsedChars: formatOptionalCount(parseOutput.character_count),
+    chunks: formatOptionalCount(chunkOutput.chunk_count),
+    indexed: formatOptionalCount(indexOutput.indexed_chunk_count),
+  };
+}
+
+function formatOptionalCount(value: unknown): string {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value.toLocaleString();
+  }
+  if (typeof value === "string" && value.trim() && !Number.isNaN(Number(value))) {
+    return Number(value).toLocaleString();
+  }
+  return "--";
 }
 
 function findJobStep(

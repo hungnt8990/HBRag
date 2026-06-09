@@ -4,14 +4,18 @@ from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.db.session import get_db_session
+from app.repositories.documents import DocumentRepository
 from app.services.graph import Neo4jClient, get_neo4j_client
 from app.services.document_profiles import (
     DEFAULT_PROFILE,
     PROFILE_CONFIGS,
     PROFILE_NAMES,
 )
+from app.services.document_service import DocumentService
 from app.services.ingestion_queue import IngestionJob, IngestionQueue, get_ingestion_queue
 from app.services.vector_store import QdrantVectorStore, get_vector_store
 
@@ -88,7 +92,17 @@ class IngestionJobResponse(BaseModel):
     logs: list[IngestionLogResponse]
 
 
+class IngestionJobDeleteResponse(BaseModel):
+    job_id: UUID
+    deleted: bool
+
+
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+
+def get_document_repository(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> DocumentRepository:
+    return DocumentRepository(session)
 
 
 class ProfilesResponse(BaseModel):
@@ -183,11 +197,24 @@ async def recreate_vector_store(
 async def enqueue_ingestion_job(
     background_tasks: BackgroundTasks,
     queue: Annotated[IngestionQueue, Depends(get_ingestion_queue)],
+    repository: Annotated[DocumentRepository, Depends(get_document_repository)],
     file: Annotated[UploadFile, File(...)],
 ) -> IngestionJobResponse:
     content = await file.read()
+    filename = DocumentService._clean_filename(file.filename)
+    duplicate_file = await repository.find_document_file_by_signature(
+        filename=filename,
+        file_size=len(content),
+    )
+    if duplicate_file is not None:
+        duplicate_document = getattr(duplicate_file, "document", None)
+        duplicate_id = getattr(duplicate_document, "id", None) or duplicate_file.document_id
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Duplicate file already exists for document {duplicate_id}.",
+        )
     job = queue.enqueue_upload(
-        filename=file.filename or "uploaded-document",
+        filename=filename,
         content_type=file.content_type,
         content=content,
     )
@@ -214,6 +241,20 @@ async def get_ingestion_job(
             detail="Ingestion job not found.",
         )
     return _to_ingestion_job_response(job)
+
+
+@router.delete("/ingestion-jobs/{job_id}", response_model=IngestionJobDeleteResponse)
+async def delete_ingestion_job(
+    job_id: UUID,
+    queue: Annotated[IngestionQueue, Depends(get_ingestion_queue)],
+) -> IngestionJobDeleteResponse:
+    deleted = queue.remove_job(job_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ingestion job not found.",
+        )
+    return IngestionJobDeleteResponse(job_id=job_id, deleted=True)
 
 
 def _to_ingestion_job_response(job: IngestionJob) -> IngestionJobResponse:

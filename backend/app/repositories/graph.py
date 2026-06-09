@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy import delete, select
+from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.graph import GraphDocumentStatus, GraphExtractionLog
+
+logger = logging.getLogger(__name__)
 
 
 class GraphRepository:
@@ -15,8 +19,16 @@ class GraphRepository:
         self._session = session
 
     async def get_document_status(self, document_id: UUID) -> GraphDocumentStatus | None:
-        statement = select(GraphDocumentStatus).where(GraphDocumentStatus.document_id == document_id)
-        return (await self._session.execute(statement)).scalar_one_or_none()
+        statement = select(GraphDocumentStatus).where(
+            GraphDocumentStatus.document_id == document_id
+        )
+        try:
+            return (await self._session.execute(statement)).scalar_one_or_none()
+        except ProgrammingError as exc:
+            if not self._is_missing_graph_table_error(exc):
+                raise
+            await self._rollback_missing_graph_table()
+            return None
 
     async def upsert_document_status(
         self,
@@ -82,7 +94,13 @@ class GraphRepository:
             .order_by(GraphExtractionLog.created_at.desc())
             .limit(limit)
         )
-        return list((await self._session.execute(statement)).scalars().all())
+        try:
+            return list((await self._session.execute(statement)).scalars().all())
+        except ProgrammingError as exc:
+            if not self._is_missing_graph_table_error(exc):
+                raise
+            await self._rollback_missing_graph_table()
+            return []
 
     async def delete_extraction_logs(self, *, document_id: UUID) -> None:
         await self._session.execute(
@@ -94,4 +112,22 @@ class GraphRepository:
         await self._session.commit()
 
     async def rollback(self) -> None:
+        await self._session.rollback()
+
+    @staticmethod
+    def _is_missing_graph_table_error(exc: ProgrammingError) -> bool:
+        message = str(exc).lower()
+        original_name = exc.orig.__class__.__name__.lower() if exc.orig is not None else ""
+        return (
+            "undefinedtableerror" in original_name
+            or "undefined table" in message
+            or "relation \"graph_document_status\" does not exist" in message
+            or "relation \"graph_extraction_logs\" does not exist" in message
+        )
+
+    async def _rollback_missing_graph_table(self) -> None:
+        logger.warning(
+            "Graph tables are missing; run `alembic upgrade head` to create graph "
+            "audit tables. Returning empty graph status for compatibility with stale DBs."
+        )
         await self._session.rollback()

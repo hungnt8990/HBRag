@@ -28,6 +28,8 @@ PDFPLUMBER_TABLE_SETTINGS = (
     },
 )
 
+MIN_TABLE_COHERENCE_SCORE = 1
+
 
 class PdfParser(DocumentParser):
     supported_extensions = frozenset({".pdf"})
@@ -107,7 +109,13 @@ class PdfParser(DocumentParser):
                 PdfParser._normalize_pdfplumber_table(table)
                 for table in raw_tables
             ]
-            tables = [table for table in tables if table]
+            tables = [
+                table
+                for table in tables
+                if table
+                and PdfParser._score_extracted_table(table)[0]
+                >= MIN_TABLE_COHERENCE_SCORE
+            ]
             if not tables:
                 continue
 
@@ -135,8 +143,11 @@ class PdfParser(DocumentParser):
         row_count = len(table)
         multi_column_rows = sum(1 for row in table if sum(bool(cell.strip()) for cell in row) > 1)
         non_empty_cells = sum(1 for row in table for cell in row if cell.strip())
+        total_chars = sum(len(cell.strip()) for row in table for cell in row if cell.strip())
+        total_cells = row_count * width
         empty_cells = (row_count * width) - non_empty_cells
-        return (row_count, width, multi_column_rows, -empty_cells)
+        coherence_score = total_chars - total_cells - (width * width) - empty_cells
+        return (coherence_score, total_chars, multi_column_rows, -width)
 
     @staticmethod
     def _score_table_set(tables: list[list[list[str]]]) -> tuple[int, int, int, int]:

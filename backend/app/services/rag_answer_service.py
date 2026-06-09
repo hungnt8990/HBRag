@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, replace
 from typing import Any
@@ -826,7 +827,7 @@ class RagAnswerService:
         for context_chunk in context_chunks:
             content = context_chunk.chunk.content
             citation = context_chunk.citation_index
-            metadata = context_chunk.chunk.chunk_metadata or {}
+            metadata = getattr(context_chunk.chunk, "chunk_metadata", None) or {}
             chunk_type = str(metadata.get("chunk_type") or "")
 
             for line in RagAnswerService._table_context_lines(content):
@@ -855,7 +856,12 @@ class RagAnswerService:
 
     @staticmethod
     def _table_context_lines(content: str) -> list[str]:
-        lines = [line.strip() for line in content.splitlines() if line.strip()]
+        marker_pattern = re.compile(r"\s+(?=(?:TABLE_TITLE|TABLE_CAPTION|TABLE_HEADER|TABLE_ROW)\b)")
+        lines: list[str] = []
+        for raw_line in content.splitlines():
+            for line in marker_pattern.split(raw_line.strip()):
+                if line.strip():
+                    lines.append(line.strip())
         return lines or [content.strip()]
 
     @staticmethod

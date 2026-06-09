@@ -29,6 +29,9 @@ class EmptyDocumentUploadError(ValueError):
 class DocumentUploadError(RuntimeError):
     pass
 
+class DuplicateDocumentUploadError(ValueError):
+    pass
+
 
 class DocumentService:
     def __init__(
@@ -58,6 +61,20 @@ class DocumentService:
         file_size = await self._get_file_size(upload_file)
         if file_size <= 0:
             raise EmptyDocumentUploadError("Uploaded file is empty.")
+
+        find_duplicate = getattr(self._repository, "find_document_file_by_signature", None)
+        if find_duplicate is not None:
+            duplicate_file = await find_duplicate(filename=filename, file_size=file_size)
+            if duplicate_file is not None:
+                duplicate_document = getattr(duplicate_file, "document", None)
+                duplicate_id = getattr(duplicate_document, "id", None) or getattr(
+                    duplicate_file,
+                    "document_id",
+                    "unknown",
+                )
+                raise DuplicateDocumentUploadError(
+                    f"Duplicate file already exists for document {duplicate_id}."
+                )
 
         mime_type = upload_file.content_type or ALLOWED_DOCUMENT_TYPES[extension]
         title = Path(filename).stem or filename

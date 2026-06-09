@@ -74,6 +74,13 @@ export type DocumentVectorIndexResponse = {
   indexed_chunk_count: number;
 };
 
+export type DocumentDeleteResponse = {
+  document_id: string;
+  deleted: boolean;
+  deleted_files: number;
+  vector_points_deleted: boolean;
+};
+
 export type GraphIndexResponse = {
   document_id: string;
   chunks_processed: number;
@@ -501,6 +508,14 @@ export async function getDocumentDetail(
   });
 }
 
+export async function deleteDocument(
+  documentId: string,
+): Promise<DocumentDeleteResponse> {
+  return requestJson<DocumentDeleteResponse>(`/api/documents/${documentId}`, {
+    method: "DELETE",
+  });
+}
+
 export async function askRagChat(
   payload: RagChatRequest,
 ): Promise<RagChatResponse> {
@@ -591,6 +606,17 @@ export async function listIngestionJobs(): Promise<IngestionJob[]> {
   return requestJson<IngestionJob[]>("/api/admin/ingestion-jobs", {
     method: "GET",
   });
+}
+
+export async function deleteIngestionJob(
+  jobId: string,
+): Promise<{ job_id: string; deleted: boolean }> {
+  return requestJson<{ job_id: string; deleted: boolean }>(
+    `/api/admin/ingestion-jobs/${jobId}`,
+    {
+      method: "DELETE",
+    },
+  );
 }
 
 export function getErrorMessage(error: unknown): string {

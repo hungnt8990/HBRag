@@ -11,7 +11,9 @@ from qdrant_client.models import (
     Distance,
     FieldCondition,
     Filter,
+    FilterSelector,
     MatchAny,
+    MatchValue,
     PointStruct,
     VectorParams,
 )
@@ -138,6 +140,25 @@ class QdrantVectorStore:
 
         for batch in self._batched(points, self.upsert_batch_size):
             await self._client.upsert(collection_name=self.collection_name, points=batch)
+
+    async def delete_points_for_document(self, document_id: UUID | str) -> None:
+        exists = await self._client.collection_exists(collection_name=self.collection_name)
+        if not exists:
+            return
+
+        await self._client.delete(
+            collection_name=self.collection_name,
+            points_selector=FilterSelector(
+                filter=Filter(
+                    must=[
+                        FieldCondition(
+                            key="document_id",
+                            match=MatchValue(value=str(document_id)),
+                        )
+                    ]
+                )
+            ),
+        )
 
     async def search(
         self,

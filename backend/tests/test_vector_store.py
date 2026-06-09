@@ -22,6 +22,7 @@ class FakeQdrantClient:
         self.distance = distance
         self.create_calls: list[dict[str, object]] = []
         self.delete_calls: list[str] = []
+        self.point_delete_calls: list[dict[str, object]] = []
 
     async def collection_exists(self, *, collection_name: str) -> bool:
         return self.exists
@@ -53,6 +54,11 @@ class FakeQdrantClient:
 
     async def upsert(self, *, collection_name: str, points: list[PointStruct]) -> None:
         self.upsert_batches.append(points)
+
+    async def delete(self, *, collection_name: str, points_selector) -> None:
+        self.point_delete_calls.append(
+            {"collection_name": collection_name, "points_selector": points_selector}
+        )
 
 
 def test_qdrant_vector_store_upserts_points_in_batches() -> None:
@@ -153,5 +159,44 @@ def test_qdrant_vector_store_auto_recreates_on_dimension_mismatch() -> None:
                 "distance": Distance.COSINE,
             }
         ]
+
+    asyncio.run(run_test())
+
+def test_qdrant_vector_store_deletes_points_for_document() -> None:
+    async def run_test() -> None:
+        client = FakeQdrantClient(collection_exists=True)
+        store = QdrantVectorStore(
+            client=client,  # type: ignore[arg-type]
+            collection_name="test_chunks",
+            vector_size=384,
+        )
+
+        await store.delete_points_for_document(
+            UUID("11111111-1111-1111-1111-111111111111")
+        )
+
+        assert len(client.point_delete_calls) == 1
+        call = client.point_delete_calls[0]
+        assert call["collection_name"] == "test_chunks"
+        condition = call["points_selector"].filter.must[0]
+        assert condition.key == "document_id"
+        assert condition.match.value == "11111111-1111-1111-1111-111111111111"
+
+    asyncio.run(run_test())
+
+def test_qdrant_vector_store_skips_document_delete_when_collection_missing() -> None:
+    async def run_test() -> None:
+        client = FakeQdrantClient(collection_exists=False)
+        store = QdrantVectorStore(
+            client=client,  # type: ignore[arg-type]
+            collection_name="test_chunks",
+            vector_size=384,
+        )
+
+        await store.delete_points_for_document(
+            UUID("11111111-1111-1111-1111-111111111111")
+        )
+
+        assert client.point_delete_calls == []
 
     asyncio.run(run_test())

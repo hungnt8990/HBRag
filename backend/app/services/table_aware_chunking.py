@@ -20,6 +20,24 @@ _TABLE_ROW_LINE = re.compile(
     r"^TABLE_ROW\s+table_id=(?P<table_id>\S+)(?:\s+page=(?P<page>\d+))?\s+row=(?P<row>\d+)\s+\|\s*(?P<fields>.+)$"
 )
 _ABBREV_PATTERN = re.compile(r"\b[A-Z0-9][A-Z0-9._/-]{1,}\b")
+_ENTITY_STOP_WORDS = {
+    "Cac",
+    "C�c",
+    "Danh",
+    "ENTITY_SUMMARY",
+    "Ph�ng",
+    "Phong",
+    "STT",
+    "TABLE_HEADER",
+    "TABLE_ROW",
+    "TABLE_TITLE",
+    "M?ng",
+    "Mang",
+    "Nhom",
+    "Nh�m",
+}
+
+_ALIGNED_SEGMENT_RE = re.compile(r'\S.*?(?=\s{2,}|\s*$)')
 
 MIN_TABLE_ROWS = 2
 PIPE_SEPARATOR = " | "
@@ -213,27 +231,10 @@ def _detect_aligned_tables(text: str) -> list[TableBlock]:
     tables: list[TableBlock] = []
     separator_re = re.compile(r"\s{2,}|\t")
     current_block: list[tuple[int, str]] = []
+    gap_lines = 0
 
-    for index, line in enumerate(lines):
-        stripped = line.strip()
-        if not stripped:
-            if len(current_block) >= MIN_TABLE_ROWS:
-                table = _aligned_block_to_table(
-                    text,
-                    current_block,
-                    separator_re,
-                    table_index=len(tables) + 1,
-                )
-                if table is not None:
-                    tables.append(table)
-            current_block = []
-            continue
-
-        parts = [part for part in separator_re.split(stripped) if part.strip()]
-        if len(parts) >= 2:
-            current_block.append((index, line))
-            continue
-
+    def flush_current() -> None:
+        nonlocal current_block, gap_lines
         if len(current_block) >= MIN_TABLE_ROWS:
             table = _aligned_block_to_table(
                 text,
@@ -244,16 +245,32 @@ def _detect_aligned_tables(text: str) -> list[TableBlock]:
             if table is not None:
                 tables.append(table)
         current_block = []
+        gap_lines = 0
+
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped:
+            if current_block:
+                gap_lines += 1
+                if gap_lines > 1:
+                    flush_current()
+            continue
+
+        segments = _split_aligned_segments(line)
+        if len(segments) >= 2:
+            current_block.append((index, line))
+            gap_lines = 0
+            continue
+
+        if current_block and line[: len(line) - len(line.lstrip())]:
+            current_block.append((index, line))
+            gap_lines = 0
+            continue
+
+        flush_current()
 
     if len(current_block) >= MIN_TABLE_ROWS:
-        table = _aligned_block_to_table(
-            text,
-            current_block,
-            separator_re,
-            table_index=len(tables) + 1,
-        )
-        if table is not None:
-            tables.append(table)
+        flush_current()
 
     return tables
 
@@ -265,15 +282,31 @@ def _aligned_block_to_table(
     *,
     table_index: int,
 ) -> TableBlock | None:
-    parsed_rows = [
-        [part.strip() for part in separator_re.split(line.strip()) if part.strip()]
-        for _, line in block
+    segmented_rows = [
+        (line_index, line, _split_aligned_segments(line))
+        for line_index, line in block
+        if line.strip()
     ]
-    parsed_rows = [row for row in parsed_rows if row]
-    if len(parsed_rows) < MIN_TABLE_ROWS:
+    segmented_rows = [row for row in segmented_rows if row[2]]
+    if len(segmented_rows) < MIN_TABLE_ROWS:
         return None
 
-    headers, data_rows, has_header = infer_headers(parsed_rows)
+    column_starts = _infer_aligned_column_starts(
+        [segments for _, _, segments in segmented_rows]
+    )
+    if column_starts:
+        data_rows, headers, has_header = _aligned_segments_to_rows(
+            segmented_rows,
+            column_starts,
+        )
+    else:
+        parsed_rows = [
+            [part.strip() for part in separator_re.split(line.strip()) if part.strip()]
+            for _, line in block
+        ]
+        parsed_rows = [row for row in parsed_rows if row]
+        headers, data_rows, has_header = infer_headers(parsed_rows)
+
     if not headers or len(data_rows) < 1:
         return None
 
@@ -288,6 +321,135 @@ def _aligned_block_to_table(
         has_header=has_header,
     )
 
+
+def _split_aligned_segments(line: str) -> list[tuple[int, str]]:
+    return [
+        (match.start(), match.group(0).strip())
+        for match in _ALIGNED_SEGMENT_RE.finditer(line.rstrip())
+        if match.group(0).strip()
+    ]
+
+def _infer_aligned_column_starts(
+    segmented_rows: list[list[tuple[int, str]]],
+) -> list[int]:
+    counts = [len(segments) for segments in segmented_rows if len(segments) >= 2]
+    if not counts:
+        return []
+
+    width = max(counts)
+    full_rows = [segments for segments in segmented_rows if len(segments) == width]
+    if not full_rows:
+        return []
+
+    starts = [
+        _median_int([segments[column_index][0] for segments in full_rows])
+        for column_index in range(width)
+    ]
+    if any(right <= left for left, right in zip(starts, starts[1:], strict=False)):
+        return []
+    return starts
+
+def _median_int(values: list[int]) -> int:
+    ordered = sorted(values)
+    return ordered[len(ordered) // 2]
+
+def _aligned_segments_to_rows(
+    segmented_rows: list[tuple[int, str, list[tuple[int, str]]]],
+    column_starts: list[int],
+) -> tuple[list[list[str]], list[str], bool]:
+    assigned_rows = [
+        _segments_to_cells(segments, column_starts)
+        for _, _, segments in segmented_rows
+    ]
+    if not assigned_rows:
+        return [], [], False
+
+    header_candidates = [row for row in assigned_rows[1:] if row[0]]
+    has_header = infer_headers([assigned_rows[0], *header_candidates])[2]
+    headers = [f'cell_{index + 1}' for index in range(len(column_starts))]
+    data_start = 0
+    if has_header:
+        headers = list(assigned_rows[0])
+        data_start = 1
+        while data_start < len(assigned_rows):
+            row = assigned_rows[data_start]
+            if row[0]:
+                break
+            non_empty_columns = [index for index, value in enumerate(row) if value]
+            if non_empty_columns and max(non_empty_columns) < len(row) - 1:
+                _append_aligned_cells(headers, row)
+                data_start += 1
+                continue
+            break
+
+    rows = _merge_aligned_data_rows(assigned_rows[data_start:])
+    if not has_header:
+        headers, rows, has_header = infer_headers(rows)
+    return rows, headers, has_header
+
+def _segments_to_cells(
+    segments: list[tuple[int, str]],
+    column_starts: list[int],
+) -> list[str]:
+    cells = [''] * len(column_starts)
+    boundaries = [
+        (left + right) / 2
+        for left, right in zip(column_starts, column_starts[1:], strict=False)
+    ]
+    for start, value in segments:
+        column_index = 0
+        while column_index < len(boundaries) and start >= boundaries[column_index]:
+            column_index += 1
+        cells[column_index] = ' '.join(part for part in (cells[column_index], value) if part)
+    return cells
+
+def _merge_aligned_data_rows(rows: list[list[str]]) -> list[list[str]]:
+    merged: list[list[str]] = []
+    current: list[str] | None = None
+    pending: list[list[str]] = []
+
+    for row in rows:
+        if not any(row):
+            continue
+
+        starts_new_row = bool(row[0])
+        if starts_new_row:
+            if current is not None:
+                merged.append(current)
+            current = [''] * len(row)
+            for pending_row in pending:
+                _append_aligned_cells(current, pending_row)
+            pending = []
+            _append_aligned_cells(current, row)
+            continue
+
+        starts_next_row_content = current is not None and _has_nonterminal_cell(row)
+        if starts_next_row_content:
+            merged.append(current)
+            current = None
+            pending = [row]
+            continue
+
+        if current is None:
+            pending.append(row)
+            continue
+        _append_aligned_cells(current, row)
+
+    if current is not None:
+        merged.append(current)
+
+    return [row for row in merged if any(cell.strip() for cell in row)]
+
+def _append_aligned_cells(target: list[str], source: list[str]) -> None:
+    for index, value in enumerate(source):
+        if not value:
+            continue
+        target[index] = ' '.join(part for part in (target[index], value) if part)
+
+def _has_nonterminal_cell(row: list[str]) -> bool:
+    if len(row) <= 1:
+        return any(row)
+    return any(value for value in row[1:-1])
 
 def table_to_row_chunks(
     table: TableBlock,
@@ -485,6 +647,12 @@ def extract_entities_from_text(text: str) -> list[str]:
     current: list[str] = []
     for word in words:
         if _is_title_token(word):
+            if current and word in _ENTITY_STOP_WORDS:
+                candidate = " ".join(current)
+                if len(current) >= 2 and not _is_common_word(candidate):
+                    entities.add(candidate)
+                current = []
+                continue
             current.append(word)
             continue
         if len(current) >= 2:
@@ -499,7 +667,7 @@ def extract_entities_from_text(text: str) -> list[str]:
 
     for match in _ABBREV_PATTERN.finditer(text):
         candidate = match.group(0).strip()
-        if len(candidate) >= 2:
+        if len(candidate) >= 2 and candidate not in _ENTITY_STOP_WORDS:
             entities.add(candidate)
 
     return sorted(entities)
@@ -552,6 +720,7 @@ def generate_entity_summary_chunks(
     *,
     start_index: int = 0,
     min_rows: int = ENTITY_MIN_ROWS,
+    chunk_size: int = 1000,
 ) -> list[dict[str, Any]]:
     summaries: list[dict[str, Any]] = []
     chunk_by_index = {chunk["chunk_index"]: chunk for chunk in row_chunks}
@@ -583,26 +752,81 @@ def generate_entity_summary_chunks(
                 if (page_number := chunk.get("metadata", {}).get("page_number")) is not None
             }
         )
-        lines = [f"ENTITY_SUMMARY entity={entity}", "Rows:"]
+        current_rows: list[dict[str, Any]] = []
+        current_length = len(f"ENTITY_SUMMARY entity={entity}\nRows:")
         for chunk in related_chunks:
-            lines.append(f"- {chunk['content']}")
+            row_line = f"- {chunk['content']}"
+            next_length = current_length + len(row_line) + 1
+            if current_rows and next_length > chunk_size:
+                summaries.append(
+                    _make_entity_summary_chunk(
+                        entity=entity,
+                        related_chunks=current_rows,
+                        start_index=start_index + len(summaries),
+                        total_rows=len(related_chunks),
+                    )
+                )
+                current_rows = []
+                current_length = len(f"ENTITY_SUMMARY entity={entity}\nRows:")
+            current_rows.append(chunk)
+            current_length += len(row_line) + 1
 
-        summaries.append(
-            {
-                "chunk_index": start_index + len(summaries),
-                "content": "\n".join(lines),
-                "metadata": {
-                    "chunk_type": "entity_summary",
-                    "chunk_mode": "table_aware",
-                    "entity_name": entity,
-                    "row_count": len(related_chunks),
-                    "table_ids": table_ids,
-                    "page_numbers": source_pages,
-                },
-            }
-        )
+        if current_rows:
+            summaries.append(
+                _make_entity_summary_chunk(
+                    entity=entity,
+                    related_chunks=current_rows,
+                    start_index=start_index + len(summaries),
+                    total_rows=len(related_chunks),
+                    table_ids=table_ids,
+                    page_numbers=source_pages,
+                )
+            )
 
     return summaries
+
+
+def _make_entity_summary_chunk(
+    *,
+    entity: str,
+    related_chunks: list[dict[str, Any]],
+    start_index: int,
+    total_rows: int,
+    table_ids: list[str] | None = None,
+    page_numbers: list[int] | None = None,
+) -> dict[str, Any]:
+    if table_ids is None:
+        table_ids = sorted(
+            {
+                str(chunk.get("metadata", {}).get("table_id"))
+                for chunk in related_chunks
+                if chunk.get("metadata", {}).get("table_id") is not None
+            }
+        )
+    if page_numbers is None:
+        page_numbers = sorted(
+            {
+                int(page_number)
+                for chunk in related_chunks
+                if (page_number := chunk.get("metadata", {}).get("page_number")) is not None
+            }
+        )
+    lines = [f"ENTITY_SUMMARY entity={entity}", "Rows:"]
+    for chunk in related_chunks:
+        lines.append(f"- {chunk['content']}")
+    return {
+        "chunk_index": start_index,
+        "content": "\n".join(lines),
+        "metadata": {
+            "chunk_type": "entity_summary",
+            "chunk_mode": "table_aware",
+            "entity_name": entity,
+            "row_count": len(related_chunks),
+            "entity_total_rows": total_rows,
+            "table_ids": table_ids,
+            "page_numbers": page_numbers,
+        },
+    }
 
 
 def table_aware_chunk_text(
@@ -635,8 +859,8 @@ def table_aware_chunk_text(
         if start > previous_end:
             non_table_text_parts.append((previous_end, text[previous_end:start]))
         previous_end = max(previous_end, end)
-        if table_regions and previous_end < len(text):
-            non_table_text_parts.append((previous_end, text[previous_end:]))
+    if table_regions and previous_end < len(text):
+        non_table_text_parts.append((previous_end, text[previous_end:]))
     if not table_regions:
         non_table_text_parts.append((0, text))
 
@@ -668,6 +892,7 @@ def table_aware_chunk_text(
         row_chunks,
         entity_index,
         start_index=len(all_chunks),
+        chunk_size=chunk_size,
     )
     all_chunks.extend(summaries)
 

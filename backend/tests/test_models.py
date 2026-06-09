@@ -86,3 +86,16 @@ def test_chunk_model_contains_keyword_search_vector() -> None:
     assert "search_vector" in columns
     assert columns["search_vector"].nullable is True
     assert "ix_chunks_search_vector" in index_names
+
+
+def test_graph_document_status_model_matches_expected_table() -> None:
+    columns = GraphDocumentStatus.__table__.columns
+    index_names = {index.name for index in GraphDocumentStatus.__table__.indexes}
+
+    assert GraphDocumentStatus.__tablename__ == "graph_document_status"
+    assert GraphExtractionLog.__tablename__ == "graph_extraction_logs"
+    assert columns["document_id"].nullable is False
+    assert columns["document_id"].unique is True
+    assert columns["graph_indexed"].nullable is False
+    assert columns["chunks_processed"].nullable is False
+    assert "ix_graph_document_status_document_id" in index_names

@@ -102,6 +102,25 @@ class DocumentRepository:
         result = await self._session.execute(statement)
         return result.scalar_one_or_none()
 
+    async def find_document_file_by_signature(
+        self,
+        *,
+        filename: str,
+        file_size: int,
+    ) -> DocumentFile | None:
+        statement = (
+            select(DocumentFile)
+            .options(selectinload(DocumentFile.document))
+            .where(
+                DocumentFile.filename == filename,
+                DocumentFile.file_size == file_size,
+            )
+            .order_by(DocumentFile.created_at.desc())
+            .limit(1)
+        )
+        result = await self._session.execute(statement)
+        return result.scalar_one_or_none()
+
     async def update_document_status(self, document: Document, status: str) -> Document:
         document.status = status
         await self._session.flush()
@@ -120,6 +139,10 @@ class DocumentRepository:
         document.status = status
         await self._session.flush()
         return document
+
+    async def delete_document(self, document: Document) -> None:
+        await self._session.delete(document)
+        await self._session.flush()
 
     async def delete_chunks_for_document(self, document_id: UUID) -> None:
         await self._session.execute(delete(Chunk).where(Chunk.document_id == document_id))
@@ -247,7 +270,13 @@ class DocumentRepository:
                 selectinload(Document.organization),
                 selectinload(Document.uploaded_by),
             )
-            .group_by(Document.id)
+            .group_by(
+                Document.id,
+                chunk_counts.c.chunk_count,
+                vector_counts.c.vector_indexed_count,
+                pipeline_counts.c.pipeline_logs_count,
+                graph_status.c.graph_indexed,
+            )
             .order_by(Document.updated_at.desc())
         )
         if limit is not None:

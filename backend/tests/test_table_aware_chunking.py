@@ -118,6 +118,44 @@ def test_generic_entity_extraction_no_hardcoding() -> None:
     assert any("Trần Minh Đức" in e for e in entities)
     assert any("KHCN" in e for e in entities)
 
+def test_entity_extraction_stops_at_context_boundary_words() -> None:
+    text = (
+        "TABLE_ROW row=5 | Area: Shared data platform | Members: "
+        "8. Nguyen Quang Lam Cac nhan su trong ke hoach PoC ThinkLabs"
+    )
+
+    entities = extract_entities_from_text(text)
+
+    assert "Nguyen Quang Lam" in entities
+    assert all(not entity.startswith("Nguyen Quang Lam Cac") for entity in entities)
+
+
+def test_entity_extraction_ignores_table_markers() -> None:
+    text = "TABLE_ROW table_id=pdf_p1_1 row=1 | owner: Nguyen Quang Lam"
+
+    entities = extract_entities_from_text(text)
+
+    assert "TABLE_ROW" not in entities
+    assert "Nguyen Quang Lam" in entities
+
+
+def test_entity_summary_chunks_are_bounded_by_chunk_size() -> None:
+    text = "Name | Area\n" + "\n".join(
+        f"Nguyen Quang Lam | Very long area description number {index} with supporting text"
+        for index in range(20)
+    )
+
+    chunks, entity_index = table_aware_chunk_text(text, chunk_size=500)
+    summaries = [
+        chunk
+        for chunk in chunks
+        if chunk.get("metadata", {}).get("chunk_type") == "entity_summary"
+    ]
+
+    assert entity_index.entities
+    assert len(summaries) > 1
+    assert max(len(summary["content"]) for summary in summaries) < 900
+
 
 def test_table_aware_full_pipeline_produces_all_chunk_types() -> None:
     """Full pipeline produces table_row, entity_summary, and text chunks."""
@@ -133,6 +171,25 @@ def test_table_aware_full_pipeline_produces_all_chunk_types() -> None:
     assert "entity_summary" in chunk_types
     assert "text" in chunk_types
 
+
+
+
+
+def test_table_aware_chunk_text_does_not_duplicate_trailing_text() -> None:
+    text = (
+        "Intro\n\n"
+        "Name | Area\n"
+        "Nguyen Quang Lam | Platform\n"
+        "Tran Van An | QA\n\n"
+        "Tail section once."
+    )
+    chunks, _ = table_aware_chunk_text(text, chunk_size=200)
+    text_chunks = [
+        c["content"]
+        for c in chunks
+        if c.get("metadata", {}).get("chunk_type") == "text"
+    ]
+    assert sum("Tail section once." in chunk for chunk in text_chunks) == 1
 
 def test_row_chunk_keeps_full_row_together() -> None:
     """A row chunk must contain ALL cell values from the same row. No splitting."""

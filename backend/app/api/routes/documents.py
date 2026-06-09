@@ -16,6 +16,7 @@ from app.schemas.documents import (
     DocumentBatchUploadResponse,
     DocumentChunkRequest,
     DocumentChunkResponse,
+    DocumentDeleteResponse,
     DocumentDetailResponse,
     DocumentFileResponse,
     DocumentListResponse,
@@ -48,6 +49,7 @@ from app.services.document_parser_service import (
 )
 from app.services.document_service import (
     DocumentService,
+    DuplicateDocumentUploadError,
     DocumentUploadError,
     EmptyDocumentUploadError,
     UnsupportedDocumentTypeError,
@@ -221,6 +223,8 @@ async def upload_document(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail=str(exc),
         ) from exc
+    except DuplicateDocumentUploadError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except DocumentUploadError as exc:
         await log_repository.rollback()
         raise HTTPException(
@@ -294,7 +298,12 @@ async def upload_documents_batch(
                     error=None,
                 )
             )
-        except (EmptyDocumentUploadError, UnsupportedDocumentTypeError, DocumentUploadError) as exc:
+        except (
+            EmptyDocumentUploadError,
+            UnsupportedDocumentTypeError,
+            DuplicateDocumentUploadError,
+            DocumentUploadError,
+        ) as exc:
             await log_repository.rollback()
             results.append(
                 DocumentBatchUploadItem(
@@ -688,6 +697,44 @@ async def get_document_detail(
             )
             for log in graph_logs
         ],
+    )
+
+
+@router.delete("/{document_id}", response_model=DocumentDeleteResponse)
+async def delete_document(
+    document_id: UUID,
+    repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+    auth_repository: Annotated[AuthRepository, Depends(get_auth_repository)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    storage: Annotated[StorageClient, Depends(get_storage_client)],
+    vector_store: Annotated[QdrantVectorStore, Depends(get_vector_store)],
+) -> DocumentDeleteResponse:
+    document = await _require_manageable_document(
+        document_id=document_id,
+        repository=repository,
+        auth_repository=auth_repository,
+        current_user=current_user,
+    )
+    storage_paths = [file.storage_path for file in document.files]
+
+    try:
+        await vector_store.delete_points_for_document(document_id)
+        for storage_path in storage_paths:
+            await storage.delete_file(object_name=storage_path)
+        await repository.delete_document(document)
+        await repository.commit()
+    except Exception as exc:
+        await repository.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete document data from MinIO, Qdrant, and database.",
+        ) from exc
+
+    return DocumentDeleteResponse(
+        document_id=document_id,
+        deleted=True,
+        deleted_files=len(storage_paths),
+        vector_points_deleted=True,
     )
 
 

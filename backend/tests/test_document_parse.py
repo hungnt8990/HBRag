@@ -355,6 +355,60 @@ def test_table_serialization_preserves_multiline_cells_and_width() -> None:
     )
 
 
+
+
+
+def test_parse_pdf_merges_wrapped_aligned_rows() -> None:
+    from app.services.parsers.table_serialization import rewrite_text_with_serialized_tables
+
+    raw_text = (
+        "No              Work stream                  Owner             People\n"
+        "                                                team\n"
+        "        Build RAG platform on internal                  2. Nguyen Quang Lam\n"
+        " 3      data                                  PTUD      3. Nguyen Trong Hung\n"
+        "                                                           4. Vo Van Hoa\n"
+        "        Build shared OCR service                         1. Trinh Thanh Tinh\n"
+        " 4      for all teams                          PM        2. Duong Sinh Sinh\n"
+        "                                                           3. Nguyen Quang Lam\n"
+        " 5      Shared AI data warehouse              VH        8. Nguyen Quang Lam\n"
+        " 6      Platform AI                           PTUD      7. Nguyen Quang Lam\n"
+    )
+
+    serialized = rewrite_text_with_serialized_tables(
+        text=raw_text,
+        page_number=5,
+        table_id_prefix="pdf_p5",
+    )
+    rows = [line for line in serialized.splitlines() if line.startswith("TABLE_ROW")]
+
+    assert len(rows) >= 4
+    lam_rows = [line for line in rows if "Nguyen Quang Lam" in line]
+    assert len(lam_rows) == 4
+    assert any(
+        "No: 3" in line
+        and "Work stream: Build RAG platform on internal data" in line
+        and "Owner team: PTUD" in line
+        for line in lam_rows
+    )
+    assert any(
+        "No: 4" in line
+        and "Work stream: Build shared OCR service for all teams" in line
+        and "Owner team: PM" in line
+        for line in lam_rows
+    )
+    assert any(
+        "No: 5" in line
+        and "Work stream: Shared AI data warehouse" in line
+        and "Owner team: VH" in line
+        for line in lam_rows
+    )
+    assert any(
+        "No: 6" in line
+        and "Work stream: Platform AI" in line
+        and "Owner team: PTUD" in line
+        for line in lam_rows
+    )
+
 def test_table_serialization_row_record_preserves_extra_and_missing_columns() -> None:
     from app.services.parsers.table_serialization import build_table_row_record
 
@@ -454,3 +508,19 @@ def test_pdf_parser_uses_pdfplumber_table_cells(monkeypatch) -> None:
         if line.startswith("TABLE_ROW")
     )
     assert "cell_1: Xay dung nen tang RAG tren du | cell_2: 2. Nguyen Quang Lam" not in parsed.text
+
+def test_pdf_parser_prefers_coherent_tables_over_fragmented_text_tables() -> None:
+    coherent_table = [
+        ["STT", "Mang cong nghe", "Phong", "Nhan su"],
+        ["3", "Xay dung nen tang RAG tren du lieu noi bo", "PTUD", "Nguyen Quang Lam"],
+        ["4", "Xay dung dich vu OCR dung chung", "PM", "Nguyen Quang Lam"],
+    ]
+    fragmented_table = [
+        ["S", "T", "T", "", "M", "a", "n", "g", "", "N", "h", "a", "n"],
+        ["3", "", "", "", "R", "A", "G", "", "", "N", "g", "u", "y"],
+        ["", "", "", "", "d", "u", "", "l", "i", "e", "u", "", ""],
+    ]
+
+    assert PdfParserImpl._score_extracted_table(coherent_table) > (
+        PdfParserImpl._score_extracted_table(fragmented_table)
+    )
