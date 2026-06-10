@@ -1,0 +1,484 @@
+diff --git a/backend/app/services/slide_aware_chunking.py b/backend/app/services/slide_aware_chunking.py
+new file mode 100644
+index 0000000..d3a9b31
+--- /dev/null
++++ b/backend/app/services/slide_aware_chunking.py
+@@ -0,0 +1,241 @@
++from __future__ import annotations
++
++import re
++import unicodedata
++from dataclasses import dataclass
++from typing import Any
++
++PAGE_MARKER_RE = re.compile(r"^\[\[PAGE\s+(?P<page>\d+)\]\]\s*$", re.MULTILINE)
++MIN_SPLIT_RATIO = 0.55
++
++
++@dataclass(frozen=True)
++class SlideBlock:
++    page_number: int | None
++    title: str | None
++    content: str
++    start_char: int
++    end_char: int
++
++
++def slide_aware_chunk_text(
++    text: str,
++    *,
++    chunk_size: int = 1000,
++    chunk_overlap: int = 150,
++) -> list[dict[str, Any]]:
++    """Chunk slide/presentation-like PDFs without losing slide context.
++
++    The normal recursive splitter is good for prose documents, but slide PDFs often
++    contain short pages, repeated decorative headings, and lines extracted in a
++    layout order. This splitter first cleans common PDF extraction noise, then
++    groups complete slide blocks before applying character-sized chunks.
++    """
++    if not text or not text.strip():
++        return []
++
++    slides = split_slide_blocks(text)
++    if not slides:
++        cleaned = normalize_presentation_text(text)
++        return _chunk_plain_text(cleaned, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
++
++    chunks: list[dict[str, Any]] = []
++    current_blocks: list[SlideBlock] = []
++    current_text = ""
++
++    for slide in slides:
++        rendered = _render_slide(slide)
++        if not rendered:
++            continue
++
++        next_text = _join_blocks(current_text, rendered)
++        should_flush = bool(current_blocks) and len(next_text) > chunk_size and len(current_text) >= int(chunk_size * MIN_SPLIT_RATIO)
++        if should_flush:
++            chunks.append(_make_slide_chunk(current_blocks, current_text, len(chunks)))
++            overlap_text = _tail_overlap(current_text, chunk_overlap)
++            current_blocks = []
++            current_text = overlap_text
++
++        current_blocks.append(slide)
++        current_text = _join_blocks(current_text, rendered)
++
++        # Very large single-slide blocks still need to be split safely.
++        while len(current_text) > chunk_size * 1.25:
++            split_at = _find_split_boundary(current_text, chunk_size)
++            head = current_text[:split_at].strip()
++            if head:
++                chunks.append(_make_slide_chunk(current_blocks, head, len(chunks)))
++            current_text = _join_blocks(_tail_overlap(head, chunk_overlap), current_text[split_at:].strip())
++
++    if current_text.strip():
++        chunks.append(_make_slide_chunk(current_blocks, current_text.strip(), len(chunks)))
++
++    for index, chunk in enumerate(chunks):
++        chunk["chunk_index"] = index
++    return chunks
++
++
++def split_slide_blocks(text: str) -> list[SlideBlock]:
++    matches = list(PAGE_MARKER_RE.finditer(text))
++    if not matches:
++        normalized = normalize_presentation_text(text)
++        if not normalized:
++            return []
++        return [SlideBlock(page_number=None, title=_infer_title(normalized), content=normalized, start_char=0, end_char=len(text))]
++
++    slides: list[SlideBlock] = []
++    for index, match in enumerate(matches):
++        start = match.end()
++        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
++        raw_content = text[start:end]
++        normalized = normalize_presentation_text(raw_content)
++        if not normalized:
++            continue
++        slides.append(
++            SlideBlock(
++                page_number=int(match.group("page")),
++                title=_infer_title(normalized),
++                content=normalized,
++                start_char=match.start(),
++                end_char=end,
++            )
++        )
++    return slides
++
++
++def normalize_presentation_text(text: str) -> str:
++    """Clean common extraction noise from slide PDFs.
++
++    Handles lines like ``QQuuáá ttrrììnnhh`` by collapsing doubled glyphs, removes
++    NULL characters, trims excessive whitespace, and drops near-duplicate lines
++    that often come from decorative title layers in PowerPoint-exported PDFs.
++    """
++    lines: list[str] = []
++    recent_keys: list[str] = []
++
++    for raw_line in text.replace("\x00", "\n").splitlines():
++        line = _normalize_line(raw_line)
++        if not line:
++            continue
++
++        key = _line_key(line)
++        if key and key in recent_keys:
++            continue
++
++        lines.append(line)
++        if key:
++            recent_keys.append(key)
++            recent_keys = recent_keys[-8:]
++
++    return "\n".join(lines).strip()
++
++
++def _normalize_line(line: str) -> str:
++    stripped = line.strip()
++    if not stripped:
++        return ""
++    stripped = _collapse_doubled_glyph_line(stripped)
++    stripped = re.sub(r"\s+", " ", stripped).strip()
++    stripped = re.sub(r"\s+([,.;:])", r"\1", stripped)
++    return stripped
++
++
++def _collapse_doubled_glyph_line(line: str) -> str:
++    compact = "".join(char for char in line if not char.isspace())
++    if len(compact) < 4:
++        return line
++
++    pair_count = 0
++    duplicated_pairs = 0
++    for index in range(0, len(compact) - 1, 2):
++        pair_count += 1
++        if compact[index] == compact[index + 1]:
++            duplicated_pairs += 1
++
++    if pair_count == 0 or duplicated_pairs / pair_count < 0.55:
++        return line
++
++    collapsed: list[str] = []
++    index = 0
++    while index < len(line):
++        char = line[index]
++        if index + 1 < len(line) and line[index + 1] == char and not char.isspace():
++            collapsed.append(char)
++            index += 2
++            continue
++        collapsed.append(char)
++        index += 1
++    return "".join(collapsed)
++
++
++def _line_key(line: str) -> str:
++    normalized = unicodedata.normalize("NFD", line.lower())
++    normalized = "".join(char for char in normalized if unicodedata.category(char) != "Mn")
++    normalized = re.sub(r"[^a-z0-9]+", " ", normalized)
++    return re.sub(r"\s+", " ", normalized).strip()
++
++
++def _infer_title(text: str) -> str | None:
++    for line in text.splitlines():
++        cleaned = line.strip()
++        if not cleaned:
++            continue
++        if len(cleaned) <= 120:
++            return cleaned
++    return None
++
++
++def _render_slide(slide: SlideBlock) -> str:
++    prefix = f"SLIDE page={slide.page_number}" if slide.page_number is not None else "SLIDE"
++    if slide.title:
++        prefix += f" title={slide.title}"
++    return f"{prefix}\n{slide.content}".strip()
++
++
++def _join_blocks(left: str, right: str) -> str:
++    if not left.strip():
++        return right.strip()
++    if not right.strip():
++        return left.strip()
++    return f"{left.strip()}\n\n{right.strip()}"
++
++
++def _make_slide_chunk(blocks: list[SlideBlock], content: str, index: int) -> dict[str, Any]:
++    page_numbers = [block.page_number for block in blocks if block.page_number is not None]
++    return {
++        "chunk_index": index,
++        "content": content.strip(),
++        "metadata": {
++            "chunk_type": "slide_group",
++            "chunk_mode": "slide_aware",
++            "page_numbers": page_numbers,
++            "page_start": min(page_numbers) if page_numbers else None,
++            "page_end": max(page_numbers) if page_numbers else None,
++            "slide_titles": [block.title for block in blocks if block.title],
++            "start_char": min((block.start_char for block in blocks), default=0),
++            "end_char": max((block.end_char for block in blocks), default=len(content)),
++        },
++    }
++
++
++def _chunk_plain_text(
++    text: str,
++    *,
++    chunk_size: int,
++    chunk_overlap: int,
++) -> list[dict[str, Any]]:
++    chunks: list[dict[str, Any]] = []
++    start = 0
++    while start < len(text):
++        target_end = min(start + chunk_size, len(text))
++        end = _find_split_boundary(text[start:target_end], chunk_size)
++        if end <= 0:
++            end = target_end - start
++        absolute_end = start + end
++        content = text[start:absolute_end].strip()
++        if content:
++            chunks.append(
++                {
++                    "chunk_index": len(chunks),
++                    "content": content,
++                    "metadata": {
++                        "chunk_type": "text",
++                        "chunk_mode": "slide_aware",
++                        "start_char": start,
++                        "end_char": absolute_end,
++                    },
++                }
++            )
++        if absolute_end >= len(text):
++            break
++        start = max(absolute_end - chunk_overlap, start + 1)
++    return chunks
++
++
++def _find_split_boundary(text: str, chunk_size: int) -> int:
++    if len(text) <= chunk_size:
++        return len(text)
++    window = text[:chunk_size]
++    min_index = int(chunk_size * MIN_SPLIT_RATIO)
++    for separator in ("\n\n", "\n", ". ", " "):
++        index = window.rfind(separator)
++        if index >= min_index:
++            return index + len(separator)
++    return chunk_size
++
++
++def _tail_overlap(text: str, chunk_overlap: int) -> str:
++    if chunk_overlap <= 0:
++        return ""
++    tail = text[-chunk_overlap:]
++    first_space = tail.find(" ")
++    if first_space > 0:
++        tail = tail[first_space + 1 :]
++    return tail.strip()
++diff --git a/backend/app/services/chunking_service.py b/backend/app/services/chunking_service.py
++index 8a06c7a..6b57d18 100644
++--- a/backend/app/services/chunking_service.py
+++++ b/backend/app/services/chunking_service.py
++@@
++-ChunkMode = Literal["recursive", "legal_article", "table_aware"]
+++ChunkMode = Literal["recursive", "legal_article", "table_aware", "slide_aware"]
++@@
++     if "TABLE_ROW " in document.parsed_text:
++ 
++      mode = "table_aware"
++ 
++     if mode == "table_aware":
++@@
++      text_chunks_for_preview = [
++@@
++      ]
++ 
+++    elif mode == "slide_aware":
+++
+++     from app.services.slide_aware_chunking import slide_aware_chunk_text
+++
+++     raw_chunks = slide_aware_chunk_text(
+++      document.parsed_text,
+++      chunk_size=resolved_size,
+++      chunk_overlap=resolved_overlap,
+++     )
+++
+++     chunk_records = [
+++      ChunkCreate(
+++       chunk_index=chunk_dict["chunk_index"],
+++       content=chunk_dict["content"],
+++       metadata={
+++        **chunk_dict.get("metadata", {}),
+++        "chunk_size": resolved_size,
+++        "chunk_overlap": resolved_overlap,
+++        "document_profile": effective_profile,
+++       },
+++      )
+++      for chunk_dict in raw_chunks
+++     ]
+++
+++     text_chunks_for_preview = [
+++      TextChunk(
+++       content=c["content"],
+++       start_char=c.get("metadata", {}).get("start_char", 0),
+++       end_char=c.get("metadata", {}).get("end_char", 0),
+++      )
+++      for c in raw_chunks[:CHUNK_PREVIEW_LIMIT]
+++     ]
+++
++     elif mode == "legal_article":
++diff --git a/backend/app/services/document_profiles.py b/backend/app/services/document_profiles.py
++index 9340ad2..61b9f76 100644
++--- a/backend/app/services/document_profiles.py
+++++ b/backend/app/services/document_profiles.py
++@@
++  "technical",
++ 
++  "faq",
++ 
++  "spreadsheet",
+++
+++ "presentation",
++ 
++ ]
++@@
++  "spreadsheet",
+++
+++ "presentation",
++ 
++ )
++@@
++  "spreadsheet": {
++@@
++  "max_context_chars": 9000,
++ 
++  },
+++
+++ "presentation": {
+++
+++ "chunk_mode": "slide_aware",
+++
+++ "chunk_size": 1000,
+++
+++ "chunk_overlap": 150,
+++
+++ "top_k": 6,
+++
+++ "candidate_k": 30,
+++
+++ "answer_mode": "hybrid",
+++
+++ "answer_style": "detailed",
+++
+++ "max_context_chars": 7000,
+++
+++ },
++ 
++ }
++@@
++ _TECH_RE = re.compile(
++ 
++  r"```|\bAPI\b|\bHTTP\b|\bSELECT\b|\bfunction\b|\bclass\s|\bdef\s|\bendpoint\b",
++ 
++ )
+++
+++_SLIDE_RE = re.compile(
+++ r"(?mi)^\s*(NỘI DUNG|TỔNG QUAN|DEMO|ỨNG DỤNG|QUÁ TRÌNH TRIỂN KHAI|AGENDA)\s*$"
+++)
++@@
++  if lines:
++ 
++   serialized_row_lines = sum(1 for line in lines if line.startswith("TABLE_ROW "))
++ 
++   pipe_lines = sum(1 for line in lines if " | " in line)
+++
+++  page_marker_lines = sum(1 for line in lines if line.startswith("[[PAGE "))
+++
+++  if page_marker_lines >= 4 and len(_SLIDE_RE.findall(sample)) >= 2:
+++
+++   return "presentation"
++ 
++   if serialized_row_lines >= 2:
++diff --git a/backend/app/schemas/documents.py b/backend/app/schemas/documents.py
++index 727a90d..e22ac72 100644
++--- a/backend/app/schemas/documents.py
+++++ b/backend/app/schemas/documents.py
++@@
++- chunk_mode: Literal["recursive", "legal_article", "table_aware"] | None = None
+++ chunk_mode: Literal["recursive", "legal_article", "table_aware", "slide_aware"] | None = None
++ 
++  profile: Literal[
++- "auto", "legal_admin", "general", "technical", "faq", "spreadsheet"
+++ "auto", "legal_admin", "general", "technical", "faq", "spreadsheet", "presentation"
++ 
++  ] | None = None
++diff --git a/backend/app/services/parsers/pdf_parser.py b/backend/app/services/parsers/pdf_parser.py
++index 4a98632..1ac6b92 100644
++--- a/backend/app/services/parsers/pdf_parser.py
+++++ b/backend/app/services/parsers/pdf_parser.py
++@@
++ from io import BytesIO
++ from typing import Any
++ 
++ from pypdf import PdfReader
++@@
++ PDFPLUMBER_TABLE_SETTINGS = (
++@@
++ )
+++
+++PAGE_MARKER = "[[PAGE {page_number}]]"
++@@
++  def _parse_with_pdfplumber(self, file_content: bytes) -> str | None:
++@@
++-     pages: list[str] = []
++-     extracted_table = False
+++     pages: list[str] = []
++      for page_index, page in enumerate(pdf.pages, start=1):
++       page_parts: list[str] = []
++-      page_text = (page.extract_text() or "").strip()
+++      page_text = self._clean_page_text(page.extract_text() or "")
++       if page_text:
++        page_parts.append(page_text)
++@@
++       if serialized:
++-       extracted_table = True
++        page_parts.append(serialized)
++       if page_parts:
++-       pages.append("\n\n".join(page_parts))
+++       pages.append(self._render_page(page_index, "\n\n".join(page_parts)))
++    except Exception:
++     return None
++-   if not extracted_table:
++-    return None
++-   return "\n\n".join(page for page in pages if page.strip())
+++   return "\n\n".join(page for page in pages if page.strip()) or None
++@@
++  def _parse_with_pypdf(self, file_content: bytes) -> str:
++@@
++-    pages.append(
++-     rewrite_text_with_serialized_tables(
+++    rendered = rewrite_text_with_serialized_tables(
++       text=raw_text,
++       page_number=page_index,
++       table_id_prefix=f"pdf_p{page_index}",
++-     )
++-    )
+++     )
+++    pages.append(self._render_page(page_index, self._clean_page_text(rendered)))
++   return "\n\n".join(page for page in pages if page.strip())
+++
+++ @staticmethod
+++ def _render_page(page_number: int, text: str) -> str:
+++  cleaned = PdfParser._clean_page_text(text)
+++  if not cleaned:
+++   return ""
+++  return f"{PAGE_MARKER.format(page_number=page_number)}\n{cleaned}"
+++
+++ @staticmethod
+++ def _clean_page_text(text: str) -> str:
+++  # Keep this light-weight: deeper de-duplication is handled by slide_aware_chunking.
+++  lines = [" ".join(line.replace("\x00", " ").split()) for line in text.splitlines()]
+++  return "\n".join(line for line in lines if line).strip()
