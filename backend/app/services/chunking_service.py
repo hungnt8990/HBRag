@@ -768,11 +768,21 @@ class ChunkingService:
 
     @staticmethod
     def _chunks_from_table_elements(parsed_elements: list) -> list[dict[str, Any]]:
+        from app.services.table_relationships import is_trusted_relationship_metadata
+
         chunks: list[dict[str, Any]] = []
         for element in parsed_elements:
             if getattr(element, "element_type", None) not in {"table", "table_row"}:
                 continue
             metadata = dict(getattr(element, "metadata", {}) or {})
+            if (
+                getattr(element, "element_type", None) == "table_row"
+                and metadata.get("relationship_type") == "technology_area_staff"
+                and not is_trusted_relationship_metadata(
+                    {**metadata, "chunk_type": "table_row"}
+                )
+            ):
+                continue
             row_index = getattr(element, "row_index", None)
             chunk_type = "table_row" if element.element_type == "table_row" else "table_block"
             chunks.append(

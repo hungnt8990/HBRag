@@ -1,4 +1,4 @@
-from types import SimpleNamespace
+﻿from types import SimpleNamespace
 from uuid import UUID
 
 from fastapi.testclient import TestClient
@@ -452,7 +452,7 @@ def test_chunking_service_creates_table_row_chunks() -> None:
             "staff": [{"name": "Nguyễn Trọng Hùng", "role_note": None}],
             "source_table": "Danh sách nhân sự phụ trách từng mảng công nghệ lõi",
             "relationship_type": "technology_area_staff",
-            "confidence": 0.85,
+            "confidence": 0.95,
         },
     )
     repository = FakeDocumentRepository(
@@ -500,7 +500,7 @@ def test_chunking_service_creates_person_entity_profile_chunks() -> None:
                 "staff": [{"name": "Nguyễn Trọng Hùng", "role_note": None}],
                 "source_table": "Danh sách nhân sự phụ trách từng mảng công nghệ lõi",
                 "relationship_type": "technology_area_staff",
-                "confidence": 0.85,
+                "confidence": 0.95,
             },
         ),
         ParsedElement(
@@ -522,7 +522,7 @@ def test_chunking_service_creates_person_entity_profile_chunks() -> None:
                 "staff": [{"name": "Nguyễn Trọng Hùng", "role_note": None}],
                 "source_table": "Danh sách nhân sự phụ trách từng mảng công nghệ lõi",
                 "relationship_type": "technology_area_staff",
-                "confidence": 0.85,
+                "confidence": 0.95,
             },
         ),
     ]
@@ -576,7 +576,7 @@ def test_chunking_service_keeps_prose_when_document_also_has_table_rows() -> Non
             "staff": [{"name": "Nguyễn Trọng Hùng", "role_note": None}],
             "source_table": "Danh sách nhân sự phụ trách từng mảng công nghệ lõi",
             "relationship_type": "technology_area_staff",
-            "confidence": 0.85,
+            "confidence": 0.95,
         },
     )
     elements = [
@@ -649,3 +649,85 @@ def test_chunking_service_keeps_prose_when_document_also_has_table_rows() -> Non
         for area in profile.metadata["areas"]
     )
     assert profile.metadata["chunk_strategy"] == "hybrid_structured"
+
+
+def test_hybrid_structured_keeps_prose_when_table_parse_fails() -> None:
+    heading = "3. Xây dựng nền tảng RAG trên dữ liệu nội bộ"
+    prose = "Mục tiêu: Khai thác tri thức nội bộ phục vụ hỏi đáp và tìm kiếm."
+    broken_table_text = (
+        "DANH SÁCH NHÂN SỰ PHỤ TRÁCH TỪNG MẢNG CÔNG NGHỆ LÕI\n"
+        "6 PTUD 6. Nguyễn Huỳnh Đăng Khoa Platform AI 7. Nguyễn Quang Lâm "
+        "8. Nguyễn Trọng Hùng 9. Võ Văn Phúc 10. Võ Văn Hòa "
+        "thực hiện đánh giá hiệu quả công việc của từng cá nhân"
+    )
+    invalid_row = ParsedElement(
+        element_type="table_row",
+        text=broken_table_text,
+        page_number=5,
+        table_id="pdf_p5_staff_text",
+        row_index=6,
+        metadata={
+            "stt": "6",
+            "area": (
+                "PTUD 6. Nguyễn Huỳnh Đăng Khoa Platform AI 7. Nguyễn Quang Lâm "
+                "8. Nguyễn Trọng Hùng"
+            ),
+            "lead_department": "PTUD",
+            "staff_names": ["thực hiện đánh giá hiệu quả công việc"],
+            "staff": [
+                {
+                    "name": "thực hiện đánh giá hiệu quả công việc",
+                    "role_note": None,
+                }
+            ],
+            "source_table": "Danh sách nhân sự phụ trách từng mảng công nghệ lõi",
+            "relationship_type": "technology_area_staff",
+            "confidence": 0.95,
+        },
+    )
+    elements = [
+        ParsedElement(
+            element_type="heading",
+            text=heading,
+            page_number=3,
+            section_title=heading,
+            heading_path=[heading],
+        ),
+        ParsedElement(
+            element_type="paragraph",
+            text=prose,
+            page_number=3,
+            section_title=heading,
+            heading_path=[heading],
+        ),
+        invalid_row,
+    ]
+    repository = FakeDocumentRepository(
+        status="parsed",
+        parsed_text=f"{heading}\n\n{prose}\n\n{broken_table_text}",
+        document_metadata={
+            "parser": "fixture",
+            "parsed_elements": [parsed_element_to_dict(element) for element in elements],
+        },
+    )
+    app.dependency_overrides[get_document_repository] = lambda: repository
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            f"/api/documents/{DOCUMENT_ID}/chunk",
+            json={"chunk_size": 1000, "chunk_overlap": 0},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert any(prose in chunk.content for chunk in repository.created_chunks)
+    assert not any(
+        chunk.metadata.get("chunk_type") == "table_row"
+        for chunk in repository.created_chunks
+    )
+    assert not any(
+        chunk.metadata.get("chunk_type") == "entity_profile"
+        for chunk in repository.created_chunks
+    )

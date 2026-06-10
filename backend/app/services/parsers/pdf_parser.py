@@ -119,6 +119,7 @@ class PdfParser(DocumentParser):
                             page_text,
                             page_number=page_index,
                             table_id=f"pdf_p{page_index}_staff_text",
+                            source_kind="pdf",
                         )
                         if (row.stt, row.area) not in relationship_keys
                     ]
@@ -189,6 +190,7 @@ class PdfParser(DocumentParser):
                             page_text,
                             page_number=page_index,
                             table_id=f"pdf_p{page_index}_staff_text",
+                            source_kind="pdf",
                         )
                     )
                 )

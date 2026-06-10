@@ -221,6 +221,61 @@ def test_rrf_keeps_vector_only_and_keyword_only_results() -> None:
     assert by_chunk_id[KEYWORD_ONLY_CHUNK_ID].vector_score is None
 
 
+def test_person_area_membership_boosts_valid_entity_or_table_row() -> None:
+    valid_chunk_id = UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
+    warning_chunk_id = UUID("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
+    query = (
+        "Nguyễn Trọng Hùng tham gia Xây dựng nền tảng RAG trên dữ liệu nội bộ "
+        "đúng không?"
+    )
+
+    results = HybridSearchService.fuse_results(
+        query=query,
+        vector_results=[
+            VectorSearchResult(
+                chunk_id=warning_chunk_id,
+                document_id=DOCUMENT_ID,
+                score=0.99,
+                content_preview="Nguyễn Trọng Hùng Platform AI",
+                metadata={
+                    "chunk_type": "table_block",
+                    "table_parse_warning": True,
+                    "confidence": 0.2,
+                },
+            ),
+            VectorSearchResult(
+                chunk_id=valid_chunk_id,
+                document_id=DOCUMENT_ID,
+                score=0.5,
+                content_preview=(
+                    "Nhân sự: Nguyễn Trọng Hùng. Xây dựng nền tảng RAG trên "
+                    "dữ liệu nội bộ."
+                ),
+                metadata={
+                    "chunk_type": "entity_profile",
+                    "relationship_type": "technology_area_staff",
+                    "confidence": 0.95,
+                    "person_name": "Nguyễn Trọng Hùng",
+                    "areas": [
+                        {
+                            "area": "Xây dựng nền tảng RAG trên dữ liệu nội bộ",
+                            "lead_department": "PTUD",
+                            "stt": "3",
+                        }
+                    ],
+                },
+            ),
+        ],
+        keyword_results=[],
+        top_k=2,
+    )
+
+    assert results[0].chunk_id == valid_chunk_id
+    assert results[0].metadata["chunk_type"] == "entity_profile"
+    assert results[0].metadata["membership_boost"] >= 10
+    assert "membership_boost" not in results[1].metadata
+
+
 def test_hybrid_endpoint_rejects_empty_query() -> None:
     service = FakeHybridSearchService()
     app.dependency_overrides[get_hybrid_search_service] = lambda: service

@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 STAFF_TABLE_REQUIRED_HEADERS = (
     "stt",
@@ -34,6 +34,31 @@ PERSON_STOP_PREFIXES = {
     "xây",
 }
 SOURCE_TABLE_DEFAULT = "Danh sách nhân sự phụ trách từng mảng công nghệ lõi"
+ALLOWED_DEPARTMENTS = {"PTUD", "PM", "VH", "ATTT", "KTMVT"}
+MIN_TRUSTED_RELATIONSHIP_CONFIDENCE = 0.9
+STAFF_NAME_FORBIDDEN_PHRASES = (
+    "va cac nhan su",
+    "de xuat",
+    "thuc hien danh gia",
+    "diem can luu y",
+    "thong bao ve",
+    "ung dung ai vao cac phan mem phong",
+)
+AREA_NOISE_PHRASES = (
+    "va cac nhan su",
+    "thuc hien danh gia",
+    "diem can luu y",
+    "ung dung ai vao cac phan mem",
+)
+AREA_NAME_PREFIXES = ("nguyen", "vo", "tran", "phan", "trinh", "tong", "doan", "duong")
+AREA_TASK_MARKERS = (
+    "xay dung",
+    "platform ai",
+    "an toan thong tin",
+    "kho du lieu",
+    "dich vu ocr",
+    "nang luc mo hinh",
+)
 
 
 @dataclass(frozen=True)
@@ -145,19 +170,19 @@ def parse_technology_area_rows_from_table(
         if not staff:
             continue
         raw_text = " | ".join(_clean_text(cell) for cell in raw_row if _clean_text(cell))
-        parsed_rows.append(
-            TechnologyAreaRow(
-                stt=stt,
-                area=area,
-                lead_department=lead_department,
-                proposed_staff=staff,
-                page_number=page_number,
-                source_table=source_table or SOURCE_TABLE_DEFAULT,
-                table_id=table_id,
-                raw_text=raw_text,
-                confidence=0.95,
-            )
+        row = TechnologyAreaRow(
+            stt=stt,
+            area=area,
+            lead_department=lead_department,
+            proposed_staff=staff,
+            page_number=page_number,
+            source_table=source_table or SOURCE_TABLE_DEFAULT,
+            table_id=table_id,
+            raw_text=raw_text,
+            confidence=0.95,
         )
+        if validate_technology_area_row(row):
+            parsed_rows.append(row)
     return parsed_rows
 
 
@@ -167,7 +192,17 @@ def parse_technology_area_rows_from_text(
     page_number: int | None = None,
     table_id: str | None = None,
     source_table: str | None = None,
+    source_kind: Literal["pdf", "docx", "markdown", "text", "unknown"] = "unknown",
+    allow_low_confidence_text_tables: bool = False,
 ) -> list[TechnologyAreaRow]:
+    if source_kind == "pdf":
+        return _parse_structured_text_rows(
+            text,
+            page_number=page_number,
+            table_id=table_id,
+            source_table=source_table or SOURCE_TABLE_DEFAULT,
+        )
+
     if not looks_like_staff_area_table(text):
         return []
 
@@ -200,7 +235,10 @@ def parse_technology_area_rows_from_text(
             table_id=table_id,
             source_table=title,
         )
-        if parsed is not None:
+        if parsed is not None and (
+            allow_low_confidence_text_tables
+            or parsed.confidence >= MIN_TRUSTED_RELATIONSHIP_CONFIDENCE
+        ):
             parsed_rows.append(parsed)
     return parsed_rows
 
@@ -223,6 +261,162 @@ def parse_staff_members(staff_text: str) -> list[StaffMember]:
     return members
 
 
+def validate_technology_area_row(row: TechnologyAreaRow) -> bool:
+    if not row.stt.isdigit():
+        return False
+    stt = int(row.stt)
+    if stt < 1 or stt > 99:
+        return False
+    if not is_valid_area(row.area):
+        return False
+    if not is_valid_department(row.lead_department):
+        return False
+    if not row.proposed_staff:
+        return False
+    return all(is_valid_staff_name(staff.name) for staff in row.proposed_staff)
+
+
+def is_valid_staff_name(name: str) -> bool:
+    cleaned = _clean_text(name).strip(" .;,-")
+    normalized = _normalize_for_match(cleaned)
+    if not cleaned or len(cleaned) > 60:
+        return False
+    if normalized in {"de xuat", "nhan su de xuat"}:
+        return False
+    if any(phrase in normalized for phrase in STAFF_NAME_FORBIDDEN_PHRASES):
+        return False
+    if any(marker in normalized for marker in AREA_TASK_MARKERS):
+        return False
+    words = normalized.split()
+    if len(words) < 2 or len(words) > 6:
+        return False
+    if words[0] in {"phong", "p", "va", "cac", "nhan", "su"}:
+        return False
+    return bool(CAPITALIZED_NAME_RE.fullmatch(cleaned))
+
+
+def is_valid_department(value: str) -> bool:
+    normalized = _clean_text(value).upper().replace("P.", "")
+    return normalized in ALLOWED_DEPARTMENTS
+
+
+def is_valid_area(value: str) -> bool:
+    cleaned = _clean_text(value)
+    normalized = _normalize_for_match(cleaned)
+    if not cleaned or len(cleaned) > 160:
+        return False
+    if any(phrase in normalized for phrase in AREA_NOISE_PHRASES):
+        return False
+    numbered_staff_items = len(re.findall(r"(?:^|\s)\d{1,2}\.\s+", cleaned))
+    name_prefix_hits = sum(normalized.count(prefix) for prefix in AREA_NAME_PREFIXES)
+    if numbered_staff_items >= 2 or name_prefix_hits >= 3:
+        return False
+    return True
+
+
+def is_trusted_relationship_metadata(metadata: dict[str, Any]) -> bool:
+    if metadata.get("chunk_type") != "table_row":
+        return False
+    if metadata.get("relationship_type") != "technology_area_staff":
+        return False
+    if bool(metadata.get("table_parse_warning")):
+        return False
+    try:
+        confidence = float(metadata.get("confidence") or 0)
+    except (TypeError, ValueError):
+        return False
+    if confidence < MIN_TRUSTED_RELATIONSHIP_CONFIDENCE:
+        return False
+    staff = [
+        StaffMember(name=str(item.get("name") or ""), role_note=item.get("role_note"))
+        for item in metadata.get("staff", []) or []
+        if isinstance(item, dict)
+    ]
+    row = TechnologyAreaRow(
+        stt=str(metadata.get("stt") or ""),
+        area=str(metadata.get("area") or ""),
+        lead_department=str(metadata.get("lead_department") or ""),
+        proposed_staff=staff,
+        confidence=confidence,
+    )
+    return validate_technology_area_row(row)
+
+
+def _parse_structured_text_rows(
+    text: str,
+    *,
+    page_number: int | None,
+    table_id: str | None,
+    source_table: str,
+) -> list[TechnologyAreaRow]:
+    normalized_text = _clean_text(text)
+    if not re.search(r"\bSTT\s*:\s*\d{1,2}\b", normalized_text, flags=re.IGNORECASE):
+        return []
+
+    blocks = re.split(r"(?=\bSTT\s*:\s*\d{1,2}\b)", normalized_text, flags=re.IGNORECASE)
+    rows: list[TechnologyAreaRow] = []
+    for block in blocks:
+        parsed = _parse_structured_text_row(
+            block,
+            page_number=page_number,
+            table_id=table_id,
+            source_table=source_table,
+        )
+        if parsed is not None:
+            rows.append(parsed)
+    return rows
+
+
+def _parse_structured_text_row(
+    text: str,
+    *,
+    page_number: int | None,
+    table_id: str | None,
+    source_table: str,
+) -> TechnologyAreaRow | None:
+    stt = _extract_labeled_value(text, "STT", ("Mảng công nghệ", "Mang cong nghe"))
+    area = _extract_labeled_value(
+        text,
+        "Mảng công nghệ",
+        ("Phòng chủ trì", "Phong chu tri"),
+    ) or _extract_labeled_value(text, "Mang cong nghe", ("Phong chu tri",))
+    department = _extract_labeled_value(
+        text,
+        "Phòng chủ trì",
+        ("Nhân sự đề xuất", "Nhan su de xuat"),
+    ) or _extract_labeled_value(text, "Phong chu tri", ("Nhan su de xuat",))
+    staff_text = _extract_labeled_value(text, "Nhân sự đề xuất", ()) or _extract_labeled_value(
+        text,
+        "Nhan su de xuat",
+        (),
+    )
+    if not stt or not area or not department or not staff_text:
+        return None
+    row = TechnologyAreaRow(
+        stt=stt,
+        area=area,
+        lead_department=department,
+        proposed_staff=parse_staff_members(staff_text),
+        page_number=page_number,
+        source_table=source_table,
+        table_id=table_id,
+        raw_text=text,
+        confidence=0.95,
+    )
+    return row if validate_technology_area_row(row) else None
+
+
+def _extract_labeled_value(text: str, label: str, next_labels: tuple[str, ...]) -> str:
+    labels = [re.escape(label), re.escape(_strip_accents(label))]
+    end_pattern = "$"
+    if next_labels:
+        all_next = [variant for item in next_labels for variant in (item, _strip_accents(item))]
+        end_pattern = r"(?=\s+(?:" + "|".join(re.escape(item) for item in all_next) + r")\s*:|$)"
+    pattern = r"(?:" + "|".join(labels) + r")\s*:\s*(?P<value>.*?)" + end_pattern
+    match = re.search(pattern, text, flags=re.IGNORECASE)
+    return _clean_text(match.group("value")) if match else ""
+
+
 def build_entity_profile_chunks(
     row_chunks: list[dict[str, Any]],
     *,
@@ -231,11 +425,13 @@ def build_entity_profile_chunks(
     grouped: dict[str, list[dict[str, Any]]] = {}
     for row_chunk in row_chunks:
         metadata = dict(row_chunk.get("metadata", {}) or {})
+        if not is_trusted_relationship_metadata(metadata):
+            continue
         for staff in metadata.get("staff", []) or []:
             if not isinstance(staff, dict):
                 continue
             name = str(staff.get("name") or "").strip()
-            if name:
+            if is_valid_staff_name(name):
                 grouped.setdefault(name, []).append(row_chunk)
 
     chunks: list[dict[str, Any]] = []
@@ -251,6 +447,8 @@ def build_entity_profile_chunks(
         seen_area_keys: set[tuple[str, str, str]] = set()
         for row_chunk in related_rows:
             metadata = dict(row_chunk.get("metadata", {}) or {})
+            if not is_trusted_relationship_metadata(metadata):
+                continue
             area = str(metadata.get("area") or "").strip()
             department = str(metadata.get("lead_department") or "").strip()
             stt = str(metadata.get("stt") or "").strip()
@@ -287,6 +485,11 @@ def build_entity_profile_chunks(
             "entity_type": "person",
             "person_name": person_name,
             "areas": areas,
+            "relationship_type": "technology_area_staff",
+            "confidence": min(
+                float(row.get("metadata", {}).get("confidence") or 0)
+                for row in related_rows
+            ),
             "source_table": sorted(source_tables)[0] if source_tables else SOURCE_TABLE_DEFAULT,
             "table_ids": sorted(table_ids),
             "page_numbers": sorted(page_numbers),
@@ -334,6 +537,13 @@ def score_person_area_membership_match(
     area_norm = _normalize_for_match(area)
     content_norm = _normalize_for_match(content)
     metadata_norm = _normalize_for_match(_metadata_search_text(metadata))
+    chunk_type = str(metadata.get("chunk_type") or "")
+    if metadata.get("table_parse_warning") or chunk_type in {"table_block", "entity_summary"}:
+        return 0.0
+    if chunk_type == "table_row" and not is_trusted_relationship_metadata(metadata):
+        return 0.0
+    if chunk_type == "entity_profile" and not _is_trusted_entity_profile(metadata):
+        return 0.0
 
     person_match = bool(person_norm) and (
         person_norm in content_norm or person_norm in metadata_norm
@@ -345,7 +555,6 @@ def score_person_area_membership_match(
     if not person_match and not area_match:
         return 0.0
 
-    chunk_type = str(metadata.get("chunk_type") or "")
     score = 0.0
     if person_match:
         score += 2.0
@@ -357,9 +566,28 @@ def score_person_area_membership_match(
         score += 4.0
     elif chunk_type == "table_row":
         score += 3.0
-    elif chunk_type in {"table_block", "entity_summary"}:
-        score += 1.0
     return score
+
+
+def _is_trusted_entity_profile(metadata: dict[str, Any]) -> bool:
+    if metadata.get("relationship_type") != "technology_area_staff":
+        return False
+    try:
+        confidence = float(metadata.get("confidence") or 0)
+    except (TypeError, ValueError):
+        return False
+    if confidence < MIN_TRUSTED_RELATIONSHIP_CONFIDENCE:
+        return False
+    person_name = str(metadata.get("person_name") or "")
+    if not is_valid_staff_name(person_name):
+        return False
+    areas = metadata.get("areas") or []
+    return any(
+        isinstance(area, dict)
+        and is_valid_area(str(area.get("area") or ""))
+        and is_valid_department(str(area.get("lead_department") or ""))
+        for area in areas
+    )
 
 
 def row_to_chunk(row: TechnologyAreaRow, *, chunk_index: int = 0) -> dict[str, Any]:
@@ -389,10 +617,10 @@ def _parse_open_text_row(
     if staff_start is None:
         staff_text = prefix[department_match.end() :].strip()
     staff = parse_staff_members(staff_text)
-    confidence = 0.85 if area and lead_department and staff else 0.55
+    confidence = 0.9 if area and lead_department and staff else 0.55
     if not area or not lead_department or not staff:
         return None
-    return TechnologyAreaRow(
+    parsed = TechnologyAreaRow(
         stt=row.stt,
         area=area,
         lead_department=lead_department,
@@ -403,6 +631,7 @@ def _parse_open_text_row(
         raw_text=f"{row.stt} {raw_text}",
         confidence=confidence,
     )
+    return parsed if validate_technology_area_row(parsed) else None
 
 
 def _find_header_row_index(rows: list[list[str]]) -> int | None:
@@ -446,9 +675,13 @@ def _clean_text(value: str) -> str:
 
 
 def _normalize_for_match(value: str) -> str:
+    return " ".join(_strip_accents(str(value or "")).casefold().split())
+
+
+def _strip_accents(value: str) -> str:
     decomposed = unicodedata.normalize("NFD", str(value or ""))
     without_marks = "".join(char for char in decomposed if unicodedata.category(char) != "Mn")
-    return " ".join(without_marks.replace("Đ", "D").replace("đ", "d").casefold().split())
+    return without_marks.replace("Đ", "D").replace("đ", "d")
 
 
 def _first_staff_marker(text: str) -> int | None:
@@ -467,10 +700,15 @@ def _parse_staff_member(value: str) -> StaffMember | None:
         return None
     role_match = ROLE_NOTE_RE.match(cleaned)
     if role_match:
+        name = _clean_text(role_match.group("name")).strip(" .;,-")
+        if not is_valid_staff_name(name):
+            return None
         return StaffMember(
-            name=_clean_text(role_match.group("name")).strip(" .;,-"),
+            name=name,
             role_note=_clean_text(role_match.group("note")) or None,
         )
+    if not is_valid_staff_name(cleaned):
+        return None
     return StaffMember(name=cleaned, role_note=None)
 
 

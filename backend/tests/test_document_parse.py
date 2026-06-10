@@ -729,17 +729,16 @@ def test_pdf_parser_prefers_coherent_tables_over_fragmented_text_tables() -> Non
         PdfParserImpl._score_extracted_table(fragmented_table)
     )
 
-def test_pdf_parser_emits_table_row_elements_for_staff_area_table(monkeypatch) -> None:
+def test_pdf_parser_does_not_emit_invalid_staff_table_rows(monkeypatch) -> None:
     class FakePage:
         def extract_text(self, extraction_mode=None):
             return (
+                "Mô tả các mảng công nghệ lõi trước phần bảng.\n"
                 "DANH SÁCH NHÂN SỰ PHỤ TRÁCH TỪNG MẢNG CÔNG NGHỆ LÕI\n"
-                "STT Mảng công nghệ Phòng chủ trì Nhân sự đề xuất\n"
-                "3 Xây dựng nền tảng RAG trên dữ liệu nội bộ PTUD "
-                "1. Tống Phước Lâm\n"
-                "2. Nguyễn Quang Lâm\n"
-                "3. Nguyễn Trọng Hùng\n"
-                "4 Xây dựng dịch vụ OCR dùng chung PM 1. Trịnh Thanh Tịnh\n"
+                "6 PTUD 6. Nguyễn Huỳnh Đăng Khoa Platform AI 7. Nguyễn Quang Lâm "
+                "8. Nguyễn Trọng Hùng 9. Võ Văn Phúc 10. Võ Văn Hòa 11. Đoàn Gia Hy "
+                "12. Nguyễn Hữu Thiện Đức 13. Trịnh Thế Phong Ứng dụng AI vào các "
+                "phần mềm Phòng P.\n"
             )
 
     class FakeReader:
@@ -751,9 +750,7 @@ def test_pdf_parser_emits_table_row_elements_for_staff_area_table(monkeypatch) -
 
     parsed = PdfParserImpl().parse(b"%PDF-1.4 fake")
     table_rows = [element for element in parsed.elements if element.element_type == "table_row"]
-    rag_row = next(element for element in table_rows if element.metadata.get("stt") == "3")
 
-    assert rag_row.metadata["area"] == "Xây dựng nền tảng RAG trên dữ liệu nội bộ"
-    assert rag_row.metadata["lead_department"] == "PTUD"
-    assert "Nguyễn Trọng Hùng" in rag_row.metadata["staff_names"]
-    assert rag_row.metadata["relationship_type"] == "technology_area_staff"
+    assert table_rows == []
+    assert any(element.element_type == "page" for element in parsed.elements)
+    assert "Mô tả các mảng công nghệ lõi" in parsed.text
