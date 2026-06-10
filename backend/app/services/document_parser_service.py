@@ -17,6 +17,7 @@ from app.services.parsers import (
     PdfParser,
     TextParser,
     UnstructuredParser,
+    parsed_element_to_dict,
 )
 from app.services.storage import StorageClient
 
@@ -96,6 +97,12 @@ class DocumentParserService:
                 parsed_at=datetime.now(UTC),
                 status="parsed",
             )
+            await self._update_structured_parse_metadata(
+                document=document,
+                parser=parser,
+                parsed_metadata=parsed.metadata,
+                parsed_elements=parsed.elements,
+            )
             await self._repository.commit()
         except Exception as exc:
             await self._repository.rollback()
@@ -122,8 +129,38 @@ class DocumentParserService:
 
         raise UnsupportedDocumentParserError("No parser available for this document type.")
 
+    async def _update_structured_parse_metadata(
+        self,
+        *,
+        document,
+        parser: DocumentParser,
+        parsed_metadata: dict,
+        parsed_elements: list,
+    ) -> None:
+        updater = getattr(self._repository, "update_document_metadata", None)
+        if updater is None:
+            return
+
+        parser_name = _parser_storage_name(parser)
+        await updater(
+            document,
+            {
+                "parser": parser_name,
+                "parsed_metadata": parsed_metadata,
+                "parsed_elements": [
+                    parsed_element_to_dict(element) for element in parsed_elements
+                ],
+            },
+        )
+
 def _sanitize_parsed_text(text: str) -> str:
     return text.replace("\x00", "")
+
+def _parser_storage_name(parser: DocumentParser) -> str:
+    name = type(parser).__name__
+    if name in {"PdfParser", "DocxParser", "TextParser", "MarkdownParser"}:
+        return f"builtin_{name.removesuffix('Parser').lower()}"
+    return name.removesuffix("Parser").lower()
 
 def build_default_parsers() -> tuple[DocumentParser, ...]:
     provider = settings.document_parser_provider.lower().strip()
@@ -133,11 +170,21 @@ def build_default_parsers() -> tuple[DocumentParser, ...]:
         parser = DoclingParser()
         if parser.is_available():
             parsers.append(parser)
+        else:
+            logger.warning(
+                "Docling parser enabled but dependency is not installed; "
+                "using fallback parsers."
+            )
 
     if provider in {"auto", "unstructured"} and settings.enable_unstructured:
         parser = UnstructuredParser()
         if parser.is_available():
             parsers.append(parser)
+        else:
+            logger.warning(
+                "Unstructured parser enabled but dependency is not installed; "
+                "using fallback parsers."
+            )
 
     if provider in {"auto", "builtin", "docling", "unstructured"}:
         parsers.extend(DEFAULT_PARSERS)

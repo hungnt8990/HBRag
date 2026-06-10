@@ -37,6 +37,35 @@ class ParsedDocument:
     elements: list[ParsedElement] = field(default_factory=list)
 
 
+def parsed_element_to_dict(element: ParsedElement) -> dict[str, Any]:
+    return {
+        "element_type": element.element_type,
+        "text": element.text,
+        "page_number": element.page_number,
+        "section_title": element.section_title,
+        "heading_path": element.heading_path,
+        "table_id": element.table_id,
+        "row_index": element.row_index,
+        "bbox": list(element.bbox) if element.bbox is not None else None,
+        "metadata": element.metadata,
+    }
+
+
+def parsed_element_from_dict(payload: dict[str, Any]) -> ParsedElement:
+    bbox = payload.get("bbox")
+    return ParsedElement(
+        element_type=payload.get("element_type", "unknown"),
+        text=str(payload.get("text") or ""),
+        page_number=payload.get("page_number"),
+        section_title=payload.get("section_title"),
+        heading_path=list(payload.get("heading_path") or []),
+        table_id=payload.get("table_id"),
+        row_index=payload.get("row_index"),
+        bbox=tuple(bbox) if isinstance(bbox, list | tuple) and len(bbox) == 4 else None,
+        metadata=dict(payload.get("metadata") or {}),
+    )
+
+
 class DocumentParser:
     supported_extensions: frozenset[str] = frozenset()
     supported_mime_types: frozenset[str] = frozenset()

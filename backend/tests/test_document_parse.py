@@ -8,7 +8,14 @@ from fastapi.testclient import TestClient
 from app.api.routes.documents import get_document_repository, get_storage_client
 from app.main import app
 from app.services.document_parser_service import DocumentParserService
-from app.services.parsers import MarkdownParser, PdfParser, TextParser
+from app.services.parsers import (
+    DocumentParser,
+    MarkdownParser,
+    ParsedDocument,
+    ParsedElement,
+    PdfParser,
+    TextParser,
+)
 from app.services.parsers.pdf_parser import PdfParser as PdfParserImpl
 
 DOCUMENT_ID = UUID("22222222-2222-2222-2222-222222222222")
@@ -23,7 +30,11 @@ class FakeDocumentRepository:
         storage_path: str = "documents/sample.txt",
         document_status: str = "uploaded",
     ) -> None:
-        self.document = SimpleNamespace(id=DOCUMENT_ID, status=document_status)
+        self.document = SimpleNamespace(
+            id=DOCUMENT_ID,
+            status=document_status,
+            document_metadata={},
+        )
         self.document_file = SimpleNamespace(
             filename=filename,
             mime_type=mime_type,
@@ -61,6 +72,14 @@ class FakeDocumentRepository:
         document.parsed_text = parsed_text
         document.parsed_at = parsed_at
         document.status = status
+        return document
+
+    async def update_document_metadata(
+        self,
+        document: SimpleNamespace,
+        metadata: dict,
+    ) -> SimpleNamespace:
+        document.document_metadata = {**document.document_metadata, **metadata}
         return document
 
     async def commit(self) -> None:
@@ -206,6 +225,44 @@ def test_parser_selection_uses_extension_or_mime_type() -> None:
         service.select_parser(filename="report.pdf", mime_type=None),
         PdfParser,
     )
+
+def test_parse_document_stores_structured_parse_metadata() -> None:
+    class StructuredParser(DocumentParser):
+        supported_extensions = frozenset({".structured"})
+
+        def parse(self, file_content: bytes) -> ParsedDocument:
+            return ParsedDocument(
+                text=file_content.decode("utf-8"),
+                metadata={"source": "fixture"},
+                elements=[
+                    ParsedElement(
+                        element_type="heading",
+                        text="Section A",
+                        page_number=1,
+                        heading_path=["Section A"],
+                    )
+                ],
+            )
+
+    repository = FakeDocumentRepository(
+        filename="sample.structured",
+        mime_type="application/octet-stream",
+        storage_path="documents/sample.structured",
+    )
+    service = DocumentParserService(
+        repository=repository,
+        storage=FakeStorageClient({"documents/sample.structured": b"Section A\nBody"}),
+        parsers=(StructuredParser(),),
+    )
+
+    import anyio
+
+    response = anyio.run(service.parse_document, DOCUMENT_ID)
+
+    assert response.status == "parsed"
+    assert repository.document.document_metadata["parser"] == "structured"
+    assert repository.document.document_metadata["parsed_metadata"] == {"source": "fixture"}
+    assert repository.document.document_metadata["parsed_elements"][0]["element_type"] == "heading"
 
 
 def _build_docx_with_tables(target_chars: int) -> bytes:

@@ -295,21 +295,29 @@ class ChunkingService:
             HeadingAwareChunker,
             SlidePageChunker,
         )
+        from app.services.parsers import parsed_element_from_dict
 
         document_file = await self._get_primary_document_file(document.id)
+        document_metadata = dict(getattr(document, "document_metadata", None) or {})
+        parsed_elements = [
+            parsed_element_from_dict(element)
+            for element in document_metadata.get("parsed_elements", [])
+            if isinstance(element, dict)
+        ]
         router = ChunkingRouter()
         plan = router.plan(
             ChunkingRequest(
                 filename=getattr(document_file, "filename", None),
                 mime_type=getattr(document_file, "mime_type", None),
                 parsed_text=document.parsed_text,
+                parsed_elements=parsed_elements,
                 document_profile=(
                     profile if profile is not None else getattr(document, "document_profile", None)
                 ),
                 requested_chunk_mode=chunk_mode,
                 chunk_size=chunk_size,
                 chunk_overlap=chunk_overlap,
-                parser_hint=getattr(document, "parser_name", None),
+                parser_hint=document_metadata.get("parser"),
             )
         )
         effective_profile = plan.document_profile
@@ -323,7 +331,32 @@ class ChunkingService:
             "source_file": getattr(document_file, "filename", None),
         }
 
-        if plan.strategy == "table_aware":
+        if plan.strategy == "table_aware" and self._has_table_elements(parsed_elements):
+            raw_chunks = self._chunks_from_table_elements(parsed_elements)
+            chunk_records = [
+                ChunkCreate(
+                    chunk_index=index,
+                    content=chunk_dict["content"],
+                    metadata={
+                        **chunk_dict.get("metadata", {}),
+                        "chunk_size": resolved_size,
+                        "chunk_overlap": resolved_overlap,
+                        "chunk_mode": mode,
+                        **router_metadata,
+                        "document_profile": effective_profile,
+                    },
+                )
+                for index, chunk_dict in enumerate(raw_chunks)
+            ]
+            text_chunks_for_preview = [
+                TextChunk(
+                    content=c["content"],
+                    start_char=c.get("metadata", {}).get("start_char", 0),
+                    end_char=c.get("metadata", {}).get("end_char", 0),
+                )
+                for c in raw_chunks[:CHUNK_PREVIEW_LIMIT]
+            ]
+        elif plan.strategy == "table_aware":
             from app.services.table_aware_chunking import table_aware_chunk_text
 
             raw_chunks, _entity_index = table_aware_chunk_text(
@@ -397,7 +430,7 @@ class ChunkingService:
             ]
             text_chunks_for_preview = text_chunks[:CHUNK_PREVIEW_LIMIT]
         elif plan.strategy == "slide_page":
-            text_chunks = SlidePageChunker().chunk_elements([], document.parsed_text)
+            text_chunks = SlidePageChunker().chunk_elements(parsed_elements, document.parsed_text)
             chunk_records = [
                 ChunkCreate(
                     chunk_index=index,
@@ -505,3 +538,37 @@ class ChunkingService:
         if getter is None:
             return None
         return await getter(document_id)
+
+    @staticmethod
+    def _has_table_elements(parsed_elements: list) -> bool:
+        return any(
+            getattr(element, "element_type", None) in {"table", "table_row"}
+            for element in parsed_elements
+        )
+
+    @staticmethod
+    def _chunks_from_table_elements(parsed_elements: list) -> list[dict[str, Any]]:
+        chunks: list[dict[str, Any]] = []
+        for element in parsed_elements:
+            if getattr(element, "element_type", None) not in {"table", "table_row"}:
+                continue
+            metadata = dict(getattr(element, "metadata", {}) or {})
+            row_index = getattr(element, "row_index", None)
+            chunk_type = "table_row" if element.element_type == "table_row" else "table_block"
+            chunks.append(
+                {
+                    "content": element.text,
+                    "metadata": {
+                        **metadata,
+                        "chunk_type": chunk_type,
+                        "table_id": getattr(element, "table_id", None),
+                        "row_start": row_index,
+                        "row_end": row_index,
+                        "headers": metadata.get("headers", []),
+                        "page_number": getattr(element, "page_number", None),
+                        "section_title": getattr(element, "section_title", None),
+                        "heading_path": getattr(element, "heading_path", []),
+                    },
+                }
+            )
+        return chunks

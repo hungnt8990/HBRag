@@ -71,17 +71,17 @@ class ChunkingRouter:
 
         requested = request.requested_chunk_mode
         if requested:
-            strategy = self._validated_requested_strategy(requested)
+            strategy, reason = self._validated_requested_strategy(requested, request)
             return ChunkingPlan(
                 strategy=strategy,
                 parser_hint=request.parser_hint,
                 chunk_size=chunk_size,
                 chunk_overlap=chunk_overlap,
-                reason="requested_chunk_mode",
+                reason=reason,
                 metadata_required=self._metadata_for_strategy(strategy),
                 use_elements=strategy in {"heading_aware", "slide_page"},
                 document_profile=profile,
-                chunk_mode=requested,
+                chunk_mode=strategy if strategy != "fallback" else "recursive",
             )
 
         strategy, reason = self._detect_strategy(request, config["chunk_mode"])
@@ -103,7 +103,9 @@ class ChunkingRouter:
         profile_chunk_mode: str,
     ) -> tuple[ChunkStrategy, str]:
         if self._is_code_file(request.filename):
-            return "code", "code_extension"
+            return "fallback", "code_chunker_unavailable"
+        if self._has_table_elements(request.parsed_elements):
+            return "table_aware", "parsed_table_elements"
         if "TABLE_ROW " in request.parsed_text or self._looks_like_pipe_table(request.parsed_text):
             return "table_aware", "table_markers_or_pipe_table"
         if LEGAL_PATTERN.search(request.parsed_text):
@@ -114,14 +116,19 @@ class ChunkingRouter:
             request.parsed_text
         ):
             return "heading_aware", "heading_structure_detected"
-        if settings.enable_semantic_chunking and profile_chunk_mode == "semantic":
-            return "semantic", "semantic_chunking_enabled"
+        if profile_chunk_mode == "semantic":
+            if settings.enable_semantic_chunking:
+                return "fallback", "semantic_chunker_unavailable"
+            return "fallback", "semantic_chunking_disabled"
         if profile_chunk_mode in {"recursive", "legal_article", "table_aware"}:
             return profile_chunk_mode, "document_profile_default"  # type: ignore[return-value]
         return "fallback", "no_structure_detected"
 
     @staticmethod
-    def _validated_requested_strategy(chunk_mode: str) -> ChunkStrategy:
+    def _validated_requested_strategy(
+        chunk_mode: str,
+        request: ChunkingRequest,
+    ) -> tuple[ChunkStrategy, str]:
         allowed: set[str] = {
             "recursive",
             "legal_article",
@@ -133,10 +140,18 @@ class ChunkingRouter:
             "fallback",
         }
         if chunk_mode not in allowed:
-            return "fallback"
-        if chunk_mode == "semantic" and not settings.enable_semantic_chunking:
-            return "fallback"
-        return chunk_mode  # type: ignore[return-value]
+            return "fallback", "unsupported_requested_chunk_mode"
+        if chunk_mode == "semantic":
+            if settings.enable_semantic_chunking:
+                return "fallback", "semantic_chunker_unavailable"
+            return "fallback", "semantic_chunking_disabled"
+        if chunk_mode == "code":
+            return "fallback", "code_chunker_unavailable"
+        if chunk_mode == "slide_page" and not ChunkingRouter._has_page_elements(
+            request.parsed_elements
+        ):
+            return "fallback", "no page/slide elements available"
+        return chunk_mode, "requested_chunk_mode"  # type: ignore[return-value]
 
     @staticmethod
     def _metadata_for_strategy(strategy: ChunkStrategy) -> tuple[str, ...]:
@@ -170,6 +185,14 @@ class ChunkingRouter:
         return any(element.element_type in {"title", "heading"} for element in elements)
 
     @staticmethod
+    def _has_table_elements(elements: list[ParsedElement]) -> bool:
+        return any(element.element_type in {"table", "table_row"} for element in elements)
+
+    @staticmethod
+    def _has_page_elements(elements: list[ParsedElement]) -> bool:
+        return any(element.element_type in {"slide", "page"} for element in elements)
+
+    @staticmethod
     def _looks_like_slide_document(elements: list[ParsedElement]) -> bool:
         slide_like = [
             element for element in elements if element.element_type in {"slide", "page"}
@@ -200,18 +223,60 @@ class HeadingAwareChunker:
             section_text = text[start:end].strip()
             if not section_text:
                 continue
+            section_metadata = {
+                "section_title": heading,
+                "heading_path": [heading] if heading else [],
+            }
+            if len(section_text) <= self.chunk_size:
+                chunks.append(
+                    RoutedTextChunk(
+                        content=section_text,
+                        start_char=start,
+                        end_char=end,
+                        metadata={"chunk_type": "heading_section", **section_metadata},
+                    )
+                )
+                continue
+
+            sub_chunks = self._split_long_section(section_text)
+            part_total = len(sub_chunks)
+            for part_index, sub_chunk in enumerate(sub_chunks):
+                chunks.append(
+                    RoutedTextChunk(
+                        content=sub_chunk.content,
+                        start_char=start + sub_chunk.start_char,
+                        end_char=start + sub_chunk.end_char,
+                        metadata={
+                            "chunk_type": "heading_section_part",
+                            "part_index": part_index,
+                            "part_total": part_total,
+                            **section_metadata,
+                        },
+                    )
+                )
+        return chunks
+
+    def _split_long_section(self, text: str) -> list[RoutedTextChunk]:
+        chunks: list[RoutedTextChunk] = []
+        start_char = 0
+        while start_char < len(text):
+            end_char = min(start_char + self.chunk_size, len(text))
+            if end_char < len(text):
+                split_at = text.rfind("\n\n", start_char, end_char)
+                if split_at <= start_char:
+                    split_at = text.rfind(". ", start_char, end_char)
+                if split_at > start_char + int(self.chunk_size * 0.5):
+                    end_char = split_at + 1
             chunks.append(
                 RoutedTextChunk(
-                    content=section_text,
-                    start_char=start,
-                    end_char=end,
-                    metadata={
-                        "chunk_type": "text",
-                        "section_title": heading,
-                        "heading_path": [heading] if heading else [],
-                    },
+                    content=text[start_char:end_char].strip(),
+                    start_char=start_char,
+                    end_char=end_char,
                 )
             )
+            if end_char >= len(text):
+                break
+            start_char = max(end_char - self.chunk_overlap, start_char + 1)
         return chunks
 
     @staticmethod

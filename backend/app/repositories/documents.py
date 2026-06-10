@@ -148,6 +148,17 @@ class DocumentRepository:
         await self._session.flush()
         return document
 
+    async def update_document_metadata(
+        self,
+        document: Document,
+        metadata: dict[str, Any],
+    ) -> Document:
+        current_metadata = dict(getattr(document, "document_metadata", None) or {})
+        current_metadata.update(metadata)
+        document.document_metadata = current_metadata
+        await self._session.flush()
+        return document
+
     async def delete_document(self, document: Document) -> None:
         await self._session.delete(document)
         await self._session.flush()

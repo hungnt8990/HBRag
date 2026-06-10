@@ -7,6 +7,7 @@ from app.api.routes.documents import get_document_repository
 from app.main import app
 from app.repositories.documents import ChunkCreate
 from app.services.chunking_service import RecursiveTextChunker
+from app.services.parsers import ParsedElement, parsed_element_to_dict
 
 DOCUMENT_ID = UUID("33333333-3333-3333-3333-333333333333")
 
@@ -17,12 +18,15 @@ class FakeDocumentRepository:
         *,
         status: str = "parsed",
         parsed_text: str | None = "Parsed text",
+        document_metadata: dict | None = None,
     ) -> None:
         self.document = SimpleNamespace(
             id=DOCUMENT_ID,
             status=status,
             parsed_text=parsed_text,
+            document_metadata=document_metadata or {},
         )
+        self.document_file = SimpleNamespace(filename="sample.pdf", mime_type="application/pdf")
         self.deleted_chunks = False
         self.created_chunks: list[ChunkCreate] = []
         self.committed = False
@@ -32,6 +36,11 @@ class FakeDocumentRepository:
         if document_id != DOCUMENT_ID:
             return None
         return self.document
+
+    async def get_primary_document_file(self, document_id: UUID) -> SimpleNamespace | None:
+        if document_id != DOCUMENT_ID:
+            return None
+        return self.document_file
 
     async def delete_chunks_for_document(self, document_id: UUID) -> None:
         assert document_id == DOCUMENT_ID
@@ -339,3 +348,33 @@ def test_recursive_mode_metadata_records_chunk_mode() -> None:
     for chunk in repository.created_chunks:
         assert chunk.metadata["chunk_mode"] == "recursive"
         assert "article_number" not in chunk.metadata
+
+def test_chunk_service_uses_parsed_page_elements_for_slide_page_mode() -> None:
+    elements = [
+        ParsedElement(element_type="slide", text="Slide one text", page_number=1),
+        ParsedElement(element_type="slide", text="Slide two text", page_number=2),
+    ]
+    repository = FakeDocumentRepository(
+        status="parsed",
+        parsed_text="Slide one text\nSlide two text",
+        document_metadata={
+            "parser": "fixture",
+            "parsed_elements": [parsed_element_to_dict(element) for element in elements],
+        },
+    )
+    app.dependency_overrides[get_document_repository] = lambda: repository
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            f"/api/documents/{DOCUMENT_ID}/chunk",
+            json={"chunk_mode": "slide_page"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert len(repository.created_chunks) == 2
+    assert repository.created_chunks[0].metadata["chunk_strategy"] == "slide_page"
+    assert repository.created_chunks[0].metadata["page_range"] == [1, 1]
+    assert repository.created_chunks[1].metadata["page_number"] == 2

@@ -1,4 +1,10 @@
-from app.services.parsers.base import DocumentParser, ParsedDocument, ParsedElement
+from app.services.parsers.base import (
+    DocumentParser,
+    ParsedDocument,
+    ParsedElement,
+    parsed_element_from_dict,
+    parsed_element_to_dict,
+)
 from app.services.parsers.docx_parser import DocxParser
 from app.services.parsers.optional_adapters import DoclingParser, UnstructuredParser
 from app.services.parsers.pdf_parser import PdfParser
@@ -14,4 +20,6 @@ __all__ = [
     "PdfParser",
     "TextParser",
     "UnstructuredParser",
+    "parsed_element_from_dict",
+    "parsed_element_to_dict",
 ]

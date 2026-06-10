@@ -23,6 +23,27 @@ def test_router_selects_table_aware_when_table_row_exists() -> None:
     assert plan.reason == "table_markers_or_pipe_table"
 
 
+def test_router_selects_table_aware_when_table_element_exists() -> None:
+    plan = ChunkingRouter().plan(
+        ChunkingRequest(
+            filename="report.pdf",
+            mime_type="application/pdf",
+            parsed_text="Intro without markers",
+            parsed_elements=[
+                ParsedElement(
+                    element_type="table_row",
+                    text="A: one | B: two",
+                    table_id="t1",
+                    row_index=1,
+                )
+            ],
+        )
+    )
+
+    assert plan.strategy == "table_aware"
+    assert plan.reason == "parsed_table_elements"
+
+
 def test_router_selects_legal_article_for_vietnamese_articles() -> None:
     text = "CHƯƠNG I\nĐiều 1. Phạm vi\nNội dung\nĐiều 2. Đối tượng\nNội dung"
 
@@ -63,6 +84,31 @@ def test_slide_page_chunker_preserves_page_metadata() -> None:
 
     assert [chunk.metadata["page_range"] for chunk in chunks] == [[1, 1], [2, 2]]
     assert all(chunk.metadata["chunk_type"] == "slide" for chunk in chunks)
+
+
+def test_heading_aware_splits_long_section_with_part_metadata() -> None:
+    text = "Overview\n" + ("Sentence body. " * 60)
+
+    chunks = HeadingAwareChunker(chunk_size=120, chunk_overlap=20).chunk_text(text)
+
+    assert len(chunks) > 1
+    assert all(chunk.metadata["section_title"] == "Overview" for chunk in chunks)
+    assert chunks[0].metadata["chunk_type"] == "heading_section_part"
+    assert chunks[0].metadata["part_total"] == len(chunks)
+
+
+def test_requested_slide_page_without_elements_falls_back() -> None:
+    plan = ChunkingRouter().plan(
+        ChunkingRequest(
+            filename="slides.pdf",
+            mime_type="application/pdf",
+            parsed_text="Slide-like text but no structured elements",
+            requested_chunk_mode="slide_page",
+        )
+    )
+
+    assert plan.strategy == "fallback"
+    assert plan.reason == "no page/slide elements available"
 
 
 def test_optional_docling_missing_dependency_falls_back(monkeypatch) -> None:
