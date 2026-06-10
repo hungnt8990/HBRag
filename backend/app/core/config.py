@@ -29,6 +29,11 @@ class Settings(BaseSettings):
 
     default_chunk_size: int = 1000
     default_chunk_overlap: int = 150
+    document_parser_provider: str = "auto"
+    enable_docling: bool = False
+    enable_unstructured: bool = False
+    chunk_router_provider: str = "heuristic"
+    enable_semantic_chunking: bool = False
 
     memory_provider: str = "local"
     memory_enabled: bool = True

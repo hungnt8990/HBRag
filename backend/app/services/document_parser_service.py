@@ -6,14 +6,17 @@ from uuid import UUID
 
 import anyio
 
+from app.core.config import settings
 from app.repositories.documents import DocumentRepository
 from app.schemas.documents import DocumentParseResponse
 from app.services.parsers import (
+    DoclingParser,
     DocumentParser,
     DocxParser,
     MarkdownParser,
     PdfParser,
     TextParser,
+    UnstructuredParser,
 )
 from app.services.storage import StorageClient
 
@@ -54,11 +57,11 @@ class DocumentParserService:
         *,
         repository: DocumentRepository,
         storage: StorageClient,
-        parsers: tuple[DocumentParser, ...] = DEFAULT_PARSERS,
+        parsers: tuple[DocumentParser, ...] | None = None,
     ) -> None:
         self._repository = repository
         self._storage = storage
-        self._parsers = parsers
+        self._parsers = parsers or build_default_parsers()
 
     async def parse_document(self, document_id: UUID) -> DocumentParseResponse:
         document = await self._repository.get_document(document_id)
@@ -121,3 +124,22 @@ class DocumentParserService:
 
 def _sanitize_parsed_text(text: str) -> str:
     return text.replace("\x00", "")
+
+def build_default_parsers() -> tuple[DocumentParser, ...]:
+    provider = settings.document_parser_provider.lower().strip()
+    parsers: list[DocumentParser] = []
+
+    if provider in {"auto", "docling"} and settings.enable_docling:
+        parser = DoclingParser()
+        if parser.is_available():
+            parsers.append(parser)
+
+    if provider in {"auto", "unstructured"} and settings.enable_unstructured:
+        parser = UnstructuredParser()
+        if parser.is_available():
+            parsers.append(parser)
+
+    if provider in {"auto", "builtin", "docling", "unstructured"}:
+        parsers.extend(DEFAULT_PARSERS)
+
+    return tuple(parsers or DEFAULT_PARSERS)

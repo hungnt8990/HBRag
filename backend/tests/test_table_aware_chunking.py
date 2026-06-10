@@ -201,3 +201,13 @@ def test_row_chunk_keeps_full_row_together() -> None:
     assert "Xây dựng hệ thống" in row1
     assert "CNTT" in row1
     assert "Nguyễn Quang Lâm" in row1
+
+def test_table_aware_keeps_header_and_row_metadata() -> None:
+    chunks, _ = table_aware_chunk_text(VIETNAMESE_TABLE, chunk_size=500)
+    row_chunk = next(
+        chunk for chunk in chunks if chunk.get("metadata", {}).get("chunk_type") == "table_row"
+    )
+
+    assert row_chunk["metadata"]["headers"]
+    assert row_chunk["metadata"]["row_index"] >= 1
+    assert row_chunk["metadata"]["table_id"]

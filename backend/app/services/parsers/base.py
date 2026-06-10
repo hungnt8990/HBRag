@@ -1,9 +1,40 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any, Literal
+
+ParsedElementType = Literal[
+    "title",
+    "heading",
+    "paragraph",
+    "list_item",
+    "table",
+    "table_row",
+    "image",
+    "figure",
+    "page",
+    "slide",
+    "code",
+    "unknown",
+]
+
+
+@dataclass(frozen=True)
+class ParsedElement:
+    element_type: ParsedElementType
+    text: str
+    page_number: int | None = None
+    section_title: str | None = None
+    heading_path: list[str] = field(default_factory=list)
+    table_id: str | None = None
+    row_index: int | None = None
+    bbox: tuple[float, float, float, float] | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
 class ParsedDocument:
     text: str
+    metadata: dict[str, Any] = field(default_factory=dict)
+    elements: list[ParsedElement] = field(default_factory=list)
 
 
 class DocumentParser:

@@ -142,7 +142,17 @@ def test_chunk_endpoint_creates_chunks_from_parsed_text() -> None:
     assert repository.committed is True
     assert repository.document.status == "chunked"
     assert [chunk.chunk_index for chunk in repository.created_chunks] == [0, 1]
-    assert repository.created_chunks[0].metadata == {
+    assert {
+        key: repository.created_chunks[0].metadata[key]
+        for key in (
+            "chunk_size",
+            "chunk_overlap",
+            "chunk_mode",
+            "document_profile",
+            "start_char",
+            "end_char",
+        )
+    } == {
         "chunk_size": 1000,
         "chunk_overlap": 150,
         "chunk_mode": "recursive",
@@ -150,7 +160,17 @@ def test_chunk_endpoint_creates_chunks_from_parsed_text() -> None:
         "start_char": 0,
         "end_char": 1000,
     }
-    assert repository.created_chunks[1].metadata == {
+    assert {
+        key: repository.created_chunks[1].metadata[key]
+        for key in (
+            "chunk_size",
+            "chunk_overlap",
+            "chunk_mode",
+            "document_profile",
+            "start_char",
+            "end_char",
+        )
+    } == {
         "chunk_size": 1000,
         "chunk_overlap": 150,
         "chunk_mode": "recursive",
@@ -158,6 +178,8 @@ def test_chunk_endpoint_creates_chunks_from_parsed_text() -> None:
         "start_char": 850,
         "end_char": 1200,
     }
+    assert repository.created_chunks[0].metadata["chunk_strategy"] == "recursive"
+    assert repository.created_chunks[0].metadata["router_reason"] == "document_profile_default"
 
 
 def test_rechunk_deletes_old_chunks() -> None:

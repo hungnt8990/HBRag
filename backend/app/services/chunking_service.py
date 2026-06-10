@@ -8,14 +8,22 @@ from uuid import UUID
 from app.core.config import settings
 from app.repositories.documents import ChunkCreate, DocumentRepository
 from app.schemas.documents import ChunkPreview, DocumentChunkResponse
-from app.services.document_profiles import profile_config, resolve_profile
 
 DEFAULT_CHUNK_SIZE = settings.default_chunk_size
 DEFAULT_CHUNK_OVERLAP = settings.default_chunk_overlap
 CHUNK_PREVIEW_LIMIT = 2
 MIN_SPLIT_RATIO = 0.85
 
-ChunkMode = Literal["recursive", "legal_article", "table_aware"]
+ChunkMode = Literal[
+    "recursive",
+    "legal_article",
+    "table_aware",
+    "slide_page",
+    "heading_aware",
+    "semantic",
+    "code",
+    "fallback",
+]
 DEFAULT_CHUNK_MODE: ChunkMode = "recursive"
 
 # Vietnamese legal-document heading patterns. The article pattern is the
@@ -281,23 +289,41 @@ class ChunkingService:
         if not document.parsed_text or not document.parsed_text.strip():
             raise EmptyParsedTextError("Document has no parsed text to chunk.")
 
-        selected_profile = profile if profile is not None else getattr(
-            document, "document_profile", None
+        from app.services.chunking_router import (
+            ChunkingRequest,
+            ChunkingRouter,
+            HeadingAwareChunker,
+            SlidePageChunker,
         )
-        effective_profile = resolve_profile(selected_profile, text=document.parsed_text)
-        config = profile_config(effective_profile)
 
-        resolved_size = chunk_size if chunk_size is not None else config["chunk_size"]
-        resolved_overlap = (
-            chunk_overlap if chunk_overlap is not None else config["chunk_overlap"]
+        document_file = await self._get_primary_document_file(document.id)
+        router = ChunkingRouter()
+        plan = router.plan(
+            ChunkingRequest(
+                filename=getattr(document_file, "filename", None),
+                mime_type=getattr(document_file, "mime_type", None),
+                parsed_text=document.parsed_text,
+                document_profile=(
+                    profile if profile is not None else getattr(document, "document_profile", None)
+                ),
+                requested_chunk_mode=chunk_mode,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+                parser_hint=getattr(document, "parser_name", None),
+            )
         )
-        if resolved_overlap >= resolved_size:
-            resolved_overlap = max(0, resolved_size // 2)
-        mode: ChunkMode = chunk_mode or config["chunk_mode"]
-        if "TABLE_ROW " in document.parsed_text:
-            mode = "table_aware"
+        effective_profile = plan.document_profile
+        resolved_size = plan.chunk_size
+        resolved_overlap = plan.chunk_overlap
+        mode = plan.chunk_mode
+        router_metadata = {
+            "chunk_strategy": plan.strategy,
+            "router_reason": plan.reason,
+            "parser": plan.parser_hint,
+            "source_file": getattr(document_file, "filename", None),
+        }
 
-        if mode == "table_aware":
+        if plan.strategy == "table_aware":
             from app.services.table_aware_chunking import table_aware_chunk_text
 
             raw_chunks, _entity_index = table_aware_chunk_text(
@@ -313,6 +339,8 @@ class ChunkingService:
                         **chunk_dict.get("metadata", {}),
                         "chunk_size": resolved_size,
                         "chunk_overlap": resolved_overlap,
+                        "chunk_mode": mode,
+                        **router_metadata,
                         "document_profile": effective_profile,
                     },
                 )
@@ -326,7 +354,7 @@ class ChunkingService:
                 )
                 for c in raw_chunks[:CHUNK_PREVIEW_LIMIT]
             ]
-        elif mode == "legal_article":
+        elif plan.strategy == "legal_article":
             chunker: RecursiveTextChunker | LegalArticleChunker = LegalArticleChunker(
                 chunk_size=resolved_size, chunk_overlap=resolved_overlap
             )
@@ -341,6 +369,46 @@ class ChunkingService:
                         chunk_mode=mode,
                         profile=effective_profile,
                         text_chunk=text_chunk,
+                        extra_metadata=router_metadata,
+                    ),
+                )
+                for index, text_chunk in enumerate(text_chunks)
+            ]
+            text_chunks_for_preview = text_chunks[:CHUNK_PREVIEW_LIMIT]
+        elif plan.strategy == "heading_aware":
+            text_chunks = HeadingAwareChunker(
+                chunk_size=resolved_size,
+                chunk_overlap=resolved_overlap,
+            ).chunk_text(document.parsed_text)
+            chunk_records = [
+                ChunkCreate(
+                    chunk_index=index,
+                    content=text_chunk.content,
+                    metadata=self._build_metadata(
+                        chunk_size=resolved_size,
+                        chunk_overlap=resolved_overlap,
+                        chunk_mode=mode,
+                        profile=effective_profile,
+                        text_chunk=text_chunk,
+                        extra_metadata=router_metadata,
+                    ),
+                )
+                for index, text_chunk in enumerate(text_chunks)
+            ]
+            text_chunks_for_preview = text_chunks[:CHUNK_PREVIEW_LIMIT]
+        elif plan.strategy == "slide_page":
+            text_chunks = SlidePageChunker().chunk_elements([], document.parsed_text)
+            chunk_records = [
+                ChunkCreate(
+                    chunk_index=index,
+                    content=text_chunk.content,
+                    metadata=self._build_metadata(
+                        chunk_size=resolved_size,
+                        chunk_overlap=resolved_overlap,
+                        chunk_mode=mode,
+                        profile=effective_profile,
+                        text_chunk=text_chunk,
+                        extra_metadata=router_metadata,
                     ),
                 )
                 for index, text_chunk in enumerate(text_chunks)
@@ -361,6 +429,7 @@ class ChunkingService:
                         chunk_mode=mode,
                         profile=effective_profile,
                         text_chunk=text_chunk,
+                        extra_metadata=router_metadata,
                     ),
                 )
                 for index, text_chunk in enumerate(text_chunks)
@@ -400,16 +469,39 @@ class ChunkingService:
         chunk_mode: ChunkMode,
         profile: str,
         text_chunk: TextChunk,
+        extra_metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         metadata: dict[str, Any] = {
             "chunk_size": chunk_size,
             "chunk_overlap": chunk_overlap,
             "chunk_mode": chunk_mode,
             "document_profile": profile,
+            "chunk_type": text_chunk.metadata.get("chunk_type", "text"),
             "start_char": text_chunk.start_char,
             "end_char": text_chunk.end_char,
         }
-        for key in ("chapter_title", "article_number", "article_title", "subchunk_index"):
+        if extra_metadata:
+            metadata.update(extra_metadata)
+        for key in (
+            "chapter_title",
+            "article_number",
+            "article_title",
+            "subchunk_index",
+            "section_title",
+            "heading_path",
+            "page_number",
+            "page_range",
+            "table_id",
+            "headers",
+            "row_start",
+            "row_end",
+        ):
             if key in text_chunk.metadata:
                 metadata[key] = text_chunk.metadata[key]
         return metadata
+
+    async def _get_primary_document_file(self, document_id: UUID):
+        getter = getattr(self._repository, "get_primary_document_file", None)
+        if getter is None:
+            return None
+        return await getter(document_id)
