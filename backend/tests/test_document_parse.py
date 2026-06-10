@@ -534,6 +534,65 @@ def test_pdf_parser_uses_pdfplumber_table_cells(monkeypatch) -> None:
     )
     assert "cell_1: Xay dung nen tang RAG tren du | cell_2: 2. Nguyen Quang Lam" not in parsed.text
 
+
+def test_pdf_parser_cleans_presentation_overlay_lines(monkeypatch) -> None:
+    class FakePage:
+        def extract_text(self):
+            return (
+                "\x00Quá trình triển khai\n"
+                "QQuuáá ttrrììnnhh ttrriiểểnn kkhhaaii\n"
+                "Công cụ chuyển đổi dữ liệu GIS 110kV\n"
+            )
+
+        def extract_tables(self, *, table_settings):
+            return [[
+                [
+                    "Nhóm, lớp dữ liệu Sổ tay bao gồm nhóm lớp",
+                    "",
+                    "01",
+                ]
+            ]]
+
+    class FakePdf:
+        pages = [FakePage()]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    fake_pdfplumber = SimpleNamespace(open=lambda _stream: FakePdf())
+    monkeypatch.setitem(sys.modules, "pdfplumber", fake_pdfplumber)
+    monkeypatch.setattr(
+        PdfParserImpl,
+        "_parse_with_pypdf",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("pypdf fallback not expected")),
+    )
+
+    parsed = PdfParserImpl().parse(b"%PDF-1.4 fake")
+
+    assert "\x00" not in parsed.text
+    assert "QQuuáá" not in parsed.text
+    assert parsed.text.count("Quá trình triển khai") == 1
+    assert "Công cụ chuyển đổi dữ liệu GIS 110kV" in parsed.text
+    assert "TABLE_ROW" not in parsed.text
+
+def test_pdf_parser_prefers_page_fallback_for_orphan_diacritics() -> None:
+    primary = "3. DEMO\n\u1ea3 \u01a1\nXin C m n"
+    fallback = "3. DEMO\nXin C\u1ea3m \u01a1n"
+
+    assert PdfParserImpl._choose_better_page_text(primary, fallback) == fallback
+
+def test_pdf_parser_keeps_primary_when_fallback_has_overlay_duplicates() -> None:
+    primary = "\u1ee8NG D\u1ee4NG TRONG EVNCPC\nC\u00e1c l\u1edbp d\u1eef li\u1ec7u"
+    fallback = (
+        "\u1ee8\u1ee8\u1ee8NG DNG DNG D\u1ee4\u1ee4\u1ee4NG TRONG EVNCPC"
+        "NG TRONG EVNCPCNG TRONG EVNCPC"
+    )
+
+    assert PdfParserImpl._choose_better_page_text(primary, fallback) == primary
+
 def test_pdf_parser_prefers_coherent_tables_over_fragmented_text_tables() -> None:
     coherent_table = [
         ["STT", "Mang cong nghe", "Phong", "Nhan su"],

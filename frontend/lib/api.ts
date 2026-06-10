@@ -159,6 +159,7 @@ export type DocumentDetailFile = {
   mime_type: string;
   storage_path: string;
   file_size: number;
+  download_url: string;
   created_at: string;
 };
 
@@ -525,6 +526,29 @@ export async function getDocumentDetail(
   return requestJson<DocumentDetailResponse>(`/api/documents/${documentId}`, {
     method: "GET",
   });
+}
+
+export async function downloadDocumentFile(file: DocumentDetailFile): Promise<void> {
+  const headers = new Headers();
+  const token = getStoredAccessToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${file.download_url}`, { headers });
+  if (!response.ok) {
+    throw new ApiError(response.status, await readErrorMessage(response));
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = file.filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(url);
 }
 
 export async function deleteDocument(

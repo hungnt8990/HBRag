@@ -81,6 +81,9 @@ POLICY_EXPLAINER_STYLE = (
 TABLE_QA_STYLE = (
     "Answer style: Table QA. "
     "You are a document QA assistant. Answer only from the provided context. "
+    "When the question asks for a list, all rows, who, total, amount, or complete "
+    "table coverage, list every TABLE_ROW present in ENTITY_MATCHED_ROWS or retrieved "
+    "context as separate records. "
     "When ENTITY_MATCHED_ROWS exists, use only ENTITY_MATCHED_ROWS for the main answer; "
     "TABLE_SUPPORT is only title/header/caption support, not a result list. "
     "When ENTITY_MATCHED_ROWS contains N rows, the main answer must have N bullet "
@@ -89,6 +92,8 @@ TABLE_QA_STYLE = (
     "When the question asks about an entity, find every TABLE_ROW containing that entity "
     "and answer from fields in the same row. "
     "Do not assume fixed column names. Use the original field labels from context. "
+    "Preserve proper names, addresses, dates, and money amounts exactly as written. "
+    "If a total row is present, state the total. "
     "Use TABLE_TITLE and TABLE_HEADER context when available to explain the row. "
     "If multiple rows contain the same entity, list all non-duplicate matching rows. "
     "For each row, prefer descriptive fields over ordinal-only fields. "
@@ -97,6 +102,7 @@ TABLE_QA_STYLE = (
     "Do not use a person's list number as the row's main ordinal field. "
     "Do not infer missing fields. "
     "Do not use legal/policy language if the document is not a legal/policy document. "
+    "Do not say detailed rows are unavailable when TABLE_ROW records are present. "
     "If there is not enough information, say so clearly. "
     "Answer in Vietnamese. Do not use foreign words when Vietnamese wording is available. "
     "Do not invent information."
@@ -118,6 +124,25 @@ SOURCE_FLAG_ALIASES = {
     "primary": "vector",
     "semantic": "vector",
 }
+TABLE_ENUMERATION_QUERY_PATTERNS = (
+    "danh sách",
+    "liệt kê",
+    "bao gồm",
+    "gồm những ai",
+    "có những ai",
+    "những hộ nào",
+    "các hộ",
+    "các cá nhân",
+    "tổng cộng",
+    "số tiền",
+    "bao nhiêu",
+    "list",
+    "all rows",
+    "who",
+    "total",
+    "amount",
+)
+TABLE_ENUMERATION_CONTEXT_CHAR_LIMIT = 20_000
 
 
 def system_prompt_for_mode(answer_mode: str | None) -> str:
@@ -511,6 +536,12 @@ class RagAnswerService:
         seen_tables: set[tuple[UUID, str]] = set()
         total_chars = sum(len(item.chunk.content) for item in context_chunks)
         query_terms = self._query_terms(query)
+        wants_full_table = self._is_table_enumeration_query(query)
+        context_char_limit = (
+            max(max_context_chars, TABLE_ENUMERATION_CONTEXT_CHAR_LIMIT)
+            if wants_full_table
+            else max_context_chars
+        )
 
         expanded = list(context_chunks)
         next_index = max((item.citation_index for item in context_chunks), default=0) + 1
@@ -540,7 +571,7 @@ class RagAnswerService:
                     if coverage_chunk.id in existing_ids:
                         continue
                     coverage_len = len(coverage_chunk.content or "")
-                    if total_chars + coverage_len > max_context_chars:
+                    if total_chars + coverage_len > context_char_limit:
                         return expanded
                     expanded.append(
                         ContextChunk(
@@ -572,16 +603,22 @@ class RagAnswerService:
                         )
                     except Exception:
                         neighbors = []
+                    neighbors = [
+                        neighbor
+                        for neighbor in neighbors
+                        if neighbor.document_id == document_id
+                    ]
 
                     relevant_neighbors = self._prioritize_table_neighbors(
                         neighbors=neighbors,
                         query_terms=query_terms,
+                        include_full_table=wants_full_table,
                     )
                     for neighbor in relevant_neighbors:
                         if neighbor.id in existing_ids:
                             continue
                         neighbor_len = len(neighbor.content or "")
-                        if total_chars + neighbor_len > max_context_chars:
+                        if total_chars + neighbor_len > context_char_limit:
                             return expanded
                         expanded.append(
                             ContextChunk(
@@ -620,7 +657,7 @@ class RagAnswerService:
                 if neighbor.id in existing_ids:
                     continue
                 neighbor_len = len(neighbor.content or "")
-                if total_chars + neighbor_len > max_context_chars:
+                if total_chars + neighbor_len > context_char_limit:
                     return expanded
                 expanded.append(
                     ContextChunk(
@@ -682,7 +719,11 @@ class RagAnswerService:
         *,
         neighbors: list[Chunk],
         query_terms: list[str],
+        include_full_table: bool = False,
     ) -> list[Chunk]:
+        if include_full_table:
+            return RagAnswerService._ordered_table_context_chunks(neighbors)
+
         if not query_terms:
             return neighbors
 
@@ -706,6 +747,33 @@ class RagAnswerService:
             seen_ids.add(chunk.id)
             ordered.append(chunk)
         return ordered or neighbors
+
+    @staticmethod
+    def _ordered_table_context_chunks(chunks: list[Chunk]) -> list[Chunk]:
+        title_chunks: list[Chunk] = []
+        header_chunks: list[Chunk] = []
+        row_chunks: list[Chunk] = []
+        block_chunks: list[Chunk] = []
+        other_chunks: list[Chunk] = []
+
+        for chunk in chunks:
+            metadata = chunk.chunk_metadata or {}
+            chunk_type = str(metadata.get("chunk_type") or "")
+            if chunk_type == "table_title":
+                title_chunks.append(chunk)
+            elif chunk_type == "table_header":
+                header_chunks.append(chunk)
+            elif chunk_type == "table_row":
+                row_chunks.append(chunk)
+            elif chunk_type == "table_block":
+                block_chunks.append(chunk)
+            elif chunk_type == "entity_summary":
+                continue
+            else:
+                other_chunks.append(chunk)
+
+        data_chunks = row_chunks if row_chunks else block_chunks
+        return [*title_chunks, *header_chunks, *data_chunks, *other_chunks]
 
     @staticmethod
     def _prioritize_entity_coverage_chunks(
@@ -802,9 +870,11 @@ class RagAnswerService:
             sections.append(f"Session Summary:\n{session_summary}")
 
         query_terms = RagAnswerService._query_terms(query)
+        include_all_table_rows = RagAnswerService._is_table_enumeration_query(query)
         matched_rows, table_support = RagAnswerService._table_context_sections(
             context_chunks=context_chunks,
             query_terms=query_terms,
+            include_all_table_rows=include_all_table_rows,
         )
 
         if matched_rows:
@@ -826,6 +896,7 @@ class RagAnswerService:
         *,
         context_chunks: list[ContextChunk],
         query_terms: list[str],
+        include_all_table_rows: bool = False,
     ) -> tuple[list[str], list[str]]:
         matched_rows: list[str] = []
         support: list[str] = []
@@ -841,9 +912,9 @@ class RagAnswerService:
             for line in RagAnswerService._table_context_lines(content):
                 normalized_line = line.casefold()
                 formatted = f"[{citation}] {line}"
-                if "table_row" in normalized_line and RagAnswerService._contains_any_query_term(
-                    line,
-                    query_terms,
+                if "table_row" in normalized_line and (
+                    include_all_table_rows
+                    or RagAnswerService._contains_any_query_term(line, query_terms)
                 ):
                     if formatted not in seen_rows:
                         seen_rows.add(formatted)
@@ -880,6 +951,11 @@ class RagAnswerService:
             return False
         normalized = text.casefold()
         return any(term.casefold() in normalized for term in query_terms)
+
+    @staticmethod
+    def _is_table_enumeration_query(query: str) -> bool:
+        normalized = " ".join(query.casefold().split())
+        return any(pattern in normalized for pattern in TABLE_ENUMERATION_QUERY_PATTERNS)
 
     @staticmethod
     def _session_title(query: str) -> str:

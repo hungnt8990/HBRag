@@ -1,7 +1,9 @@
 from typing import Annotated
+from urllib.parse import quote
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies.auth import get_current_user
@@ -746,6 +748,7 @@ async def get_document_detail(
                 storage_path=file.storage_path,
                 file_size=file.file_size,
                 created_at=file.created_at.isoformat(),
+                download_url=_document_file_download_url(document.id, file.id),
             )
             for file in document.files
         ],
@@ -797,6 +800,60 @@ async def get_document_detail(
             )
             for log in graph_logs
         ],
+    )
+
+
+@router.get("/{document_id}/files/{file_id}/download")
+async def download_document_file(
+    document_id: UUID,
+    file_id: UUID,
+    repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+    auth_repository: Annotated[AuthRepository, Depends(get_auth_repository)],
+    log_repository: Annotated[DocumentLogRepository, Depends(get_document_log_repository)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    storage: Annotated[StorageClient, Depends(get_storage_client)],
+) -> StreamingResponse:
+    document = await repository.get_document(document_id)
+    if document is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+
+    descendant_ids = await auth_repository.get_descendant_organization_ids(
+        current_user.organization_id
+    )
+    if not can_view_document(current_user, document, descendant_organization_ids=descendant_ids):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Document is not visible.",
+        )
+
+    document_file = next((file for file in document.files if file.id == file_id), None)
+    if document_file is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document file not found.",
+        )
+
+    try:
+        content = await storage.get_file(object_name=document_file.storage_path)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to load document file.",
+        ) from exc
+
+    await log_repository.create_access_log(
+        document_id=document.id,
+        user_id=current_user.id,
+        organization_id=current_user.organization_id,
+        action="download",
+        metadata={"file_id": str(document_file.id), "filename": document_file.filename},
+    )
+    await log_repository.commit()
+
+    return StreamingResponse(
+        iter([content]),
+        media_type=document_file.mime_type or "application/octet-stream",
+        headers={"Content-Disposition": _download_content_disposition(document_file.filename)},
     )
 
 
@@ -906,6 +963,15 @@ def _to_document_list_item_from_document(
         pipeline_logs_count=0,
         graph_indexed=False,
     )
+
+
+def _document_file_download_url(document_id: UUID, file_id: UUID) -> str:
+    return f"/api/documents/{document_id}/files/{file_id}/download"
+
+
+def _download_content_disposition(filename: str) -> str:
+    encoded_filename = quote(filename)
+    return f"attachment; filename*=UTF-8''{encoded_filename}"
 
 
 def _to_document_list_item_from_row(row) -> DocumentListItem:

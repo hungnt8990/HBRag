@@ -11,6 +11,7 @@ from app.api.routes.documents import (
     get_document_repository,
     get_document_service,
     get_graph_repository,
+    get_storage_client,
 )
 from app.main import app
 from app.repositories.documents import DocumentListRow
@@ -23,6 +24,7 @@ USER_ID = UUID("20000000-0000-0000-0000-000000000001")
 OTHER_USER_ID = UUID("20000000-0000-0000-0000-000000000002")
 DOCUMENT_ID = UUID("30000000-0000-0000-0000-000000000001")
 SECOND_DOCUMENT_ID = UUID("30000000-0000-0000-0000-000000000002")
+FILE_ID = UUID("40000000-0000-0000-0000-000000000001")
 
 
 def _user(*, role: str = "SUPER_ADMIN", organization_id: UUID = ORG_ID):
@@ -68,7 +70,7 @@ def _document(
         full_name="Test User",
     )
     file = SimpleNamespace(
-        id=UUID("40000000-0000-0000-0000-000000000001"),
+        id=FILE_ID,
         filename=filename,
         mime_type="application/pdf",
         storage_path=f"documents/{document_id}/{filename}",
@@ -238,6 +240,15 @@ class FakeGraphRepository:
         ]
 
 
+class FakeStorageClient:
+    def __init__(self) -> None:
+        self.object_names: list[str] = []
+
+    async def get_file(self, object_name: str) -> bytes:
+        self.object_names.append(object_name)
+        return b"%PDF-1.4 fake content"
+
+
 class FakeBatchDocumentService:
     def __init__(self) -> None:
         self.calls: list[str] = []
@@ -327,7 +338,40 @@ def test_document_detail_returns_logs_and_preview() -> None:
     assert payload["access_logs_summary"] == {"view": 4, "chat": 2}
     assert payload["graph_status"]["graph_indexed"] is True
     assert payload["files"][0]["filename"] == "labor-policy.pdf"
+    assert payload["files"][0]["download_url"] == (
+        f"/api/documents/{DOCUMENT_ID}/files/{FILE_ID}/download"
+    )
     assert log_repository.access_log_calls[0]["action"] == "view"
+
+
+def test_download_document_file_returns_file_and_logs_access() -> None:
+    repository = FakeDocumentRepository()
+    log_repository = FakeDocumentLogRepository()
+    storage = FakeStorageClient()
+    app.dependency_overrides[get_current_user] = lambda: _user()
+    app.dependency_overrides[get_auth_repository] = lambda: FakeAuthRepository()
+    app.dependency_overrides[get_document_repository] = lambda: repository
+    app.dependency_overrides[get_document_log_repository] = lambda: log_repository
+    app.dependency_overrides[get_storage_client] = lambda: storage
+
+    try:
+        client = TestClient(app)
+        response = client.get(f"/api/documents/{DOCUMENT_ID}/files/{FILE_ID}/download")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.content == b"%PDF-1.4 fake content"
+    assert response.headers["content-type"].startswith("application/pdf")
+    assert response.headers["content-disposition"] == (
+        "attachment; filename*=UTF-8''labor-policy.pdf"
+    )
+    assert storage.object_names == [f"documents/{DOCUMENT_ID}/labor-policy.pdf"]
+    assert log_repository.access_log_calls[0]["action"] == "download"
+    assert log_repository.access_log_calls[0]["metadata"] == {
+        "file_id": str(FILE_ID),
+        "filename": "labor-policy.pdf",
+    }
 
 
 def test_upload_batch_uploads_multiple_files_and_keeps_partial_failures() -> None:

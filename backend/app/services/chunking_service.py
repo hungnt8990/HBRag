@@ -13,7 +13,7 @@ from app.services.document_profiles import profile_config, resolve_profile
 DEFAULT_CHUNK_SIZE = settings.default_chunk_size
 DEFAULT_CHUNK_OVERLAP = settings.default_chunk_overlap
 CHUNK_PREVIEW_LIMIT = 2
-MIN_SPLIT_RATIO = 0.5
+MIN_SPLIT_RATIO = 0.85
 
 ChunkMode = Literal["recursive", "legal_article", "table_aware"]
 DEFAULT_CHUNK_MODE: ChunkMode = "recursive"

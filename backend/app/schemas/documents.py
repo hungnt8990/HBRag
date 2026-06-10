@@ -150,6 +150,7 @@ class DocumentFileResponse(BaseModel):
     storage_path: str
     file_size: int
     created_at: str
+    download_url: str
 
 
 class DocumentPipelineLogResponse(BaseModel):

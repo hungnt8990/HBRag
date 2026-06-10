@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Clock3,
   Database,
+  Download,
   FileSearch,
   GitBranch,
   Layers3,
@@ -51,6 +52,7 @@ import {
   createMemory,
   deleteDocument,
   deleteMemory,
+  downloadDocumentFile,
   enqueueIngestionJob,
   getDocumentDetail,
   getCurrentUser,
@@ -1300,12 +1302,27 @@ function DocumentDetailModal({
   open: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<"parse" | "chunk" | "embed">("parse");
+  const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
       setActiveTab("parse");
+      setDownloadError(null);
     }
   }, [open, document?.document_id]);
+
+  const handleDownloadFile = async (file: DocumentDetailResponse["files"][number]) => {
+    setDownloadingFileId(file.id);
+    setDownloadError(null);
+    try {
+      await downloadDocumentFile(file);
+    } catch (error) {
+      setDownloadError(getErrorMessage(error));
+    } finally {
+      setDownloadingFileId(null);
+    }
+  };
 
   if (!open) {
     return null;
@@ -1322,8 +1339,8 @@ function DocumentDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-6">
-      <div className="flex max-h-[90vh] w-full max-w-5xl flex-col rounded-xl bg-white shadow-xl">
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+      <div className="flex h-[90vh] w-full max-w-5xl flex-col rounded-xl bg-white shadow-xl">
+        <div className="shrink-0 flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="truncate text-lg font-semibold text-slate-900">
@@ -1356,7 +1373,7 @@ function DocumentDetailModal({
             <EmptyState message="Document detail is unavailable." />
           </div>
         ) : (
-          <div className="min-h-0 overflow-auto px-5 py-4">
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
             <dl className="mb-4 grid gap-3 text-xs text-slate-600 sm:grid-cols-2 lg:grid-cols-4">
               <QueueMetric label="Document id" value={compactId(document.document_id)} />
               <QueueMetric label="Parsed chars" value={document.parsed_character_count.toLocaleString()} />
@@ -1374,6 +1391,65 @@ function DocumentDetailModal({
               <QueueMetric label="Uploader" value={formatPerson(document.uploaded_by)} />
               <QueueMetric label="Updated" value={formatDateTime(document.updated_at)} />
             </dl>
+
+            <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Document files
+                </p>
+                <span className="text-xs text-slate-500">
+                  {document.files.length.toLocaleString()} file{document.files.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              {document.files.length === 0 ? (
+                <EmptyState message="No files are attached to this document." />
+              ) : (
+                <div className="space-y-3">
+                  {document.files.map((file) => {
+                    const downloadUrl = `${API_BASE_URL}${file.download_url}`;
+                    const isDownloading = downloadingFileId === file.id;
+                    return (
+                      <article
+                        className="rounded-lg border border-slate-200 bg-slate-50 p-3"
+                        key={file.id}
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-slate-800">
+                              {file.filename}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {file.mime_type || "application/octet-stream"} / {formatFileSize(file.file_size)}
+                            </p>
+                          </div>
+                          <Button
+                            className="h-9 shrink-0 border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+                            disabled={isDownloading}
+                            onClick={() => void handleDownloadFile(file)}
+                            title="Download file"
+                            type="button"
+                            variant="outline"
+                          >
+                            {isDownloading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
+                            Download
+                          </Button>
+                        </div>
+                        <p className="mt-3 break-all rounded-md bg-white px-3 py-2 font-mono text-xs text-slate-600">
+                          {downloadUrl}
+                        </p>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+              {downloadError ? (
+                <p className="mt-3 text-sm text-rose-700">{downloadError}</p>
+              ) : null}
+            </div>
 
             <div className="mb-4 inline-flex rounded-lg bg-slate-100 p-1">
               {tabs.map((tab) => {
@@ -1403,7 +1479,7 @@ function DocumentDetailModal({
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
                     Parsed text preview
                   </p>
-                  <pre className="max-h-96 whitespace-pre-wrap rounded-lg bg-slate-950 p-4 text-sm leading-6 text-slate-100">
+                  <pre className="max-h-[52vh] overflow-auto whitespace-pre-wrap rounded-lg bg-slate-950 p-4 text-sm leading-6 text-slate-100">
                     {document.preview_text || "No parsed text available."}
                   </pre>
                 </div>
@@ -2720,6 +2796,23 @@ function formatDateTime(value: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function formatFileSize(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes < 0) {
+    return "--";
+  }
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  const units = ["KB", "MB", "GB", "TB"];
+  let size = bytes / 1024;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+  return `${size.toFixed(size >= 10 ? 1 : 2)} ${units[unitIndex]}`;
 }
 
 function compactId(id: string): string {

@@ -95,6 +95,15 @@ def test_chunker_ignores_split_boundary_inside_overlap() -> None:
     assert chunks[1].end_char - chunks[1].start_char > 500
     assert chunks[1].content != "\n\n"
 
+def test_chunker_avoids_early_split_boundary() -> None:
+    chunker = RecursiveTextChunker(chunk_size=1000, chunk_overlap=150)
+    text = f"{'a' * 560}\n\n{'b' * 700}"
+
+    chunks = chunker.chunk_text(text)
+
+    assert chunks[0].end_char == 1000
+    assert chunks[1].start_char == 850
+
 
 def test_chunk_endpoint_rejects_unparsed_document() -> None:
     repository = FakeDocumentRepository(status="uploaded", parsed_text="content")
