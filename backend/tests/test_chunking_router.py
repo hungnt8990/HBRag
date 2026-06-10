@@ -41,7 +41,71 @@ def test_router_selects_table_aware_when_table_element_exists() -> None:
     )
 
     assert plan.strategy == "table_aware"
-    assert plan.reason == "parsed_table_elements"
+    assert plan.reason == "parsed_table_elements_only"
+
+def test_router_selects_hybrid_when_prose_and_table_elements_exist() -> None:
+    plan = ChunkingRouter().plan(
+        ChunkingRequest(
+            filename="report.pdf",
+            mime_type="application/pdf",
+            parsed_text=(
+                "3. Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
+                "Mục tiêu: Khai thác tri thức nội bộ.\n"
+                "STT: 3\nNhân sự đề xuất: Nguyễn Trọng Hùng"
+            ),
+            parsed_elements=[
+                ParsedElement(
+                    element_type="heading",
+                    text="3. Xây dựng nền tảng RAG trên dữ liệu nội bộ",
+                    section_title="3. Xây dựng nền tảng RAG trên dữ liệu nội bộ",
+                    heading_path=["3. Xây dựng nền tảng RAG trên dữ liệu nội bộ"],
+                ),
+                ParsedElement(
+                    element_type="paragraph",
+                    text="Mục tiêu: Khai thác tri thức nội bộ.",
+                    section_title="3. Xây dựng nền tảng RAG trên dữ liệu nội bộ",
+                    heading_path=["3. Xây dựng nền tảng RAG trên dữ liệu nội bộ"],
+                ),
+                ParsedElement(
+                    element_type="table_row",
+                    text="STT: 3\nNhân sự đề xuất: Nguyễn Trọng Hùng",
+                    table_id="staff_table",
+                    row_index=3,
+                ),
+            ],
+        )
+    )
+
+    assert plan.strategy == "hybrid_structured"
+    assert plan.reason == "mixed_prose_and_table_elements"
+
+def test_router_keeps_table_aware_when_page_only_contains_staff_table() -> None:
+    table_text = (
+        "DANH SÁCH NHÂN SỰ PHỤ TRÁCH TỪNG MẢNG CÔNG NGHỆ LÕI\n"
+        "STT Mảng công nghệ Phòng chủ trì Nhân sự đề xuất\n"
+        "3 Xây dựng nền tảng RAG trên dữ liệu nội bộ PTUD "
+        "1. Nguyễn Trọng Hùng\n"
+    )
+    plan = ChunkingRouter().plan(
+        ChunkingRequest(
+            filename="report.pdf",
+            mime_type="application/pdf",
+            parsed_text=table_text,
+            parsed_elements=[
+                ParsedElement(element_type="page", text=table_text, page_number=5),
+                ParsedElement(
+                    element_type="table_row",
+                    text="STT: 3\nNhân sự đề xuất: Nguyễn Trọng Hùng",
+                    page_number=5,
+                    table_id="staff_table",
+                    row_index=3,
+                ),
+            ],
+        )
+    )
+
+    assert plan.strategy == "table_aware"
+    assert plan.reason == "parsed_table_elements_only"
 
 def test_router_selects_slide_page_when_page_elements_exist() -> None:
     plan = ChunkingRouter().plan(

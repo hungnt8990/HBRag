@@ -13,6 +13,7 @@ ChunkStrategy = Literal[
     "recursive",
     "legal_article",
     "table_aware",
+    "hybrid_structured",
     "slide_page",
     "heading_aware",
     "semantic",
@@ -23,6 +24,12 @@ ChunkStrategy = Literal[
 HEADING_PATTERN = re.compile(r"^(#{1,6}\s+.+|[A-Z0-9][^.?!\n]{2,80})$", re.MULTILINE)
 LEGAL_PATTERN = re.compile(r"(?mi)^\s*(Điều\s+\d+|CHƯƠNG\s+([IVXLCDM]+|\d+))\b")
 CODE_EXTENSIONS = {".py", ".ts", ".tsx", ".js", ".jsx", ".cs", ".java", ".go"}
+TABLE_REGION_MARKERS = (
+    "DANH SÁCH NHÂN SỰ",
+    "DANH SACH NHAN SU",
+    "STT Mảng công nghệ",
+    "STT Mang cong nghe",
+)
 
 
 @dataclass(frozen=True)
@@ -80,7 +87,7 @@ class ChunkingRouter:
                 chunk_overlap=chunk_overlap,
                 reason=reason,
                 metadata_required=self._metadata_for_strategy(strategy),
-                use_elements=strategy in {"heading_aware", "slide_page"},
+                use_elements=strategy in {"heading_aware", "hybrid_structured", "slide_page"},
                 document_profile=profile,
                 chunk_mode=strategy if strategy != "fallback" else "recursive",
             )
@@ -93,7 +100,7 @@ class ChunkingRouter:
             chunk_overlap=chunk_overlap,
             reason=reason,
             metadata_required=self._metadata_for_strategy(strategy),
-            use_elements=strategy in {"heading_aware", "slide_page"},
+            use_elements=strategy in {"heading_aware", "hybrid_structured", "slide_page"},
             document_profile=profile,
             chunk_mode=strategy if strategy != "fallback" else "recursive",
         )
@@ -104,7 +111,9 @@ class ChunkingRouter:
         profile_chunk_mode: str,
     ) -> tuple[ChunkStrategy, str]:
         if self._has_table_elements(request.parsed_elements):
-            return "table_aware", "parsed_table_elements"
+            if self._has_prose_elements(request.parsed_elements):
+                return "hybrid_structured", "mixed_prose_and_table_elements"
+            return "table_aware", "parsed_table_elements_only"
         if looks_like_staff_area_table(request.parsed_text):
             return "table_aware", "staff_area_table_markers"
         if self._looks_like_slide_document(request.parsed_elements):
@@ -136,6 +145,7 @@ class ChunkingRouter:
             "recursive",
             "legal_article",
             "table_aware",
+            "hybrid_structured",
             "slide_page",
             "heading_aware",
             "semantic",
@@ -159,7 +169,7 @@ class ChunkingRouter:
     @staticmethod
     def _metadata_for_strategy(strategy: ChunkStrategy) -> tuple[str, ...]:
         common = ("chunk_strategy", "router_reason", "document_profile")
-        if strategy == "table_aware":
+        if strategy in {"hybrid_structured", "table_aware"}:
             return (*common, "chunk_type", "table_id", "headers")
         if strategy == "legal_article":
             return (*common, "article_number", "article_title", "chapter_title")
@@ -190,6 +200,41 @@ class ChunkingRouter:
     @staticmethod
     def _has_table_elements(elements: list[ParsedElement]) -> bool:
         return any(element.element_type in {"table", "table_row"} for element in elements)
+
+    @staticmethod
+    def _has_prose_elements(elements: list[ParsedElement]) -> bool:
+        prose_types = {"title", "heading", "paragraph", "list_item", "code"}
+        if any(
+            element.element_type in prose_types and element.text.strip()
+            for element in elements
+        ):
+            return True
+        return any(
+            element.element_type == "page"
+            and ChunkingRouter._page_has_prose_outside_table(element.text)
+            for element in elements
+        )
+
+    @staticmethod
+    def _page_has_prose_outside_table(text: str) -> bool:
+        prose_text = ChunkingRouter._strip_table_region_from_prose(text)
+        if not prose_text:
+            return False
+        if "TABLE_ROW " in prose_text or ChunkingRouter._looks_like_pipe_table(prose_text):
+            return False
+        return bool(HEADING_PATTERN.search(prose_text[:2000])) or len(prose_text.split()) >= 8
+
+    @staticmethod
+    def _strip_table_region_from_prose(text: str) -> str:
+        normalized = text.casefold()
+        candidates = [
+            normalized.find(marker.casefold())
+            for marker in TABLE_REGION_MARKERS
+            if marker.casefold() in normalized
+        ]
+        if not candidates:
+            return text.strip()
+        return text[: min(candidates)].strip()
 
     @staticmethod
     def _has_page_elements(elements: list[ParsedElement]) -> bool:

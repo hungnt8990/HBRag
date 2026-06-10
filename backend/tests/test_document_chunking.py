@@ -553,3 +553,99 @@ def test_chunking_service_creates_person_entity_profile_chunks() -> None:
         area["area"] == "Xây dựng nền tảng RAG trên dữ liệu nội bộ"
         for area in profile.metadata["areas"]
     )
+
+def test_chunking_service_keeps_prose_when_document_also_has_table_rows() -> None:
+    heading = "3. Xây dựng nền tảng RAG trên dữ liệu nội bộ"
+    prose = "Mục tiêu: Khai thác tri thức nội bộ phục vụ hỏi đáp và tìm kiếm."
+    row_element = ParsedElement(
+        element_type="table_row",
+        text=(
+            "STT: 3\n"
+            "Mảng công nghệ: Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
+            "Phòng chủ trì: PTUD\n"
+            "Nhân sự đề xuất: Nguyễn Trọng Hùng"
+        ),
+        page_number=5,
+        table_id="pdf_p5_staff_text",
+        row_index=3,
+        metadata={
+            "stt": "3",
+            "area": "Xây dựng nền tảng RAG trên dữ liệu nội bộ",
+            "lead_department": "PTUD",
+            "staff_names": ["Nguyễn Trọng Hùng"],
+            "staff": [{"name": "Nguyễn Trọng Hùng", "role_note": None}],
+            "source_table": "Danh sách nhân sự phụ trách từng mảng công nghệ lõi",
+            "relationship_type": "technology_area_staff",
+            "confidence": 0.85,
+        },
+    )
+    elements = [
+        ParsedElement(
+            element_type="heading",
+            text=heading,
+            page_number=3,
+            section_title=heading,
+            heading_path=[heading],
+        ),
+        ParsedElement(
+            element_type="paragraph",
+            text=prose,
+            page_number=3,
+            section_title=heading,
+            heading_path=[heading],
+        ),
+        row_element,
+    ]
+    repository = FakeDocumentRepository(
+        status="parsed",
+        parsed_text=f"{heading}\n\n{prose}\n\n{row_element.text}",
+        document_metadata={
+            "parser": "fixture",
+            "parsed_elements": [parsed_element_to_dict(element) for element in elements],
+        },
+    )
+    app.dependency_overrides[get_document_repository] = lambda: repository
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            f"/api/documents/{DOCUMENT_ID}/chunk",
+            json={"chunk_size": 1000, "chunk_overlap": 0},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert repository.deleted_chunks is True
+    prose_chunk = next(
+        chunk
+        for chunk in repository.created_chunks
+        if chunk.metadata["chunk_type"] in {"heading_section", "heading_section_part"}
+    )
+    assert prose in prose_chunk.content
+    assert prose_chunk.metadata["chunk_strategy"] == "hybrid_structured"
+    assert prose_chunk.metadata["section_title"] == heading
+    assert prose_chunk.metadata["page_number"] == 3
+    assert prose_chunk.metadata["page_range"] == [3, 3]
+
+    table_row = next(
+        chunk
+        for chunk in repository.created_chunks
+        if chunk.metadata["chunk_type"] == "table_row"
+    )
+    assert table_row.metadata["stt"] == "3"
+    assert "Nguyễn Trọng Hùng" in table_row.content
+    assert "Nguyễn Trọng Hùng" in table_row.metadata["staff_names"]
+    assert table_row.metadata["area"] == heading.removeprefix("3. ")
+
+    profile = next(
+        chunk
+        for chunk in repository.created_chunks
+        if chunk.metadata["chunk_type"] == "entity_profile"
+    )
+    assert profile.metadata["person_name"] == "Nguyễn Trọng Hùng"
+    assert any(
+        area["area"] == "Xây dựng nền tảng RAG trên dữ liệu nội bộ"
+        for area in profile.metadata["areas"]
+    )
+    assert profile.metadata["chunk_strategy"] == "hybrid_structured"

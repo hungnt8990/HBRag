@@ -18,6 +18,7 @@ ChunkMode = Literal[
     "recursive",
     "legal_article",
     "table_aware",
+    "hybrid_structured",
     "slide_page",
     "heading_aware",
     "semantic",
@@ -331,7 +332,37 @@ class ChunkingService:
             "source_file": getattr(document_file, "filename", None),
         }
 
-        if plan.strategy == "table_aware" and self._has_table_elements(parsed_elements):
+        if plan.strategy == "hybrid_structured":
+            raw_chunks = self._chunks_from_hybrid_elements(
+                parsed_elements,
+                document.parsed_text,
+                chunk_size=resolved_size,
+                chunk_overlap=resolved_overlap,
+            )
+            chunk_records = [
+                ChunkCreate(
+                    chunk_index=index,
+                    content=chunk_dict["content"],
+                    metadata={
+                        **chunk_dict.get("metadata", {}),
+                        "chunk_size": resolved_size,
+                        "chunk_overlap": resolved_overlap,
+                        "chunk_mode": mode,
+                        **router_metadata,
+                        "document_profile": effective_profile,
+                    },
+                )
+                for index, chunk_dict in enumerate(raw_chunks)
+            ]
+            text_chunks_for_preview = [
+                TextChunk(
+                    content=c["content"],
+                    start_char=c.get("metadata", {}).get("start_char", 0),
+                    end_char=c.get("metadata", {}).get("end_char", 0),
+                )
+                for c in raw_chunks[:CHUNK_PREVIEW_LIMIT]
+            ]
+        elif plan.strategy == "table_aware" and self._has_table_elements(parsed_elements):
             raw_chunks = self._chunks_from_table_elements(parsed_elements)
             from app.services.table_relationships import build_entity_profile_chunks
 
@@ -368,11 +399,6 @@ class ChunkingService:
                 document.parsed_text,
                 chunk_size=resolved_size,
                 chunk_overlap=resolved_overlap,
-            )
-            from app.services.table_relationships import build_entity_profile_chunks
-
-            raw_chunks.extend(
-                build_entity_profile_chunks(raw_chunks, start_index=len(raw_chunks))
             )
             chunk_records = [
                 ChunkCreate(
@@ -575,6 +601,170 @@ class ChunkingService:
             getattr(element, "element_type", None) in {"table", "table_row"}
             for element in parsed_elements
         )
+
+    @staticmethod
+    def _chunks_from_hybrid_elements(
+        parsed_elements: list,
+        parsed_text: str,
+        *,
+        chunk_size: int,
+        chunk_overlap: int,
+    ) -> list[dict[str, Any]]:
+        from app.services.table_relationships import build_entity_profile_chunks
+
+        prose_chunks = ChunkingService._chunks_from_prose_elements(
+            parsed_elements,
+            parsed_text,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+        )
+        table_chunks = ChunkingService._chunks_from_table_elements(parsed_elements)
+        entity_profile_chunks = build_entity_profile_chunks(
+            table_chunks,
+            start_index=len(prose_chunks) + len(table_chunks),
+        )
+        chunks = [*prose_chunks, *table_chunks, *entity_profile_chunks]
+        for index, chunk in enumerate(chunks):
+            chunk["chunk_index"] = index
+        return chunks
+
+    @staticmethod
+    def _chunks_from_prose_elements(
+        parsed_elements: list,
+        parsed_text: str,
+        *,
+        chunk_size: int,
+        chunk_overlap: int,
+    ) -> list[dict[str, Any]]:
+        from app.services.chunking_router import HeadingAwareChunker
+
+        prose_types = {"title", "heading", "paragraph", "list_item", "code"}
+        explicit_prose = [
+            element
+            for element in parsed_elements
+            if getattr(element, "element_type", None) in prose_types
+            and getattr(element, "text", "").strip()
+        ]
+        chunker = HeadingAwareChunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        if explicit_prose:
+            fallback_text = "\n\n".join(element.text.strip() for element in explicit_prose)
+            text_chunks = chunker.chunk_elements(explicit_prose, fallback_text)
+            if not text_chunks:
+                text_chunks = chunker.chunk_text(fallback_text)
+            section_pages = ChunkingService._section_pages_from_prose_elements(
+                explicit_prose
+            )
+            return ChunkingService._raw_chunks_from_text_chunks(
+                text_chunks,
+                section_pages=section_pages,
+            )
+
+        page_elements = [
+            element
+            for element in parsed_elements
+            if getattr(element, "element_type", None) == "page"
+            and getattr(element, "text", "").strip()
+        ]
+        chunks: list[dict[str, Any]] = []
+        if page_elements:
+            for page_element in page_elements:
+                page_text = ChunkingService._strip_table_region_from_prose(
+                    page_element.text
+                )
+                if not page_text.strip():
+                    continue
+                for text_chunk in chunker.chunk_text(page_text):
+                    metadata = dict(text_chunk.metadata)
+                    page_number = getattr(page_element, "page_number", None)
+                    if page_number is not None:
+                        metadata["page_number"] = page_number
+                        metadata["page_range"] = [page_number, page_number]
+                    chunks.append(
+                        {
+                            "content": text_chunk.content,
+                            "metadata": {
+                                **metadata,
+                                "start_char": text_chunk.start_char,
+                                "end_char": text_chunk.end_char,
+                            },
+                        }
+                    )
+            return chunks
+
+        prose_text = ChunkingService._strip_table_region_from_prose(parsed_text)
+        return ChunkingService._raw_chunks_from_text_chunks(chunker.chunk_text(prose_text))
+
+    @staticmethod
+    def _raw_chunks_from_text_chunks(
+        text_chunks: list[Any],
+        *,
+        section_pages: dict[str, list[int]] | None = None,
+    ) -> list[dict[str, Any]]:
+        chunks: list[dict[str, Any]] = []
+        for text_chunk in text_chunks:
+            metadata = dict(text_chunk.metadata)
+            section_key = metadata.get("section_title")
+            pages = section_pages.get(section_key, []) if section_pages else []
+            if pages:
+                metadata["page_number"] = pages[0]
+                metadata["page_range"] = [pages[0], pages[-1]]
+            chunks.append(
+                {
+                    "content": text_chunk.content,
+                    "metadata": {
+                        **metadata,
+                        "start_char": text_chunk.start_char,
+                        "end_char": text_chunk.end_char,
+                    },
+                }
+            )
+        return chunks
+
+    @staticmethod
+    def _section_pages_from_prose_elements(elements: list) -> dict[str, list[int]]:
+        pages_by_section: dict[str, set[int]] = {}
+        for element in elements:
+            page_number = getattr(element, "page_number", None)
+            if page_number is None:
+                continue
+            section_key = ChunkingService._section_key_from_prose_element(element)
+            if not section_key:
+                continue
+            pages_by_section.setdefault(section_key, set()).add(int(page_number))
+        return {
+            section_key: sorted(page_numbers)
+            for section_key, page_numbers in pages_by_section.items()
+        }
+
+    @staticmethod
+    def _section_key_from_prose_element(element: Any) -> str | None:
+        section_title = getattr(element, "section_title", None)
+        if section_title:
+            return str(section_title)
+        heading_path = getattr(element, "heading_path", None) or []
+        if heading_path:
+            return str(heading_path[-1])
+        if getattr(element, "element_type", None) in {"title", "heading"}:
+            text = getattr(element, "text", "").strip()
+            return text or None
+        return None
+
+    @staticmethod
+    def _strip_table_region_from_prose(text: str) -> str:
+        table_markers = (
+            "DANH SÁCH NHÂN SỰ",
+            "DANH SACH NHAN SU",
+            "STT Mảng công nghệ",
+            "STT Mang cong nghe",
+        )
+        candidates = [
+            text.casefold().find(marker.casefold())
+            for marker in table_markers
+            if marker.casefold() in text.casefold()
+        ]
+        if not candidates:
+            return text.strip()
+        return text[: min(candidates)].strip()
 
     @staticmethod
     def _chunks_from_table_elements(parsed_elements: list) -> list[dict[str, Any]]:
