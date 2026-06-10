@@ -49,7 +49,11 @@ def slide_aware_chunk_text(
             continue
 
         next_text = _join_blocks(current_text, rendered)
-        should_flush = bool(current_blocks) and len(next_text) > chunk_size and len(current_text) >= int(chunk_size * MIN_SPLIT_RATIO)
+        should_flush = (
+            bool(current_blocks)
+            and len(next_text) > chunk_size
+            and len(current_text) >= int(chunk_size * MIN_SPLIT_RATIO)
+        )
         if should_flush:
             chunks.append(_make_slide_chunk(current_blocks, current_text, len(chunks)))
             overlap_text = _tail_overlap(current_text, chunk_overlap)
@@ -65,7 +69,10 @@ def slide_aware_chunk_text(
             head = current_text[:split_at].strip()
             if head:
                 chunks.append(_make_slide_chunk(current_blocks, head, len(chunks)))
-            current_text = _join_blocks(_tail_overlap(head, chunk_overlap), current_text[split_at:].strip())
+            current_text = _join_blocks(
+                _tail_overlap(head, chunk_overlap),
+                current_text[split_at:].strip(),
+            )
 
     if current_text.strip():
         chunks.append(_make_slide_chunk(current_blocks, current_text.strip(), len(chunks)))
@@ -81,7 +88,15 @@ def split_slide_blocks(text: str) -> list[SlideBlock]:
         normalized = normalize_presentation_text(text)
         if not normalized:
             return []
-        return [SlideBlock(page_number=None, title=_infer_title(normalized), content=normalized, start_char=0, end_char=len(text))]
+        return [
+            SlideBlock(
+                page_number=None,
+                title=_infer_title(normalized),
+                content=normalized,
+                start_char=0,
+                end_char=len(text),
+            )
+        ]
 
     slides: list[SlideBlock] = []
     for index, match in enumerate(matches):
@@ -239,3 +254,34 @@ def _chunk_plain_text(
                     "chunk_index": len(chunks),
                     "content": content,
                     "metadata": {
+                        "chunk_type": "text",
+                        "chunk_mode": "slide_aware",
+                        "start_char": start,
+                        "end_char": absolute_end,
+                    },
+                }
+            )
+        if absolute_end >= len(text):
+            break
+        start = max(absolute_end - chunk_overlap, start + 1)
+    return chunks
+
+
+def _find_split_boundary(text: str, chunk_size: int) -> int:
+    if len(text) <= chunk_size:
+        return len(text)
+
+    minimum = int(chunk_size * MIN_SPLIT_RATIO)
+    for separator in ("\n\n", "\n", ". ", " "):
+        split_at = text.rfind(separator, 0, chunk_size)
+        if split_at >= minimum:
+            return split_at + len(separator)
+    return chunk_size
+
+
+def _tail_overlap(text: str, chunk_overlap: int) -> str:
+    if chunk_overlap <= 0:
+        return ""
+    if len(text) <= chunk_overlap:
+        return text.strip()
+    return text[-chunk_overlap:].strip()

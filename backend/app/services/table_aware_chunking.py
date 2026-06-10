@@ -11,6 +11,11 @@ from app.services.parsers.table_serialization import (
     build_table_title_record,
     infer_headers,
 )
+from app.services.table_relationships import (
+    build_entity_profile_chunks,
+    parse_technology_area_rows_from_text,
+    row_to_chunk,
+)
 
 _PIPE_LINE = re.compile(r"^[^|]+(?:\|[^|]+){1,}$")
 _TABLE_TITLE_LINE = re.compile(
@@ -841,6 +846,15 @@ def table_aware_chunk_text(
     all_chunks: list[dict[str, Any]] = []
     table_regions: list[tuple[int, int]] = []
 
+    relationship_rows = parse_technology_area_rows_from_text(
+        text,
+        table_id="staff_area_text",
+    )
+    if relationship_rows:
+        all_chunks.extend(
+            row_to_chunk(row, chunk_index=len(all_chunks)) for row in relationship_rows
+        )
+
     for table in tables:
         supporting_chunks = table_to_supporting_chunks(
             table,
@@ -888,6 +902,9 @@ def table_aware_chunk_text(
         if chunk.get("metadata", {}).get("chunk_type") == "table_row"
     ]
     entity_index = build_entity_index(row_chunks)
+    entity_profiles = build_entity_profile_chunks(row_chunks, start_index=len(all_chunks))
+    all_chunks.extend(entity_profiles)
+
     summaries = generate_entity_summary_chunks(
         row_chunks,
         entity_index,

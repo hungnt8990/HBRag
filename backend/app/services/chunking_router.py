@@ -7,6 +7,7 @@ from typing import Any, Literal
 from app.core.config import settings
 from app.services.document_profiles import profile_config, resolve_profile
 from app.services.parsers import ParsedElement
+from app.services.table_relationships import looks_like_staff_area_table
 
 ChunkStrategy = Literal[
     "recursive",
@@ -102,19 +103,21 @@ class ChunkingRouter:
         request: ChunkingRequest,
         profile_chunk_mode: str,
     ) -> tuple[ChunkStrategy, str]:
-        if self._is_code_file(request.filename):
-            return "fallback", "code_chunker_unavailable"
         if self._has_table_elements(request.parsed_elements):
             return "table_aware", "parsed_table_elements"
-        if "TABLE_ROW " in request.parsed_text or self._looks_like_pipe_table(request.parsed_text):
-            return "table_aware", "table_markers_or_pipe_table"
-        if LEGAL_PATTERN.search(request.parsed_text):
-            return "legal_article", "vietnamese_legal_markers"
+        if looks_like_staff_area_table(request.parsed_text):
+            return "table_aware", "staff_area_table_markers"
         if self._looks_like_slide_document(request.parsed_elements):
             return "slide_page", "parsed_slide_or_page_elements"
-        if self._has_heading_elements(request.parsed_elements) or self._looks_heading_aware(
-            request.parsed_text
-        ):
+        if self._has_heading_elements(request.parsed_elements):
+            return "heading_aware", "parsed_heading_elements"
+        if self._is_code_file(request.filename):
+            return "fallback", "code_chunker_unavailable"
+        if LEGAL_PATTERN.search(request.parsed_text):
+            return "legal_article", "vietnamese_legal_markers"
+        if "TABLE_ROW " in request.parsed_text or self._looks_like_pipe_table(request.parsed_text):
+            return "table_aware", "table_markers_or_pipe_table"
+        if self._looks_heading_aware(request.parsed_text):
             return "heading_aware", "heading_structure_detected"
         if profile_chunk_mode == "semantic":
             if settings.enable_semantic_chunking:
@@ -150,7 +153,7 @@ class ChunkingRouter:
         if chunk_mode == "slide_page" and not ChunkingRouter._has_page_elements(
             request.parsed_elements
         ):
-            return "fallback", "no page/slide elements available"
+            return "fallback", "no_page_or_slide_elements_available"
         return chunk_mode, "requested_chunk_mode"  # type: ignore[return-value]
 
     @staticmethod
@@ -255,6 +258,92 @@ class HeadingAwareChunker:
                     )
                 )
         return chunks
+
+    def chunk_elements(
+        self,
+        elements: list[ParsedElement],
+        fallback_text: str,
+    ) -> list[RoutedTextChunk]:
+        sections = self._sections_from_elements(elements)
+        if not sections:
+            return self.chunk_text(fallback_text)
+
+        chunks: list[RoutedTextChunk] = []
+        cursor = 0
+        for section in sections:
+            content = "\n\n".join(part for part in section["parts"] if part.strip()).strip()
+            if not content:
+                continue
+            start = fallback_text.find(content, cursor)
+            if start < 0:
+                start = cursor
+            end = start + len(content)
+            cursor = end
+            section_metadata = {
+                "section_title": section["section_title"],
+                "heading_path": section["heading_path"],
+            }
+            if len(content) <= self.chunk_size:
+                chunks.append(
+                    RoutedTextChunk(
+                        content=content,
+                        start_char=start,
+                        end_char=end,
+                        metadata={"chunk_type": "heading_section", **section_metadata},
+                    )
+                )
+                continue
+
+            sub_chunks = self._split_long_section(content)
+            part_total = len(sub_chunks)
+            for part_index, sub_chunk in enumerate(sub_chunks):
+                chunks.append(
+                    RoutedTextChunk(
+                        content=sub_chunk.content,
+                        start_char=start + sub_chunk.start_char,
+                        end_char=start + sub_chunk.end_char,
+                        metadata={
+                            "chunk_type": "heading_section_part",
+                            "part_index": part_index,
+                            "part_total": part_total,
+                            **section_metadata,
+                        },
+                    )
+                )
+        return chunks
+
+    @staticmethod
+    def _sections_from_elements(elements: list[ParsedElement]) -> list[dict[str, Any]]:
+        sections: list[dict[str, Any]] = []
+        current: dict[str, Any] | None = None
+
+        for element in elements:
+            if element.element_type in {"title", "heading"}:
+                current = {
+                    "section_title": element.section_title or element.text,
+                    "heading_path": element.heading_path or [element.text],
+                    "parts": [element.text],
+                }
+                sections.append(current)
+                continue
+            if element.element_type not in {"paragraph", "list_item", "code", "table"}:
+                continue
+            if current is None:
+                heading_path = element.heading_path or []
+                section_title = element.section_title or (
+                    heading_path[-1] if heading_path else None
+                )
+                if not section_title:
+                    continue
+                current = {
+                    "section_title": section_title,
+                    "heading_path": heading_path or [section_title],
+                    "parts": [],
+                }
+                sections.append(current)
+            current["parts"].append(element.text)
+
+        return sections
 
     def _split_long_section(self, text: str) -> list[RoutedTextChunk]:
         chunks: list[RoutedTextChunk] = []

@@ -10,11 +10,14 @@ from app.main import app
 from app.services.document_parser_service import DocumentParserService
 from app.services.parsers import (
     DocumentParser,
+    DocxParser,
     MarkdownParser,
     ParsedDocument,
     ParsedElement,
     PdfParser,
     TextParser,
+    parsed_element_from_dict,
+    parsed_element_to_dict,
 )
 from app.services.parsers.pdf_parser import PdfParser as PdfParserImpl
 
@@ -264,6 +267,57 @@ def test_parse_document_stores_structured_parse_metadata() -> None:
     assert repository.document.document_metadata["parsed_metadata"] == {"source": "fixture"}
     assert repository.document.document_metadata["parsed_elements"][0]["element_type"] == "heading"
 
+def test_parsed_element_dict_roundtrip_omits_empty_fields() -> None:
+    element = ParsedElement(
+        element_type="heading",
+        text="Section A",
+        page_number=2,
+        section_title="Section A",
+        heading_path=["Section A"],
+        metadata={"level": 1},
+    )
+
+    payload = parsed_element_to_dict(element)
+    restored = parsed_element_from_dict(payload)
+
+    assert payload == {
+        "element_type": "heading",
+        "text": "Section A",
+        "page_number": 2,
+        "section_title": "Section A",
+        "heading_path": ["Section A"],
+        "metadata": {"level": 1},
+    }
+    assert restored == element
+
+def test_markdown_parser_emits_heading_elements() -> None:
+    parsed = MarkdownParser().parse(b"# Overview\n\nSome notes")
+
+    assert parsed.metadata["parser"] == "builtin_markdown"
+    assert parsed.elements[0].element_type == "heading"
+    assert parsed.elements[0].heading_path == ["Overview"]
+    assert parsed.elements[1].section_title == "Overview"
+
+def test_docx_parser_emits_heading_path_for_paragraphs() -> None:
+    from io import BytesIO
+
+    from docx import Document
+
+    doc = Document()
+    doc.add_heading("Overview", level=1)
+    doc.add_paragraph("Alpha content.")
+    buffer = BytesIO()
+    doc.save(buffer)
+
+    parsed = DocxParser().parse(buffer.getvalue())
+
+    heading = parsed.elements[0]
+    paragraph = parsed.elements[1]
+    assert heading.element_type == "heading"
+    assert heading.heading_path == ["Overview"]
+    assert paragraph.section_title == "Overview"
+    assert paragraph.heading_path == ["Overview"]
+
 
 def _build_docx_with_tables(target_chars: int) -> bytes:
     from io import BytesIO
@@ -379,6 +433,9 @@ def test_parse_pdf_serializes_detected_tables(monkeypatch) -> None:
     assert "TABLE_ROW table_id=pdf_p1_1 page=1 row=1" in parsed.text
     assert "Name: Nguyen Quang Lam" in parsed.text
     assert "Area: Infrastructure" in parsed.text
+    assert parsed.metadata["parser"] == "builtin_pdf"
+    assert parsed.elements[0].element_type == "page"
+    assert parsed.elements[0].page_number == 1
 
 
 def test_table_serialization_preserves_multiline_cells_and_width() -> None:
@@ -580,6 +637,12 @@ def test_pdf_parser_uses_pdfplumber_table_cells(monkeypatch) -> None:
 
     assert "Intro text outside the table." in parsed.text
     assert parsed.text.count("TABLE_ROW table_id=pdf_p1_1 page=1 row=") == 4
+    assert any(element.element_type == "page" for element in parsed.elements)
+    assert any(element.element_type == "table" for element in parsed.elements)
+    table_rows = [element for element in parsed.elements if element.element_type == "table_row"]
+    assert len(table_rows) == 4
+    assert table_rows[0].table_id == "pdf_p1_1"
+    assert table_rows[0].metadata["headers"] == rows[0]
     assert "Xay dung nen tang RAG tren du lieu noi bo" in parsed.text
     assert "Xay dung dich vu OCR dung chung" in parsed.text
     assert "Kho du lieu AI dung chung" in parsed.text
@@ -665,3 +728,32 @@ def test_pdf_parser_prefers_coherent_tables_over_fragmented_text_tables() -> Non
     assert PdfParserImpl._score_extracted_table(coherent_table) > (
         PdfParserImpl._score_extracted_table(fragmented_table)
     )
+
+def test_pdf_parser_emits_table_row_elements_for_staff_area_table(monkeypatch) -> None:
+    class FakePage:
+        def extract_text(self, extraction_mode=None):
+            return (
+                "DANH SÁCH NHÂN SỰ PHỤ TRÁCH TỪNG MẢNG CÔNG NGHỆ LÕI\n"
+                "STT Mảng công nghệ Phòng chủ trì Nhân sự đề xuất\n"
+                "3 Xây dựng nền tảng RAG trên dữ liệu nội bộ PTUD "
+                "1. Tống Phước Lâm\n"
+                "2. Nguyễn Quang Lâm\n"
+                "3. Nguyễn Trọng Hùng\n"
+                "4 Xây dựng dịch vụ OCR dùng chung PM 1. Trịnh Thanh Tịnh\n"
+            )
+
+    class FakeReader:
+        def __init__(self, _stream):
+            self.pages = [FakePage()]
+
+    monkeypatch.setattr(PdfParserImpl, "_parse_with_pdfplumber", lambda *_args: None)
+    monkeypatch.setattr("app.services.parsers.pdf_parser.PdfReader", FakeReader)
+
+    parsed = PdfParserImpl().parse(b"%PDF-1.4 fake")
+    table_rows = [element for element in parsed.elements if element.element_type == "table_row"]
+    rag_row = next(element for element in table_rows if element.metadata.get("stt") == "3")
+
+    assert rag_row.metadata["area"] == "Xây dựng nền tảng RAG trên dữ liệu nội bộ"
+    assert rag_row.metadata["lead_department"] == "PTUD"
+    assert "Nguyễn Trọng Hùng" in rag_row.metadata["staff_names"]
+    assert rag_row.metadata["relationship_type"] == "technology_area_staff"

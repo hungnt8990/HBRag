@@ -34,7 +34,12 @@ class GraphExtractionLog(Base, CreatedAtMixin):
         index=True,
     )
     status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
-    entity_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    entity_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
     relation_count: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
@@ -83,7 +88,12 @@ class GraphDocumentStatus(Base, TimestampMixin):
         default=0,
         server_default="0",
     )
-    entity_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    entity_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
     relation_count: Mapped[int] = mapped_column(
         Integer,
         nullable=False,

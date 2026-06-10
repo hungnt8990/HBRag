@@ -49,7 +49,11 @@ class GraphIndexingService:
         self._extractor = extractor
         self._merge_service = merge_service
 
-    async def index_document(self, document_id: UUID, request: GraphIndexRequest) -> GraphIndexResponse:
+    async def index_document(
+        self,
+        document_id: UUID,
+        request: GraphIndexRequest,
+    ) -> GraphIndexResponse:
         if not settings.graph_enabled:
             raise GraphIndexingDisabledError("GraphRAG is disabled. Set GRAPH_ENABLED=true.")
 
@@ -76,7 +80,9 @@ class GraphIndexingService:
                 {
                     "id": str(document.id),
                     "title": document.title,
-                    "organization_id": str(document.organization_id) if document.organization_id else None,
+                    "organization_id": (
+                        str(document.organization_id) if document.organization_id else None
+                    ),
                     "created_at": document.created_at.isoformat(),
                 }
             )
@@ -114,7 +120,9 @@ class GraphIndexingService:
                 entity_batch = list(merged_entities.values()) + filtered_entities
                 relation_batch = list(merged_relations.values()) + filtered_relations
                 merged_entity_list = self._merge_service.merge_entities(entity_batch)
-                entity_lookup = {entity.name: entity.normalized_name for entity in merged_entity_list}
+                entity_lookup = {
+                    entity.name: entity.normalized_name for entity in merged_entity_list
+                }
                 merged_relation_list = self._merge_service.merge_relations(
                     relation_batch,
                     entity_lookup=entity_lookup,
@@ -155,11 +163,19 @@ class GraphIndexingService:
                     source_name = self._merge_service.normalize_entity_name(relation.source)
                     target_name = self._merge_service.normalize_entity_name(relation.target)
                     source_entity = next(
-                        (item for item in merged_entity_list if item.normalized_name == source_name),
+                        (
+                            item
+                            for item in merged_entity_list
+                            if item.normalized_name == source_name
+                        ),
                         None,
                     )
                     target_entity = next(
-                        (item for item in merged_entity_list if item.normalized_name == target_name),
+                        (
+                            item
+                            for item in merged_entity_list
+                            if item.normalized_name == target_name
+                        ),
                         None,
                     )
                     if source_entity is None or target_entity is None:

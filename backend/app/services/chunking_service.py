@@ -333,6 +333,11 @@ class ChunkingService:
 
         if plan.strategy == "table_aware" and self._has_table_elements(parsed_elements):
             raw_chunks = self._chunks_from_table_elements(parsed_elements)
+            from app.services.table_relationships import build_entity_profile_chunks
+
+            raw_chunks.extend(
+                build_entity_profile_chunks(raw_chunks, start_index=len(raw_chunks))
+            )
             chunk_records = [
                 ChunkCreate(
                     chunk_index=index,
@@ -363,6 +368,11 @@ class ChunkingService:
                 document.parsed_text,
                 chunk_size=resolved_size,
                 chunk_overlap=resolved_overlap,
+            )
+            from app.services.table_relationships import build_entity_profile_chunks
+
+            raw_chunks.extend(
+                build_entity_profile_chunks(raw_chunks, start_index=len(raw_chunks))
             )
             chunk_records = [
                 ChunkCreate(
@@ -409,10 +419,17 @@ class ChunkingService:
             ]
             text_chunks_for_preview = text_chunks[:CHUNK_PREVIEW_LIMIT]
         elif plan.strategy == "heading_aware":
-            text_chunks = HeadingAwareChunker(
+            heading_chunker = HeadingAwareChunker(
                 chunk_size=resolved_size,
                 chunk_overlap=resolved_overlap,
-            ).chunk_text(document.parsed_text)
+            )
+            if parsed_elements:
+                text_chunks = heading_chunker.chunk_elements(
+                    parsed_elements,
+                    document.parsed_text,
+                )
+            else:
+                text_chunks = heading_chunker.chunk_text(document.parsed_text)
             chunk_records = [
                 ChunkCreate(
                     chunk_index=index,
@@ -528,6 +545,19 @@ class ChunkingService:
             "headers",
             "row_start",
             "row_end",
+            "source_table",
+            "stt",
+            "area",
+            "lead_department",
+            "staff_names",
+            "staff",
+            "person_name",
+            "entity_type",
+            "areas",
+            "table_ids",
+            "page_numbers",
+            "relationship_type",
+            "confidence",
         ):
             if key in text_chunk.metadata:
                 metadata[key] = text_chunk.metadata[key]
@@ -565,6 +595,14 @@ class ChunkingService:
                         "row_start": row_index,
                         "row_end": row_index,
                         "headers": metadata.get("headers", []),
+                        "source_table": metadata.get("source_table"),
+                        "stt": metadata.get("stt"),
+                        "area": metadata.get("area"),
+                        "lead_department": metadata.get("lead_department"),
+                        "staff_names": metadata.get("staff_names", []),
+                        "staff": metadata.get("staff", []),
+                        "relationship_type": metadata.get("relationship_type"),
+                        "confidence": metadata.get("confidence"),
                         "page_number": getattr(element, "page_number", None),
                         "section_title": getattr(element, "section_title", None),
                         "heading_path": getattr(element, "heading_path", []),

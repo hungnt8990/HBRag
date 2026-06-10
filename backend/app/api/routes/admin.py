@@ -9,13 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.repositories.documents import DocumentRepository
-from app.services.graph import Neo4jClient, get_neo4j_client
 from app.services.document_profiles import (
     DEFAULT_PROFILE,
     PROFILE_CONFIGS,
     PROFILE_NAMES,
 )
 from app.services.document_service import DocumentService
+from app.services.graph import Neo4jClient, get_neo4j_client
 from app.services.ingestion_queue import IngestionJob, IngestionQueue, get_ingestion_queue
 from app.services.vector_store import QdrantVectorStore, get_vector_store
 

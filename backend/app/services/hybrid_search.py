@@ -14,6 +14,10 @@ from app.schemas.documents import (
     VectorSearchResult,
 )
 from app.services.keyword_search import KeywordSearchService
+from app.services.table_relationships import (
+    analyze_person_area_membership_query,
+    score_person_area_membership_match,
+)
 from app.services.vector_indexing_service import VectorIndexingService
 
 DEFAULT_RRF_K = 60
@@ -115,6 +119,7 @@ class HybridSearchService:
                     document_ids=document_ids,
                 )
             hybrid_results = self.fuse_results(
+                query=query,
                 vector_results=vector_response.results,
                 keyword_results=keyword_response.results,
                 top_k=top_k,
@@ -152,6 +157,7 @@ class HybridSearchService:
     @staticmethod
     def fuse_results(
         *,
+        query: str | None = None,
         vector_results: list[VectorSearchResult],
         keyword_results: list[KeywordSearchResult],
         top_k: int,
@@ -200,6 +206,19 @@ class HybridSearchService:
             HybridSearchService._append_source_flag(item, "keyword")
             if result.metadata.get("exact_match_terms"):
                 HybridSearchService._append_source_flag(item, "lexical_exact")
+
+        membership_query = analyze_person_area_membership_query(query or "")
+        if membership_query is not None:
+            for item in fused.values():
+                boost = score_person_area_membership_match(
+                    membership_query,
+                    content=item.content_preview,
+                    metadata=item.metadata,
+                )
+                if boost <= 0:
+                    continue
+                item.fused_score += boost
+                item.metadata = {**item.metadata, "membership_boost": boost}
 
         ranked = sorted(
             fused.values(),

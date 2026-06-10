@@ -1312,6 +1312,21 @@ function DocumentDetailModal({
     }
   }, [open, document?.document_id]);
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, open]);
+
   const handleDownloadFile = async (file: DocumentDetailResponse["files"][number]) => {
     setDownloadingFileId(file.id);
     setDownloadError(null);
@@ -1338,8 +1353,17 @@ function DocumentDetailModal({
   ] as const;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-6">
-      <div className="flex h-[90vh] w-full max-w-5xl flex-col rounded-xl bg-white shadow-xl">
+    <div
+      aria-modal="true"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+      role="dialog"
+    >
+      <div className="relative z-[101] flex h-[90vh] w-full max-w-5xl flex-col rounded-xl bg-white shadow-xl">
         <div className="shrink-0 flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">

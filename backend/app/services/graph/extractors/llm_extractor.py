@@ -7,7 +7,8 @@ from app.services.graph.extractors.base import ExtractionResult, GraphExtractor
 from app.services.graph.models import ExtractedEntity, ExtractedRelation
 from app.services.llms.base import LLMProvider
 
-PROMPT = """Extract entities and relationships from the following Vietnamese administrative/legal document chunk.
+PROMPT = """Extract entities and relationships from the following Vietnamese administrative/legal \
+document chunk.
 
 Return strict JSON only:
 {
@@ -15,7 +16,8 @@ Return strict JSON only:
     {
       "name": "...",
       "normalized_name": "...",
-      "type": "organization|person|legal_article|benefit|condition|date|amount|document|policy|process|system|concept|other",
+      "type": "organization|person|legal_article|benefit|condition|date|amount|\
+document|policy|process|system|concept|other",
       "confidence": 0.0,
       "evidence": "short quote from chunk"
     }
@@ -24,7 +26,8 @@ Return strict JSON only:
     {
       "source": "...",
       "target": "...",
-      "type": "quy_dinh|duoc_huong|ap_dung_cho|thuoc_dieu|lien_quan_den|can_cu_vao|thay_the|co_dieu_kien|ho_tro|other",
+      "type": "quy_dinh|duoc_huong|ap_dung_cho|thuoc_dieu|lien_quan_den|\
+can_cu_vao|thay_the|co_dieu_kien|ho_tro|other",
       "description": "...",
       "confidence": 0.0,
       "evidence": "short quote from chunk"

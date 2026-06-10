@@ -168,21 +168,21 @@ def build_default_parsers() -> tuple[DocumentParser, ...]:
 
     if provider in {"auto", "docling"} and settings.enable_docling:
         parser = DoclingParser()
-        if parser.is_available():
+        if parser.is_available() and parser.is_implemented():
             parsers.append(parser)
         else:
             logger.warning(
-                "Docling parser enabled but dependency is not installed; "
+                "Docling parser enabled but unavailable or not implemented; "
                 "using fallback parsers."
             )
 
     if provider in {"auto", "unstructured"} and settings.enable_unstructured:
         parser = UnstructuredParser()
-        if parser.is_available():
+        if parser.is_available() and parser.is_implemented():
             parsers.append(parser)
         else:
             logger.warning(
-                "Unstructured parser enabled but dependency is not installed; "
+                "Unstructured parser enabled but unavailable or not implemented; "
                 "using fallback parsers."
             )
 

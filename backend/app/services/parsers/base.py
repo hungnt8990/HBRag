@@ -38,9 +38,11 @@ class ParsedDocument:
 
 
 def parsed_element_to_dict(element: ParsedElement) -> dict[str, Any]:
-    return {
+    payload: dict[str, Any] = {
         "element_type": element.element_type,
         "text": element.text,
+    }
+    optional_values: dict[str, Any] = {
         "page_number": element.page_number,
         "section_title": element.section_title,
         "heading_path": element.heading_path,
@@ -49,6 +51,11 @@ def parsed_element_to_dict(element: ParsedElement) -> dict[str, Any]:
         "bbox": list(element.bbox) if element.bbox is not None else None,
         "metadata": element.metadata,
     }
+    for key, value in optional_values.items():
+        if value is None or value == [] or value == {}:
+            continue
+        payload[key] = value
+    return payload
 
 
 def parsed_element_from_dict(payload: dict[str, Any]) -> ParsedElement:

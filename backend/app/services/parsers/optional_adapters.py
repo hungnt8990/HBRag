@@ -12,8 +12,17 @@ class OptionalDependencyParser(DocumentParser):
     def is_available(self) -> bool:
         return bool(self.dependency_module and find_spec(self.dependency_module) is not None)
 
+    def is_implemented(self) -> bool:
+        return False
+
     def parse(self, file_content: bytes) -> ParsedDocument:
-        raise RuntimeError(f"{self.parser_name} parser dependency is not installed.")
+        return ParsedDocument(
+            text="",
+            metadata={
+                "parser": self.parser_name,
+                "fallback_reason": "optional parser is not implemented",
+            },
+        )
 
 
 class DoclingParser(OptionalDependencyParser):

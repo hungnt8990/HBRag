@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.chunk import Chunk
 from app.schemas.documents import KeywordSearchResponse, KeywordSearchResult
 from app.services.table_aware_chunking import extract_entities_from_text
+from app.services.table_relationships import analyze_person_area_membership_query
 
 CONTENT_PREVIEW_LIMIT = 300
 KEYWORD_QUERY_PARAM = "keyword_query"
@@ -152,9 +153,26 @@ class KeywordSearchService:
 
         entity_terms = extract_entities_from_text(query)
         code_terms = re.findall(r"\b[A-Z0-9][A-Z0-9._/-]{1,}\b", query)
+        membership_query = analyze_person_area_membership_query(query)
+        membership_terms = []
+        if membership_query is not None:
+            membership_terms = [
+                term
+                for term in (
+                    membership_query.person_candidate,
+                    membership_query.area_candidate,
+                )
+                if term
+            ]
 
         ordered_terms: list[str] = []
-        for term in [query.strip(), *flattened_quotes, *entity_terms, *code_terms]:
+        for term in [
+            *membership_terms,
+            query.strip(),
+            *flattened_quotes,
+            *entity_terms,
+            *code_terms,
+        ]:
             normalized = " ".join(term.split()).strip(" ?!.,;:")
             if len(normalized) < 2:
                 continue

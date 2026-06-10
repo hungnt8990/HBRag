@@ -378,3 +378,178 @@ def test_chunk_service_uses_parsed_page_elements_for_slide_page_mode() -> None:
     assert repository.created_chunks[0].metadata["chunk_strategy"] == "slide_page"
     assert repository.created_chunks[0].metadata["page_range"] == [1, 1]
     assert repository.created_chunks[1].metadata["page_number"] == 2
+
+def test_chunk_service_uses_parsed_heading_elements_for_heading_mode() -> None:
+    elements = [
+        ParsedElement(
+            element_type="heading",
+            text="Overview",
+            section_title="Overview",
+            heading_path=["Overview"],
+        ),
+        ParsedElement(
+            element_type="paragraph",
+            text="Alpha content.",
+            section_title="Overview",
+            heading_path=["Overview"],
+        ),
+        ParsedElement(
+            element_type="heading",
+            text="Details",
+            section_title="Details",
+            heading_path=["Details"],
+        ),
+        ParsedElement(
+            element_type="paragraph",
+            text="Beta content.",
+            section_title="Details",
+            heading_path=["Details"],
+        ),
+    ]
+    repository = FakeDocumentRepository(
+        status="parsed",
+        parsed_text="Overview\n\nAlpha content.\n\nDetails\n\nBeta content.",
+        document_metadata={
+            "parser": "fixture",
+            "parsed_elements": [parsed_element_to_dict(element) for element in elements],
+        },
+    )
+    app.dependency_overrides[get_document_repository] = lambda: repository
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            f"/api/documents/{DOCUMENT_ID}/chunk",
+            json={"chunk_mode": "heading_aware", "chunk_size": 1000, "chunk_overlap": 0},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert len(repository.created_chunks) == 2
+    assert repository.created_chunks[0].metadata["chunk_strategy"] == "heading_aware"
+    assert repository.created_chunks[0].metadata["section_title"] == "Overview"
+    assert "Details" not in repository.created_chunks[0].content
+    assert repository.created_chunks[1].metadata["heading_path"] == ["Details"]
+
+def test_chunking_service_creates_table_row_chunks() -> None:
+    row_element = ParsedElement(
+        element_type="table_row",
+        text=(
+            "STT: 3\n"
+            "Mảng công nghệ: Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
+            "Phòng chủ trì: PTUD\n"
+            "Nhân sự đề xuất: Nguyễn Trọng Hùng"
+        ),
+        page_number=5,
+        table_id="pdf_p5_staff_text",
+        row_index=3,
+        metadata={
+            "stt": "3",
+            "area": "Xây dựng nền tảng RAG trên dữ liệu nội bộ",
+            "lead_department": "PTUD",
+            "staff_names": ["Nguyễn Trọng Hùng"],
+            "staff": [{"name": "Nguyễn Trọng Hùng", "role_note": None}],
+            "source_table": "Danh sách nhân sự phụ trách từng mảng công nghệ lõi",
+            "relationship_type": "technology_area_staff",
+            "confidence": 0.85,
+        },
+    )
+    repository = FakeDocumentRepository(
+        status="parsed",
+        parsed_text=row_element.text,
+        document_metadata={
+            "parser": "fixture",
+            "parsed_elements": [parsed_element_to_dict(row_element)],
+        },
+    )
+    app.dependency_overrides[get_document_repository] = lambda: repository
+
+    try:
+        client = TestClient(app)
+        response = client.post(f"/api/documents/{DOCUMENT_ID}/chunk")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    table_row = next(
+        chunk for chunk in repository.created_chunks if chunk.metadata["chunk_type"] == "table_row"
+    )
+    assert table_row.metadata["area"] == "Xây dựng nền tảng RAG trên dữ liệu nội bộ"
+    assert "Nguyễn Trọng Hùng" in table_row.metadata["staff_names"]
+
+
+def test_chunking_service_creates_person_entity_profile_chunks() -> None:
+    elements = [
+        ParsedElement(
+            element_type="table_row",
+            text=(
+                "STT: 3\n"
+                "Mảng công nghệ: Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
+                "Phòng chủ trì: PTUD\n"
+                "Nhân sự đề xuất: Nguyễn Trọng Hùng"
+            ),
+            page_number=5,
+            table_id="pdf_p5_staff_text",
+            row_index=3,
+            metadata={
+                "stt": "3",
+                "area": "Xây dựng nền tảng RAG trên dữ liệu nội bộ",
+                "lead_department": "PTUD",
+                "staff_names": ["Nguyễn Trọng Hùng"],
+                "staff": [{"name": "Nguyễn Trọng Hùng", "role_note": None}],
+                "source_table": "Danh sách nhân sự phụ trách từng mảng công nghệ lõi",
+                "relationship_type": "technology_area_staff",
+                "confidence": 0.85,
+            },
+        ),
+        ParsedElement(
+            element_type="table_row",
+            text=(
+                "STT: 5\n"
+                "Mảng công nghệ: Kho dữ liệu AI dùng chung\n"
+                "Phòng chủ trì: VH\n"
+                "Nhân sự đề xuất: Nguyễn Trọng Hùng"
+            ),
+            page_number=5,
+            table_id="pdf_p5_staff_text",
+            row_index=5,
+            metadata={
+                "stt": "5",
+                "area": "Kho dữ liệu AI dùng chung",
+                "lead_department": "VH",
+                "staff_names": ["Nguyễn Trọng Hùng"],
+                "staff": [{"name": "Nguyễn Trọng Hùng", "role_note": None}],
+                "source_table": "Danh sách nhân sự phụ trách từng mảng công nghệ lõi",
+                "relationship_type": "technology_area_staff",
+                "confidence": 0.85,
+            },
+        ),
+    ]
+    repository = FakeDocumentRepository(
+        status="parsed",
+        parsed_text="\n\n".join(element.text for element in elements),
+        document_metadata={
+            "parser": "fixture",
+            "parsed_elements": [parsed_element_to_dict(element) for element in elements],
+        },
+    )
+    app.dependency_overrides[get_document_repository] = lambda: repository
+
+    try:
+        client = TestClient(app)
+        response = client.post(f"/api/documents/{DOCUMENT_ID}/chunk")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    profile = next(
+        chunk
+        for chunk in repository.created_chunks
+        if chunk.metadata["chunk_type"] == "entity_profile"
+    )
+    assert profile.metadata["person_name"] == "Nguyễn Trọng Hùng"
+    assert any(
+        area["area"] == "Xây dựng nền tảng RAG trên dữ liệu nội bộ"
+        for area in profile.metadata["areas"]
+    )

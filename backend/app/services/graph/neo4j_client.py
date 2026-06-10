@@ -30,9 +30,12 @@ class Neo4jClient:
 
     async def create_constraints(self) -> None:
         statements = [
-            "CREATE CONSTRAINT document_id_unique IF NOT EXISTS FOR (d:Document) REQUIRE d.id IS UNIQUE",
-            "CREATE CONSTRAINT chunk_id_unique IF NOT EXISTS FOR (c:Chunk) REQUIRE c.id IS UNIQUE",
-            "CREATE CONSTRAINT entity_key_unique IF NOT EXISTS FOR (e:Entity) REQUIRE e.entity_key IS UNIQUE",
+            "CREATE CONSTRAINT document_id_unique IF NOT EXISTS "
+            "FOR (d:Document) REQUIRE d.id IS UNIQUE",
+            "CREATE CONSTRAINT chunk_id_unique IF NOT EXISTS "
+            "FOR (c:Chunk) REQUIRE c.id IS UNIQUE",
+            "CREATE CONSTRAINT entity_key_unique IF NOT EXISTS "
+            "FOR (e:Entity) REQUIRE e.entity_key IS UNIQUE",
         ]
         async with self._driver.session() as session:
             for statement in statements:
@@ -135,7 +138,10 @@ class Neo4jClient:
     ) -> None:
         query = """
         MATCH (s:Entity {entity_key: $source_key}), (t:Entity {entity_key: $target_key})
-        MERGE (s)-[r:RELATED_TO {relation_type: $relation_type, source_chunk_id: $source_chunk_id}]->(t)
+        MERGE (s)-[r:RELATED_TO {
+            relation_type: $relation_type,
+            source_chunk_id: $source_chunk_id
+        }]->(t)
         SET r.description = $description,
             r.confidence = $confidence,
             r.weight = $weight

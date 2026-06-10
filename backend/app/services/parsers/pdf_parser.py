@@ -4,11 +4,17 @@ from typing import Any
 
 from pypdf import PdfReader
 
-from app.services.parsers.base import DocumentParser, ParsedDocument
+from app.services.parsers.base import DocumentParser, ParsedDocument, ParsedElement
 from app.services.parsers.table_serialization import (
+    build_table_row_record,
     infer_headers,
     rewrite_text_with_serialized_tables,
     serialize_table,
+)
+from app.services.table_relationships import (
+    TechnologyAreaRow,
+    parse_technology_area_rows_from_table,
+    parse_technology_area_rows_from_text,
 )
 
 PDFPLUMBER_TABLE_SETTINGS = (
@@ -44,12 +50,12 @@ class PdfParser(DocumentParser):
     supported_mime_types = frozenset({"application/pdf"})
 
     def parse(self, file_content: bytes) -> ParsedDocument:
-        pdfplumber_text = self._parse_with_pdfplumber(file_content)
-        if pdfplumber_text is not None:
-            return ParsedDocument(text=pdfplumber_text)
-        return ParsedDocument(text=self._parse_with_pypdf(file_content))
+        pdfplumber_document = self._parse_with_pdfplumber(file_content)
+        if pdfplumber_document is not None:
+            return pdfplumber_document
+        return self._parse_with_pypdf(file_content)
 
-    def _parse_with_pdfplumber(self, file_content: bytes) -> str | None:
+    def _parse_with_pdfplumber(self, file_content: bytes) -> ParsedDocument | None:
         try:
             import pdfplumber
         except ImportError:
@@ -59,10 +65,12 @@ class PdfParser(DocumentParser):
             pypdf_pages = self._extract_pypdf_pages(file_content)
             with pdfplumber.open(BytesIO(file_content)) as pdf:
                 pages: list[str] = []
+                elements: list[ParsedElement] = []
                 extracted_text = False
                 extracted_table = False
                 for page_index, page in enumerate(pdf.pages, start=1):
                     page_parts: list[str] = []
+                    relationship_keys: set[tuple[str, str]] = set()
                     page_text = self._clean_extracted_text(page.extract_text() or "")
                     pypdf_page_text = (
                         pypdf_pages[page_index - 1]
@@ -73,19 +81,50 @@ class PdfParser(DocumentParser):
                     if page_text:
                         extracted_text = True
                         page_parts.append(page_text)
+                        elements.append(
+                            ParsedElement(
+                                element_type="page",
+                                text=page_text,
+                                page_number=page_index,
+                                metadata={"source": "builtin_pdf"},
+                            )
+                        )
 
                     for table_index, table in enumerate(
                         self._extract_pdfplumber_tables(page),
                         start=1,
                     ):
+                        table_id = f"pdf_p{page_index}_{table_index}"
                         serialized = serialize_table(
-                            table_id=f"pdf_p{page_index}_{table_index}",
+                            table_id=table_id,
                             rows=table,
                             page_number=page_index,
                         )
                         if serialized:
                             extracted_table = True
                             page_parts.append(serialized)
+                            table_elements = self._table_elements(
+                                table,
+                                table_id=table_id,
+                                page_number=page_index,
+                            )
+                            elements.extend(table_elements)
+                            relationship_keys.update(
+                                self._relationship_keys_from_elements(table_elements)
+                            )
+
+                    fallback_rows = [
+                        row
+                        for row in parse_technology_area_rows_from_text(
+                            page_text,
+                            page_number=page_index,
+                            table_id=f"pdf_p{page_index}_staff_text",
+                        )
+                        if (row.stt, row.area) not in relationship_keys
+                    ]
+                    if fallback_rows:
+                        extracted_table = True
+                        elements.extend(self._relationship_elements(fallback_rows))
 
                     if page_parts:
                         pages.append("\n\n".join(page_parts))
@@ -94,7 +133,11 @@ class PdfParser(DocumentParser):
 
         if not extracted_text and not extracted_table:
             return None
-        return "\n\n".join(page for page in pages if page.strip())
+        return ParsedDocument(
+            text="\n\n".join(page for page in pages if page.strip()),
+            metadata={"parser": "builtin_pdf"},
+            elements=elements,
+        )
 
     def _extract_pypdf_pages(self, file_content: bytes) -> list[str]:
         try:
@@ -112,9 +155,10 @@ class PdfParser(DocumentParser):
             pages.append(self._clean_extracted_text(raw_text))
         return pages
 
-    def _parse_with_pypdf(self, file_content: bytes) -> str:
+    def _parse_with_pypdf(self, file_content: bytes) -> ParsedDocument:
         reader = PdfReader(BytesIO(file_content))
         pages: list[str] = []
+        elements: list[ParsedElement] = []
         for page_index, page in enumerate(reader.pages, start=1):
             raw_text = (
                 page.extract_text(extraction_mode="layout")
@@ -131,7 +175,126 @@ class PdfParser(DocumentParser):
             page_text = self._clean_extracted_text(page_text)
             if page_text:
                 pages.append(page_text)
-        return "\n\n".join(page for page in pages if page.strip())
+                elements.append(
+                    ParsedElement(
+                        element_type="page",
+                        text=page_text,
+                        page_number=page_index,
+                        metadata={"source": "builtin_pdf"},
+                    )
+                )
+                elements.extend(
+                    self._relationship_elements(
+                        parse_technology_area_rows_from_text(
+                            page_text,
+                            page_number=page_index,
+                            table_id=f"pdf_p{page_index}_staff_text",
+                        )
+                    )
+                )
+        return ParsedDocument(
+            text="\n\n".join(page for page in pages if page.strip()),
+            metadata={"parser": "builtin_pdf"},
+            elements=elements,
+        )
+
+    @staticmethod
+    def _table_elements(
+        table: list[list[str]],
+        *,
+        table_id: str,
+        page_number: int,
+    ) -> list[ParsedElement]:
+        headers, data_rows, has_header = infer_headers(table)
+        serialized = serialize_table(
+            table_id=table_id,
+            rows=table,
+            page_number=page_number,
+        )
+        relationship_rows = parse_technology_area_rows_from_table(
+            table,
+            page_number=page_number,
+            table_id=table_id,
+        )
+        if relationship_rows:
+            return PdfParser._relationship_elements(relationship_rows)
+
+        if not headers or not data_rows or not serialized:
+            return []
+
+        elements = [
+            ParsedElement(
+                element_type="table",
+                text=serialized,
+                page_number=page_number,
+                table_id=table_id,
+                metadata={"headers": headers if has_header else []},
+            )
+        ]
+        for row_index, row_values in enumerate(data_rows, start=1):
+            elements.append(
+                ParsedElement(
+                    element_type="table_row",
+                    text=build_table_row_record(
+                        table_id=table_id,
+                        row_index=row_index,
+                        headers=headers,
+                        values=row_values,
+                        page_number=page_number,
+                    ),
+                    page_number=page_number,
+                    table_id=table_id,
+                    row_index=row_index,
+                    metadata={"headers": headers, "values": row_values},
+                )
+            )
+        return elements
+
+    @staticmethod
+    def _relationship_elements(rows: list[TechnologyAreaRow]) -> list[ParsedElement]:
+        if not rows:
+            return []
+
+        table_id = rows[0].table_id or "staff_area_table"
+        page_number = rows[0].page_number
+        source_table = rows[0].source_table
+        table_text = "\n\n".join(row.to_text() for row in rows)
+        elements = [
+            ParsedElement(
+                element_type="table",
+                text=table_text,
+                page_number=page_number,
+                table_id=table_id,
+                metadata={
+                    "source_table": source_table,
+                    "relationship_type": "technology_area_staff",
+                },
+            )
+        ]
+        for row_index, row in enumerate(rows, start=1):
+            metadata = row.to_metadata()
+            elements.append(
+                ParsedElement(
+                    element_type="table_row",
+                    text=row.to_text(),
+                    page_number=row.page_number,
+                    table_id=row.table_id,
+                    row_index=int(row.stt) if row.stt.isdigit() else row_index,
+                    metadata=metadata,
+                )
+            )
+        return elements
+
+    @staticmethod
+    def _relationship_keys_from_elements(elements: list[ParsedElement]) -> set[tuple[str, str]]:
+        keys: set[tuple[str, str]] = set()
+        for element in elements:
+            if element.element_type != "table_row":
+                continue
+            metadata = element.metadata or {}
+            if metadata.get("relationship_type") == "technology_area_staff":
+                keys.add((str(metadata.get("stt") or ""), str(metadata.get("area") or "")))
+        return keys
 
     @staticmethod
     def _extract_pdfplumber_tables(page: Any) -> list[list[list[str]]]:

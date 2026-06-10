@@ -97,6 +97,11 @@ TABLE_QA_STYLE = (
     "Use TABLE_TITLE and TABLE_HEADER context when available to explain the row. "
     "If multiple rows contain the same entity, list all non-duplicate matching rows. "
     "For each row, prefer descriptive fields over ordinal-only fields. "
+    "For yes/no questions, start the first sentence with Có or Không. "
+    "If a row says Nhân sự đề xuất, say the person is được đề xuất tham gia; do not infer "
+    "they are owner, lead, implementer, or solely responsible. "
+    "Apply role_note only to the exact person whose row metadata states that note. "
+    "If context conflicts, prefer chunk_type table_row or entity_profile from staff tables. "
     "If a row has only generic labels such as cell_1 or cell_2, use those labels as-is. "
     "Do not say 'similar rows' instead of listing the matching rows. "
     "Do not use a person's list number as the row's main ordinal field. "
@@ -912,7 +917,11 @@ class RagAnswerService:
             for line in RagAnswerService._table_context_lines(content):
                 normalized_line = line.casefold()
                 formatted = f"[{citation}] {line}"
-                if "table_row" in normalized_line and (
+                is_result_row = "table_row" in normalized_line or chunk_type in {
+                    "table_row",
+                    "entity_profile",
+                }
+                if is_result_row and (
                     include_all_table_rows
                     or RagAnswerService._contains_any_query_term(line, query_terms)
                 ):
