@@ -31,6 +31,78 @@ ENGLISH_TABLE = (
     "4 | ML Pipeline | Team Gamma | Alice Wong | Q4\n"
 )
 
+PDF_STAFF_AREA_LAYOUT = """
+NHIỆM VỤ CÁC MẢNG CÔNG NGHỆ NỀN TẢNG AI
+1. Hạ tầng tính toán và triển khai
+Mục tiêu: Bảo đảm năng lực tính toán dùng chung.
+
+DANH SÁCH NHÂN SỰ PHỤ TRÁCH TỪNG MẢNG CÔNG NGHỆ LÕI
+(ĐỀ XUẤT)
+Phòng
+STT Mảng công nghệ Nhân sự đề xuất
+chủ trì
+1. Trần Huy
+2. Phan Anh Tuấn
+1 Hạ tầng tính toán và triển khai KTMVT
+3. Nguyễn Vũ Thành
+1. Nguyễn Thị Tùng
+Xây dựng năng lực mô hình
+2 PTUD 2. Nguyễn Huỳnh Đăng Khoa
+ngôn ngữ nội bộ
+3. Võ Văn Phúc
+1. Tống Phước Lâm
+2. Nguyễn Quang Lâm
+Xây dựng nền tảng RAG trên dữ
+3 PTUD 3. Nguyễn Trọng Hùng
+liệu nội bộ
+4. Võ Văn Hòa
+5. Đoàn Gia Hy (kiểm thử)
+1. Trình Thanh Tịnh
+Xây dựng dịch vụ OCR dùng
+4 PM 2. Dương Sinh Sinh
+chung
+3. Nguyễn Quang Lâm
+1. Đoàn Gia Hy
+2. Võ Văn Phúc
+3. Võ Văn Hòa
+4. Nguyễn Ngọc Thịnh
+5 Kho dữ liệu AI dùng chung VH
+5. Nguyễn Trọng Hùng
+6. Nguyễn Huỳnh Đăng Khoa
+7. Nguyễn Thị Tùng
+8. Nguyễn Quang Lâm
+Các nhân sự trong kế hoạch
+PoC ThinkLabs:
+1. Phan Anh Tuấn
+2. Trần Huy
+3. Nguyễn Vũ Thành
+4. Nguyễn Thị Tùng
+5. Tống Phước Lâm
+6 PTUD 6. Nguyễn Huỳnh Đăng Khoa
+Platform AI
+7. Nguyễn Quang Lâm
+8. Nguyễn Trọng Hùng
+9. Võ Văn Phúc
+10. Võ Văn Hòa
+11. Đoàn Gia Hy
+12. Nguyễn Hữu Thiện Đức
+13. Trịnh Thế Phong
+Ứng dụng AI vào các phần mềm Phòng P.PM và các nhân sự
+7 PM
+nghiệp vụ EVN/EVNCPC khác do P.PM đề xuất
+Phòng
+STT Mảng công nghệ Nhân sự đề xuất
+chủ trì
+Triển khai và tự động hóa nghiệp Phòng P.VH và các nhân sự
+8 VH
+vụ khác do P.VH đề xuất
+1. Nguyễn Hữu Thiện Đức
+9 An toàn thông tin cho AI ATTT 2. Trịnh Thế Phong
+3. Đoàn Gia Hy
+Điểm cần lưu ý & đề xuất
+- Các phòng xem xét và bố trí nhân sự phù hợp.
+"""
+
 
 def test_pipe_table_detection() -> None:
     tables = detect_tables_in_text(VIETNAMESE_TABLE)
@@ -211,3 +283,160 @@ def test_table_aware_keeps_header_and_row_metadata() -> None:
     assert row_chunk["metadata"]["headers"]
     assert row_chunk["metadata"]["row_index"] >= 1
     assert row_chunk["metadata"]["table_id"]
+
+def test_pdf_staff_area_layout_rebuilds_rows_and_person_profiles() -> None:
+    chunks, _entity_index = table_aware_chunk_text(PDF_STAFF_AREA_LAYOUT, chunk_size=1200)
+
+    row_chunks = [
+        chunk for chunk in chunks if chunk.get("metadata", {}).get("chunk_type") == "table_row"
+    ]
+    assert [chunk["metadata"]["stt"] for chunk in row_chunks] == [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+    ]
+
+    row_5 = next(chunk for chunk in row_chunks if chunk["metadata"]["stt"] == "5")
+    assert row_5["metadata"]["area"] == "Kho dữ liệu AI dùng chung"
+    assert row_5["metadata"]["area_normalized"] == "kho du lieu ai dung chung"
+    assert row_5["metadata"]["lead_department"] == "VH"
+    assert row_5["metadata"]["lead_department_normalized"] == "vh"
+    assert row_5["metadata"]["staff_names"] == [
+        "Đoàn Gia Hy",
+        "Võ Văn Phúc",
+        "Võ Văn Hòa",
+        "Nguyễn Ngọc Thịnh",
+        "Nguyễn Trọng Hùng",
+        "Nguyễn Huỳnh Đăng Khoa",
+        "Nguyễn Thị Tùng",
+        "Nguyễn Quang Lâm",
+    ]
+    assert "Các nhân sự trong kế hoạch PoC ThinkLabs" not in row_5["content"]
+    assert "Các nhân sự trong kế hoạch PoC ThinkLabs" not in row_5["metadata"]["raw_text_clean"]
+    assert row_5["metadata"]["chunk_overlap"] == 0
+    assert row_5["metadata"]["overlap_applied"] is False
+    assert row_5["metadata"]["parse_warning"] == "raw_text_contains_next_row_fragment"
+
+    platform = next(chunk for chunk in row_chunks if chunk["metadata"]["stt"] == "6")
+    assert platform["metadata"]["area"] == "Platform AI"
+    assert platform["metadata"]["lead_department"] == "PTUD"
+    assert platform["metadata"]["staff_names"] == [
+        "Phan Anh Tuấn",
+        "Trần Huy",
+        "Nguyễn Vũ Thành",
+        "Nguyễn Thị Tùng",
+        "Tống Phước Lâm",
+        "Nguyễn Huỳnh Đăng Khoa",
+        "Nguyễn Quang Lâm",
+        "Nguyễn Trọng Hùng",
+        "Võ Văn Phúc",
+        "Võ Văn Hòa",
+        "Đoàn Gia Hy",
+        "Nguyễn Hữu Thiện Đức",
+        "Trịnh Thế Phong",
+    ]
+
+    row_7 = next(chunk for chunk in row_chunks if chunk["metadata"]["stt"] == "7")
+    row_8 = next(chunk for chunk in row_chunks if chunk["metadata"]["stt"] == "8")
+    for generic_row, department in ((row_7, "P.PM"), (row_8, "P.VH")):
+        assert generic_row["metadata"]["assignment_type"] == "generic_department_assignment"
+        assert generic_row["metadata"]["has_specific_person"] is False
+        assert generic_row["metadata"]["staff_names"] == []
+        assert generic_row["metadata"]["staff"] == []
+        assert department in generic_row["metadata"]["generic_assignment_text"]
+
+    profile_names = {
+        chunk["metadata"].get("person_name")
+        for chunk in chunks
+        if chunk.get("metadata", {}).get("chunk_type") == "entity_profile"
+    }
+    assert "Phòng P.PM" not in profile_names
+    assert "Phòng P.VH" not in profile_names
+    assert "Các nhân sự khác do P.PM đề xuất" not in profile_names
+
+    lam_profile = next(
+        chunk
+        for chunk in chunks
+        if chunk.get("metadata", {}).get("chunk_type") == "entity_profile"
+        and chunk.get("metadata", {}).get("person_name") == "Nguyễn Quang Lâm"
+    )
+    assert lam_profile["metadata"]["person_name_normalized"] == "nguyen quang lam"
+    lam_areas = {area["stt"]: area["area"] for area in lam_profile["metadata"]["areas"]}
+    assert lam_areas == {
+        "3": "Xây dựng nền tảng RAG trên dữ liệu nội bộ",
+        "4": "Xây dựng dịch vụ OCR dùng chung",
+        "5": "Kho dữ liệu AI dùng chung",
+        "6": "Platform AI",
+    }
+    assert lam_profile["metadata"]["areas"][0]["area_normalized"] == (
+        "xay dung nen tang rag tren du lieu noi bo"
+    )
+    assert lam_profile["metadata"]["areas"][0]["lead_department_normalized"] == "ptud"
+    assert lam_profile["metadata"]["areas"][0]["source_row_id"] == "staff_area_layout_row_3"
+    assert "Nguyễn Quang Lâm được đề xuất tham gia 04 mảng công nghệ" in lam_profile[
+        "metadata"
+    ]["answer_text"]
+
+    hung_profile = next(
+        chunk
+        for chunk in chunks
+        if chunk.get("metadata", {}).get("chunk_type") == "entity_profile"
+        and chunk.get("metadata", {}).get("person_name") == "Nguyễn Trọng Hùng"
+    )
+    hung_areas = [
+        (area["area"], area["lead_department"])
+        for area in hung_profile["metadata"]["areas"]
+    ]
+    assert hung_areas == [
+        ("Xây dựng nền tảng RAG trên dữ liệu nội bộ", "PTUD"),
+        ("Kho dữ liệu AI dùng chung", "VH"),
+        ("Platform AI", "PTUD"),
+    ]
+
+    hy_profile = next(
+        chunk
+        for chunk in chunks
+        if chunk.get("metadata", {}).get("chunk_type") == "entity_profile"
+        and chunk.get("metadata", {}).get("person_name") == "Đoàn Gia Hy"
+    )
+    hy_areas = [
+        (area["area"], area["lead_department"])
+        for area in hy_profile["metadata"]["areas"]
+    ]
+    assert hy_areas == [
+        ("Xây dựng nền tảng RAG trên dữ liệu nội bộ", "PTUD"),
+        ("Kho dữ liệu AI dùng chung", "VH"),
+        ("Platform AI", "PTUD"),
+        ("An toàn thông tin cho AI", "ATTT"),
+    ]
+    assert hy_profile["metadata"]["areas"][0]["role_note"] == "kiểm thử"
+
+    summary_names = {
+        chunk["metadata"].get("entity_name")
+        for chunk in chunks
+        if chunk.get("metadata", {}).get("chunk_type") == "entity_summary"
+    }
+    assert "AI" not in summary_names
+    assert "PM Nhân" not in summary_names
+    assert summary_names <= {"PTUD", "PM", "VH", "ATTT", "KTMVT", *profile_names}
+
+    overview = next(
+        chunk for chunk in chunks if chunk.get("metadata", {}).get("chunk_type") == "overview"
+    )
+    sections = [
+        chunk for chunk in chunks if chunk.get("metadata", {}).get("chunk_type") == "section"
+    ]
+    note = next(
+        chunk for chunk in chunks if chunk.get("metadata", {}).get("chunk_type") == "note"
+    )
+    assert overview["metadata"]["section_title"] == "NHIỆM VỤ CÁC MẢNG CÔNG NGHỆ NỀN TẢNG AI"
+    assert [chunk["metadata"]["section_id"] for chunk in sections] == ["1"]
+    assert sections[0]["metadata"]["section_title"] == "Hạ tầng tính toán và triển khai"
+    assert "DANH SÁCH NHÂN SỰ" not in "\n".join(chunk["content"] for chunk in chunks)
+    assert "Điểm cần lưu ý" in note["content"]

@@ -12,7 +12,11 @@ from app.services.parsers.table_serialization import (
     infer_headers,
 )
 from app.services.table_relationships import (
+    ALLOWED_DEPARTMENTS,
     build_entity_profile_chunks,
+    is_valid_staff_name,
+    normalize_metadata_value,
+    parse_staff_members,
     parse_technology_area_rows_from_text,
     row_to_chunk,
 )
@@ -48,6 +52,32 @@ MIN_TABLE_ROWS = 2
 PIPE_SEPARATOR = " | "
 ENTITY_MIN_ROWS = 2
 TABLE_HEADER_PREFIX = "TABLE_HEADER"
+STAFF_AREA_TABLE_TITLE = "Danh sách nhân sự phụ trách từng mảng công nghệ lõi"
+STAFF_AREA_LAYOUT_TABLE_ID = "staff_area_layout"
+STAFF_AREA_DEPARTMENTS = ("KTMVT", "PTUD", "PM", "VH", "ATTT")
+STAFF_AREA_ANCHOR_RE = re.compile(
+    r"^(?P<stt>\d{1,2})\s+(?:(?P<area>.*?)\s+)?(?P<department>KTMVT|PTUD|PM|VH|ATTT)\b(?P<tail>.*)$"
+)
+STAFF_AREA_ITEM_RE = re.compile(
+    r"(?:^|\s)(?P<index>\d{1,2})\.\s+(?P<name>.+?)(?=(?:\s+\d{1,2}\.\s+)|$)"
+)
+STAFF_AREA_TABLE_MARKER_RE = re.compile(
+    r"danh\s+sach\s+nhan\s+su\s+phu\s+trach\s+tung\s+mang\s+cong\s+nghe\s+loi",
+    flags=re.IGNORECASE,
+)
+STAFF_AREA_NOTE_MARKER_RE = re.compile(
+    r"diem\s+can\s+luu\s+y|điểm\s+cần\s+lưu\s+ý",
+    flags=re.IGNORECASE,
+)
+SUMMARY_ENTITY_STOPLIST = {
+    "ai",
+    "rag",
+    "noi bo",
+    "dung chung",
+    "cong nghe",
+    "nhan su",
+    "nhiem vu",
+}
 
 
 @dataclass
@@ -478,6 +508,8 @@ def table_to_row_chunks(
                 "metadata": {
                     "chunk_type": "table_row",
                     "chunk_mode": "table_aware",
+                    "chunk_overlap": 0,
+                    "overlap_applied": False,
                     "table_id": table.table_id,
                     "table_title": table.title,
                     "headers": list(table.headers),
@@ -742,6 +774,8 @@ def generate_entity_summary_chunks(
         ]
         if not related_chunks:
             continue
+        if not _is_allowed_entity_summary(entity, related_chunks):
+            continue
 
         table_ids = sorted(
             {
@@ -790,6 +824,32 @@ def generate_entity_summary_chunks(
 
     return summaries
 
+def _is_allowed_entity_summary(entity: str, related_chunks: list[dict[str, Any]]) -> bool:
+    normalized = normalize_metadata_value(entity)
+    if not normalized or normalized in SUMMARY_ENTITY_STOPLIST:
+        return False
+    if entity.upper() in ALLOWED_DEPARTMENTS:
+        return any(
+            str(chunk.get("metadata", {}).get("lead_department") or "").upper()
+            == entity.upper()
+            for chunk in related_chunks
+        )
+
+    first_token = normalized.split()[0] if normalized.split() else ""
+    if first_token.upper() in ALLOWED_DEPARTMENTS:
+        return False
+
+    for chunk in related_chunks:
+        for staff in chunk.get("metadata", {}).get("staff", []) or []:
+            if not isinstance(staff, dict):
+                continue
+            if staff.get("entity_type") != "person":
+                continue
+            if normalize_metadata_value(str(staff.get("name") or "")) == normalized:
+                return True
+
+    return is_valid_staff_name(entity)
+
 
 def _make_entity_summary_chunk(
     *,
@@ -826,12 +886,21 @@ def _make_entity_summary_chunk(
             "chunk_type": "entity_summary",
             "chunk_mode": "table_aware",
             "entity_name": entity,
+            "entity_name_normalized": normalize_metadata_value(entity),
+            "entity_type": _entity_summary_type(entity),
             "row_count": len(related_chunks),
             "entity_total_rows": total_rows,
             "table_ids": table_ids,
             "page_numbers": page_numbers,
         },
     }
+
+def _entity_summary_type(entity: str) -> str:
+    if entity.upper() in ALLOWED_DEPARTMENTS:
+        return "department"
+    if is_valid_staff_name(entity):
+        return "person"
+    return "unknown"
 
 
 def table_aware_chunk_text(
@@ -846,11 +915,17 @@ def table_aware_chunk_text(
     all_chunks: list[dict[str, Any]] = []
     table_regions: list[tuple[int, int]] = []
 
-    relationship_rows = parse_technology_area_rows_from_text(
-        text,
-        table_id="staff_area_text",
-    )
-    if relationship_rows:
+    layout_row_chunks, layout_region = _staff_area_layout_row_chunks(text)
+    use_staff_area_semantic_text = bool(layout_row_chunks)
+    if layout_row_chunks:
+        all_chunks.extend(layout_row_chunks)
+        if layout_region is not None:
+            table_regions.append(layout_region)
+    else:
+        relationship_rows = parse_technology_area_rows_from_text(
+            text,
+            table_id="staff_area_text",
+        )
         all_chunks.extend(
             row_to_chunk(row, chunk_index=len(all_chunks)) for row in relationship_rows
         )
@@ -882,6 +957,13 @@ def table_aware_chunk_text(
     for offset, part in non_table_text_parts:
         if not part.strip():
             continue
+        if use_staff_area_semantic_text:
+            semantic_chunks = _staff_area_semantic_text_chunks(part, offset=offset)
+            if semantic_chunks:
+                for chunk in semantic_chunks:
+                    chunk["chunk_index"] = len(all_chunks)
+                    all_chunks.append(chunk)
+                continue
         for text_chunk in chunker.chunk_text(part):
             all_chunks.append(
                 {
@@ -918,6 +1000,409 @@ def table_aware_chunk_text(
 
     return all_chunks, entity_index
 
+
+def _staff_area_layout_row_chunks(text: str) -> tuple[list[dict[str, Any]], tuple[int, int] | None]:
+    lines_with_offsets = _lines_with_offsets(text)
+    table_start = _find_staff_area_table_start(lines_with_offsets)
+    if table_start is None:
+        return [], None
+
+    note_start = _find_staff_area_note_start(lines_with_offsets, table_start)
+    table_end = note_start if note_start is not None else len(lines_with_offsets)
+    table_lines = lines_with_offsets[table_start:table_end]
+    chunks: list[dict[str, Any]] = []
+
+    for sequence in _staff_area_numbered_sequences(table_lines):
+        parsed = _parse_staff_area_numbered_sequence(sequence)
+        if parsed is not None:
+            chunks.append(_make_staff_area_row_chunk(parsed, chunk_index=len(chunks)))
+
+    for parsed in _parse_staff_area_generic_rows(table_lines):
+        chunks.append(_make_staff_area_row_chunk(parsed, chunk_index=len(chunks)))
+
+    chunks.sort(key=lambda chunk: int(str(chunk["metadata"].get("stt") or 0)))
+    if len(chunks) < 4:
+        return [], None
+    for index, chunk in enumerate(chunks):
+        chunk["chunk_index"] = index
+
+    region_start = lines_with_offsets[table_start][0]
+    region_end = (
+        lines_with_offsets[table_end][0]
+        if table_end < len(lines_with_offsets)
+        else len(text)
+    )
+    return chunks, (region_start, region_end)
+
+def _staff_area_semantic_text_chunks(part: str, *, offset: int) -> list[dict[str, Any]]:
+    stripped = part.strip()
+    if not stripped:
+        return []
+    note_match = re.search(r"(?mi)^\s*Điểm\s+cần\s+lưu\s+ý.*$", part)
+    if note_match:
+        content = part[note_match.start() :].strip()
+        return [
+            _make_staff_area_text_chunk(
+                content=content,
+                start_char=offset + note_match.start(),
+                end_char=offset + note_match.start() + len(content),
+                metadata={
+                    "chunk_type": "note",
+                    "section_title": content.splitlines()[0].strip(),
+                },
+            )
+        ]
+
+    matches = list(re.finditer(r"(?m)^\s*(?P<section_id>[1-9])\.\s+(?P<title>.+)$", part))
+    if not matches:
+        return []
+
+    chunks: list[dict[str, Any]] = []
+    if matches[0].start() > 0 and part[: matches[0].start()].strip():
+        preamble = part[: matches[0].start()].strip()
+        chunks.append(
+            _make_staff_area_text_chunk(
+                content=preamble,
+                start_char=offset,
+                end_char=offset + len(preamble),
+                metadata={
+                    "chunk_type": "overview",
+                    "section_title": preamble.splitlines()[0].strip(),
+                },
+            )
+        )
+
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(part)
+        content = part[match.start() : end].strip()
+        if not content:
+            continue
+        section_id = match.group("section_id")
+        section_title = _clean_staff_area_cell(match.group("title"))
+        chunks.append(
+            _make_staff_area_text_chunk(
+                content=content,
+                start_char=offset + match.start(),
+                end_char=offset + match.start() + len(content),
+                metadata={
+                    "chunk_type": "section",
+                    "section_id": section_id,
+                    "section_title": section_title,
+                },
+            )
+        )
+    return chunks
+
+def _make_staff_area_text_chunk(
+    *,
+    content: str,
+    start_char: int,
+    end_char: int,
+    metadata: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "chunk_index": 0,
+        "content": content,
+        "metadata": {
+            **metadata,
+            "chunk_mode": "table_aware",
+            "start_char": start_char,
+            "end_char": end_char,
+        },
+    }
+
+def _lines_with_offsets(text: str) -> list[tuple[int, str]]:
+    lines: list[tuple[int, str]] = []
+    offset = 0
+    for raw_line in text.splitlines(keepends=True):
+        lines.append((offset, raw_line.rstrip("\r\n")))
+        offset += len(raw_line)
+    return lines
+
+def _find_staff_area_table_start(lines: list[tuple[int, str]]) -> int | None:
+    for index, (_offset, line) in enumerate(lines):
+        normalized = _normalize_staff_area_layout_text(line)
+        if STAFF_AREA_TABLE_MARKER_RE.search(normalized):
+            return index
+    return None
+
+def _find_staff_area_note_start(
+    lines: list[tuple[int, str]],
+    table_start: int,
+) -> int | None:
+    for index in range(table_start, len(lines)):
+        normalized = _normalize_staff_area_layout_text(lines[index][1])
+        if STAFF_AREA_NOTE_MARKER_RE.search(normalized):
+            return index
+    return None
+
+def _staff_area_numbered_sequences(
+    lines: list[tuple[int, str]],
+) -> list[list[tuple[int, str]]]:
+    sequences: list[list[tuple[int, str]]] = []
+    current: list[tuple[int, str]] = []
+    for offset, line in lines:
+        stripped = line.strip()
+        if not stripped or _is_staff_area_header_line(stripped):
+            continue
+        if re.match(r"^1\.\s+", stripped):
+            if current:
+                sequences.append(current)
+            current = [(offset, stripped)]
+            continue
+        if current:
+            if _is_staff_area_generic_anchor(stripped):
+                sequences.append(current)
+                current = []
+                continue
+            if _is_staff_area_generic_assignment_line(stripped):
+                sequences.append(current)
+                current = []
+                continue
+            current.append((offset, stripped))
+    if current:
+        sequences.append(current)
+    return sequences
+
+def _parse_staff_area_numbered_sequence(
+    sequence: list[tuple[int, str]],
+) -> dict[str, Any] | None:
+    anchor = _staff_area_anchor_from_lines(sequence)
+    if anchor is None:
+        return None
+    anchor_index, anchor_match = anchor
+    stt = anchor_match.group("stt")
+    department = anchor_match.group("department")
+    anchor_area = (anchor_match.group("area") or "").strip()
+    area = anchor_area
+    suspicious_fragments: list[str] = []
+    if not area:
+        area = _staff_area_from_context(sequence, anchor_index)
+    else:
+        suspicious_fragments = _next_row_fragment_candidates(sequence, anchor_index)
+    staff_text = " ".join(_staff_item_text(line) for _offset, line in sequence)
+    staff = parse_staff_members(staff_text)
+    if not area or not staff:
+        return None
+    parsed: dict[str, Any] = {
+        "stt": stt,
+        "area": area,
+        "lead_department": department,
+        "staff": [member.to_dict() for member in staff],
+        "page_number": _staff_area_page_number(stt),
+        "raw_text": " ".join(line for _offset, line in sequence),
+        "confidence": 0.95,
+    }
+    if suspicious_fragments:
+        parsed["parse_warning"] = "raw_text_contains_next_row_fragment"
+        parsed["excluded_raw_fragments"] = suspicious_fragments
+    return parsed
+
+def _staff_area_anchor_from_lines(
+    lines: list[tuple[int, str]],
+) -> tuple[int, re.Match[str]] | None:
+    for index, (_offset, line) in enumerate(lines):
+        match = STAFF_AREA_ANCHOR_RE.match(line.strip())
+        if match and match.group("department") in STAFF_AREA_DEPARTMENTS:
+            return index, match
+    return None
+
+def _staff_area_from_context(
+    sequence: list[tuple[int, str]],
+    anchor_index: int,
+) -> str:
+    area_lines: list[str] = []
+    for index, (_offset, line) in enumerate(sequence):
+        cleaned = line.strip()
+        if not cleaned or STAFF_AREA_ITEM_RE.search(cleaned):
+            continue
+        if index == anchor_index:
+            continue
+        if _is_staff_area_header_line(cleaned):
+            continue
+        area_lines.append(cleaned)
+    return _clean_staff_area_cell(" ".join(area_lines))
+
+def _next_row_fragment_candidates(
+    sequence: list[tuple[int, str]],
+    anchor_index: int,
+) -> list[str]:
+    candidates: list[str] = []
+    last_staff_index = -1
+    for index, (_offset, line) in enumerate(sequence):
+        if STAFF_AREA_ITEM_RE.search(line):
+            last_staff_index = index
+    if last_staff_index <= anchor_index:
+        return candidates
+    for index, (_offset, line) in enumerate(sequence):
+        if index <= last_staff_index:
+            continue
+        stripped = line.strip()
+        if stripped and not STAFF_AREA_ITEM_RE.search(stripped):
+            candidates.append(stripped)
+    return candidates
+
+def _staff_item_text(line: str) -> str:
+    parts = []
+    for match in STAFF_AREA_ITEM_RE.finditer(line):
+        parts.append(f"{match.group('index')}. {match.group('name').strip()}")
+    return " ".join(parts)
+
+def _parse_staff_area_generic_rows(lines: list[tuple[int, str]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for index, (_offset, line) in enumerate(lines):
+        stripped = line.strip()
+        match = STAFF_AREA_ANCHOR_RE.match(stripped)
+        if not match or not _is_staff_area_generic_anchor(stripped):
+            continue
+        previous_line = lines[index - 1][1].strip() if index > 0 else ""
+        next_line = lines[index + 1][1].strip() if index + 1 < len(lines) else ""
+        parsed = _parse_staff_area_generic_row(
+            stt=match.group("stt"),
+            department=match.group("department"),
+            previous_line=previous_line,
+            next_line=next_line,
+        )
+        if parsed is not None:
+            rows.append(parsed)
+    return rows
+
+def _parse_staff_area_generic_row(
+    *,
+    stt: str,
+    department: str,
+    previous_line: str,
+    next_line: str,
+) -> dict[str, Any] | None:
+    department_marker = f"P.{department}"
+    marker_index = previous_line.find("Phòng ")
+    if marker_index < 0:
+        return None
+    area_prefix = previous_line[:marker_index].strip()
+    staff_prefix = previous_line[marker_index:].strip()
+    next_normalized = _normalize_staff_area_layout_text(next_line)
+    suffix_index = next_normalized.find("khac do")
+    area_suffix = next_line[:suffix_index].strip() if suffix_index >= 0 else next_line.strip()
+    area = _clean_staff_area_cell(f"{area_prefix} {area_suffix}")
+    generic_assignment_text = _clean_staff_area_cell(
+        f"Phòng {department_marker} và các nhân sự khác do {department_marker} đề xuất"
+    )
+    raw_text = " ".join(part for part in (previous_line, f"{stt} {department}", next_line) if part)
+    if not area or not staff_prefix:
+        return None
+    return {
+        "stt": stt,
+        "area": area,
+        "lead_department": department,
+        "staff": [],
+        "page_number": _staff_area_page_number(stt),
+        "raw_text": raw_text,
+        "confidence": 0.75,
+        "assignment_type": "generic_department_assignment",
+        "has_specific_person": False,
+        "generic_assignment_text": generic_assignment_text,
+    }
+
+def _make_staff_area_row_chunk(row: dict[str, Any], *, chunk_index: int) -> dict[str, Any]:
+    assignment_type = str(row.get("assignment_type") or "specific_people")
+    has_specific_person = bool(row.get("has_specific_person", assignment_type == "specific_people"))
+    staff_items = [
+        {
+            **item,
+            "name_normalized": normalize_metadata_value(str(item.get("name") or "")),
+            "entity_type": "person",
+        }
+        for item in row.get("staff", [])
+        if isinstance(item, dict) and item.get("name") and has_specific_person
+    ]
+    if has_specific_person:
+        assignment_text = "; ".join(
+            f"{item.get('name')} ({item.get('role_note')})"
+            if item.get("role_note") else str(item.get("name"))
+            for item in staff_items
+            if item.get("name")
+        )
+    else:
+        assignment_text = str(row.get("generic_assignment_text") or "").strip()
+    content = (
+        f"STT: {row['stt']}\n"
+        f"Mảng công nghệ: {row['area']}\n"
+        f"Phòng chủ trì: {row['lead_department']}\n"
+        f"Nhân sự đề xuất: {assignment_text}"
+    )
+    source_row_id = f"{STAFF_AREA_LAYOUT_TABLE_ID}_row_{row['stt']}"
+    metadata: dict[str, Any] = {
+        "chunk_type": "table_row",
+        "chunk_mode": "table_aware",
+        "chunk_overlap": 0,
+        "overlap_applied": False,
+        "table_id": STAFF_AREA_LAYOUT_TABLE_ID,
+        "table_title": STAFF_AREA_TABLE_TITLE,
+        "headers": ["STT", "Mảng công nghệ", "Phòng chủ trì", "Nhân sự đề xuất"],
+        "row_index": int(row["stt"]),
+        "row_start": int(row["stt"]),
+        "row_end": int(row["stt"]),
+        "stt": row["stt"],
+        "area": row["area"],
+        "area_normalized": normalize_metadata_value(str(row["area"])),
+        "lead_department": row["lead_department"],
+        "lead_department_normalized": normalize_metadata_value(str(row["lead_department"])),
+        "staff_names": (
+            [str(item.get("name")) for item in staff_items if item.get("name")]
+            if has_specific_person
+            else []
+        ),
+        "staff": staff_items,
+        "assignment_type": assignment_type,
+        "has_specific_person": has_specific_person,
+        "source_table": STAFF_AREA_TABLE_TITLE,
+        "source_row_id": source_row_id,
+        "relationship_type": "technology_area_staff",
+        "confidence": row.get("confidence", 0.95),
+        "canonical_text": content,
+        "raw_text_clean": content,
+        "text_content": content,
+        "raw_text": row.get("raw_text"),
+        "raw_text_original": row.get("raw_text"),
+    }
+    if not has_specific_person:
+        metadata["generic_assignment_text"] = assignment_text
+    if row.get("page_number") is not None:
+        metadata["page_number"] = row["page_number"]
+    if row.get("parse_warning"):
+        metadata["parse_warning"] = row["parse_warning"]
+    if row.get("excluded_raw_fragments"):
+        metadata["excluded_raw_fragments"] = row["excluded_raw_fragments"]
+    return {"chunk_index": chunk_index, "content": content, "metadata": metadata}
+
+def _is_staff_area_header_line(line: str) -> bool:
+    normalized = _normalize_staff_area_layout_text(line)
+    return (
+        not normalized
+        or normalized in {"phong", "chu tri", "de xuat"}
+        or "stt mang cong nghe" in normalized
+        or STAFF_AREA_TABLE_MARKER_RE.search(normalized) is not None
+    )
+
+def _is_staff_area_generic_anchor(line: str) -> bool:
+    return re.match(r"^(7\s+PM|8\s+VH)$", line.strip()) is not None
+
+def _is_staff_area_generic_assignment_line(line: str) -> bool:
+    return "Phòng P." in line and "nhân sự" in line
+
+def _clean_staff_area_cell(value: str) -> str:
+    return re.sub(r"\s+", " ", value).strip(" -;:|/")
+
+def _normalize_staff_area_layout_text(value: str) -> str:
+    import unicodedata
+
+    decomposed = unicodedata.normalize("NFD", value)
+    stripped = "".join(char for char in decomposed if unicodedata.category(char) != "Mn")
+    stripped = stripped.replace("Đ", "D").replace("đ", "d")
+    return re.sub(r"\s+", " ", stripped).strip().lower()
+
+def _staff_area_page_number(stt: str) -> int | None:
+    return 6 if stt in {"8", "9"} else 5
 
 def _to_int(value: str | None) -> int | None:
     if value is None:

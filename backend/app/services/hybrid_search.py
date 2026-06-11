@@ -14,6 +14,7 @@ from app.schemas.documents import (
     VectorSearchResult,
 )
 from app.services.keyword_search import KeywordSearchService
+from app.services.segment_router import schema_or_procedure_metadata_boost
 from app.services.table_relationships import (
     analyze_person_area_membership_query,
     score_person_area_membership_match,
@@ -208,8 +209,13 @@ class HybridSearchService:
                 HybridSearchService._append_source_flag(item, "lexical_exact")
 
         membership_query = analyze_person_area_membership_query(query or "")
-        if membership_query is not None:
-            for item in fused.values():
+        for item in fused.values():
+            metadata_boost = schema_or_procedure_metadata_boost(query or "", item.metadata)
+            if metadata_boost > 0:
+                item.fused_score += metadata_boost
+                item.metadata = {**item.metadata, "metadata_exact_boost": metadata_boost}
+
+            if membership_query is not None:
                 boost = score_person_area_membership_match(
                     membership_query,
                     content=item.content_preview,

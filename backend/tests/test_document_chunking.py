@@ -8,6 +8,7 @@ from app.main import app
 from app.repositories.documents import ChunkCreate
 from app.services.chunking_service import RecursiveTextChunker
 from app.services.parsers import ParsedElement, parsed_element_to_dict
+from tests.test_segment_router import GIS_MIXED_TEXT, PAGE_ELEMENTS
 
 DOCUMENT_ID = UUID("33333333-3333-3333-3333-333333333333")
 
@@ -112,6 +113,27 @@ def test_chunker_avoids_early_split_boundary() -> None:
 
     assert chunks[0].end_char == 1000
     assert chunks[1].start_char == 850
+
+
+def test_chunker_preserves_gis_schema_table_as_single_chunk() -> None:
+    chunker = RecursiveTextChunker(chunk_size=120, chunk_overlap=20)
+    table = (
+        "(1) F08_CotDien_HT – Lớp cột điện\n"
+        "TT | Trường dữ liệu | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng | "
+        "Nguồn dữ liệu | Chuyển đổi sang GIS\n"
+        "1 | ID | ID Cột điện | Text | | 20 | ID tự sinh của GIS |\n"
+        "2 | MaTramBienAp | Mã trạm biến áp | Text | | 50 | TTHT | X\n"
+    )
+    text = f"Giới thiệu văn bản hành chính.\n\n{table}\nKết luận."
+
+    chunks = chunker.chunk_text(text)
+    table_chunks = [chunk for chunk in chunks if chunk.metadata.get("chunk_type") == "gis_table"]
+
+    assert len(table_chunks) == 1
+    assert table_chunks[0].content == table
+    assert len(table_chunks[0].content) > chunker.chunk_size
+    assert table_chunks[0].metadata["layer_id"] == "F08_CotDien_HT"
+    assert table_chunks[0].start_char == text.index(table)
 
 
 def test_chunk_endpoint_rejects_unparsed_document() -> None:
@@ -432,6 +454,59 @@ def test_chunk_service_uses_parsed_heading_elements_for_heading_mode() -> None:
     assert "Details" not in repository.created_chunks[0].content
     assert repository.created_chunks[1].metadata["heading_path"] == ["Details"]
 
+
+def test_chunk_service_uses_adaptive_segments_for_mixed_gis_document() -> None:
+    repository = FakeDocumentRepository(
+        status="parsed",
+        parsed_text=GIS_MIXED_TEXT,
+        document_metadata={
+            "parser": "fixture",
+            "parsed_elements": [parsed_element_to_dict(element) for element in PAGE_ELEMENTS],
+        },
+    )
+    app.dependency_overrides[get_document_repository] = lambda: repository
+
+    try:
+        client = TestClient(app)
+        response = client.post(f"/api/documents/{DOCUMENT_ID}/chunk")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    chunk_types = {chunk.metadata.get("chunk_type") for chunk in repository.created_chunks}
+    assert {
+        "administrative_overview",
+        "assignment_section",
+        "procedure_table_row",
+        "schema_appendix_overview",
+        "schema_object_summary",
+        "schema_field_row",
+        "administrative_footer",
+    } <= chunk_types
+    assert all(
+        chunk.metadata["chunk_strategy"] == "adaptive_segmented"
+        for chunk in repository.created_chunks
+    )
+    assert all(
+        chunk.metadata["document_profile"] == "mixed_administrative_technical"
+        for chunk in repository.created_chunks
+    )
+    assert not any(
+        chunk.metadata.get("chunk_type") == "heading_section"
+        for chunk in repository.created_chunks
+    )
+    no_overlap_types = {
+        "procedure_table_row",
+        "schema_field_row",
+        "schema_object_summary",
+        "attribute_table_schema",
+        "gis_relationship_schema",
+    }
+    for chunk in repository.created_chunks:
+        if chunk.metadata.get("chunk_type") in no_overlap_types:
+            assert chunk.metadata["chunk_overlap"] == 0
+            assert chunk.metadata["overlap_applied"] is False
+
 def test_chunking_service_creates_table_row_chunks() -> None:
     row_element = ParsedElement(
         element_type="table_row",
@@ -477,6 +552,8 @@ def test_chunking_service_creates_table_row_chunks() -> None:
     )
     assert table_row.metadata["area"] == "Xây dựng nền tảng RAG trên dữ liệu nội bộ"
     assert "Nguyễn Trọng Hùng" in table_row.metadata["staff_names"]
+    assert table_row.metadata["chunk_overlap"] == 0
+    assert table_row.metadata["overlap_applied"] is False
 
 
 def test_chunking_service_creates_person_entity_profile_chunks() -> None:

@@ -86,6 +86,12 @@ class TechnologyAreaRow:
     def staff_names(self) -> list[str]:
         return [staff.name for staff in self.proposed_staff]
 
+    @property
+    def source_row_id(self) -> str | None:
+        if not self.table_id or not self.stt:
+            return None
+        return f"{self.table_id}_row_{self.stt}"
+
     def to_text(self) -> str:
         staff_text = "; ".join(
             f"{staff.name} ({staff.role_note})" if staff.role_note else staff.name
@@ -99,22 +105,40 @@ class TechnologyAreaRow:
         )
 
     def to_metadata(self) -> dict[str, Any]:
+        canonical_text = self.to_text()
         metadata: dict[str, Any] = {
             "stt": self.stt,
             "area": self.area,
+            "area_normalized": normalize_metadata_value(self.area),
             "lead_department": self.lead_department,
+            "lead_department_normalized": normalize_metadata_value(self.lead_department),
             "staff_names": self.staff_names,
-            "staff": [staff.to_dict() for staff in self.proposed_staff],
+            "staff": [
+                {
+                    **staff.to_dict(),
+                    "name_normalized": normalize_metadata_value(staff.name),
+                    "entity_type": "person",
+                }
+                for staff in self.proposed_staff
+            ],
+            "assignment_type": "specific_people",
+            "has_specific_person": True,
             "source_table": self.source_table,
             "confidence": self.confidence,
             "relationship_type": "technology_area_staff",
+            "canonical_text": canonical_text,
+            "raw_text_clean": canonical_text,
+            "text_content": canonical_text,
         }
+        if self.source_row_id:
+            metadata["source_row_id"] = self.source_row_id
         if self.table_id:
             metadata["table_id"] = self.table_id
         if self.page_number is not None:
             metadata["page_number"] = self.page_number
         if self.raw_text:
             metadata["raw_text"] = self.raw_text
+            metadata["raw_text_original"] = self.raw_text
         return metadata
 
 
@@ -431,7 +455,8 @@ def build_entity_profile_chunks(
             if not isinstance(staff, dict):
                 continue
             name = str(staff.get("name") or "").strip()
-            if is_valid_staff_name(name):
+            entity_type = str(staff.get("entity_type") or "person")
+            if entity_type == "person" and is_valid_staff_name(name):
                 grouped.setdefault(name, []).append(row_chunk)
 
     chunks: list[dict[str, Any]] = []
@@ -459,11 +484,15 @@ def build_entity_profile_chunks(
             seen_area_keys.add(key)
             area_payload: dict[str, Any] = {
                 "area": area,
+                "area_normalized": normalize_metadata_value(area),
                 "lead_department": department,
+                "lead_department_normalized": normalize_metadata_value(department),
                 "stt": stt,
             }
             if role_note:
                 area_payload["role_note"] = role_note
+            if metadata.get("source_row_id") is not None:
+                area_payload["source_row_id"] = metadata.get("source_row_id")
             if metadata.get("table_id") is not None:
                 area_payload["table_id"] = metadata.get("table_id")
                 table_ids.add(str(metadata.get("table_id")))
@@ -479,12 +508,19 @@ def build_entity_profile_chunks(
 
         if not areas:
             continue
+        area_names = [str(area["area"]) for area in areas]
+        answer_text = (
+            f"{person_name} được đề xuất tham gia {len(areas):02d} mảng công nghệ: "
+            f"{_join_vietnamese_list(area_names)}."
+        )
         metadata: dict[str, Any] = {
             "chunk_type": "entity_profile",
             "chunk_mode": "table_aware",
             "entity_type": "person",
             "person_name": person_name,
+            "person_name_normalized": normalize_metadata_value(person_name),
             "areas": areas,
+            "answer_text": answer_text,
             "relationship_type": "technology_area_staff",
             "confidence": min(
                 float(row.get("metadata", {}).get("confidence") or 0)
@@ -499,11 +535,19 @@ def build_entity_profile_chunks(
         chunks.append(
             {
                 "chunk_index": start_index + len(chunks),
-                "content": "\n".join(lines),
+                "content": "\n".join([*lines, answer_text]),
                 "metadata": metadata,
             }
         )
     return chunks
+
+def _join_vietnamese_list(values: list[str]) -> str:
+    cleaned = [value for value in values if value]
+    if not cleaned:
+        return ""
+    if len(cleaned) == 1:
+        return cleaned[0]
+    return ", ".join(cleaned[:-1]) + " và " + cleaned[-1]
 
 
 def analyze_person_area_membership_query(query: str) -> PersonAreaMembershipQuery | None:
@@ -594,6 +638,8 @@ def row_to_chunk(row: TechnologyAreaRow, *, chunk_index: int = 0) -> dict[str, A
     metadata = row.to_metadata()
     metadata["chunk_type"] = "table_row"
     metadata["chunk_mode"] = "table_aware"
+    metadata["chunk_overlap"] = 0
+    metadata["overlap_applied"] = False
     return {"chunk_index": chunk_index, "content": row.to_text(), "metadata": metadata}
 
 
@@ -676,6 +722,9 @@ def _clean_text(value: str) -> str:
 
 def _normalize_for_match(value: str) -> str:
     return " ".join(_strip_accents(str(value or "")).casefold().split())
+
+def normalize_metadata_value(value: str) -> str:
+    return _normalize_for_match(value)
 
 
 def _strip_accents(value: str) -> str:

@@ -8,6 +8,7 @@ from uuid import UUID
 from app.core.config import settings
 from app.repositories.documents import ChunkCreate, DocumentRepository
 from app.schemas.documents import ChunkPreview, DocumentChunkResponse
+from app.services.gis_chunking import STRUCTURED_NO_OVERLAP_CHUNK_TYPES
 
 DEFAULT_CHUNK_SIZE = settings.default_chunk_size
 DEFAULT_CHUNK_OVERLAP = settings.default_chunk_overlap
@@ -23,6 +24,7 @@ ChunkMode = Literal[
     "heading_aware",
     "semantic",
     "code",
+    "adaptive_segmented",
     "fallback",
 ]
 DEFAULT_CHUNK_MODE: ChunkMode = "recursive"
@@ -38,6 +40,11 @@ CHAPTER_PATTERN = re.compile(
     flags=re.MULTILINE,
 )
 LEGAL_SEPARATORS = ("\n\n", "\n", ". ")
+VIETNAMESE_ADMIN_SEPARATORS = ("\n\n\n", "\n\n", "\n- ", "\n+ ", ". ", "\n", " ", "")
+GIS_SCHEMA_TABLE_PATTERN = re.compile(
+    r"(?ms)(\(\d+\)\s+F\d+_[A-Za-z0-9_]+\s*[–-].*?)(?=^\s*\(\d+\)\s+F\d+_[A-Za-z0-9_]+|\Z)"
+)
+GIS_LAYER_PATTERN = re.compile(r"\bF\d+_[A-Za-z0-9_]+\b")
 
 
 @dataclass(frozen=True)
@@ -48,8 +55,79 @@ class TextChunk:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
+def split_tables_and_text(raw_text: str) -> list[dict[str, Any]]:
+    segments: list[dict[str, Any]] = []
+    last_end = 0
+
+    for match in GIS_SCHEMA_TABLE_PATTERN.finditer(raw_text):
+        if match.start() > last_end:
+            segments.append(
+                {
+                    "type": "text",
+                    "content": raw_text[last_end : match.start()],
+                    "start_char": last_end,
+                    "end_char": match.start(),
+                }
+            )
+        table_text, trailing_text = _split_gis_table_tail(match.group(0))
+        table_end = match.start() + len(table_text)
+        segments.append(
+            {
+                "type": "table",
+                "content": table_text,
+                "start_char": match.start(),
+                "end_char": table_end,
+                "layer_id": extract_layer_id(table_text),
+            }
+        )
+        if trailing_text.strip():
+            segments.append(
+                {
+                    "type": "text",
+                    "content": trailing_text,
+                    "start_char": table_end,
+                    "end_char": match.end(),
+                }
+            )
+        last_end = match.end()
+
+    if last_end < len(raw_text):
+        segments.append(
+            {
+                "type": "text",
+                "content": raw_text[last_end:],
+                "start_char": last_end,
+                "end_char": len(raw_text),
+            }
+        )
+
+    return segments or [
+        {"type": "text", "content": raw_text, "start_char": 0, "end_char": len(raw_text)}
+    ]
+
+
+def extract_layer_id(table_text: str) -> str:
+    match = GIS_LAYER_PATTERN.search(table_text)
+    return match.group(0) if match else "unknown"
+
+
+def _split_gis_table_tail(table_text: str) -> tuple[str, str]:
+    separator_index = table_text.rfind("\n\n")
+    if separator_index < 0:
+        return table_text, ""
+
+    protected = table_text[: separator_index + 1]
+    tail = table_text[separator_index + 1 :]
+    first_tail_line = next((line.strip() for line in tail.splitlines() if line.strip()), "")
+    if not first_tail_line:
+        return table_text, ""
+    if GIS_SCHEMA_TABLE_PATTERN.match(first_tail_line) or "|" in first_tail_line:
+        return table_text, ""
+    return protected, tail
+
+
 class RecursiveTextChunker:
-    default_separators = ("\n\n", ". ", " ")
+    default_separators = VIETNAMESE_ADMIN_SEPARATORS
 
     def __init__(
         self,
@@ -74,6 +152,32 @@ class RecursiveTextChunker:
             return []
 
         chunks: list[TextChunk] = []
+        for segment in split_tables_and_text(text):
+            content = str(segment["content"])
+            if not content.strip():
+                continue
+            if segment["type"] == "table":
+                chunks.append(
+                    TextChunk(
+                        content=content,
+                        start_char=int(segment["start_char"]),
+                        end_char=int(segment["end_char"]),
+                        metadata={
+                            "chunk_type": "gis_table",
+                            "type": "gis_table",
+                            "layer_id": segment["layer_id"],
+                        },
+                    )
+                )
+                continue
+            chunks.extend(self._chunk_plain_text(content, base_offset=int(segment["start_char"])))
+        return chunks
+
+    def _chunk_plain_text(self, text: str, *, base_offset: int = 0) -> list[TextChunk]:
+        if not text.strip():
+            return []
+
+        chunks: list[TextChunk] = []
         text_length = len(text)
         start_char = 0
 
@@ -86,8 +190,8 @@ class RecursiveTextChunker:
             chunks.append(
                 TextChunk(
                     content=text[start_char:end_char],
-                    start_char=start_char,
-                    end_char=end_char,
+                    start_char=base_offset + start_char,
+                    end_char=base_offset + end_char,
                 )
             )
 
@@ -145,9 +249,7 @@ class LegalArticleChunker:
         chapter_matches = list(CHAPTER_PATTERN.finditer(text))
         results: list[TextChunk] = []
 
-        first_article_start = (
-            article_matches[0].start() if article_matches else len(text)
-        )
+        first_article_start = article_matches[0].start() if article_matches else len(text)
 
         if first_article_start > 0:
             preamble = text[:first_article_start]
@@ -332,7 +434,37 @@ class ChunkingService:
             "source_file": getattr(document_file, "filename", None),
         }
 
-        if plan.strategy == "hybrid_structured":
+        if plan.strategy == "adaptive_segmented":
+            from app.services.segment_router import AdaptiveSegmentChunker
+
+            raw_chunks = AdaptiveSegmentChunker().chunk_text(
+                document.parsed_text,
+                parsed_elements=parsed_elements,
+            )
+            chunk_records = [
+                ChunkCreate(
+                    chunk_index=index,
+                    content=chunk_dict["content"],
+                    metadata=self._raw_chunk_metadata(
+                        chunk_dict=chunk_dict,
+                        chunk_size=resolved_size,
+                        chunk_overlap=resolved_overlap,
+                        chunk_mode=mode,
+                        router_metadata=router_metadata,
+                        profile=effective_profile,
+                    ),
+                )
+                for index, chunk_dict in enumerate(raw_chunks)
+            ]
+            text_chunks_for_preview = [
+                TextChunk(
+                    content=c["content"],
+                    start_char=c.get("metadata", {}).get("start_char", 0),
+                    end_char=c.get("metadata", {}).get("end_char", 0),
+                )
+                for c in raw_chunks[:CHUNK_PREVIEW_LIMIT]
+            ]
+        elif plan.strategy == "hybrid_structured":
             raw_chunks = self._chunks_from_hybrid_elements(
                 parsed_elements,
                 document.parsed_text,
@@ -343,14 +475,14 @@ class ChunkingService:
                 ChunkCreate(
                     chunk_index=index,
                     content=chunk_dict["content"],
-                    metadata={
-                        **chunk_dict.get("metadata", {}),
-                        "chunk_size": resolved_size,
-                        "chunk_overlap": resolved_overlap,
-                        "chunk_mode": mode,
-                        **router_metadata,
-                        "document_profile": effective_profile,
-                    },
+                    metadata=self._raw_chunk_metadata(
+                        chunk_dict=chunk_dict,
+                        chunk_size=resolved_size,
+                        chunk_overlap=resolved_overlap,
+                        chunk_mode=mode,
+                        router_metadata=router_metadata,
+                        profile=effective_profile,
+                    ),
                 )
                 for index, chunk_dict in enumerate(raw_chunks)
             ]
@@ -366,21 +498,19 @@ class ChunkingService:
             raw_chunks = self._chunks_from_table_elements(parsed_elements)
             from app.services.table_relationships import build_entity_profile_chunks
 
-            raw_chunks.extend(
-                build_entity_profile_chunks(raw_chunks, start_index=len(raw_chunks))
-            )
+            raw_chunks.extend(build_entity_profile_chunks(raw_chunks, start_index=len(raw_chunks)))
             chunk_records = [
                 ChunkCreate(
                     chunk_index=index,
                     content=chunk_dict["content"],
-                    metadata={
-                        **chunk_dict.get("metadata", {}),
-                        "chunk_size": resolved_size,
-                        "chunk_overlap": resolved_overlap,
-                        "chunk_mode": mode,
-                        **router_metadata,
-                        "document_profile": effective_profile,
-                    },
+                    metadata=self._raw_chunk_metadata(
+                        chunk_dict=chunk_dict,
+                        chunk_size=resolved_size,
+                        chunk_overlap=resolved_overlap,
+                        chunk_mode=mode,
+                        router_metadata=router_metadata,
+                        profile=effective_profile,
+                    ),
                 )
                 for index, chunk_dict in enumerate(raw_chunks)
             ]
@@ -404,14 +534,14 @@ class ChunkingService:
                 ChunkCreate(
                     chunk_index=chunk_dict["chunk_index"],
                     content=chunk_dict["content"],
-                    metadata={
-                        **chunk_dict.get("metadata", {}),
-                        "chunk_size": resolved_size,
-                        "chunk_overlap": resolved_overlap,
-                        "chunk_mode": mode,
-                        **router_metadata,
-                        "document_profile": effective_profile,
-                    },
+                    metadata=self._raw_chunk_metadata(
+                        chunk_dict=chunk_dict,
+                        chunk_size=resolved_size,
+                        chunk_overlap=resolved_overlap,
+                        chunk_mode=mode,
+                        router_metadata=router_metadata,
+                        profile=effective_profile,
+                    ),
                 )
                 for chunk_dict in raw_chunks
             ]
@@ -491,9 +621,7 @@ class ChunkingService:
             ]
             text_chunks_for_preview = text_chunks[:CHUNK_PREVIEW_LIMIT]
         else:
-            chunker = RecursiveTextChunker(
-                chunk_size=resolved_size, chunk_overlap=resolved_overlap
-            )
+            chunker = RecursiveTextChunker(chunk_size=resolved_size, chunk_overlap=resolved_overlap)
             text_chunks = chunker.chunk_text(document.parsed_text)
             chunk_records = [
                 ChunkCreate(
@@ -584,10 +712,36 @@ class ChunkingService:
             "page_numbers",
             "relationship_type",
             "confidence",
+            "type",
+            "layer_id",
         ):
             if key in text_chunk.metadata:
                 metadata[key] = text_chunk.metadata[key]
         return metadata
+
+    @staticmethod
+    def _raw_chunk_metadata(
+        *,
+        chunk_dict: dict[str, Any],
+        chunk_size: int,
+        chunk_overlap: int,
+        chunk_mode: ChunkMode,
+        router_metadata: dict[str, Any],
+        profile: str,
+    ) -> dict[str, Any]:
+        metadata = dict(chunk_dict.get("metadata", {}) or {})
+        chunk_type = str(metadata.get("chunk_type") or "")
+        is_table_row = chunk_type == "table_row"
+        no_overlap = is_table_row or chunk_type in STRUCTURED_NO_OVERLAP_CHUNK_TYPES
+        return {
+            **metadata,
+            "chunk_size": chunk_size,
+            "chunk_overlap": 0 if no_overlap else chunk_overlap,
+            "overlap_applied": False if no_overlap else chunk_overlap > 0,
+            "chunk_mode": chunk_mode,
+            **router_metadata,
+            "document_profile": profile,
+        }
 
     async def _get_primary_document_file(self, document_id: UUID):
         getter = getattr(self._repository, "get_primary_document_file", None)
@@ -651,9 +805,7 @@ class ChunkingService:
             text_chunks = chunker.chunk_elements(explicit_prose, fallback_text)
             if not text_chunks:
                 text_chunks = chunker.chunk_text(fallback_text)
-            section_pages = ChunkingService._section_pages_from_prose_elements(
-                explicit_prose
-            )
+            section_pages = ChunkingService._section_pages_from_prose_elements(explicit_prose)
             return ChunkingService._raw_chunks_from_text_chunks(
                 text_chunks,
                 section_pages=section_pages,
@@ -668,9 +820,7 @@ class ChunkingService:
         chunks: list[dict[str, Any]] = []
         if page_elements:
             for page_element in page_elements:
-                page_text = ChunkingService._strip_table_region_from_prose(
-                    page_element.text
-                )
+                page_text = ChunkingService._strip_table_region_from_prose(page_element.text)
                 if not page_text.strip():
                     continue
                 for text_chunk in chunker.chunk_text(page_text):
@@ -778,9 +928,7 @@ class ChunkingService:
             if (
                 getattr(element, "element_type", None) == "table_row"
                 and metadata.get("relationship_type") == "technology_area_staff"
-                and not is_trusted_relationship_metadata(
-                    {**metadata, "chunk_type": "table_row"}
-                )
+                and not is_trusted_relationship_metadata({**metadata, "chunk_type": "table_row"})
             ):
                 continue
             row_index = getattr(element, "row_index", None)

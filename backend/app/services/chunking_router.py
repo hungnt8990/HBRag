@@ -18,6 +18,7 @@ ChunkStrategy = Literal[
     "heading_aware",
     "semantic",
     "code",
+    "adaptive_segmented",
     "fallback",
 ]
 
@@ -93,6 +94,8 @@ class ChunkingRouter:
             )
 
         strategy, reason = self._detect_strategy(request, config["chunk_mode"])
+        if strategy == "adaptive_segmented":
+            profile = "mixed_administrative_technical"
         return ChunkingPlan(
             strategy=strategy,
             parser_hint=request.parser_hint,
@@ -111,9 +114,13 @@ class ChunkingRouter:
         profile_chunk_mode: str,
     ) -> tuple[ChunkStrategy, str]:
         if self._has_table_elements(request.parsed_elements):
+            if self._looks_like_mixed_adaptive_document(request.parsed_text):
+                return "adaptive_segmented", "mixed_gis_administrative_schema_document"
             if self._has_prose_elements(request.parsed_elements):
                 return "hybrid_structured", "mixed_prose_and_table_elements"
             return "table_aware", "parsed_table_elements_only"
+        if self._looks_like_mixed_adaptive_document(request.parsed_text):
+            return "adaptive_segmented", "mixed_gis_administrative_schema_document"
         if looks_like_staff_area_table(request.parsed_text):
             return "table_aware", "staff_area_table_markers"
         if self._looks_like_slide_document(request.parsed_elements):
@@ -150,6 +157,7 @@ class ChunkingRouter:
             "heading_aware",
             "semantic",
             "code",
+            "adaptive_segmented",
             "fallback",
         }
         if chunk_mode not in allowed:
@@ -171,6 +179,8 @@ class ChunkingRouter:
         common = ("chunk_strategy", "router_reason", "document_profile")
         if strategy in {"hybrid_structured", "table_aware"}:
             return (*common, "chunk_type", "table_id", "headers")
+        if strategy == "adaptive_segmented":
+            return (*common, "segment_type", "page_range")
         if strategy == "legal_article":
             return (*common, "article_number", "article_title", "chapter_title")
         if strategy == "slide_page":
@@ -205,8 +215,7 @@ class ChunkingRouter:
     def _has_prose_elements(elements: list[ParsedElement]) -> bool:
         prose_types = {"title", "heading", "paragraph", "list_item", "code"}
         if any(
-            element.element_type in prose_types and element.text.strip()
-            for element in elements
+            element.element_type in prose_types and element.text.strip() for element in elements
         ):
             return True
         return any(
@@ -242,9 +251,7 @@ class ChunkingRouter:
 
     @staticmethod
     def _looks_like_slide_document(elements: list[ParsedElement]) -> bool:
-        slide_like = [
-            element for element in elements if element.element_type in {"slide", "page"}
-        ]
+        slide_like = [element for element in elements if element.element_type in {"slide", "page"}]
         if len(slide_like) < 2:
             return False
         return sum(len(element.text) for element in slide_like) / len(slide_like) < 1500
@@ -252,6 +259,12 @@ class ChunkingRouter:
     @staticmethod
     def _looks_heading_aware(text: str) -> bool:
         return len(HEADING_PATTERN.findall(text[:10000])) >= 3
+
+    @staticmethod
+    def _looks_like_mixed_adaptive_document(text: str) -> bool:
+        from app.services.segment_router import looks_like_mixed_gis_document
+
+        return looks_like_mixed_gis_document(text)
 
 
 class HeadingAwareChunker:

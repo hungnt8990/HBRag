@@ -13,6 +13,7 @@ from app.services.embeddings import EmbeddingProvider
 from app.services.vector_store import QdrantVectorStore
 
 CONTENT_PREVIEW_LIMIT = 300
+GIS_TABLE_EMBEDDING_PREFIX = "Mô tả cấu trúc lớp dữ liệu GIS hạ thế"
 
 
 class DocumentNotFoundError(LookupError):
@@ -62,7 +63,7 @@ class VectorIndexingService:
 
         try:
             embeddings = await self._embedding_provider.embed_texts(
-                [chunk.content for chunk in chunks]
+                [self._embedding_text_for_chunk(chunk) for chunk in chunks]
             )
             points = [
                 self._vector_store.build_point(
@@ -133,3 +134,13 @@ class VectorIndexingService:
     @staticmethod
     def _metadata(metadata: dict[str, Any]) -> dict[str, object]:
         return dict(metadata)
+
+    @staticmethod
+    def _embedding_text_for_chunk(chunk: object) -> str:
+        content = str(getattr(chunk, "content", ""))
+        metadata = dict(getattr(chunk, "chunk_metadata", None) or {})
+        chunk_type = metadata.get("chunk_type") or metadata.get("type")
+        if chunk_type == "gis_table":
+            layer_id = str(metadata.get("layer_id") or "unknown")
+            return f"{GIS_TABLE_EMBEDDING_PREFIX} {layer_id}:\n{content}"
+        return content

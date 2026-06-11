@@ -142,6 +142,16 @@ class FakeVectorStore:
         )
 
 
+class RecordingEmbeddingProvider(FakeEmbeddingProvider):
+    def __init__(self) -> None:
+        super().__init__()
+        self.embedded_texts: list[str] = []
+
+    async def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        self.embedded_texts = list(texts)
+        return await super().embed_texts(texts)
+
+
 def test_fake_embedding_is_deterministic() -> None:
     provider = FakeEmbeddingProvider()
 
@@ -190,6 +200,35 @@ def test_vector_index_endpoint_upserts_chunk_vectors() -> None:
     assert point.payload["knowledge_base_id"] == str(KNOWLEDGE_BASE_ID)
     assert point.payload["uploaded_by_user_id"] == str(USER_ID)
     assert point.payload["visibility"] == "organization"
+
+
+def test_vector_index_adds_context_prefix_for_gis_table_embedding() -> None:
+    chunk = SimpleNamespace(
+        id=CHUNK_ID,
+        document_id=DOCUMENT_ID,
+        chunk_index=0,
+        content="(1) F08_CotDien_HT – Lớp cột điện\n1 | ID | Text",
+        chunk_metadata={"chunk_type": "gis_table", "layer_id": "F08_CotDien_HT"},
+    )
+    repository = FakeDocumentRepository(chunks=[chunk])
+    vector_store = FakeVectorStore()
+    provider = RecordingEmbeddingProvider()
+    app.dependency_overrides[get_document_repository] = lambda: repository
+    app.dependency_overrides[get_embedding_provider] = lambda: provider
+    app.dependency_overrides[get_vector_store] = lambda: vector_store
+
+    try:
+        client = TestClient(app)
+        response = client.post(f"/api/documents/{DOCUMENT_ID}/index-vector")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert provider.embedded_texts[0].startswith(
+        "Mô tả cấu trúc lớp dữ liệu GIS hạ thế F08_CotDien_HT:"
+    )
+    assert provider.embedded_texts[0].endswith(chunk.content)
+    assert vector_store.upserted_points[0].payload["content"] == chunk.content
 
 
 def test_vector_index_endpoint_allows_reindexing_indexed_document() -> None:

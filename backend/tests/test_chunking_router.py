@@ -8,6 +8,7 @@ from app.services.chunking_router import (
 from app.services.document_parser_service import build_default_parsers
 from app.services.parsers import ParsedElement
 from app.services.parsers.optional_adapters import DoclingParser, UnstructuredParser
+from tests.test_segment_router import GIS_MIXED_TEXT, PAGE_ELEMENTS
 
 
 def test_router_selects_table_aware_when_table_row_exists() -> None:
@@ -42,6 +43,7 @@ def test_router_selects_table_aware_when_table_element_exists() -> None:
 
     assert plan.strategy == "table_aware"
     assert plan.reason == "parsed_table_elements_only"
+
 
 def test_router_selects_hybrid_when_prose_and_table_elements_exist() -> None:
     plan = ChunkingRouter().plan(
@@ -79,6 +81,24 @@ def test_router_selects_hybrid_when_prose_and_table_elements_exist() -> None:
     assert plan.strategy == "hybrid_structured"
     assert plan.reason == "mixed_prose_and_table_elements"
 
+
+def test_router_selects_adaptive_segmented_for_mixed_gis_document() -> None:
+    plan = ChunkingRouter().plan(
+        ChunkingRequest(
+            filename="gis-plan.pdf",
+            mime_type="application/pdf",
+            parsed_text=GIS_MIXED_TEXT,
+            parsed_elements=PAGE_ELEMENTS,
+        )
+    )
+
+    assert plan.strategy == "adaptive_segmented"
+    assert plan.chunk_mode == "adaptive_segmented"
+    assert plan.document_profile == "mixed_administrative_technical"
+    assert plan.reason == "mixed_gis_administrative_schema_document"
+    assert "segment_type" in plan.metadata_required
+
+
 def test_router_keeps_table_aware_when_page_only_contains_staff_table() -> None:
     table_text = (
         "DANH SÁCH NHÂN SỰ PHỤ TRÁCH TỪNG MẢNG CÔNG NGHỆ LÕI\n"
@@ -107,6 +127,7 @@ def test_router_keeps_table_aware_when_page_only_contains_staff_table() -> None:
     assert plan.strategy == "table_aware"
     assert plan.reason == "parsed_table_elements_only"
 
+
 def test_router_selects_slide_page_when_page_elements_exist() -> None:
     plan = ChunkingRouter().plan(
         ChunkingRequest(
@@ -122,6 +143,7 @@ def test_router_selects_slide_page_when_page_elements_exist() -> None:
 
     assert plan.strategy == "slide_page"
     assert plan.reason == "parsed_slide_or_page_elements"
+
 
 def test_router_selects_heading_aware_when_heading_elements_exist() -> None:
     plan = ChunkingRouter().plan(
@@ -142,6 +164,7 @@ def test_router_selects_heading_aware_when_heading_elements_exist() -> None:
 
     assert plan.strategy == "heading_aware"
     assert plan.reason == "parsed_heading_elements"
+
 
 def test_chunking_router_prefers_table_aware_over_heading_for_staff_table() -> None:
     text = (
@@ -187,6 +210,7 @@ def test_heading_aware_keeps_section_boundaries() -> None:
     assert chunks[0].metadata["section_title"] == "Overview"
     assert "Details" not in chunks[0].content
     assert chunks[1].metadata["heading_path"] == ["Details"]
+
 
 def test_heading_aware_chunks_from_elements_without_merging_sections() -> None:
     elements = [
@@ -263,6 +287,7 @@ def test_requested_slide_page_without_elements_falls_back() -> None:
     assert plan.strategy == "fallback"
     assert plan.reason == "no_page_or_slide_elements_available"
 
+
 def test_optional_docling_placeholder_is_not_registered(monkeypatch) -> None:
     monkeypatch.setattr(settings, "document_parser_provider", "docling")
     monkeypatch.setattr(settings, "enable_docling", True)
@@ -272,6 +297,7 @@ def test_optional_docling_placeholder_is_not_registered(monkeypatch) -> None:
     parsers = build_default_parsers()
 
     assert not any(isinstance(parser, DoclingParser) for parser in parsers)
+
 
 def test_optional_unstructured_placeholder_is_not_registered(monkeypatch) -> None:
     monkeypatch.setattr(settings, "document_parser_provider", "unstructured")
