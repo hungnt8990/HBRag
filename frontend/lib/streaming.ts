@@ -1,9 +1,6 @@
 import {
   ApiError,
   getStoredAccessToken,
-  type AnswerMode,
-  type AnswerStyle,
-  type DocumentProfile,
   type RagCitation,
 } from "@/lib/api";
 const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
@@ -20,16 +17,10 @@ export type RagStreamScope = {
 export type RagStreamRequest = {
   query: string;
   session_id?: string;
-  top_k?: number;
-  candidate_k?: number;
   scope?: RagStreamScope;
   use_memory?: boolean;
   use_mem0?: boolean;
   memory_top_k?: number;
-  answer_mode?: AnswerMode;
-  answer_style?: AnswerStyle;
-  max_context_chars?: number;
-  profile?: DocumentProfile;
   use_graph?: boolean;
   graph_expansion_depth?: number;
   graph_expansion_limit?: number;

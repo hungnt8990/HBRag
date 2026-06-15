@@ -1,5 +1,6 @@
 import json
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -17,7 +18,7 @@ from app.repositories.documents import DocumentRepository
 from app.repositories.knowledge_bases import KnowledgeBaseRepository
 from app.repositories.memory import MemoryRepository
 from app.schemas.chat import RagChatRequest, RagChatResponse, RagChatStreamRequest
-from app.services.document_profiles import FALLBACK_CONFIG, profile_config, resolve_profile
+from app.services.document_profiles import profile_config, resolve_profile
 from app.services.llms import LLMProvider
 from app.services.llms.factory import get_llm_provider
 from app.services.memory import MemoryResult, build_memory_provider
@@ -86,6 +87,30 @@ def get_rag_answer_service(
     )
 
 
+def _non_empty_uuid_set(values) -> set[UUID] | None:
+    if values is None:
+        return None
+    result = {UUID(str(value)) for value in values if str(value).strip()}
+    return result or None
+
+
+def _apply_client_document_scope(
+    visible_document_ids: set[UUID],
+    allowed_document_ids,
+) -> set[UUID]:
+    """Intersect permissions with an explicit client scope only.
+
+    The chatbot may narrow the scope with allowed_document_ids, but cannot widen
+    permissions. Empty/missing lists are treated as no extra filter to avoid
+    accidentally hiding all documents for unrelated follow-up questions.
+    """
+
+    requested_ids = _non_empty_uuid_set(allowed_document_ids)
+    if requested_ids is None:
+        return visible_document_ids
+    return visible_document_ids & requested_ids
+
+
 @router.post("/rag", response_model=RagChatResponse)
 async def rag_chat(
     request: RagChatRequest,
@@ -110,6 +135,10 @@ async def rag_chat(
             knowledge_base_ids=request.knowledge_base_ids,
             include_descendants=request.include_descendants,
         )
+        visible_document_ids = _apply_client_document_scope(
+            visible_document_ids,
+            request.session_context.allowed_document_ids if request.session_context else None,
+        )
         memory_context, session_summary = await _gather_memory(
             memory_repository=memory_repository,
             current_user=current_user,
@@ -119,10 +148,19 @@ async def rag_chat(
             use_mem0=request.use_mem0,
             memory_top_k=request.memory_top_k,
         )
+        settings_document_id = (
+            request.document_id
+            or (
+                request.session_context.current_document_id
+                if request.session_context is not None
+                else None
+            )
+            or (next(iter(visible_document_ids)) if len(visible_document_ids) == 1 else None)
+        )
         resolved = await _resolve_profile_settings(
             repository=repository,
             profile=request.profile,
-            document_id=request.document_id,
+            document_id=settings_document_id,
             top_k=request.top_k,
             candidate_k=request.candidate_k,
             answer_mode=request.answer_mode,
@@ -136,6 +174,7 @@ async def rag_chat(
             candidate_k=resolved["candidate_k"],
             current_user=current_user,
             document_ids=visible_document_ids,
+            session_context=request.session_context,
             memory_context=memory_context,
             session_summary=session_summary,
             answer_mode=resolved["answer_mode"],
@@ -177,30 +216,63 @@ async def _resolve_profile_settings(
     answer_style: str | None,
     max_context_chars: int | None,
 ) -> dict:
-    selected = profile
+    """Resolve runtime RAG settings automatically from the document profile.
+
+    UI clients may omit profile/top_k/candidate_k/answer_mode/answer_style/
+    max_context_chars. In that normal path, the backend chooses the saved
+    document profile detected during ingestion, then falls back to config-driven
+    auto-detection from parsed text/file hints, and finally to the general
+    profile. Explicit client values still work as API-level overrides.
+    """
+
+    requested_profile = (profile or "auto").strip().lower()
+    document = None
     parsed_text = None
-    if selected is None and document_id is not None:
+    filename = None
+    content_type = None
+    saved_profile = None
+
+    if document_id is not None:
         get_document = getattr(repository, "get_document", None)
         if get_document is not None:
             try:
                 document = await get_document(document_id)
             except Exception:
                 document = None
-            if document is not None:
-                selected = getattr(document, "document_profile", None)
-                parsed_text = getattr(document, "parsed_text", None)
+        if document is not None:
+            parsed_text = getattr(document, "parsed_text", None)
+            saved_profile = getattr(document, "document_profile", None)
+            filename = getattr(document, "title", None)
+            files = list(getattr(document, "files", None) or [])
+            if files:
+                filename = getattr(files[0], "filename", None) or filename
+                content_type = getattr(files[0], "mime_type", None)
 
-    if selected is None:
-        config = dict(FALLBACK_CONFIG)
+    if requested_profile == "auto":
+        concrete_profile = saved_profile or resolve_profile(
+            "auto",
+            text=parsed_text,
+            filename=filename,
+            content_type=content_type,
+        )
     else:
-        config = profile_config(resolve_profile(selected, text=parsed_text))
+        concrete_profile = resolve_profile(
+            requested_profile,
+            text=parsed_text,
+            filename=filename,
+            content_type=content_type,
+        )
 
-    resolved_top_k = top_k if top_k is not None else config["top_k"]
-    resolved_candidate_k = candidate_k if candidate_k is not None else config["candidate_k"]
+    config = profile_config(concrete_profile)
+    resolved_top_k = top_k if top_k is not None else int(config["top_k"])
+    resolved_candidate_k = (
+        candidate_k if candidate_k is not None else int(config["candidate_k"])
+    )
     if resolved_candidate_k < resolved_top_k:
         resolved_candidate_k = resolved_top_k
 
     return {
+        "profile": concrete_profile,
         "top_k": resolved_top_k,
         "candidate_k": resolved_candidate_k,
         "answer_mode": answer_mode if answer_mode is not None else config["answer_mode"],
@@ -210,7 +282,7 @@ async def _resolve_profile_settings(
         "max_context_chars": (
             max_context_chars
             if max_context_chars is not None
-            else config["max_context_chars"]
+            else int(config["max_context_chars"])
         ),
     }
 
@@ -309,6 +381,10 @@ async def rag_chat_stream(
         knowledge_base_ids=request.scope.knowledge_base_ids,
         include_descendants=request.scope.include_descendants,
     )
+    visible_document_ids = _apply_client_document_scope(
+        visible_document_ids,
+        request.session_context.allowed_document_ids if request.session_context else None,
+    )
     memory_context, session_summary = await _gather_memory(
         memory_repository=memory_repository,
         current_user=current_user,
@@ -318,10 +394,19 @@ async def rag_chat_stream(
         use_mem0=request.use_mem0,
         memory_top_k=request.memory_top_k,
     )
+    settings_document_id = (
+        request.scope.document_id
+        or (
+            request.session_context.current_document_id
+            if request.session_context is not None
+            else None
+        )
+        or (next(iter(visible_document_ids)) if len(visible_document_ids) == 1 else None)
+    )
     resolved = await _resolve_profile_settings(
         repository=repository,
         profile=request.profile,
-        document_id=request.scope.document_id,
+        document_id=settings_document_id,
         top_k=request.top_k,
         candidate_k=request.candidate_k,
         answer_mode=request.answer_mode,
@@ -338,6 +423,7 @@ async def rag_chat_stream(
                 candidate_k=resolved["candidate_k"],
                 current_user=current_user,
                 document_ids=visible_document_ids,
+                session_context=request.session_context,
                 memory_context=memory_context,
                 session_summary=session_summary,
                 answer_mode=resolved["answer_mode"],

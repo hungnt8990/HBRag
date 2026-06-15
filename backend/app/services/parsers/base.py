@@ -80,6 +80,14 @@ class DocumentParser:
     def parse(self, file_content: bytes) -> ParsedDocument:
         raise NotImplementedError
 
+    def parse_document(
+        self,
+        file_content: bytes,
+        *,
+        filename: str,
+        mime_type: str | None,
+    ) -> ParsedDocument:
+        return self.parse(file_content)
 
     def supports(self, *, filename: str, mime_type: str | None) -> bool:
         extension = self._extension_from_filename(filename)

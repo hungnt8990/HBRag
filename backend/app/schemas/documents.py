@@ -49,14 +49,13 @@ class DocumentChunkRequest(BaseModel):
         "recursive",
         "legal_article",
         "table_aware",
+        "hybrid_structured",
+        "docling_v6",
         "slide_page",
         "heading_aware",
-        "semantic",
-        "code",
-        "fallback",
     ] | None = None
     profile: Literal[
-        "auto", "legal_admin", "general", "technical", "faq", "spreadsheet"
+        "auto", "legal_admin", "catalog_table", "general", "spreadsheet", "slide"
     ] | None = None
 
     @model_validator(mode="after")
@@ -136,6 +135,7 @@ class DocumentListItem(BaseModel):
     knowledge_base: DocumentKnowledgeBase | None = None
     uploaded_by: DocumentPerson | None
     visibility: str
+    document_profile: str | None = None
     parsed_character_count: int
     created_at: datetime
     updated_at: datetime

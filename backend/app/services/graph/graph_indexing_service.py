@@ -62,6 +62,14 @@ class GraphIndexingService:
             raise GraphIndexingError("Document not found.")
 
         chunks = await self._document_repository.list_chunks_for_document(document_id)
+        chunks = [
+            chunk
+            for chunk in chunks
+            if (chunk.chunk_metadata or {}).get("indexable", True)
+            and (chunk.chunk_metadata or {}).get("embedding_enabled", True)
+            and (chunk.chunk_metadata or {}).get("chunk_type")
+            not in {"administrative_footer", "header_footer", "footer", "parse_error"}
+        ]
         if not chunks:
             raise GraphDocumentChunksMissingError("Document has no chunks to graph index.")
 

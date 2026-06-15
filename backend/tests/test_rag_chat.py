@@ -184,6 +184,7 @@ class FakeRagAnswerService:
         current_user=None,
         document_ids=None,
         memory_context=None,
+        session_context=None,
         session_summary=None,
         answer_mode=None,
         answer_style=None,
@@ -1126,3 +1127,439 @@ def test_user_prompt_splits_inline_table_rows_before_matching_entity() -> None:
     assert "Xay dung dich vu OCR dung chung" in entity_section
     assert "row=6" not in entity_section
     assert "Xay dung nen tang RAG tren du lieu noi bo" not in entity_section
+
+
+def test_deterministic_legal_leave_prefers_specific_child_marriage_row() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    document_id = uuid4()
+    rows = [
+        SimpleNamespace(
+            id=uuid4(),
+            document_id=document_id,
+            chunk_index=12,
+            content="Trường hợp: Kết hôn; Nghỉ 03 ngày hưởng nguyên lương",
+            chunk_metadata={
+                "chunk_type": "legal_table_row",
+                "relationship_type": "legal_leave_benefit",
+                "case_code": "a",
+                "case_name": "Kết hôn",
+                "total_leave_days": 3,
+                "total_leave_benefit": "Nghỉ 03 ngày hưởng nguyên lương",
+                "labor_code_benefit": "Nghỉ 03 ngày hưởng nguyên lương",
+                "table_name": "Điều 10. Nghỉ việc riêng có hưởng lương",
+                "source_label": "Quy chế nghỉ hưởng lương mẫu",
+                "source_file": "TULDTT CPC 2024 KY KET 11.10.2024.docx",
+            },
+        ),
+        SimpleNamespace(
+            id=uuid4(),
+            document_id=document_id,
+            chunk_index=13,
+            content=(
+                "Trường hợp: Con đẻ, con nuôi kết hôn; Nghỉ 02 ngày hưởng "
+                "nguyên lương (01 ngày theo BLLĐ + 01 ngày hưởng thêm theo TƯLĐTT này)"
+            ),
+            chunk_metadata={
+                "chunk_type": "legal_table_row",
+                "relationship_type": "legal_leave_benefit",
+                "case_code": "b",
+                "case_name": "Con đẻ, con nuôi kết hôn",
+                "total_leave_days": 2,
+                "total_leave_benefit": "Nghỉ 02 ngày hưởng nguyên lương",
+                "labor_code_benefit": "Nghỉ 01 ngày hưởng nguyên lương",
+                "collective_agreement_benefit": "Nghỉ 01 ngày hưởng nguyên lương",
+                "table_name": "Điều 10. Nghỉ việc riêng có hưởng lương",
+                "source_label": "Quy chế nghỉ hưởng lương mẫu",
+                "source_file": "TULDTT CPC 2024 KY KET 11.10.2024.docx",
+            },
+        ),
+        SimpleNamespace(
+            id=uuid4(),
+            document_id=document_id,
+            chunk_index=17,
+            content=(
+                "Trường hợp: Cha hoặc mẹ của NLĐ hoặc của vợ (chồng) NLĐ "
+                "kết hôn (kể cả bố, mẹ nuôi được pháp luật công nhận); "
+                "Anh, chị, em ruột của NLĐ hoặc của vợ (chồng) NLĐ kết hôn. "
+                "Nghỉ 01 ngày hưởng nguyên lương và phải thông báo với NSDLĐ"
+            ),
+            chunk_metadata={
+                "chunk_type": "legal_table_row",
+                "relationship_type": "legal_leave_benefit",
+                "case_code": "f",
+                "case_name": (
+                    "Cha hoặc mẹ của NLĐ hoặc của vợ (chồng) NLĐ kết hôn "
+                    "(kể cả bố, mẹ nuôi được pháp luật công nhận); Anh, chị, "
+                    "em ruột của NLĐ hoặc của vợ (chồng) NLĐ kết hôn."
+                ),
+                "total_leave_days": 1,
+                "total_leave_benefit": "Nghỉ 01 ngày hưởng nguyên lương",
+                "collective_agreement_benefit": (
+                    "Nghỉ 01 ngày hưởng nguyên lương và phải thông báo với NSDLĐ"
+                ),
+                "table_name": "Điều 10. Nghỉ việc riêng có hưởng lương",
+                "source_label": "Quy chế nghỉ hưởng lương mẫu",
+                "source_file": "TULDTT CPC 2024 KY KET 11.10.2024.docx",
+            },
+        ),
+    ]
+    context_chunks = [
+        ContextChunk(citation_index=index, chunk=chunk)
+        for index, chunk in enumerate(rows, start=1)
+    ]
+
+    child_answer = RagAnswerService._deterministic_legal_leave_answer(
+        query="Con đẻ kết hôn được nghỉ bao nhiêu ngày?",
+        context_chunks=context_chunks,
+    )
+    adopted_child_answer = RagAnswerService._deterministic_legal_leave_answer(
+        query="Trường hợp con nuôi kết hôn có được hưởng quyền lợi này không?",
+        context_chunks=context_chunks,
+    )
+    self_answer = RagAnswerService._deterministic_legal_leave_answer(
+        query="Khi kết hôn, NLĐ được nghỉ việc riêng có hưởng lương bao nhiêu ngày?",
+        context_chunks=context_chunks,
+    )
+
+    assert child_answer is not None
+    assert "02 ngày" in child_answer
+    assert "con đẻ" in child_answer
+    assert adopted_child_answer is not None
+    assert "02 ngày" in adopted_child_answer
+    assert "con nuôi" in adopted_child_answer
+    assert "Ngoài trường hợp" not in adopted_child_answer
+    assert "Cha hoặc mẹ" not in adopted_child_answer
+    assert "Người lao động có vợ sinh con" not in adopted_child_answer
+    assert self_answer is not None
+    assert self_answer.startswith("Theo Quy chế nghỉ hưởng lương mẫu")
+    assert "03 ngày" in self_answer
+    assert "Ngoài trường hợp bản thân" not in self_answer
+    assert "Thỏa ước còn quy định" not in self_answer
+    assert "Ngoài trường hợp" in self_answer
+    assert "trường hợp liên quan" in self_answer
+    assert "có chứa" not in self_answer
+    assert "Con đẻ, con nuôi kết hôn" in self_answer
+    assert "02 ngày" in self_answer
+    assert "Cha hoặc mẹ" in self_answer
+    assert "Anh, chị, em ruột" in self_answer
+    assert "01 ngày" in self_answer
+    assert "phải thông báo với người sử dụng lao động" in self_answer
+
+
+def test_deterministic_person_area_answer_reads_canonical_table_block_without_metadata() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    document_id = uuid4()
+    table_block = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=10,
+        content=(
+            "STT: 3\n"
+            "Mảng công nghệ: Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
+            "Phòng chủ trì: PTUD\n"
+            "Nhân sự đề xuất: 1. Tống Phước Lâm 2. Nguyễn\nQuang Lâm\n\n"
+            "STT: 4\n"
+            "Mảng công nghệ: Xây dựng dịch vụ OCR dùng chung\n"
+            "Phòng chủ trì: PM\n"
+            "Nhân sự đề xuất: 1. Trịnh Thanh Tịnh 2. Nguyễn Quang Lâm\n"
+        ),
+        chunk_metadata={"chunk_type": "table_block"},
+    )
+
+    answer = RagAnswerService._deterministic_person_area_answer(
+        query="Nguyễn Quang Lâm tham gia vào mảng công nghệ nào?",
+        context_chunks=[ContextChunk(citation_index=1, chunk=table_block)],
+    )
+
+    assert answer is not None
+    assert "được đề xuất tham gia 02 mảng công nghệ" in answer
+    assert "Xây dựng nền tảng RAG trên dữ liệu nội bộ" in answer
+    assert "Phòng chủ trì: PTUD" in answer
+    assert "Xây dựng dịch vụ OCR dùng chung" in answer
+    assert "Phòng chủ trì: PM" in answer
+
+
+def test_deterministic_person_area_answer_handles_membership_question() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    document_id = uuid4()
+    table_row = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=19,
+        content=(
+            "STT: 3\n"
+            "Mảng công nghệ: Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
+            "Phòng chủ trì: PTUD\n"
+            "Nhân sự đề xuất: Tống Phước Lâm; Nguyễn Quang Lâm; "
+            "Nguyễn Trọng Hùng; Võ Văn Hòa; Đoàn Gia Hy (kiểm thử)"
+        ),
+        chunk_metadata={"chunk_type": "table_row"},
+    )
+    profile = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=32,
+        content=(
+            "Nhân sự: Nguyễn Trọng Hùng.\n"
+            "Nguyễn Trọng Hùng được đề xuất tham gia các mảng công nghệ:\n"
+            "- Xây dựng nền tảng RAG trên dữ liệu nội bộ; phòng chủ trì: PTUD.\n"
+            "- Kho dữ liệu AI dùng chung; phòng chủ trì: VH.\n"
+            "- Platform AI; phòng chủ trì: PTUD."
+        ),
+        chunk_metadata={"chunk_type": "entity_profile"},
+    )
+
+    answer = RagAnswerService._deterministic_person_area_answer(
+        query="Nguyễn Trọng Hùng tham gia Xây dựng nền tảng RAG trên dữ liệu nội bộ đúng không?",
+        context_chunks=[
+            ContextChunk(citation_index=1, chunk=table_row),
+            ContextChunk(citation_index=2, chunk=profile),
+        ],
+    )
+
+    assert answer is not None
+    assert answer.startswith("Đúng, Nguyễn Trọng Hùng được đề xuất tham gia")
+    assert "Xây dựng nền tảng RAG trên dữ liệu nội bộ" in answer
+    assert "Kho dữ liệu AI dùng chung" in answer
+    assert "Platform AI" in answer
+
+
+def test_deterministic_person_area_answer_matches_short_person_name_alias() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    profile = SimpleNamespace(
+        id=uuid4(),
+        document_id=uuid4(),
+        chunk_index=38,
+        content=(
+            "Nhân sự: Tống Phước Lâm.\n"
+            "Tống Phước Lâm được đề xuất tham gia các mảng công nghệ:\n"
+            "- Xây dựng nền tảng RAG trên dữ liệu nội bộ; phòng chủ trì: PTUD.\n"
+            "- Platform AI; phòng chủ trì: PTUD."
+        ),
+        chunk_metadata={"chunk_type": "entity_profile"},
+    )
+
+    answer = RagAnswerService._deterministic_person_area_answer(
+        query="Phước Lâm tham gia vào mảng công nghệ nào?",
+        context_chunks=[ContextChunk(citation_index=1, chunk=profile)],
+    )
+
+    assert answer is not None
+    assert "Phước Lâm được đề xuất tham gia 02 mảng công nghệ" in answer
+    assert "Xây dựng nền tảng RAG trên dữ liệu nội bộ" in answer
+    assert "Platform AI" in answer
+
+
+def test_entity_coverage_repository_adds_token_fallback_for_split_person_names() -> None:
+    from uuid import uuid4
+
+    from app.repositories.chat import ChatRepository
+
+    class FakeScalars:
+        def all(self):
+            return []
+
+    class FakeResult:
+        def scalars(self):
+            return FakeScalars()
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.statement = None
+
+        async def execute(self, statement):
+            self.statement = statement
+            return FakeResult()
+
+    fake_session = FakeSession()
+    repository = ChatRepository(fake_session)  # type: ignore[arg-type]
+
+    asyncio.run(
+        repository.get_entity_coverage_chunks(
+            document_id=uuid4(),
+            search_terms=["Nguyễn Quang Lâm", "Nguyen Quang Lam"],
+        )
+    )
+
+    statement_text = str(fake_session.statement)
+    params = fake_session.statement.compile().params
+    values = [str(value) for value in params.values()]
+    assert "AND" in statement_text
+    assert any("%Nguyễn%" == value for value in values)
+    assert any("%Quang%" == value for value in values)
+    assert any("%Lâm%" == value for value in values)
+
+
+def test_user_prompt_keeps_narrative_context_when_table_rows_match() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    document_id = uuid4()
+    narrative_chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=5,
+        content=(
+            "3. Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
+            "Mục tiêu: Khai thác tri thức nội bộ qua hỏi đáp có dẫn nguồn, "
+            "chính xác và được phân quyền.\n"
+            "- Khảo sát và lựa chọn kỹ thuật RAG phù hợp.\n"
+            "- Chuẩn hóa quy trình phân đoạn tài liệu, embedding và index.\n"
+            "- Kết hợp tìm kiếm từ khóa và tìm kiếm ngữ nghĩa.\n"
+            "- Phân quyền truy hồi theo tài liệu hoặc người dùng."
+        ),
+        chunk_metadata={"chunk_type": "docling_hybrid_repaired"},
+    )
+    table_row = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=19,
+        content=(
+            "STT: 3\n"
+            "Mảng công nghệ: Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
+            "Phòng chủ trì: PTUD\n"
+            "Nhân sự đề xuất: Tống Phước Lâm; Nguyễn Quang Lâm"
+        ),
+        chunk_metadata={"chunk_type": "table_row"},
+    )
+
+    prompt = RagAnswerService._build_user_prompt(
+        query="Mảng công nghệ RAG trên dữ liệu nội bộ có mục tiêu gì?",
+        context_chunks=[
+            ContextChunk(citation_index=1, chunk=table_row),
+            ContextChunk(citation_index=2, chunk=narrative_chunk),
+        ],
+    )
+
+    assert "ENTITY_MATCHED_ROWS:" in prompt
+    assert "Retrieved Document Context:" in prompt
+    assert "Mục tiêu: Khai thác tri thức nội bộ" in prompt
+    assert "Kết hợp tìm kiếm từ khóa" in prompt
+    assert "do not ignore narrative context" in prompt
+    assert "summary followed by list items" in prompt
+
+
+def test_deterministic_narrative_section_answer_preserves_section_bullets() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    document_id = uuid4()
+    narrative_chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=5,
+        content=(
+            "3. Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
+            "Mục tiêu: Khai thác tri thức nội bộ qua hỏi đáp có dẫn nguồn, "
+            "chính xác và được phân quyền.\n"
+            "- Khảo sát, đánh giá và lựa chọn kỹ thuật RAG phù hợp.\n"
+            "- Chuẩn hóa quy trình phân đoạn tài liệu, vector hóa và lập chỉ mục.\n"
+            "- Kết hợp tìm kiếm từ khóa và tìm kiếm ngữ nghĩa.\n"
+            "- Xây dựng pipeline RAG dùng chung cho toàn EVNCPC."
+        ),
+        chunk_metadata={"chunk_type": "docling_hybrid_repaired"},
+    )
+    table_row = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=19,
+        content=(
+            "STT: 3\n"
+            "Mảng công nghệ: Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
+            "Phòng chủ trì: PTUD"
+        ),
+        chunk_metadata={"chunk_type": "table_row"},
+    )
+
+    answer = RagAnswerService._deterministic_narrative_section_answer(
+        query="Mảng công nghệ RAG trên dữ liệu nội bộ có mục tiêu gì?",
+        context_chunks=[
+            ContextChunk(citation_index=1, chunk=table_row),
+            ContextChunk(citation_index=2, chunk=narrative_chunk),
+        ],
+    )
+
+    assert answer is not None
+    assert "Khai thác tri thức nội bộ" in answer
+    assert "Khảo sát, đánh giá" in answer
+    assert "Chuẩn hóa quy trình" in answer
+    assert "Kết hợp tìm kiếm từ khóa" in answer
+    assert "pipeline RAG dùng chung" in answer
+    assert "Phòng chủ trì" not in answer
+
+
+def test_query_terms_extract_generic_keyphrases_for_section_recovery() -> None:
+    from app.services.rag_answer_service import RagAnswerService
+
+    terms = RagAnswerService._query_terms(
+        "Mảng công nghệ RAG trên dữ liệu nội bộ có mục tiêu gì?"
+    )
+
+    normalized_terms = [
+        RagAnswerService._strip_vietnamese_accents(term).casefold()
+        for term in terms
+    ]
+    assert "rag" in normalized_terms
+    assert any("rag tren du lieu noi bo" in term for term in normalized_terms)
+    assert any("muc tieu" in term for term in normalized_terms)
+
+
+def test_high_signal_coverage_chunk_can_override_context_budget() -> None:
+    import asyncio
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    document_id = uuid4()
+    primary = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=19,
+        content="X" * 600,
+        chunk_metadata={"chunk_type": "table_row"},
+    )
+    narrative = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=5,
+        content=(
+            "3. Xây dựng nền tảng RAG trên dữ liệu nội bộ. "
+            "Mục tiêu: Khai thác tri thức nội bộ qua hỏi đáp có dẫn nguồn."
+        ),
+        chunk_metadata={"chunk_type": "docling_hybrid_repaired"},
+    )
+
+    class FakeCoverageRepo:
+        async def get_entity_coverage_chunks(self, *, document_id, search_terms, exclude_ids):
+            assert any("RAG" in term for term in search_terms)
+            return [narrative]
+
+    service = RagAnswerService(
+        chat_repository=FakeCoverageRepo(),  # type: ignore[arg-type]
+        reranking_service=SimpleNamespace(),  # type: ignore[arg-type]
+        llm_provider=SimpleNamespace(),  # type: ignore[arg-type]
+    )
+
+    expanded = asyncio.run(
+        service._expand_with_neighbors(
+            query="Mảng công nghệ RAG trên dữ liệu nội bộ có mục tiêu gì?",
+            context_chunks=[ContextChunk(citation_index=1, chunk=primary)],
+            max_context_chars=200,
+        )
+    )
+
+    assert any("Mục tiêu: Khai thác tri thức nội bộ" in item.chunk.content for item in expanded)

@@ -31,6 +31,7 @@ class FakeStreamingRagService:
         current_user=None,
         document_ids=None,
         memory_context=None,
+        session_context=None,
         session_summary=None,
         answer_mode=None,
         answer_style=None,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from uuid import UUID
 
 from app.repositories.documents import DocumentRepository
@@ -11,11 +12,13 @@ from app.schemas.documents import (
 )
 from app.services.graph.graph_retrieval_service import GraphRetrievalService
 from app.services.graph.models import GraphChunkCandidate
-from app.services.hybrid_search import HybridSearchService
+from app.services.hybrid_search import HybridSearchService, is_identifier_lookup_query
 from app.services.rerankers import RerankCandidate, Reranker
 
 DEFAULT_VECTOR_WEIGHT = 1.0
 DEFAULT_KEYWORD_WEIGHT = 1.0
+
+logger = logging.getLogger(__name__)
 
 
 class RerankingError(RuntimeError):
@@ -95,9 +98,17 @@ class RerankingService:
                 )
                 for result in hybrid_results
             ]
-            scores = await self._reranker.rerank(query=query, candidates=candidates)
-            score_by_chunk_id = {score.chunk_id: score.score for score in scores}
+            try:
+                scores = await self._reranker.rerank(query=query, candidates=candidates)
+                score_by_chunk_id = {score.chunk_id: score.score for score in scores}
+            except Exception:
+                logger.exception(
+                    "Reranker failed; continuing with fused hybrid ranking."
+                )
+                score_by_chunk_id = {}
+
             reranked_results = self._build_results(
+                query=query,
                 hybrid_results=hybrid_results,
                 score_by_chunk_id=score_by_chunk_id,
                 top_k=top_k,
@@ -168,18 +179,25 @@ class RerankingService:
     @staticmethod
     def _build_results(
         *,
+        query: str,
         hybrid_results: list[HybridSearchResult],
         score_by_chunk_id: dict[str, float],
         top_k: int,
     ) -> list[RerankSearchResult]:
-        ranked = sorted(
-            hybrid_results,
-            key=lambda result: (
+        identifier_lookup = is_identifier_lookup_query(query)
+
+        def sort_key(result: HybridSearchResult) -> tuple[float, float, float, str]:
+            metadata = result.metadata or {}
+            identifier_boost = float(metadata.get("identifier_exact_boost") or 0.0)
+            exact_priority = identifier_boost if identifier_lookup else 0.0
+            return (
+                -exact_priority,
                 -score_by_chunk_id.get(str(result.chunk_id), 0.0),
                 -result.fused_score,
                 str(result.chunk_id),
-            ),
-        )
+            )
+
+        ranked = sorted(hybrid_results, key=sort_key)
 
         return [
             RerankSearchResult(

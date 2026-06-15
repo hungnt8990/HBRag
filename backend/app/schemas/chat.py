@@ -7,13 +7,37 @@ SearchQuery = Annotated[str, StringConstraints(strip_whitespace=True, min_length
 AnswerMode = Literal["generative", "extractive", "hybrid"]
 AnswerStyle = Literal["concise", "detailed", "policy_explainer", "table_qa"]
 ProfileName = Literal[
-    "auto", "legal_admin", "general", "technical", "faq", "spreadsheet"
+    "auto", "legal_admin", "catalog_table", "general", "spreadsheet", "slide"
 ]
 
+
+
+
+class RagRecentMessage(BaseModel):
+    role: Literal["user", "assistant", "system"] | str
+    content: str = Field(default="", max_length=4000)
+
+
+class RagSessionContext(BaseModel):
+    """Short-term context supplied by an external chatbot client.
+
+    HBRag consumes this context only for query understanding and retrieval hints.
+    It is not treated as a cited source and is not persisted as user memory here.
+    """
+
+    recent_messages: list[RagRecentMessage] = Field(default_factory=list, max_length=12)
+    last_document_ids: list[UUID] = Field(default_factory=list)
+    current_document_id: UUID | None = None
+    last_topic: str | None = Field(default=None, max_length=1000)
+    current_scope: str | None = Field(default=None, max_length=500)
+    user_scope: str | None = Field(default=None, max_length=500)
+    allowed_document_ids: list[UUID] | None = None
+    allowed_scopes: list[str] = Field(default_factory=list)
 
 class RagChatRequest(BaseModel):
     query: SearchQuery
     session_id: UUID | None = None
+    session_context: RagSessionContext | None = None
     document_id: UUID | None = None
     organization_id: UUID | None = None
     knowledge_base_ids: list[UUID] | None = None
@@ -21,8 +45,8 @@ class RagChatRequest(BaseModel):
     profile: ProfileName | None = None
     top_k: int | None = Field(default=None, ge=1, le=50)
     candidate_k: int | None = Field(default=None, ge=1, le=200)
-    use_memory: bool = True
-    use_mem0: bool = True
+    use_memory: bool = False
+    use_mem0: bool = False
     memory_top_k: int = Field(default=5, ge=1, le=50)
     answer_mode: AnswerMode | None = None
     answer_style: AnswerStyle | None = None
@@ -52,13 +76,14 @@ class RagChatScope(BaseModel):
 class RagChatStreamRequest(BaseModel):
     query: SearchQuery
     session_id: UUID | None = None
+    session_context: RagSessionContext | None = None
     scope: RagChatScope = Field(default_factory=RagChatScope)
     profile: ProfileName | None = None
     top_k: int | None = Field(default=None, ge=1, le=50)
     candidate_k: int | None = Field(default=None, ge=1, le=200)
     stream: bool = True
-    use_memory: bool = True
-    use_mem0: bool = True
+    use_memory: bool = False
+    use_mem0: bool = False
     memory_top_k: int = Field(default=5, ge=1, le=50)
     answer_mode: AnswerMode | None = None
     answer_style: AnswerStyle | None = None

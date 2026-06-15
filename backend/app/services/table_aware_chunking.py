@@ -209,7 +209,7 @@ def _parse_serialized_row_fields(fields: str) -> tuple[list[str], list[str]]:
             values.append(value.strip())
         else:
             headers.append(f"cell_{len(headers) + 1}")
-            values.append(field.strip())
+            values.append(column.strip())
     return headers, values
 
 

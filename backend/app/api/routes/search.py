@@ -23,6 +23,7 @@ from app.schemas.documents import (
 )
 from app.services.embeddings.base import EmbeddingProvider
 from app.services.embeddings.factory import get_embedding_provider
+from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
 from app.services.graph import GraphRetrievalService, Neo4jClient, get_neo4j_client
 from app.services.graph.extractors.factory import build_graph_extractor
 from app.services.hybrid_search import HybridSearchError, HybridSearchService
@@ -65,6 +66,7 @@ def get_vector_search_service(
         repository=repository,
         embedding_provider=embedding_provider,
         vector_store=vector_store,
+        sparse_embedding_provider=get_sparse_embedding_provider(),
     )
 
 

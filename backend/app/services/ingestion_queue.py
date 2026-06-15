@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from io import BytesIO
+from types import SimpleNamespace
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
@@ -14,8 +16,10 @@ from app.db.session import AsyncSessionLocal
 from app.repositories.documents import DocumentRepository
 from app.services.chunking_service import ChunkingService
 from app.services.document_parser_service import DocumentParserService
+from app.services.document_profiles import profile_config, resolve_profile
 from app.services.document_service import DocumentService
 from app.services.embeddings.factory import get_embedding_provider
+from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
 from app.services.storage import get_storage_client
 from app.services.vector_indexing_service import VectorIndexingService
 from app.services.vector_store import get_vector_store
@@ -25,6 +29,7 @@ StepState = Literal["idle", "running", "succeeded", "failed"]
 LogLevel = Literal["info", "success", "error"]
 
 PIPELINE_STEPS = ("upload", "parse", "chunk", "index")
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -57,6 +62,8 @@ class IngestionJob:
     content_type: str | None = None
     document_id: UUID | None = None
     error: str | None = None
+    ingestion_profile: str = "auto"
+    resolved_ingestion_profile: str | None = None
     steps: dict[str, IngestionStep] = field(
         default_factory=lambda: {step: IngestionStep(name=step) for step in PIPELINE_STEPS}
     )
@@ -68,12 +75,21 @@ class QueuedUpload:
     filename: str
     content_type: str | None
     content: bytes
+    ingestion_profile: str = "auto"
+
+
+@dataclass(frozen=True)
+class QueuedDocumentReingestion:
+    document_id: UUID
+    filename: str
+    content_type: str | None = None
+    ingestion_profile: str = "auto"
 
 
 class IngestionQueue:
     def __init__(self) -> None:
         self._jobs: dict[UUID, IngestionJob] = {}
-        self._payloads: dict[UUID, QueuedUpload] = {}
+        self._payloads: dict[UUID, QueuedUpload | QueuedDocumentReingestion] = {}
 
     def enqueue_upload(
         self,
@@ -81,6 +97,7 @@ class IngestionQueue:
         filename: str,
         content_type: str | None,
         content: bytes,
+        ingestion_profile: str = "auto",
     ) -> IngestionJob:
         now = datetime.now(UTC)
         job = IngestionJob(
@@ -90,14 +107,62 @@ class IngestionQueue:
             status="queued",
             created_at=now,
             updated_at=now,
+            ingestion_profile=self._normalize_profile(ingestion_profile),
         )
         self._jobs[job.job_id] = job
         self._payloads[job.job_id] = QueuedUpload(
             filename=filename,
             content_type=content_type,
             content=content,
+            ingestion_profile=job.ingestion_profile,
         )
-        self._log(job, step="queue", level="info", message="Job queued for automatic ingestion.")
+        self._log(
+            job,
+            step="queue",
+            level="info",
+            message=(
+                "Job queued for automatic ingestion "
+                f"with profile={job.ingestion_profile}."
+            ),
+        )
+        return job
+
+    def enqueue_document_reingestion(
+        self,
+        *,
+        document_id: UUID,
+        filename: str,
+        content_type: str | None = None,
+        ingestion_profile: str = "auto",
+    ) -> IngestionJob:
+        now = datetime.now(UTC)
+        normalized_profile = self._normalize_profile(ingestion_profile)
+        job = IngestionJob(
+            job_id=uuid4(),
+            filename=filename,
+            content_type=content_type,
+            status="queued",
+            created_at=now,
+            updated_at=now,
+            document_id=document_id,
+            ingestion_profile=normalized_profile,
+        )
+        self._jobs[job.job_id] = job
+        self._payloads[job.job_id] = QueuedDocumentReingestion(
+            document_id=document_id,
+            filename=filename,
+            content_type=content_type,
+            ingestion_profile=normalized_profile,
+        )
+        self._log(
+            job,
+            step="queue",
+            level="info",
+            message=(
+                "Job queued to re-run document ingestion from parse "
+                f"with profile={normalized_profile}."
+            ),
+        )
         return job
 
     def get_job(self, job_id: UUID) -> IngestionJob | None:
@@ -119,35 +184,62 @@ class IngestionQueue:
         job.status = "running"
         self._touch(job)
         self._log(job, step="queue", level="info", message="Automatic ingestion started.")
+        is_reingestion = isinstance(payload, QueuedDocumentReingestion)
 
         try:
+            storage = get_storage_client()
+
+            # Each pipeline stage owns a fresh AsyncSession. Reusing one session
+            # across multiple services that commit independently can leave ORM
+            # instances expired/stale and trigger SQLAlchemy MissingGreenlet when
+            # a later stage reads an attribute outside the greenlet bridge.
+            if isinstance(payload, QueuedUpload):
+                async with AsyncSessionLocal() as session:
+                    upload_response = await self._run_step(
+                        job,
+                        "upload",
+                        lambda: DocumentService(
+                            repository=DocumentRepository(session),
+                            storage=storage,
+                        ).upload_document(self._to_upload_file(payload)),
+                        lambda response: {
+                            "document_id": str(response.document_id),
+                            "filename": response.filename,
+                            "status": response.status,
+                            "storage_path": response.storage_path,
+                            "ingestion_profile": job.ingestion_profile,
+                        },
+                    )
+                document_id = upload_response.document_id
+            else:
+                document_id = payload.document_id
+                async with AsyncSessionLocal() as session:
+                    await self._run_step(
+                        job,
+                        "upload",
+                        lambda: self._reuse_existing_document(
+                            document_id=document_id,
+                            repository=DocumentRepository(session),
+                        ),
+                        lambda response: {
+                            "document_id": str(response.document_id),
+                            "filename": response.filename,
+                            "status": response.status,
+                            "storage_path": response.storage_path,
+                            "reingest_existing_document": True,
+                            "ingestion_profile": job.ingestion_profile,
+                        },
+                    )
+            job.document_id = document_id
+
             async with AsyncSessionLocal() as session:
-                repository = DocumentRepository(session)
-                storage = get_storage_client()
-
-                upload_response = await self._run_step(
-                    job,
-                    "upload",
-                    lambda: DocumentService(
-                        repository=repository,
-                        storage=storage,
-                    ).upload_document(self._to_upload_file(payload)),
-                    lambda response: {
-                        "document_id": str(response.document_id),
-                        "filename": response.filename,
-                        "status": response.status,
-                        "storage_path": response.storage_path,
-                    },
-                )
-                job.document_id = upload_response.document_id
-
                 await self._run_step(
                     job,
                     "parse",
                     lambda: DocumentParserService(
-                        repository=repository,
+                        repository=DocumentRepository(session),
                         storage=storage,
-                    ).parse_document(upload_response.document_id),
+                    ).parse_document(document_id, force_reparse=is_reingestion),
                     lambda response: {
                         "document_id": str(response.document_id),
                         "status": response.status,
@@ -155,27 +247,44 @@ class IngestionQueue:
                         "preview": response.preview,
                     },
                 )
+
+            async with AsyncSessionLocal() as session:
+                chunk_repository = DocumentRepository(session)
+                resolved_profile = await self._resolve_profile_for_document(
+                    document_id=document_id,
+                    repository=chunk_repository,
+                    requested_profile=job.ingestion_profile,
+                    filename=job.filename,
+                    content_type=job.content_type,
+                )
+                job.resolved_ingestion_profile = resolved_profile
                 await self._run_step(
                     job,
                     "chunk",
-                    lambda: ChunkingService(repository=repository).chunk_document(
-                        upload_response.document_id
-                    ),
+                    lambda: ChunkingService(
+                        repository=chunk_repository,
+                        storage=storage,
+                    ).chunk_document(document_id, profile=resolved_profile),
                     lambda response: {
                         "document_id": str(response.document_id),
                         "status": response.status,
                         "chunk_count": response.chunk_count,
+                        "ingestion_profile": job.ingestion_profile,
+                        "resolved_ingestion_profile": resolved_profile,
                         "preview": [chunk.model_dump(mode="json") for chunk in response.preview],
                     },
                 )
+
+            async with AsyncSessionLocal() as session:
                 await self._run_step(
                     job,
                     "index",
                     lambda: VectorIndexingService(
-                        repository=repository,
+                        repository=DocumentRepository(session),
                         embedding_provider=get_embedding_provider(),
                         vector_store=get_vector_store(),
-                    ).index_document(upload_response.document_id),
+                        sparse_embedding_provider=get_sparse_embedding_provider(),
+                    ).index_document(document_id),
                     lambda response: {
                         "document_id": str(response.document_id),
                         "status": response.status,
@@ -183,6 +292,11 @@ class IngestionQueue:
                     },
                 )
         except Exception as exc:
+            logger.exception(
+                "Automatic ingestion failed job=%s document=%s",
+                job.job_id,
+                job.document_id,
+            )
             job.status = "failed"
             job.error = str(exc)
             self._touch(job)
@@ -242,6 +356,59 @@ class IngestionQueue:
             duration_ms=duration_ms,
         )
         return response
+
+    async def _reuse_existing_document(
+        self,
+        *,
+        document_id: UUID,
+        repository: DocumentRepository,
+    ) -> SimpleNamespace:
+        document = await repository.get_document(document_id)
+        if document is None:
+            raise ValueError("Document not found for re-ingestion.")
+        file = await repository.get_primary_document_file(document_id)
+        if file is None:
+            raise ValueError("Document file metadata not found for re-ingestion.")
+        return SimpleNamespace(
+            document_id=document.id,
+            filename=getattr(file, "filename", document.title),
+            status=document.status,
+            storage_path=getattr(file, "storage_path", ""),
+        )
+
+    async def _resolve_profile_for_document(
+        self,
+        *,
+        document_id: UUID,
+        repository: DocumentRepository,
+        requested_profile: str,
+        filename: str | None = None,
+        content_type: str | None = None,
+    ) -> str:
+        document = await repository.get_document(document_id)
+        if document is None:
+            raise ValueError("Document not found for profile resolution.")
+        resolved = resolve_profile(
+            requested_profile,
+            text=document.parsed_text,
+            filename=filename or document.title,
+            content_type=content_type,
+        )
+        resolved_config = profile_config(resolved)
+        job_metadata = {
+            "ingestion_profile": requested_profile,
+            "resolved_ingestion_profile": resolved,
+            "profile_detection_mode": "auto" if requested_profile == "auto" else "explicit",
+            "ingestion_profile_snapshot": resolved_config,
+        }
+        await repository.update_document_metadata(document, job_metadata)
+        await repository.commit()
+        return resolved
+
+    @staticmethod
+    def _normalize_profile(profile: str | None) -> str:
+        normalized = str(profile or "auto").strip().lower() or "auto"
+        return normalized
 
     @staticmethod
     def _to_upload_file(payload: QueuedUpload) -> UploadFile:

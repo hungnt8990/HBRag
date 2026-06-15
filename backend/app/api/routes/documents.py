@@ -1,3 +1,4 @@
+import inspect
 from typing import Annotated
 from urllib.parse import quote
 from uuid import UUID
@@ -61,6 +62,7 @@ from app.services.document_service import (
 )
 from app.services.embeddings.base import EmbeddingProvider
 from app.services.embeddings.factory import get_embedding_provider
+from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
 from app.services.graph import (
     GraphDocumentChunksMissingError,
     GraphIndexingDisabledError,
@@ -140,8 +142,9 @@ def get_document_parser_service(
 
 def get_chunking_service(
     repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+    storage: Annotated[StorageClient, Depends(get_storage_client)],
 ) -> ChunkingService:
-    return ChunkingService(repository=repository)
+    return ChunkingService(repository=repository, storage=storage)
 
 
 def get_vector_indexing_service(
@@ -153,6 +156,7 @@ def get_vector_indexing_service(
         repository=repository,
         embedding_provider=embedding_provider,
         vector_store=vector_store,
+        sparse_embedding_provider=get_sparse_embedding_provider(),
     )
 
 
@@ -873,9 +877,20 @@ async def delete_document(
         current_user=current_user,
     )
     storage_paths = [file.storage_path for file in document.files]
+    storage_paths.extend(_document_artifact_paths(document))
+    storage_paths = list(dict.fromkeys(storage_paths))
 
     try:
-        await vector_store.delete_points_for_document(document_id)
+        delete_parameters = inspect.signature(
+            vector_store.delete_points_for_document
+        ).parameters
+        if "tenant_id" in delete_parameters:
+            await vector_store.delete_points_for_document(
+                document_id,
+                tenant_id=getattr(document, "organization_id", None),
+            )
+        else:
+            await vector_store.delete_points_for_document(document_id)
         for storage_path in storage_paths:
             await storage.delete_file(object_name=storage_path)
         await repository.delete_document(document)
@@ -893,6 +908,24 @@ async def delete_document(
         deleted_files=len(storage_paths),
         vector_points_deleted=True,
     )
+
+
+def _document_artifact_paths(document: object) -> list[str]:
+    metadata = dict(getattr(document, "document_metadata", None) or {})
+    candidates = [
+        metadata.get("artifact_paths"),
+        dict(metadata.get("parsed_metadata") or {}).get("artifact_paths"),
+    ]
+    paths: list[str] = []
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        paths.extend(
+            str(value)
+            for value in candidate.values()
+            if isinstance(value, str) and value.strip()
+        )
+    return paths
 
 
 async def _require_manageable_document(

@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+import hashlib
+import json
+import logging
 import re
 from dataclasses import dataclass, field
+from io import BytesIO
+from pathlib import Path
 from typing import Any, Literal
 from uuid import UUID
 
@@ -9,11 +14,21 @@ from app.core.config import settings
 from app.repositories.documents import ChunkCreate, DocumentRepository
 from app.schemas.documents import ChunkPreview, DocumentChunkResponse
 from app.services.gis_chunking import STRUCTURED_NO_OVERLAP_CHUNK_TYPES
+from app.services.heading_rule_engine import DetectedHeading, detect_headings, heading_rules_from_config
+from app.services.rag_chunk import rag_chunk_from_record, should_index_chunk
+from app.services.storage import StorageClient
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_CHUNK_SIZE = settings.default_chunk_size
 DEFAULT_CHUNK_OVERLAP = settings.default_chunk_overlap
 CHUNK_PREVIEW_LIMIT = 2
 MIN_SPLIT_RATIO = 0.85
+DOCUMENT_PROFILE_DB_MAX_LENGTH = 32
+DOCUMENT_PROFILE_ALIASES = {
+    "mixed_administrative_technical": "mixed_admin_tech",
+    "mixed_administrative_technical_with_relationships": "mixed_admin_tech_rel",
+}
 
 ChunkMode = Literal[
     "recursive",
@@ -22,25 +37,13 @@ ChunkMode = Literal[
     "hybrid_structured",
     "slide_page",
     "heading_aware",
-    "semantic",
-    "code",
-    "adaptive_segmented",
-    "fallback",
+    "docling_router",
+    "docling_v6",
 ]
 DEFAULT_CHUNK_MODE: ChunkMode = "recursive"
 
-# Vietnamese legal-document heading patterns. The article pattern is the
-# primary segmentation boundary; chapters are tracked as ambient metadata.
-ARTICLE_PATTERN = re.compile(
-    r"^[ \t]*Điều\s+(\d+)\s*[\.\:\-]?[ \t]*(.*)$",
-    flags=re.MULTILINE,
-)
-CHAPTER_PATTERN = re.compile(
-    r"^[ \t]*CHƯƠNG\s+([IVXLCDM]+|\d+)\s*[\.\:\-]?[ \t]*(.*)$",
-    flags=re.MULTILINE,
-)
 LEGAL_SEPARATORS = ("\n\n", "\n", ". ")
-VIETNAMESE_ADMIN_SEPARATORS = ("\n\n\n", "\n\n", "\n- ", "\n+ ", ". ", "\n", " ", "")
+DEFAULT_TEXT_SEPARATORS = ("\n\n\n", "\n\n", "\n- ", "\n+ ", ". ", "\n", " ", "")
 GIS_SCHEMA_TABLE_PATTERN = re.compile(
     r"(?ms)(\(\d+\)\s+F\d+_[A-Za-z0-9_]+\s*[–-].*?)(?=^\s*\(\d+\)\s+F\d+_[A-Za-z0-9_]+|\Z)"
 )
@@ -127,7 +130,7 @@ def _split_gis_table_tail(table_text: str) -> tuple[str, str]:
 
 
 class RecursiveTextChunker:
-    default_separators = VIETNAMESE_ADMIN_SEPARATORS
+    default_separators = DEFAULT_TEXT_SEPARATORS
 
     def __init__(
         self,
@@ -217,13 +220,11 @@ class RecursiveTextChunker:
 
 
 class LegalArticleChunker:
-    """Structure-aware chunker for Vietnamese legal/administrative documents.
+    """Structure-aware chunker driven by configurable heading rules.
 
-    Splits primarily on ``Điều N`` headings while tracking the current
-    ``CHƯƠNG`` for ambient metadata. Articles short enough to fit within
-    ``chunk_size`` are kept as a single semantic chunk; longer articles are
-    sub-split using the recursive chunker with line-aware separators so that
-    label/value rows in tabular text stay together when possible.
+    The chunker does not know language-specific labels such as legal article or
+    chapter names. Boundary headings and parent-heading metadata are supplied
+    by an ingestion profile so admins can edit them from RAG Config.
     """
 
     def __init__(
@@ -231,9 +232,15 @@ class LegalArticleChunker:
         *,
         chunk_size: int = DEFAULT_CHUNK_SIZE,
         chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
+        heading_rules: list[dict[str, Any]] | None = None,
     ) -> None:
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
+        if heading_rules is None:
+            from app.services.ingestion_profiles import get_profile_config
+
+            heading_rules = list(get_profile_config("legal_admin").get("heading_rules") or [])
+        self.heading_rules = heading_rules_from_config({"heading_rules": heading_rules})
         # Use line-aware separators to avoid splitting inside table rows.
         self._inner_chunker = RecursiveTextChunker(
             chunk_size=chunk_size,
@@ -245,49 +252,50 @@ class LegalArticleChunker:
         if not text.strip():
             return []
 
-        article_matches = list(ARTICLE_PATTERN.finditer(text))
-        chapter_matches = list(CHAPTER_PATTERN.finditer(text))
+        headings = detect_headings(text, self.heading_rules)
+        boundary_headings = [heading for heading in headings if heading.boundary]
         results: list[TextChunk] = []
 
-        first_article_start = article_matches[0].start() if article_matches else len(text)
+        if not boundary_headings:
+            return self._inner_chunker.chunk_text(text)
 
-        if first_article_start > 0:
-            preamble = text[:first_article_start]
-            chapter_title = self._latest_chapter_title(chapter_matches, first_article_start)
+        first_boundary_start = boundary_headings[0].start
+        if first_boundary_start > 0:
+            preamble = text[:first_boundary_start]
+            parent_metadata = self._latest_parent_heading_metadata(
+                headings,
+                position=first_boundary_start,
+                boundary_level=boundary_headings[0].level,
+            )
             results.extend(
                 self._emit_chunks(
                     body=preamble,
                     body_offset=0,
-                    base_metadata={
-                        "chapter_title": chapter_title,
-                        "article_number": None,
-                        "article_title": None,
-                    },
+                    base_metadata=parent_metadata,
                 )
             )
 
-        for index, match in enumerate(article_matches):
-            start = match.start()
+        for index, heading in enumerate(boundary_headings):
+            start = heading.start
             end = (
-                article_matches[index + 1].start()
-                if index + 1 < len(article_matches)
+                boundary_headings[index + 1].start
+                if index + 1 < len(boundary_headings)
                 else len(text)
             )
-            article_text = text[start:end]
-            article_number = match.group(1)
-            article_title = (match.group(2) or "").strip() or None
-            chapter_title = self._latest_chapter_title(chapter_matches, start)
-
+            section_text = text[start:end]
             base_metadata = {
-                "chapter_title": chapter_title,
-                "article_number": article_number,
-                "article_title": article_title,
+                **self._latest_parent_heading_metadata(
+                    headings,
+                    position=start,
+                    boundary_level=heading.level,
+                ),
+                **self._heading_metadata(heading),
             }
 
-            if len(article_text.strip()) <= self.chunk_size:
+            if len(section_text.strip()) <= self.chunk_size:
                 results.append(
                     TextChunk(
-                        content=article_text.strip(),
+                        content=section_text.strip(),
                         start_char=start,
                         end_char=end,
                         metadata={**base_metadata, "subchunk_index": 0},
@@ -297,7 +305,7 @@ class LegalArticleChunker:
 
             results.extend(
                 self._emit_chunks(
-                    body=article_text,
+                    body=section_text,
                     body_offset=start,
                     base_metadata=base_metadata,
                     track_subchunks=True,
@@ -331,22 +339,40 @@ class LegalArticleChunker:
         return emitted
 
     @staticmethod
-    def _latest_chapter_title(
-        chapter_matches: list[re.Match[str]],
+    def _heading_metadata(heading: DetectedHeading) -> dict[str, Any]:
+        metadata: dict[str, Any] = {
+            "section_title": heading.display_text,
+            "heading_label": heading.label,
+            "heading_number": heading.number,
+            "heading_title": heading.title,
+            "heading_level": heading.level,
+            "heading_name": heading.name,
+        }
+        if heading.metadata_key:
+            metadata[heading.metadata_key] = (
+                heading.display_text
+                if heading.metadata_value == "display_text"
+                else heading.title or heading.display_text
+            )
+        if heading.number_metadata_key:
+            metadata[heading.number_metadata_key] = heading.number
+        return metadata
+
+    @classmethod
+    def _latest_parent_heading_metadata(
+        cls,
+        headings: list[DetectedHeading],
+        *,
         position: int,
-    ) -> str | None:
-        latest: re.Match[str] | None = None
-        for match in chapter_matches:
-            if match.start() < position:
-                latest = match
-            else:
+        boundary_level: int,
+    ) -> dict[str, Any]:
+        latest: DetectedHeading | None = None
+        for heading in headings:
+            if heading.start >= position:
                 break
-        if latest is None:
-            return None
-        title = (latest.group(2) or "").strip()
-        if title:
-            return f"CHƯƠNG {latest.group(1)} {title}".strip()
-        return f"CHƯƠNG {latest.group(1)}".strip()
+            if heading.level < boundary_level:
+                latest = heading
+        return cls._heading_metadata(latest) if latest is not None else {}
 
 
 class DocumentChunkingError(RuntimeError):
@@ -365,15 +391,32 @@ class EmptyParsedTextError(ValueError):
     pass
 
 
+def document_profile_column_value(profile: str | None) -> str:
+    """Return a stable value that fits documents.document_profile VARCHAR(32)."""
+
+    clean = re.sub(r"\s+", "_", str(profile or "general").strip()) or "general"
+    alias = DOCUMENT_PROFILE_ALIASES.get(clean)
+    if alias:
+        return alias
+    if len(clean) <= DOCUMENT_PROFILE_DB_MAX_LENGTH:
+        return clean
+
+    digest = hashlib.sha1(clean.encode("utf-8")).hexdigest()[:8]
+    prefix_length = DOCUMENT_PROFILE_DB_MAX_LENGTH - len(digest) - 1
+    return f"{clean[:prefix_length].rstrip('_')}_{digest}"
+
+
 class ChunkingService:
     def __init__(
         self,
         *,
         repository: DocumentRepository,
         chunker: RecursiveTextChunker | None = None,
+        storage: StorageClient | None = None,
     ) -> None:
         self._repository = repository
         self._chunker = chunker or RecursiveTextChunker()
+        self._storage = storage
 
     async def chunk_document(
         self,
@@ -392,258 +435,162 @@ class ChunkingService:
         if not document.parsed_text or not document.parsed_text.strip():
             raise EmptyParsedTextError("Document has no parsed text to chunk.")
 
-        from app.services.chunking_router import (
-            ChunkingRequest,
-            ChunkingRouter,
-            HeadingAwareChunker,
-            SlidePageChunker,
-        )
-        from app.services.parsers import parsed_element_from_dict
-
         document_file = await self._get_primary_document_file(document.id)
         document_metadata = dict(getattr(document, "document_metadata", None) or {})
+
+        if self._can_use_docling_router(
+            document_metadata=document_metadata,
+            requested_chunk_mode=chunk_mode,
+        ):
+            return await self._chunk_document_with_docling_router(
+                document=document,
+                document_file=document_file,
+                document_metadata=document_metadata,
+                chunk_size=chunk_size,
+            )
+
+        if chunk_mode in {"docling_router", "docling_v6"}:
+            raise DocumentChunkingError(
+                "Docling router chunking requires a document parsed by Docling and a "
+                "persisted DoclingDocument artifact."
+            )
+
+        # Non-Docling documents are dispatched directly by the service. This keeps
+        # backward-compatible chunk modes and document profiles without restoring a
+        # separate ChunkingRouter abstraction.
+        from app.services.document_profiles import profile_config, resolve_profile
+        from app.services.parsers.base import parsed_element_from_dict
+
+        requested_profile = profile or getattr(document, "document_profile", None)
+        effective_profile = resolve_profile(requested_profile, text=document.parsed_text)
+        config = profile_config(effective_profile)
+        mode: ChunkMode = chunk_mode or config["chunk_mode"]
+        resolved_size = chunk_size or int(config["chunk_size"])
+        resolved_overlap = (
+            chunk_overlap
+            if chunk_overlap is not None
+            else int(config["chunk_overlap"])
+        )
+
+        raw_elements = list(document_metadata.get("parsed_elements") or [])
         parsed_elements = [
             parsed_element_from_dict(element)
-            for element in document_metadata.get("parsed_elements", [])
+            for element in raw_elements
             if isinstance(element, dict)
         ]
-        router = ChunkingRouter()
-        plan = router.plan(
-            ChunkingRequest(
-                filename=getattr(document_file, "filename", None),
-                mime_type=getattr(document_file, "mime_type", None),
-                parsed_text=document.parsed_text,
-                parsed_elements=parsed_elements,
-                document_profile=(
-                    profile if profile is not None else getattr(document, "document_profile", None)
-                ),
-                requested_chunk_mode=chunk_mode,
-                chunk_size=chunk_size,
-                chunk_overlap=chunk_overlap,
-                parser_hint=document_metadata.get("parser"),
+
+        # Structured parsed elements should remain structured by default. This is a
+        # direct content policy, not a strategy router.
+        if chunk_mode is None and self._has_table_elements(parsed_elements):
+            mode = "hybrid_structured"
+
+        raw_chunks: list[dict[str, Any]]
+        chunk_strategy = mode
+        if mode == "legal_article":
+            configured_heading_rules = list(config.get("heading_rules") or [])
+            chunker = LegalArticleChunker(
+                chunk_size=resolved_size,
+                chunk_overlap=resolved_overlap,
+                heading_rules=configured_heading_rules or None,
             )
-        )
-        effective_profile = plan.document_profile
-        resolved_size = plan.chunk_size
-        resolved_overlap = plan.chunk_overlap
-        mode = plan.chunk_mode
-        router_metadata = {
-            "chunk_strategy": plan.strategy,
-            "router_reason": plan.reason,
-            "parser": plan.parser_hint,
-            "source_file": getattr(document_file, "filename", None),
-        }
-
-        if plan.strategy == "adaptive_segmented":
-            from app.services.segment_router import AdaptiveSegmentChunker
-
-            raw_chunks = AdaptiveSegmentChunker().chunk_text(
+            raw_chunks = self._raw_chunks_from_text_chunks(
+                chunker.chunk_text(document.parsed_text)
+            )
+        elif mode == "slide_page":
+            raw_chunks = self._chunks_from_slide_elements(parsed_elements)
+            if not raw_chunks:
+                fallback = RecursiveTextChunker(
+                    chunk_size=resolved_size,
+                    chunk_overlap=resolved_overlap,
+                )
+                raw_chunks = self._raw_chunks_from_text_chunks(
+                    fallback.chunk_text(document.parsed_text)
+                )
+                chunk_strategy = "recursive"
+        elif mode == "heading_aware":
+            raw_chunks = self._chunks_from_prose_elements(
+                parsed_elements,
                 document.parsed_text,
-                parsed_elements=parsed_elements,
+                chunk_size=resolved_size,
+                chunk_overlap=resolved_overlap,
             )
-            chunk_records = [
-                ChunkCreate(
-                    chunk_index=index,
-                    content=chunk_dict["content"],
-                    metadata=self._raw_chunk_metadata(
-                        chunk_dict=chunk_dict,
-                        chunk_size=resolved_size,
-                        chunk_overlap=resolved_overlap,
-                        chunk_mode=mode,
-                        router_metadata=router_metadata,
-                        profile=effective_profile,
-                    ),
+            if not raw_chunks:
+                fallback = RecursiveTextChunker(
+                    chunk_size=resolved_size,
+                    chunk_overlap=resolved_overlap,
                 )
-                for index, chunk_dict in enumerate(raw_chunks)
-            ]
-            text_chunks_for_preview = [
-                TextChunk(
-                    content=c["content"],
-                    start_char=c.get("metadata", {}).get("start_char", 0),
-                    end_char=c.get("metadata", {}).get("end_char", 0),
+                raw_chunks = self._raw_chunks_from_text_chunks(
+                    fallback.chunk_text(document.parsed_text)
                 )
-                for c in raw_chunks[:CHUNK_PREVIEW_LIMIT]
-            ]
-        elif plan.strategy == "hybrid_structured":
+                chunk_strategy = "recursive"
+        elif mode in {"hybrid_structured", "table_aware"}:
             raw_chunks = self._chunks_from_hybrid_elements(
                 parsed_elements,
                 document.parsed_text,
                 chunk_size=resolved_size,
                 chunk_overlap=resolved_overlap,
             )
-            chunk_records = [
-                ChunkCreate(
-                    chunk_index=index,
-                    content=chunk_dict["content"],
-                    metadata=self._raw_chunk_metadata(
-                        chunk_dict=chunk_dict,
-                        chunk_size=resolved_size,
-                        chunk_overlap=resolved_overlap,
-                        chunk_mode=mode,
-                        router_metadata=router_metadata,
-                        profile=effective_profile,
-                    ),
+            if not raw_chunks:
+                fallback = RecursiveTextChunker(
+                    chunk_size=resolved_size,
+                    chunk_overlap=resolved_overlap,
                 )
-                for index, chunk_dict in enumerate(raw_chunks)
-            ]
-            text_chunks_for_preview = [
-                TextChunk(
-                    content=c["content"],
-                    start_char=c.get("metadata", {}).get("start_char", 0),
-                    end_char=c.get("metadata", {}).get("end_char", 0),
+                raw_chunks = self._raw_chunks_from_text_chunks(
+                    fallback.chunk_text(document.parsed_text)
                 )
-                for c in raw_chunks[:CHUNK_PREVIEW_LIMIT]
-            ]
-        elif plan.strategy == "table_aware" and self._has_table_elements(parsed_elements):
-            raw_chunks = self._chunks_from_table_elements(parsed_elements)
-            from app.services.table_relationships import build_entity_profile_chunks
-
-            raw_chunks.extend(build_entity_profile_chunks(raw_chunks, start_index=len(raw_chunks)))
-            chunk_records = [
-                ChunkCreate(
-                    chunk_index=index,
-                    content=chunk_dict["content"],
-                    metadata=self._raw_chunk_metadata(
-                        chunk_dict=chunk_dict,
-                        chunk_size=resolved_size,
-                        chunk_overlap=resolved_overlap,
-                        chunk_mode=mode,
-                        router_metadata=router_metadata,
-                        profile=effective_profile,
-                    ),
-                )
-                for index, chunk_dict in enumerate(raw_chunks)
-            ]
-            text_chunks_for_preview = [
-                TextChunk(
-                    content=c["content"],
-                    start_char=c.get("metadata", {}).get("start_char", 0),
-                    end_char=c.get("metadata", {}).get("end_char", 0),
-                )
-                for c in raw_chunks[:CHUNK_PREVIEW_LIMIT]
-            ]
-        elif plan.strategy == "table_aware":
-            from app.services.table_aware_chunking import table_aware_chunk_text
-
-            raw_chunks, _entity_index = table_aware_chunk_text(
-                document.parsed_text,
-                chunk_size=resolved_size,
-                chunk_overlap=resolved_overlap,
-            )
-            chunk_records = [
-                ChunkCreate(
-                    chunk_index=chunk_dict["chunk_index"],
-                    content=chunk_dict["content"],
-                    metadata=self._raw_chunk_metadata(
-                        chunk_dict=chunk_dict,
-                        chunk_size=resolved_size,
-                        chunk_overlap=resolved_overlap,
-                        chunk_mode=mode,
-                        router_metadata=router_metadata,
-                        profile=effective_profile,
-                    ),
-                )
-                for chunk_dict in raw_chunks
-            ]
-            text_chunks_for_preview = [
-                TextChunk(
-                    content=c["content"],
-                    start_char=c.get("metadata", {}).get("start_char", 0),
-                    end_char=c.get("metadata", {}).get("end_char", 0),
-                )
-                for c in raw_chunks[:CHUNK_PREVIEW_LIMIT]
-            ]
-        elif plan.strategy == "legal_article":
-            chunker: RecursiveTextChunker | LegalArticleChunker = LegalArticleChunker(
-                chunk_size=resolved_size, chunk_overlap=resolved_overlap
-            )
-            text_chunks = chunker.chunk_text(document.parsed_text)
-            chunk_records = [
-                ChunkCreate(
-                    chunk_index=index,
-                    content=text_chunk.content,
-                    metadata=self._build_metadata(
-                        chunk_size=resolved_size,
-                        chunk_overlap=resolved_overlap,
-                        chunk_mode=mode,
-                        profile=effective_profile,
-                        text_chunk=text_chunk,
-                        extra_metadata=router_metadata,
-                    ),
-                )
-                for index, text_chunk in enumerate(text_chunks)
-            ]
-            text_chunks_for_preview = text_chunks[:CHUNK_PREVIEW_LIMIT]
-        elif plan.strategy == "heading_aware":
-            heading_chunker = HeadingAwareChunker(
-                chunk_size=resolved_size,
-                chunk_overlap=resolved_overlap,
-            )
-            if parsed_elements:
-                text_chunks = heading_chunker.chunk_elements(
-                    parsed_elements,
-                    document.parsed_text,
-                )
-            else:
-                text_chunks = heading_chunker.chunk_text(document.parsed_text)
-            chunk_records = [
-                ChunkCreate(
-                    chunk_index=index,
-                    content=text_chunk.content,
-                    metadata=self._build_metadata(
-                        chunk_size=resolved_size,
-                        chunk_overlap=resolved_overlap,
-                        chunk_mode=mode,
-                        profile=effective_profile,
-                        text_chunk=text_chunk,
-                        extra_metadata=router_metadata,
-                    ),
-                )
-                for index, text_chunk in enumerate(text_chunks)
-            ]
-            text_chunks_for_preview = text_chunks[:CHUNK_PREVIEW_LIMIT]
-        elif plan.strategy == "slide_page":
-            text_chunks = SlidePageChunker().chunk_elements(parsed_elements, document.parsed_text)
-            chunk_records = [
-                ChunkCreate(
-                    chunk_index=index,
-                    content=text_chunk.content,
-                    metadata=self._build_metadata(
-                        chunk_size=resolved_size,
-                        chunk_overlap=resolved_overlap,
-                        chunk_mode=mode,
-                        profile=effective_profile,
-                        text_chunk=text_chunk,
-                        extra_metadata=router_metadata,
-                    ),
-                )
-                for index, text_chunk in enumerate(text_chunks)
-            ]
-            text_chunks_for_preview = text_chunks[:CHUNK_PREVIEW_LIMIT]
+                chunk_strategy = "recursive"
         else:
-            chunker = RecursiveTextChunker(chunk_size=resolved_size, chunk_overlap=resolved_overlap)
-            text_chunks = chunker.chunk_text(document.parsed_text)
-            chunk_records = [
+            fallback = RecursiveTextChunker(
+                chunk_size=resolved_size,
+                chunk_overlap=resolved_overlap,
+            )
+            raw_chunks = self._raw_chunks_from_text_chunks(
+                fallback.chunk_text(document.parsed_text)
+            )
+            chunk_strategy = "recursive"
+            mode = "recursive"
+
+        compatibility_metadata = {
+            "chunk_strategy": chunk_strategy,
+            "router_reason": "document_profile_default",
+            "parser": document_metadata.get("parser"),
+            "source_file": getattr(document_file, "filename", None),
+        }
+        chunk_records: list[ChunkCreate] = []
+        preview_chunks: list[TextChunk] = []
+        for index, raw_chunk in enumerate(raw_chunks):
+            content = str(raw_chunk.get("content") or "")
+            metadata = dict(raw_chunk.get("metadata") or {})
+            text_chunk = TextChunk(
+                content=content,
+                start_char=int(metadata.get("start_char") or 0),
+                end_char=int(metadata.get("end_char") or len(content)),
+                metadata=metadata,
+            )
+            chunk_records.append(
                 ChunkCreate(
                     chunk_index=index,
-                    content=text_chunk.content,
+                    content=content,
                     metadata=self._build_metadata(
                         chunk_size=resolved_size,
                         chunk_overlap=resolved_overlap,
                         chunk_mode=mode,
                         profile=effective_profile,
                         text_chunk=text_chunk,
-                        extra_metadata=router_metadata,
+                        extra_metadata=compatibility_metadata,
                     ),
                 )
-                for index, text_chunk in enumerate(text_chunks)
-            ]
-            text_chunks_for_preview = text_chunks[:CHUNK_PREVIEW_LIMIT]
+            )
+            if len(preview_chunks) < CHUNK_PREVIEW_LIMIT:
+                preview_chunks.append(text_chunk)
 
         try:
-            document.document_profile = effective_profile
+            document.document_profile = document_profile_column_value(effective_profile)
             await self._repository.delete_chunks_for_document(document.id)
-            await self._repository.create_chunks(document_id=document.id, chunks=chunk_records)
+            await self._repository.create_chunks(
+                document_id=document.id,
+                chunks=chunk_records,
+            )
             await self._repository.update_document_status(document, "chunked")
             await self._repository.commit()
         except Exception as exc:
@@ -657,13 +604,351 @@ class ChunkingService:
             preview=[
                 ChunkPreview(
                     chunk_index=index,
-                    content=tc.content,
-                    start_char=tc.start_char,
-                    end_char=tc.end_char,
+                    content=text_chunk.content,
+                    start_char=text_chunk.start_char,
+                    end_char=text_chunk.end_char,
                 )
-                for index, tc in enumerate(text_chunks_for_preview)
+                for index, text_chunk in enumerate(preview_chunks)
             ],
         )
+
+    def _can_use_docling_router(
+        self,
+        *,
+        document_metadata: dict[str, Any],
+        requested_chunk_mode: ChunkMode | None,
+    ) -> bool:
+        if not settings.enable_docling_v6_chunking or self._storage is None:
+            return False
+        if requested_chunk_mode not in {None, "docling_router", "docling_v6"}:
+            return False
+        parsed_metadata = dict(document_metadata.get("parsed_metadata") or {})
+        artifact_paths = dict(parsed_metadata.get("artifact_paths") or {})
+        return bool(
+            document_metadata.get("parser") == "docling"
+            and artifact_paths.get("docling_json")
+        )
+
+    async def _chunk_document_with_docling_router(
+        self,
+        *,
+        document: Any,
+        document_file: Any,
+        document_metadata: dict[str, Any],
+        chunk_size: int | None,
+    ) -> DocumentChunkResponse:
+        from docling_core.types.doc import DoclingDocument
+
+        from app.services.chunkers.docling_router import route_docling_chunks
+        from app.services.docling_generic_chunking import (
+            DoclingV6ChunkingResult,
+            RegexVietnameseTokenizer,
+            build_quality_report,
+            chunk_docling_document,
+            enforce_token_limit,
+            reindex_records,
+        )
+
+        parsed_metadata = dict(document_metadata.get("parsed_metadata") or {})
+        artifact_paths = dict(parsed_metadata.get("artifact_paths") or {})
+        docling_path = str(artifact_paths["docling_json"])
+        raw_document = await self._storage.get_file(object_name=docling_path)
+        import tempfile
+
+        temp_path: str | None = None
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".docling.json", delete=False) as temp_file:
+                temp_file.write(raw_document)
+                temp_path = temp_file.name
+            doc = DoclingDocument.load_from_json(Path(temp_path))
+        finally:
+            if temp_path is not None:
+                Path(temp_path).unlink(missing_ok=True)
+
+        max_tokens = chunk_size or settings.docling_chunk_max_tokens
+        stored_page_texts = dict(parsed_metadata.get("page_texts") or {})
+        page_texts = {
+            int(page_no): str(text)
+            for page_no, text in stored_page_texts.items()
+            if str(page_no).isdigit()
+        }
+        result = chunk_docling_document(
+            doc,
+            source_file=str(getattr(document_file, "filename", "document")),
+            max_tokens=max_tokens,
+            context_budget=min(settings.docling_context_budget, max_tokens - 1),
+            document_context_mode=settings.docling_context_mode,
+            page_texts=page_texts,
+        )
+
+        route = route_docling_chunks(
+            generic_records=result.records,
+            page_texts=page_texts,
+            source_file=str(getattr(document_file, "filename", "document")),
+            max_tokens=max_tokens,
+            parsed_text=str(getattr(document, "parsed_text", "") or ""),
+        )
+        result = DoclingV6ChunkingResult(
+            records=route.records,
+            quality=result.quality,
+            coverage=result.coverage,
+            document_context=result.document_context,
+        )
+
+        # Defensive service-level token guard. This deliberately runs after the
+        # Docling pipeline returns and immediately before strict quality checks,
+        # so a stale quality report or a late record mutation cannot reject the
+        # document with records that have not been split.
+        token_counter = RegexVietnameseTokenizer(max_tokens=max_tokens)
+        guarded_records = enforce_token_limit(
+            result.records,
+            token_counter,
+            max_tokens,
+        )
+        guarded_records = reindex_records(guarded_records, token_counter)
+        guarded_quality = build_quality_report(
+            guarded_records,
+            token_counter,
+            max_tokens,
+        )
+        result = DoclingV6ChunkingResult(
+            records=guarded_records,
+            quality=guarded_quality,
+            coverage=result.coverage,
+            document_context=result.document_context,
+        )
+
+        oversized_after_guard = [
+            {
+                "chunk_id": record.get("chunk_id"),
+                "tokens": token_counter.count_tokens(
+                    str(record.get("contextualized_text") or "")
+                ),
+            }
+            for record in result.records
+            if token_counter.count_tokens(
+                str(record.get("contextualized_text") or "")
+            )
+            > max_tokens
+        ]
+        if oversized_after_guard:
+            raise RuntimeError(
+                "Service-level token guard failed: "
+                f"{oversized_after_guard}"
+            )
+
+        if settings.docling_strict_quality and result.quality.get("critical_count", 0):
+            critical_issues = result.quality.get("critical", [])
+
+            logger.error(
+                "Docling router quality gate rejected document",
+                extra={
+                    "critical_count": len(critical_issues),
+                    "critical_issues": critical_issues,
+                },
+            )
+
+            raise RuntimeError(
+                "Docling router quality gate rejected the document: "
+                f"{len(critical_issues)} critical issue(s): "
+                f"{critical_issues}"
+            )
+
+        source_file = str(getattr(document_file, "filename", "document"))
+        source_uri = str(getattr(document_file, "storage_path", "")) or None
+        document_version = str(document_metadata.get("document_version") or "v1")
+        parser_version = parsed_metadata.get("parser_version")
+        quality_status = str(result.quality.get("status") or "pass")
+        rag_chunks = [
+            rag_chunk_from_record(
+                {
+                    **record,
+                    "quality_status": record.get("quality_status", quality_status),
+                },
+                document_id=document.id,
+                source_file=source_file,
+                source_uri=source_uri,
+                document_title=getattr(document, "title", None),
+                document_version=document_version,
+                tenant_id=getattr(document, "organization_id", None),
+                parser="docling",
+                parser_version=str(parser_version) if parser_version else None,
+                chunker="docling_router_v1",
+                chunker_version="1",
+                chunk_index=index,
+            )
+            for index, record in enumerate(result.records)
+        ]
+        chunk_records = [
+            ChunkCreate(
+                chunk_index=index,
+                content=rag_chunk.text,
+                token_count=rag_chunk.token_count,
+                metadata={
+                    **rag_chunk.model_dump(
+                        mode="json",
+                        exclude={
+                            "text",
+                            "raw_text",
+                            "source_raw_text",
+                            "normalized_text",
+                            "document_id",
+                            "tenant_id",
+                            "source_file",
+                            "source_uri",
+                            "document_title",
+                            "organization_id",
+                            "knowledge_base_id",
+                            "uploaded_by_user_id",
+                            "visibility",
+                            "database_chunk_id",
+                        },
+                        exclude_none=True,
+                    ),
+                    "raw_text": rag_chunk.raw_text,
+                    "document_context": result.document_context,
+                    "chunk_strategy": record.get("chunk_strategy") or route.primary_strategy,
+                    "chunk_mode": "docling_router",
+                    "docling_router_strategy": route.primary_strategy,
+                    "docling_router_used_generic": route.used_generic_docling,
+                    "docling_router_supplemental_strategies": route.supplemental_strategies,
+                    "detected_document_profile": route.document_profile,
+                    "document_profile": document_profile_column_value(route.document_profile),
+                    "chunk_size": max_tokens,
+                    "chunk_overlap": 0,
+                    "overlap_applied": False,
+                    "source_file": source_file,
+                    "source_uri": source_uri,
+                    "parser": "docling",
+                    "parser_version": parser_version,
+                    "chunker": "docling_router_v1",
+                    "chunker_version": "1",
+                },
+            )
+            for index, (record, rag_chunk) in enumerate(
+                zip(result.records, rag_chunks, strict=True)
+            )
+        ]
+        document_profile_value = document_profile_column_value(route.document_profile)
+
+        stored_artifacts = await self._store_docling_chunk_artifacts(
+            document_id=document.id,
+            source_file=source_file,
+            result=result,
+            rag_chunks=rag_chunks,
+            max_tokens=max_tokens,
+        )
+        try:
+            document.document_profile = document_profile_value
+            await self._repository.delete_chunks_for_document(document.id)
+            await self._repository.create_chunks(document_id=document.id, chunks=chunk_records)
+            metadata_updater = getattr(self._repository, "update_document_metadata", None)
+            if metadata_updater is not None:
+                await metadata_updater(
+                    document,
+                    {
+                        "document_version": document_version,
+                        "document_profile": document_profile_value,
+                        "detected_document_profile": route.document_profile,
+                        "chunker": "docling_router_v1",
+                        "chunker_version": "1",
+                        "chunking_router_strategy": route.primary_strategy,
+                        "chunking_router_used_generic": route.used_generic_docling,
+                        "chunking_router_supplemental_strategies": route.supplemental_strategies,
+                        "chunk_count_total": len(chunk_records),
+                        "chunk_count_indexable": sum(
+                            1 for chunk in rag_chunks if should_index_chunk(chunk)
+                        ),
+                        "quality_status": result.quality.get("status", "unknown"),
+                        "quality_summary": result.quality,
+                        "artifact_paths": {
+                            **dict(document_metadata.get("artifact_paths") or {}),
+                            **stored_artifacts,
+                        },
+                    },
+                )
+            await self._repository.update_document_status(document, "chunked")
+            await self._repository.commit()
+        except Exception as exc:
+            await self._repository.rollback()
+            raise DocumentChunkingError("Failed to persist Docling router chunks.") from exc
+
+        return DocumentChunkResponse(
+            document_id=document.id,
+            status=document.status,
+            chunk_count=len(chunk_records),
+            preview=[
+                ChunkPreview(
+                    chunk_index=index,
+                    content=rag_chunk.text,
+                    start_char=0,
+                    end_char=len(rag_chunk.text),
+                )
+                for index, rag_chunk in enumerate(rag_chunks[:CHUNK_PREVIEW_LIMIT])
+            ],
+        )
+
+    async def _store_docling_chunk_artifacts(
+        self,
+        *,
+        document_id: UUID,
+        source_file: str,
+        result: Any,
+        rag_chunks: list[Any],
+        max_tokens: int,
+    ) -> dict[str, str]:
+        from app.services.docling_generic_chunking import render_chunks_markdown
+
+        if self._storage is None:
+            return {}
+        stem = Path(source_file).stem or "document"
+        base = f"documents/{document_id}/artifacts"
+        artifacts: dict[str, tuple[str, bytes, str]] = {
+            "chunks_jsonl": (
+                f"{base}/{stem}.chunks.jsonl",
+                (
+                    "".join(
+                        json.dumps(
+                            chunk.model_dump(mode="json", exclude_none=True),
+                            ensure_ascii=False,
+                        )
+                        + "\n"
+                        for chunk in rag_chunks
+                    )
+                ).encode("utf-8"),
+                "application/x-ndjson",
+            ),
+            "chunks_markdown": (
+                f"{base}/{stem}.chunks.md",
+                render_chunks_markdown(
+                    result,
+                    source_file=source_file,
+                    max_tokens=max_tokens,
+                    document_context_mode=settings.docling_context_mode,
+                ).encode("utf-8"),
+                "text/markdown",
+            ),
+            "quality_json": (
+                f"{base}/{stem}.quality.json",
+                json.dumps(result.quality, ensure_ascii=False, indent=2).encode("utf-8"),
+                "application/json",
+            ),
+            "coverage_json": (
+                f"{base}/{stem}.coverage.json",
+                json.dumps(result.coverage, ensure_ascii=False, indent=2).encode("utf-8"),
+                "application/json",
+            ),
+        }
+        stored: dict[str, str] = {}
+        for key, (object_name, payload, content_type) in artifacts.items():
+            await self._storage.put_file(
+                object_name=object_name,
+                data=BytesIO(payload),
+                length=len(payload),
+                content_type=content_type,
+            )
+            stored[key] = object_name
+        return stored
 
     @staticmethod
     def _build_metadata(
@@ -675,12 +960,18 @@ class ChunkingService:
         text_chunk: TextChunk,
         extra_metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        chunk_type = str(text_chunk.metadata.get("chunk_type") or "text")
+        no_overlap = (
+            chunk_type == "table_row"
+            or chunk_type in STRUCTURED_NO_OVERLAP_CHUNK_TYPES
+        )
         metadata: dict[str, Any] = {
             "chunk_size": chunk_size,
-            "chunk_overlap": chunk_overlap,
+            "chunk_overlap": 0 if no_overlap else chunk_overlap,
+            "overlap_applied": False if no_overlap else chunk_overlap > 0,
             "chunk_mode": chunk_mode,
             "document_profile": profile,
-            "chunk_type": text_chunk.metadata.get("chunk_type", "text"),
+            "chunk_type": chunk_type,
             "start_char": text_chunk.start_char,
             "end_char": text_chunk.end_char,
         }
@@ -757,6 +1048,29 @@ class ChunkingService:
         )
 
     @staticmethod
+    def _chunks_from_slide_elements(parsed_elements: list) -> list[dict[str, Any]]:
+        chunks: list[dict[str, Any]] = []
+        for element in parsed_elements:
+            if getattr(element, "element_type", None) != "slide":
+                continue
+            page_number = getattr(element, "page_number", None)
+            metadata = dict(getattr(element, "metadata", {}) or {})
+            chunks.append(
+                {
+                    "content": element.text,
+                    "metadata": {
+                        **metadata,
+                        "chunk_type": "slide_page",
+                        "page_number": page_number,
+                        "page_range": [page_number, page_number]
+                        if page_number is not None
+                        else [],
+                    },
+                }
+            )
+        return chunks
+
+    @staticmethod
     def _chunks_from_hybrid_elements(
         parsed_elements: list,
         parsed_text: str,
@@ -790,8 +1104,6 @@ class ChunkingService:
         chunk_size: int,
         chunk_overlap: int,
     ) -> list[dict[str, Any]]:
-        from app.services.chunking_router import HeadingAwareChunker
-
         prose_types = {"title", "heading", "paragraph", "list_item", "code"}
         explicit_prose = [
             element
@@ -799,17 +1111,74 @@ class ChunkingService:
             if getattr(element, "element_type", None) in prose_types
             and getattr(element, "text", "").strip()
         ]
-        chunker = HeadingAwareChunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        chunker = RecursiveTextChunker(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+        )
         if explicit_prose:
-            fallback_text = "\n\n".join(element.text.strip() for element in explicit_prose)
-            text_chunks = chunker.chunk_elements(explicit_prose, fallback_text)
-            if not text_chunks:
-                text_chunks = chunker.chunk_text(fallback_text)
-            section_pages = ChunkingService._section_pages_from_prose_elements(explicit_prose)
-            return ChunkingService._raw_chunks_from_text_chunks(
-                text_chunks,
-                section_pages=section_pages,
-            )
+            groups: list[dict[str, Any]] = []
+            current: dict[str, Any] | None = None
+            for element in explicit_prose:
+                element_type = getattr(element, "element_type", None)
+                section_title = ChunkingService._section_key_from_prose_element(element)
+                heading_path = list(getattr(element, "heading_path", None) or [])
+                if element_type in {"title", "heading"}:
+                    current = {
+                        "section_title": section_title or element.text.strip(),
+                        "heading_path": heading_path or [element.text.strip()],
+                        "elements": [element],
+                    }
+                    groups.append(current)
+                    continue
+                if current is None:
+                    current = {
+                        "section_title": section_title,
+                        "heading_path": heading_path,
+                        "elements": [],
+                    }
+                    groups.append(current)
+                current["elements"].append(element)
+
+            chunks: list[dict[str, Any]] = []
+            for group in groups:
+                elements = group["elements"]
+                text = "\n\n".join(element.text.strip() for element in elements)
+                if not text.strip():
+                    continue
+                pages = sorted(
+                    {
+                        int(element.page_number)
+                        for element in elements
+                        if getattr(element, "page_number", None) is not None
+                    }
+                )
+                split_chunks = chunker.chunk_text(text)
+                for part_index, text_chunk in enumerate(split_chunks):
+                    chunk_type = (
+                        "heading_section"
+                        if len(split_chunks) == 1
+                        else "heading_section_part"
+                    )
+                    metadata: dict[str, Any] = {
+                        **dict(text_chunk.metadata),
+                        "chunk_type": chunk_type,
+                        "section_title": group["section_title"],
+                        "heading_path": group["heading_path"],
+                        "start_char": text_chunk.start_char,
+                        "end_char": text_chunk.end_char,
+                    }
+                    if len(split_chunks) > 1:
+                        metadata["subchunk_index"] = part_index
+                    if pages:
+                        metadata["page_number"] = pages[0]
+                        metadata["page_range"] = [pages[0], pages[-1]]
+                    chunks.append(
+                        {
+                            "content": text_chunk.content,
+                            "metadata": metadata,
+                        }
+                    )
+            return chunks
 
         page_elements = [
             element
@@ -820,7 +1189,13 @@ class ChunkingService:
         chunks: list[dict[str, Any]] = []
         if page_elements:
             for page_element in page_elements:
-                page_text = ChunkingService._strip_table_region_from_prose(page_element.text)
+                page_text = ChunkingService._strip_table_region_from_prose(
+                    page_element.text,
+                    table_texts=ChunkingService._table_texts_for_page(
+                        parsed_elements,
+                        getattr(page_element, "page_number", None),
+                    ),
+                )
                 if not page_text.strip():
                     continue
                 for text_chunk in chunker.chunk_text(page_text):
@@ -841,8 +1216,13 @@ class ChunkingService:
                     )
             return chunks
 
-        prose_text = ChunkingService._strip_table_region_from_prose(parsed_text)
-        return ChunkingService._raw_chunks_from_text_chunks(chunker.chunk_text(prose_text))
+        prose_text = ChunkingService._strip_table_region_from_prose(
+            parsed_text,
+            table_texts=ChunkingService._table_texts_from_elements(parsed_elements),
+        )
+        return ChunkingService._raw_chunks_from_text_chunks(
+            chunker.chunk_text(prose_text)
+        )
 
     @staticmethod
     def _raw_chunks_from_text_chunks(
@@ -900,21 +1280,53 @@ class ChunkingService:
         return None
 
     @staticmethod
-    def _strip_table_region_from_prose(text: str) -> str:
-        table_markers = (
-            "DANH SÁCH NHÂN SỰ",
-            "DANH SACH NHAN SU",
-            "STT Mảng công nghệ",
-            "STT Mang cong nghe",
-        )
-        candidates = [
-            text.casefold().find(marker.casefold())
-            for marker in table_markers
-            if marker.casefold() in text.casefold()
-        ]
-        if not candidates:
-            return text.strip()
-        return text[: min(candidates)].strip()
+    def _strip_table_region_from_prose(
+        text: str,
+        *,
+        table_texts: list[str] | None = None,
+    ) -> str:
+        """Remove table text from prose using parser-provided table elements.
+
+        This avoids document-specific marker rules. If the parser emits table or
+        table-row elements, the service removes those exact text spans from the
+        page/body prose before recursive chunking. When no structured table text
+        is available, the function leaves the prose unchanged instead of guessing
+        from language-specific headings.
+        """
+
+        cleaned = text
+        for table_text in table_texts or []:
+            snippet = str(table_text or "").strip()
+            if not snippet:
+                continue
+            cleaned = cleaned.replace(snippet, "")
+        return cleaned.strip()
+
+    @staticmethod
+    def _table_texts_from_elements(parsed_elements: list) -> list[str]:
+        table_texts: list[str] = []
+        for element in parsed_elements:
+            if getattr(element, "element_type", None) not in {"table", "table_row"}:
+                continue
+            text = str(getattr(element, "text", "") or "").strip()
+            if text:
+                table_texts.append(text)
+        return table_texts
+
+    @staticmethod
+    def _table_texts_for_page(parsed_elements: list, page_number: Any) -> list[str]:
+        if page_number is None:
+            return ChunkingService._table_texts_from_elements(parsed_elements)
+        table_texts: list[str] = []
+        for element in parsed_elements:
+            if getattr(element, "element_type", None) not in {"table", "table_row"}:
+                continue
+            if getattr(element, "page_number", None) != page_number:
+                continue
+            text = str(getattr(element, "text", "") or "").strip()
+            if text:
+                table_texts.append(text)
+        return table_texts
 
     @staticmethod
     def _chunks_from_table_elements(parsed_elements: list) -> list[dict[str, Any]]:

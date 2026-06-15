@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import case, or_, select
+from sqlalchemy import and_, case, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -120,19 +120,63 @@ class ChatRepository:
             Chunk.content.ilike(f"%{term}%")
             for term in normalized_terms
         ]
+
+        # Person names extracted from PDFs/tables may be split by newlines,
+        # duplicated spaces, or OCR layout artifacts (for example
+        # "Nguyễn\nQuang Lâm"). A single ILIKE('%Nguyễn Quang Lâm%') then
+        # misses the exact row even though every name token is present in the
+        # same TABLE_ROW/table_block. Add conservative token-AND fallbacks for
+        # multi-word terms so entity coverage can recover those rows without
+        # relying on neighboring-row inference.
+        token_group_clauses = []
+        for term in normalized_terms:
+            tokens = [
+                token
+                for token in term.replace(".", " ").split()
+                if len(token.strip()) >= 2
+            ]
+            if len(tokens) >= 2:
+                token_group_clauses.append(
+                    and_(*(Chunk.content.ilike(f"%{token}%") for token in tokens))
+                )
+        content_clauses.extend(token_group_clauses)
         chunk_type = Chunk.chunk_metadata["chunk_type"].astext
         chunk_type_priority = case(
-            (chunk_type == "table_row", 1),
-            (chunk_type == "entity_summary", 2),
-            (chunk_type == "table_block", 3),
-            (chunk_type == "text", 4),
-            else_=5,
+            # Narrative/docling chunks often contain the actual objective/description
+            # sections (Mục tiêu, Công nghệ, Tính năng...), so keep them searchable
+            # and do not let staff table rows hide them for technology-area detail QA.
+            (chunk_type == "docling_hybrid_repaired", 0),
+            (chunk_type == "text", 1),
+            (chunk_type == "docling_text", 2),
+            (chunk_type == "docling_section", 3),
+            (chunk_type == "table_block", 4),
+            (chunk_type == "table_complete", 5),
+            (chunk_type == "table_rows", 6),
+            (chunk_type == "table_row", 7),
+            (chunk_type == "legal_table_row", 8),
+            (chunk_type == "structured_fact_row", 9),
+            (chunk_type == "entity_profile", 10),
+            (chunk_type == "entity_summary", 11),
+            else_=12,
         )
         statement = (
             select(Chunk)
             .where(
                 Chunk.document_id == document_id,
-                chunk_type.in_(["table_row", "entity_summary", "table_block", "text"]),
+                chunk_type.in_([
+                    "docling_hybrid_repaired",
+                    "docling_text",
+                    "docling_section",
+                    "text",
+                    "table_block",
+                    "table_complete",
+                    "table_rows",
+                    "table_row",
+                    "legal_table_row",
+                    "structured_fact_row",
+                    "entity_profile",
+                    "entity_summary",
+                ]),
                 or_(*content_clauses),
             )
             .order_by(chunk_type_priority, Chunk.chunk_index)

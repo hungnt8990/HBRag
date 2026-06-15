@@ -1,144 +1,172 @@
 from __future__ import annotations
 
-import re
+import unicodedata
+from pathlib import Path
 from typing import Any, Literal
+
+from app.services.heading_rule_engine import (
+    heading_rules_from_config,
+    score_heading_rules,
+)
+from app.services.ingestion_profiles import (
+    DEFAULT_PROFILE,
+    FALLBACK_CONFIG,
+    get_profile_config,
+    get_profile_configs,
+    get_profile_names,
+)
 
 ProfileName = Literal[
     "auto",
     "legal_admin",
+    "catalog_table",
     "general",
-    "technical",
-    "faq",
     "spreadsheet",
+    "slide",
 ]
 
-DEFAULT_PROFILE = "auto"
-PROFILE_NAMES: tuple[str, ...] = (
-    "auto",
-    "legal_admin",
-    "general",
-    "technical",
-    "faq",
-    "spreadsheet",
-)
-
-# Settings applied when no profile is selected and no document profile exists.
-# Preserves the historical chat defaults so behavior is unchanged by default.
-FALLBACK_CONFIG: dict[str, Any] = {
-    "chunk_mode": "recursive",
-    "chunk_size": 1000,
-    "chunk_overlap": 150,
-    "top_k": 5,
-    "candidate_k": 20,
-    "answer_mode": "hybrid",
-    "answer_style": "policy_explainer",
-    "max_context_chars": 6000,
-}
-
-PROFILE_CONFIGS: dict[str, dict[str, Any]] = {
-    "legal_admin": {
-        "chunk_mode": "legal_article",
-        "chunk_size": 2500,
-        "chunk_overlap": 300,
-        "top_k": 8,
-        "candidate_k": 40,
-        "answer_mode": "hybrid",
-        "answer_style": "policy_explainer",
-        "max_context_chars": 8000,
-    },
-    "general": {
-        "chunk_mode": "recursive",
-        "chunk_size": 1000,
-        "chunk_overlap": 150,
-        "top_k": 5,
-        "candidate_k": 20,
-        "answer_mode": "hybrid",
-        "answer_style": "detailed",
-        "max_context_chars": 6000,
-    },
-    "technical": {
-        "chunk_mode": "recursive",
-        "chunk_size": 1200,
-        "chunk_overlap": 200,
-        "top_k": 6,
-        "candidate_k": 30,
-        "answer_mode": "hybrid",
-        "answer_style": "detailed",
-        "max_context_chars": 7000,
-    },
-    "faq": {
-        "chunk_mode": "recursive",
-        "chunk_size": 700,
-        "chunk_overlap": 100,
-        "top_k": 5,
-        "candidate_k": 20,
-        "answer_mode": "hybrid",
-        "answer_style": "concise",
-        "max_context_chars": 5000,
-    },
-    "spreadsheet": {
-        "chunk_mode": "table_aware",
-        "chunk_size": 1800,
-        "chunk_overlap": 200,
-        "top_k": 8,
-        "candidate_k": 40,
-        "answer_mode": "extractive",
-        "answer_style": "table_qa",
-        "max_context_chars": 9000,
-    },
-}
-
-_ARTICLE_RE = re.compile(r"(?m)^\s*Điều\s+\d+")
-_CHAPTER_RE = re.compile(r"(?mi)^\s*CHƯƠNG\s+")
-_FAQ_RE = re.compile(r"(?mi)^\s*(câu hỏi|hỏi|trả lời|đáp án|đáp|q:|a:)\b")
-_TECH_RE = re.compile(
-    r"```|\bAPI\b|\bHTTP\b|\bSELECT\b|\bfunction\b|\bclass\s|\bdef\s|\bendpoint\b",
-)
+PROFILE_CONFIGS: dict[str, dict[str, Any]] = get_profile_configs()
+PROFILE_NAMES: tuple[str, ...] = get_profile_names()
 _DETECTION_SAMPLE = 20000
+_SPREADSHEET_EXTENSIONS = {".csv", ".ods", ".xls", ".xlsm", ".xlsx"}
+_SLIDE_EXTENSIONS = {".odp", ".ppt", ".pptx"}
+_SPREADSHEET_MIME_HINTS = (
+    "csv",
+    "excel",
+    "spreadsheet",
+    "vnd.ms-excel",
+    "sheet",
+)
+_SLIDE_MIME_HINTS = (
+    "presentation",
+    "powerpoint",
+    "vnd.ms-powerpoint",
+    "vnd.openxmlformats-officedocument.presentationml",
+)
 
 
-def detect_profile(text: str | None) -> str:
-    """Heuristically detect a document profile from parsed text."""
+def _normalize_for_detection(value: str) -> str:
+    decomposed = unicodedata.normalize("NFD", value or "")
+    stripped = "".join(char for char in decomposed if unicodedata.category(char) != "Mn")
+    return " ".join(stripped.casefold().split())
+
+
+def _score_profile_headings(sample: str, profile: str) -> int:
+    config = get_profile_config(profile)
+    rules = heading_rules_from_config(config)
+    return score_heading_rules(sample, rules)
+
+
+def _score_profile_detect_rules(sample: str, config: dict[str, Any]) -> int:
+    """Score config-driven keyword/header rules for non-heading profiles.
+
+    This keeps document detection editable from ingestion profile config instead
+    of hardcoding labels for every new document family in the detector.
+    """
+
+    detect_rules = config.get("detect_rules")
+    if not isinstance(detect_rules, dict):
+        return 0
+
+    normalized_sample = _normalize_for_detection(sample)
+    score = 0
+    for keyword in detect_rules.get("title_keywords") or []:
+        if isinstance(keyword, str) and _normalize_for_detection(keyword) in normalized_sample:
+            score += 2
+    for header in detect_rules.get("table_headers") or []:
+        if isinstance(header, str) and _normalize_for_detection(header) in normalized_sample:
+            score += 2
+
+    min_score = detect_rules.get("min_score")
+    if isinstance(min_score, int) and score < min_score:
+        return 0
+    return score
+
+
+def _profile_from_file_type(
+    *,
+    filename: str | None = None,
+    content_type: str | None = None,
+) -> str | None:
+    suffix = Path(filename or "").suffix.casefold()
+    mime = (content_type or "").casefold()
+    if suffix in _SPREADSHEET_EXTENSIONS or any(hint in mime for hint in _SPREADSHEET_MIME_HINTS):
+        return "spreadsheet"
+    if suffix in _SLIDE_EXTENSIONS or any(hint in mime for hint in _SLIDE_MIME_HINTS):
+        return "slide"
+    return None
+
+
+def _looks_like_serialized_table(sample: str) -> bool:
+    lines = [line for line in sample.splitlines() if line.strip()]
+    if not lines:
+        return False
+    serialized_row_lines = sum(1 for line in lines if line.startswith("TABLE_ROW "))
+    pipe_lines = sum(1 for line in lines if " | " in line)
+    return serialized_row_lines >= 2 or pipe_lines / len(lines) >= 0.3
+
+
+def _score_all_configured_profiles(sample: str) -> dict[str, int]:
+    scores: dict[str, int] = {}
+    for profile, config in get_profile_configs().items():
+        if profile in {"general", "spreadsheet", "slide"}:
+            continue
+        score = _score_profile_headings(sample, profile)
+        score += _score_profile_detect_rules(sample, config)
+        if score > 0:
+            scores[profile] = score
+    return scores
+
+
+def detect_profile(
+    text: str | None,
+    *,
+    filename: str | None = None,
+    content_type: str | None = None,
+) -> str:
+    """Detect a document profile from file hints and saved profile configs.
+
+    Heading labels, catalog keywords, and table headers live in ingestion profile
+    config. The detector only executes those saved rules and falls back to a
+    generic profile when no structure is clear.
+    """
+
+    file_profile = _profile_from_file_type(filename=filename, content_type=content_type)
+    if file_profile is not None:
+        return file_profile
+
     if not text or not text.strip():
         return "general"
 
     sample = text[:_DETECTION_SAMPLE]
+    scores = _score_all_configured_profiles(sample)
+    if scores:
+        best_profile, best_score = max(scores.items(), key=lambda item: (item[1], item[0]))
+        if best_score > 0:
+            return best_profile
 
-    article_count = len(_ARTICLE_RE.findall(sample))
-    chapter_count = len(_CHAPTER_RE.findall(sample))
-    if article_count >= 3 or (article_count >= 1 and chapter_count >= 1):
-        return "legal_admin"
-
-    lines = [line for line in sample.splitlines() if line.strip()]
-    if lines:
-        serialized_row_lines = sum(1 for line in lines if line.startswith("TABLE_ROW "))
-        pipe_lines = sum(1 for line in lines if " | " in line)
-        if serialized_row_lines >= 2:
-            return "spreadsheet"
-        if pipe_lines / len(lines) >= 0.3:
-            return "spreadsheet"
-
-    if len(_FAQ_RE.findall(sample)) >= 3:
-        return "faq"
-
-    if len(_TECH_RE.findall(sample)) >= 3:
-        return "technical"
+    if _looks_like_serialized_table(sample):
+        return "spreadsheet"
 
     return "general"
 
 
-def resolve_profile(profile: str | None, *, text: str | None = None) -> str:
+def resolve_profile(
+    profile: str | None,
+    *,
+    text: str | None = None,
+    filename: str | None = None,
+    content_type: str | None = None,
+) -> str:
     """Resolve a possibly-``auto`` profile to a concrete profile name."""
     normalized = (profile or DEFAULT_PROFILE).lower().strip()
     if normalized == "auto":
-        return detect_profile(text)
-    if normalized in PROFILE_CONFIGS:
+        return detect_profile(text, filename=filename, content_type=content_type)
+    if normalized in get_profile_configs():
         return normalized
     return "general"
 
 
 def profile_config(profile: str | None) -> dict[str, Any]:
     """Return the settings map for a concrete profile name."""
-    if profile and profile in PROFILE_CONFIGS:
-        return dict(PROFILE_CONFIGS[profile])
-    return dict(FALLBACK_CONFIG)
+    return get_profile_config(profile)

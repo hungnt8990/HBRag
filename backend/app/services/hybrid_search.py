@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import logging
+import re
+import unicodedata
 from dataclasses import dataclass, field
 from typing import Literal
 from uuid import UUID
@@ -14,7 +17,6 @@ from app.schemas.documents import (
     VectorSearchResult,
 )
 from app.services.keyword_search import KeywordSearchService
-from app.services.segment_router import schema_or_procedure_metadata_boost
 from app.services.table_relationships import (
     analyze_person_area_membership_query,
     score_person_area_membership_match,
@@ -22,6 +24,265 @@ from app.services.table_relationships import (
 from app.services.vector_indexing_service import VectorIndexingService
 
 DEFAULT_RRF_K = 60
+
+logger = logging.getLogger(__name__)
+
+
+def _normalize_metadata_value(value: str) -> str:
+    normalized = unicodedata.normalize("NFD", value or "")
+    normalized = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
+    return re.sub(r"\s+", " ", normalized.casefold()).strip()
+
+
+
+GENERIC_METADATA_TEXT_FIELDS = (
+    "case_name",
+    "row_text",
+    "title",
+    "table_name",
+    "section_title",
+    "article_title",
+    "summary",
+    "description",
+    "objective",
+    "goal",
+    "area",
+    "unit",
+    "field_name",
+    "relationship_name",
+    "total_leave_benefit",
+    "labor_code_benefit",
+    "collective_agreement_benefit",
+    "total_benefit",
+    "base_benefit",
+    "additional_benefit",
+)
+
+GENERIC_QUERY_STOPWORDS = {
+    "anh", "ban", "cac", "cho", "co", "cua", "duoc", "gi", "hoi",
+    "khong", "khi", "la", "lam", "nao", "nay", "neu", "nhu", "noi",
+    "sao", "theo", "thi", "toi", "trong", "va", "ve", "voi", "xin",
+    "bao", "nhieu", "may",
+}
+
+
+def _query_content_tokens(query: str) -> set[str]:
+    normalized = _normalize_metadata_value(query)
+    tokens = set(re.findall(r"[a-z0-9]+", normalized))
+    return {
+        token for token in tokens
+        if len(token) > 1 and token not in GENERIC_QUERY_STOPWORDS
+    }
+
+
+def _metadata_text(metadata: dict[str, object]) -> str:
+    parts: list[str] = []
+    for key in GENERIC_METADATA_TEXT_FIELDS:
+        value = metadata.get(key)
+        if isinstance(value, list):
+            parts.extend(str(item) for item in value)
+        elif value is not None:
+            parts.append(str(value))
+    return " ".join(parts)
+
+
+def structured_row_metadata_boost(
+    query: str,
+    content: str,
+    metadata: dict[str, object],
+) -> float:
+    """Boost structured row/section chunks using generic lexical overlap.
+
+    This replaces domain-specific boosts such as a fixed list of leave-benefit
+    phrases. Any chunk with row-like metadata can be boosted when its row text,
+    title, table name, or extracted fact fields overlap with the user's content
+    words. The retrieval behavior is therefore data-driven rather than tied to
+    one document family.
+    """
+
+    query_tokens = _query_content_tokens(query)
+    if not query_tokens:
+        return 0.0
+
+    chunk_type = str(metadata.get("chunk_type") or "")
+    relationship_type = str(metadata.get("relationship_type") or "")
+    try:
+        confidence = float(metadata.get("confidence") or 1.0)
+    except (TypeError, ValueError):
+        confidence = 1.0
+    if metadata.get("table_parse_warning") and confidence < 0.5:
+        return 0.0
+
+    row_like = (
+        "row" in chunk_type
+        or "table" in chunk_type
+        or relationship_type.endswith("_benefit")
+        or relationship_type.endswith("_row")
+        or bool(metadata.get("case_name") or metadata.get("row_text"))
+    )
+    section_like = bool(metadata.get("unit") or metadata.get("section_path"))
+    if not row_like and not section_like:
+        return 0.0
+
+    combined = _normalize_metadata_value(f"{content} {_metadata_text(metadata)}")
+    candidate_tokens = set(re.findall(r"[a-z0-9]+", combined))
+    if not candidate_tokens:
+        return 0.0
+
+    overlap = query_tokens & candidate_tokens
+    if not overlap:
+        return 0.0
+
+    coverage = len(overlap) / max(len(query_tokens), 1)
+    boost = 8.0 + coverage * 30.0
+    if row_like:
+        boost += 4.0
+    if any(field in metadata for field in ("case_name", "row_text", "area", "unit")):
+        boost += 4.0
+    return boost
+
+
+# Backward-compatible alias for older tests/call sites. The implementation is
+# intentionally generic and does not encode any legal case or organization.
+def legal_leave_metadata_boost(query: str, content: str, metadata: dict[str, object]) -> float:
+    return structured_row_metadata_boost(query, content, metadata)
+
+def schema_or_procedure_metadata_boost(query: str, metadata: dict[str, object]) -> float:
+    """Boost structured GIS metadata without depending on the removed segment router."""
+
+    normalized_query = _normalize_metadata_value(query)
+    chunk_type = str(metadata.get("chunk_type") or "")
+    boost = 0.0
+    for metadata_field, amount in (
+        ("object_code", 8.0),
+        ("field_name", 10.0),
+        ("relationship_name", 9.0),
+        ("table_name", 5.0),
+        ("source_data", 2.0),
+        ("data_type", 1.0),
+    ):
+        value = str(metadata.get(metadata_field) or "")
+        if value and _normalize_metadata_value(value) in normalized_query:
+            boost += amount
+    appendix_id = str(metadata.get("appendix_id") or "")
+    if appendix_id:
+        appendix_number = re.escape(appendix_id.lstrip("0") or appendix_id)
+        if re.search(rf"phu luc\s*0?{appendix_number}\b", normalized_query):
+            boost += 4.0
+    if chunk_type == "schema_field_row":
+        boost += 4.0
+    elif chunk_type == "schema_object_summary":
+        boost += 3.0
+    elif chunk_type == "procedure_table_row":
+        boost += 4.0
+    elif chunk_type == "deadline_index" and any(
+        term in normalized_query for term in ("deadline", "thoi han", "khi nao", "hoan thanh")
+    ):
+        boost += 8.0
+    elif chunk_type == "assignment_section" and any(
+        term in normalized_query for term in ("deadline", "thoi han", "khi nao", "hoan thanh")
+    ):
+        boost += 3.0
+    elif chunk_type == "gis_relationship_schema":
+        boost += 5.0
+    elif chunk_type == "attribute_table_schema":
+        boost += 2.0
+    return boost
+
+
+IDENTIFIER_EXACT_BOOST = 50.0
+IDENTIFIER_METADATA_BOOST = 12.0
+IDENTIFIER_MISS_PENALTY = 0.02
+
+
+def _identifier_terms(query: str) -> list[str]:
+    """Return exact lookup terms for short code/number queries.
+
+    Queries like ``3113`` are not semantic questions; they are identifier lookups.
+    Dense retrieval/reranking can otherwise pull chunks that are only topically related.
+    """
+
+    normalized = " ".join((query or "").split()).strip(" ?!.,;:")
+    if not normalized:
+        return []
+
+    terms: list[str] = []
+    # Bare numbers and common official-document codes, e.g. 3113 or 3113/EVN-KDMBD.
+    if re.fullmatch(r"[0-9]{2,8}", normalized):
+        terms.append(normalized)
+    if re.fullmatch(r"[A-Z0-9][A-Z0-9._/-]{1,40}", normalized, flags=re.IGNORECASE):
+        terms.append(normalized)
+
+    # Also support a natural-language query that contains one strong identifier.
+    for match in re.findall(r"\b[0-9]{3,8}(?:/[A-Z0-9._/-]+)?\b", normalized, flags=re.IGNORECASE):
+        terms.append(match)
+
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for term in terms:
+        key = term.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        ordered.append(term)
+    return ordered
+
+
+def _contains_identifier_term(text: str, terms: list[str]) -> bool:
+    if not text or not terms:
+        return False
+    normalized = text.casefold()
+    return any(term.casefold() in normalized for term in terms)
+
+
+def identifier_exact_match_boost(query: str, content: str, metadata: dict[str, object]) -> float:
+    """Boost chunks that literally contain a requested code/number."""
+
+    terms = _identifier_terms(query)
+    if not terms:
+        return 0.0
+
+    boost = 0.0
+    if _contains_identifier_term(content, terms):
+        boost += IDENTIFIER_EXACT_BOOST
+
+    identifier_values: list[str] = []
+    for key in ("identifiers", "doc_codes"):
+        value = metadata.get(key)
+        if isinstance(value, list):
+            identifier_values.extend(str(item) for item in value)
+        elif value is not None:
+            identifier_values.append(str(value))
+    if _contains_identifier_term(" ".join(identifier_values), terms):
+        boost += IDENTIFIER_EXACT_BOOST
+
+    # Metadata may hold title/context/source fields that include the identifier.
+    metadata_text_parts: list[str] = []
+    for key in (
+        "document_context",
+        "document_title",
+        "section_path",
+        "title",
+        "source_file",
+        "document_number",
+        "reference_number",
+        "so_van_ban",
+        "citation",
+    ):
+        value = metadata.get(key)
+        if isinstance(value, list):
+            metadata_text_parts.extend(str(item) for item in value)
+        elif value is not None:
+            metadata_text_parts.append(str(value))
+    if _contains_identifier_term(" ".join(metadata_text_parts), terms):
+        boost += IDENTIFIER_METADATA_BOOST
+
+    return boost
+
+
+def is_identifier_lookup_query(query: str) -> bool:
+    return bool(_identifier_terms(query))
+
 HYBRID_DEPTH_MULTIPLIER = 3
 SourceFlag = Literal["vector", "keyword", "lexical_exact"]
 
@@ -99,21 +360,34 @@ class HybridSearchService:
         depth = top_k * HYBRID_DEPTH_MULTIPLIER
 
         try:
-            if document_ids is None:
-                vector_response = await self._vector_search_service.search(
+            try:
+                if document_ids is None:
+                    vector_response = await self._vector_search_service.search(
+                        query=query,
+                        top_k=depth,
+                    )
+                else:
+                    vector_response = await self._vector_search_service.search(
+                        query=query,
+                        top_k=depth,
+                        document_ids={str(document_id) for document_id in document_ids},
+                    )
+            except Exception:
+                logger.exception(
+                    "Vector search failed; continuing with keyword-only retrieval."
+                )
+                vector_response = VectorSearchResponse(
                     query=query,
                     top_k=depth,
+                    results=[],
                 )
+
+            if document_ids is None:
                 keyword_response = await self._keyword_search_service.search(
                     query=query,
                     top_k=depth,
                 )
             else:
-                vector_response = await self._vector_search_service.search(
-                    query=query,
-                    top_k=depth,
-                    document_ids={str(document_id) for document_id in document_ids},
-                )
                 keyword_response = await self._keyword_search_service.search(
                     query=query,
                     top_k=depth,
@@ -210,10 +484,37 @@ class HybridSearchService:
 
         membership_query = analyze_person_area_membership_query(query or "")
         for item in fused.values():
-            metadata_boost = schema_or_procedure_metadata_boost(query or "", item.metadata)
+            normalized_query = query or ""
+            metadata_boost = schema_or_procedure_metadata_boost(normalized_query, item.metadata)
             if metadata_boost > 0:
                 item.fused_score += metadata_boost
                 item.metadata = {**item.metadata, "metadata_exact_boost": metadata_boost}
+
+            identifier_boost = identifier_exact_match_boost(
+                normalized_query,
+                item.content_preview,
+                item.metadata,
+            )
+            if identifier_boost > 0:
+                item.fused_score += identifier_boost
+                item.metadata = {**item.metadata, "identifier_exact_boost": identifier_boost}
+                HybridSearchService._append_source_flag(item, "lexical_exact")
+            elif is_identifier_lookup_query(normalized_query):
+                # For code-only lookups, keep vector-only topical matches below exact matches.
+                item.fused_score -= IDENTIFIER_MISS_PENALTY
+
+            structured_row_boost = structured_row_metadata_boost(
+                normalized_query,
+                item.content_preview,
+                item.metadata,
+            )
+            if structured_row_boost > 0:
+                item.fused_score += structured_row_boost
+                item.metadata = {
+                    **item.metadata,
+                    "structured_row_boost": structured_row_boost,
+                }
+                HybridSearchService._append_source_flag(item, "lexical_exact")
 
             if membership_query is not None:
                 boost = score_person_area_membership_match(

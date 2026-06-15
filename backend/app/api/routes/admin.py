@@ -1,21 +1,33 @@
+import inspect
 from dataclasses import asdict
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+    status,
+)
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.repositories.documents import DocumentRepository
-from app.services.document_profiles import (
-    DEFAULT_PROFILE,
-    PROFILE_CONFIGS,
-    PROFILE_NAMES,
-)
+from app.services.document_profiles import DEFAULT_PROFILE
 from app.services.document_service import DocumentService
 from app.services.graph import Neo4jClient, get_neo4j_client
+from app.services.heading_rule_engine import detect_headings, heading_rules_from_config
+from app.services.ingestion_profiles import (
+    get_profile_configs,
+    get_profile_names,
+    save_profile_config,
+)
 from app.services.ingestion_queue import IngestionJob, IngestionQueue, get_ingestion_queue
 from app.services.vector_store import QdrantVectorStore, get_vector_store
 
@@ -88,6 +100,8 @@ class IngestionJobResponse(BaseModel):
     updated_at: str
     document_id: UUID | None
     error: str | None
+    ingestion_profile: str = "auto"
+    resolved_ingestion_profile: str | None = None
     steps: list[IngestionStepResponse]
     logs: list[IngestionLogResponse]
 
@@ -95,6 +109,10 @@ class IngestionJobResponse(BaseModel):
 class IngestionJobDeleteResponse(BaseModel):
     job_id: UUID
     deleted: bool
+
+
+class ReingestDocumentRequest(BaseModel):
+    ingestion_profile: str = "auto"
 
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -111,12 +129,82 @@ class ProfilesResponse(BaseModel):
     configs: dict[str, dict[str, object]]
 
 
+class HeadingRuleTestRequest(BaseModel):
+    profile: str
+    sample_text: str
+    config: dict[str, Any] | None = None
+
+
+class HeadingRuleMatchResponse(BaseModel):
+    start: int
+    end: int
+    level: int
+    name: str
+    label: str
+    number: str
+    title: str
+    display_text: str
+    boundary: bool
+
+
+class HeadingRuleTestResponse(BaseModel):
+    matches: list[HeadingRuleMatchResponse]
+
+
+class ProfileUpdateRequest(BaseModel):
+    config: dict[str, Any]
+
+
 @router.get("/profiles", response_model=ProfilesResponse)
 async def list_profiles() -> ProfilesResponse:
+    configs = get_profile_configs()
     return ProfilesResponse(
         default_profile=DEFAULT_PROFILE,
-        profiles=list(PROFILE_NAMES),
-        configs={name: dict(config) for name, config in PROFILE_CONFIGS.items()},
+        profiles=list(get_profile_names()),
+        configs={name: dict(config) for name, config in configs.items()},
+    )
+
+
+@router.put("/profiles/{profile_name}", response_model=ProfilesResponse)
+async def update_profile_config(
+    profile_name: str,
+    payload: ProfileUpdateRequest,
+) -> ProfilesResponse:
+    try:
+        save_profile_config(profile_name, payload.config)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    configs = get_profile_configs()
+    return ProfilesResponse(
+        default_profile=DEFAULT_PROFILE,
+        profiles=list(get_profile_names()),
+        configs={name: dict(config) for name, config in configs.items()},
+    )
+
+
+@router.post("/profiles/test-heading-rules", response_model=HeadingRuleTestResponse)
+async def test_heading_rules(payload: HeadingRuleTestRequest) -> HeadingRuleTestResponse:
+    config = payload.config or get_profile_configs().get(payload.profile) or {}
+    rules = heading_rules_from_config(config)
+    matches = detect_headings(payload.sample_text or "", rules)
+    return HeadingRuleTestResponse(
+        matches=[
+            HeadingRuleMatchResponse(
+                start=match.start,
+                end=match.end,
+                level=match.level,
+                name=match.name,
+                label=match.label,
+                number=match.number,
+                title=match.title,
+                display_text=match.display_text,
+                boundary=match.boundary,
+            )
+            for match in matches
+        ]
     )
 
 
@@ -189,6 +277,38 @@ async def recreate_vector_store(
     return VectorStoreCollectionResponse(**asdict(collection_info))
 
 
+def _enqueue_upload_with_optional_profile(
+    queue: IngestionQueue,
+    *,
+    filename: str,
+    content_type: str | None,
+    content: bytes,
+    ingestion_profile: str,
+) -> IngestionJob:
+    """Call queue.enqueue_upload while supporting older test fakes.
+
+    Some tests and external integrations provide a lightweight queue object that
+    has not yet added the optional ingestion_profile keyword.  The production
+    queue accepts the keyword, but this compatibility layer keeps the route from
+    failing when a fake queue only implements the original upload signature.
+    """
+
+    enqueue_upload = queue.enqueue_upload
+    try:
+        parameters = inspect.signature(enqueue_upload).parameters
+    except (TypeError, ValueError):
+        parameters = {}
+
+    upload_kwargs: dict[str, Any] = {
+        "filename": filename,
+        "content_type": content_type,
+        "content": content,
+    }
+    if "ingestion_profile" in parameters:
+        upload_kwargs["ingestion_profile"] = ingestion_profile
+    return enqueue_upload(**upload_kwargs)
+
+
 @router.post(
     "/ingestion-jobs",
     response_model=IngestionJobResponse,
@@ -199,6 +319,7 @@ async def enqueue_ingestion_job(
     queue: Annotated[IngestionQueue, Depends(get_ingestion_queue)],
     repository: Annotated[DocumentRepository, Depends(get_document_repository)],
     file: Annotated[UploadFile, File(...)],
+    ingestion_profile: Annotated[str, Form()] = "auto",
 ) -> IngestionJobResponse:
     content = await file.read()
     filename = DocumentService._clean_filename(file.filename)
@@ -213,10 +334,46 @@ async def enqueue_ingestion_job(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Duplicate file already exists for document {duplicate_id}.",
         )
-    job = queue.enqueue_upload(
+    job = _enqueue_upload_with_optional_profile(
+        queue,
         filename=filename,
         content_type=file.content_type,
         content=content,
+        ingestion_profile=ingestion_profile,
+    )
+    background_tasks.add_task(queue.run_job, job.job_id)
+    return _to_ingestion_job_response(job)
+
+
+@router.post(
+    "/documents/{document_id}/reingest",
+    response_model=IngestionJobResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def reingest_document(
+    document_id: UUID,
+    background_tasks: BackgroundTasks,
+    queue: Annotated[IngestionQueue, Depends(get_ingestion_queue)],
+    repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+    payload: ReingestDocumentRequest | None = None,
+) -> IngestionJobResponse:
+    document = await repository.get_document(document_id)
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found.",
+        )
+    document_file = await repository.get_primary_document_file(document_id)
+    filename = (
+        getattr(document_file, "filename", None)
+        or getattr(document, "title", None)
+        or str(document_id)
+    )
+    job = queue.enqueue_document_reingestion(
+        document_id=document_id,
+        filename=filename,
+        content_type=getattr(document_file, "mime_type", None),
+        ingestion_profile=(payload.ingestion_profile if payload else "auto"),
     )
     background_tasks.add_task(queue.run_job, job.job_id)
     return _to_ingestion_job_response(job)
@@ -267,6 +424,8 @@ def _to_ingestion_job_response(job: IngestionJob) -> IngestionJobResponse:
         updated_at=job.updated_at.isoformat(),
         document_id=job.document_id,
         error=job.error,
+        ingestion_profile=job.ingestion_profile,
+        resolved_ingestion_profile=job.resolved_ingestion_profile,
         steps=[
             IngestionStepResponse(
                 name=step.name,

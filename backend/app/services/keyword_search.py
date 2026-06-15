@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Any
 from uuid import UUID
 
@@ -27,6 +28,60 @@ KEYWORD_QUERY_PARAM = "keyword_query"
 TS_CONFIG = literal_column("'simple'")
 EXACT_MATCH_BOOST = 10.0
 MAX_EXACT_TERMS = 6
+
+
+QUERY_CONTENT_STOPWORDS = {
+    "anh", "bạn", "các", "cho", "có", "của", "đang", "đây", "đó",
+    "được", "gì", "hãy", "hỏi", "không", "khi", "là", "làm", "nào",
+    "này", "nêu", "nếu", "nhé", "như", "nói", "sao", "theo", "thì",
+    "tôi", "trong", "và", "về", "với", "xin", "bao", "nhiêu", "mấy",
+}
+
+
+def _strip_vietnamese_accents(value: str) -> str:
+    normalized = unicodedata.normalize("NFD", value or "")
+    stripped = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
+    return stripped.replace("Đ", "D").replace("đ", "d")
+
+
+def _content_exact_terms(query: str, *, max_terms: int = 6) -> list[str]:
+    """Extract reusable exact-match phrases from any natural-language query.
+
+    The previous implementation had domain phrases for one leave-benefit table.
+    This version is schema-neutral: it derives compact n-grams only from the
+    user's own content words, so it can help retrieve short table/section rows in
+    any corpus without adding code for each new document type.
+    """
+
+    tokens = re.findall(r"[\wÀ-ỹĐđ]+", query or "", flags=re.UNICODE)
+    content_tokens: list[str] = []
+    for token in tokens:
+        normalized = _strip_vietnamese_accents(token).casefold()
+        if len(normalized) <= 1 or normalized in QUERY_CONTENT_STOPWORDS:
+            continue
+        content_tokens.append(token)
+
+    terms: list[str] = []
+    seen: set[str] = set()
+    for size in range(min(5, len(content_tokens)), 1, -1):
+        for index in range(0, len(content_tokens) - size + 1):
+            phrase = " ".join(content_tokens[index : index + size]).strip()
+            key = _strip_vietnamese_accents(phrase).casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            terms.append(phrase)
+            if len(terms) >= max_terms:
+                return terms
+    for token in content_tokens:
+        key = _strip_vietnamese_accents(token).casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        terms.append(token)
+        if len(terms) >= max_terms:
+            break
+    return terms
 
 
 class KeywordSearchError(RuntimeError):
@@ -109,6 +164,20 @@ class KeywordSearchService:
                     Chunk.search_vector.is_not(None) & Chunk.search_vector.op("@@")(ts_query),
                     *exact_clauses,
                 ),
+                or_(
+                    Chunk.chunk_metadata["indexable"].as_boolean().is_(None),
+                    Chunk.chunk_metadata["indexable"].as_boolean().is_(True),
+                ),
+                or_(
+                    Chunk.chunk_metadata["embedding_enabled"].as_boolean().is_(None),
+                    Chunk.chunk_metadata["embedding_enabled"].as_boolean().is_(True),
+                ),
+                or_(
+                    Chunk.chunk_metadata["chunk_type"].as_string().is_(None),
+                    Chunk.chunk_metadata["chunk_type"].as_string().not_in(
+                        ["administrative_footer", "header_footer", "footer", "parse_error"]
+                    ),
+                ),
             )
             .order_by(
                 exact_score.desc(),
@@ -166,8 +235,11 @@ class KeywordSearchService:
             ]
 
         ordered_terms: list[str] = []
+        content_terms = _content_exact_terms(query)
+
         for term in [
             *membership_terms,
+            *content_terms,
             query.strip(),
             *flattened_quotes,
             *entity_terms,

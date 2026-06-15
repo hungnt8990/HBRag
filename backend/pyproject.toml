@@ -8,6 +8,7 @@ dependencies = [
     "anyio>=4.0.0",
     "asyncpg>=0.30.0",
     "bcrypt>=5.0.0",
+    "docling>=2.61.2,<3.0.0",
     "fastapi>=0.115.0",
     "httpx>=0.27.0",
     "minio>=7.2.12",
@@ -32,7 +33,6 @@ memory = [
     "mem0ai>=0.1.0",
 ]
 docproc = [
-    "docling>=2.0.0",
     "unstructured>=0.16.0",
 ]
 
@@ -45,7 +45,7 @@ include = ["app*"]
 exclude = ["alembic*", "tests*"]
 
 [tool.ruff]
-line-length = 100
+line-length = 220
 target-version = "py311"
 
 [tool.ruff.lint]

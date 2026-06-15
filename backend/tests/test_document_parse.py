@@ -5,7 +5,11 @@ from uuid import UUID
 
 from fastapi.testclient import TestClient
 
-from app.api.routes.documents import get_document_repository, get_storage_client
+from app.api.routes.documents import (
+    get_document_parser_service,
+    get_document_repository,
+    get_storage_client,
+)
 from app.main import app
 from app.services.document_parser_service import DocumentParserService
 from app.services.parsers import (
@@ -214,6 +218,7 @@ def test_parser_selection_uses_extension_or_mime_type() -> None:
     service = DocumentParserService(
         repository=FakeDocumentRepository(),
         storage=FakeStorageClient({}),
+        parsers=(TextParser(), MarkdownParser(), PdfParser(), DocxParser()),
     )
 
     assert isinstance(
@@ -348,6 +353,29 @@ def _build_docx_with_tables(target_chars: int) -> bytes:
     return buffer.getvalue()
 
 
+def test_force_reparse_allows_indexed_document() -> None:
+    repository = FakeDocumentRepository(
+        filename="sample.txt",
+        mime_type="text/plain",
+        storage_path="documents/sample.txt",
+        document_status="indexed",
+    )
+    storage = FakeStorageClient({"documents/sample.txt": b"Reparse existing file"})
+    service = DocumentParserService(repository=repository, storage=storage)
+
+    import anyio
+
+    async def run_force_reparse():
+        return await service.parse_document(DOCUMENT_ID, force_reparse=True)
+
+    response = anyio.run(run_force_reparse)
+
+    assert response.status == "parsed"
+    assert repository.document.status == "parsed"
+    assert repository.document.parsed_text == "Reparse existing file"
+    assert storage.downloads == ["documents/sample.txt"]
+
+
 def test_parse_docx_extracts_tables_and_does_not_truncate() -> None:
     docx_bytes = _build_docx_with_tables(target_chars=4500)
     repository = FakeDocumentRepository(
@@ -358,6 +386,11 @@ def test_parse_docx_extracts_tables_and_does_not_truncate() -> None:
     storage = FakeStorageClient({"documents/legal.docx": docx_bytes})
     app.dependency_overrides[get_document_repository] = lambda: repository
     app.dependency_overrides[get_storage_client] = lambda: storage
+    app.dependency_overrides[get_document_parser_service] = lambda: DocumentParserService(
+        repository=repository,
+        storage=storage,
+        parsers=(TextParser(), MarkdownParser(), PdfParser(), DocxParser()),
+    )
 
     try:
         client = TestClient(app)
@@ -400,6 +433,11 @@ def test_docx_parser_keeps_empty_cells_with_generic_headers() -> None:
     storage = FakeStorageClient({"documents/matrix.docx": buffer.getvalue()})
     app.dependency_overrides[get_document_repository] = lambda: repository
     app.dependency_overrides[get_storage_client] = lambda: storage
+    app.dependency_overrides[get_document_parser_service] = lambda: DocumentParserService(
+        repository=repository,
+        storage=storage,
+        parsers=(TextParser(), MarkdownParser(), PdfParser(), DocxParser()),
+    )
 
     try:
         client = TestClient(app)
@@ -737,7 +775,8 @@ def test_pdf_parser_does_not_emit_invalid_staff_table_rows(monkeypatch) -> None:
                 "DANH SÁCH NHÂN SỰ PHỤ TRÁCH TỪNG MẢNG CÔNG NGHỆ LÕI\n"
                 "6 PTUD 6. Nguyễn Huỳnh Đăng Khoa Platform AI 7. Nguyễn Quang Lâm "
                 "8. Nguyễn Trọng Hùng 9. Võ Văn Phúc 10. Võ Văn Hòa 11. Đoàn Gia Hy "
-                "12. Nguyễn Hữu Thiện Đức 13. Trịnh Thế Phong Ứng dụng AI vào các "
+                "12. Nguyễn Hữu Thiện Đức 13. Trịnh Thế Phong "
+                "Ứng dụng AI vào các "
                 "phần mềm Phòng P.\n"
             )
 
@@ -754,3 +793,21 @@ def test_pdf_parser_does_not_emit_invalid_staff_table_rows(monkeypatch) -> None:
     assert table_rows == []
     assert any(element.element_type == "page" for element in parsed.elements)
     assert "Mô tả các mảng công nghệ lõi" in parsed.text
+
+
+def test_docling_parser_uses_lossless_json_serializer() -> None:
+    import json
+
+    from app.services.parsers import DoclingParser
+
+    class FakeDoclingDocument:
+        def save_as_json(self, *, filename) -> None:
+            filename.write_text(
+                json.dumps({"name": "fixture", "texts": [{"text": "Hello"}]}),
+                encoding="utf-8",
+            )
+
+    payload = DoclingParser._document_payload(FakeDoclingDocument())
+
+    assert payload["name"] == "fixture"
+    assert payload["texts"][0]["text"] == "Hello"

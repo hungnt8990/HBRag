@@ -30,6 +30,7 @@ import {
   type FormEvent,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -60,13 +61,17 @@ import {
   getMemorySettings,
   getProfiles,
   getRuntimeConfig,
+  testHeadingRules,
+  updateProfileConfig,
   listDocuments,
   listIngestionJobs,
+  reingestDocument,
   listMemories,
   type DocumentDetailResponse,
   type DocumentListItem,
   type IngestionJob,
   type IngestionLog,
+  type HeadingRuleTestMatch,
   type IngestionStep,
   type MemoryItem,
   type MemorySettings,
@@ -74,10 +79,7 @@ import {
   type RagCitation,
   type RuntimeConfigResponse,
   type AuthUser,
-  type AnswerMode,
-  type AnswerStyle,
-  type ChunkMode,
-  type DocumentProfile,
+  type ProfileConfig,
   type ProfilesResponse,
 } from "@/lib/api";
 import { streamRagChat } from "@/lib/streaming";
@@ -165,6 +167,7 @@ export default function Home() {
   const [autoFile, setAutoFile] = useState<File | null>(null);
   const [autoJobs, setAutoJobs] = useState<IngestionJob[]>([]);
   const [autoSubmitting, setAutoSubmitting] = useState(false);
+  const [rerunningDocumentId, setRerunningDocumentId] = useState<string | null>(null);
   const [autoUploadMessage, setAutoUploadMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -180,11 +183,6 @@ export default function Home() {
   const [selectedCitationIndex, setSelectedCitationIndex] = useState<number | null>(null);
   const [asking, setAsking] = useState(false);
 
-  const [chunkSize, setChunkSize] = useState(1000);
-  const [chunkOverlap, setChunkOverlap] = useState(150);
-  const [chunkMode, setChunkMode] = useState<ChunkMode>("recursive");
-  const [topK, setTopK] = useState(5);
-  const [candidateK, setCandidateK] = useState(20);
   const [streamingEnabled, setStreamingEnabled] = useState(true);
   const [typewriterEnabled, setTypewriterEnabled] = useState(true);
   const [typewriterSpeed, setTypewriterSpeed] =
@@ -195,13 +193,10 @@ export default function Home() {
   const [useMemory, setUseMemory] = useState(true);
   const [useMem0, setUseMem0] = useState(false);
   const [memoryTopK, setMemoryTopK] = useState(5);
-  const [answerMode, setAnswerMode] = useState<AnswerMode>("hybrid");
-  const [answerStyle, setAnswerStyle] = useState<AnswerStyle>("policy_explainer");
-  const [maxContextChars, setMaxContextChars] = useState(6000);
   const [useGraph, setUseGraph] = useState(false);
   const [graphExpansionDepth, setGraphExpansionDepth] = useState(1);
   const [graphExpansionLimit, setGraphExpansionLimit] = useState(20);
-  const [profile, setProfile] = useState<DocumentProfile>("auto");
+  const [profile, setProfile] = useState<string>("auto");
   const [profilesConfig, setProfilesConfig] = useState<ProfilesResponse | null>(
     null,
   );
@@ -230,27 +225,10 @@ export default function Home() {
   useEffect(() => clearTypewriter, [clearTypewriter]);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("hbrag_answer_mode");
-    if (stored === "generative" || stored === "extractive" || stored === "hybrid") {
-      setAnswerMode(stored);
-    }
-    const storedStyle = window.localStorage.getItem("hbrag_answer_style");
-    if (
-      storedStyle === "concise" ||
-      storedStyle === "detailed" ||
-      storedStyle === "policy_explainer"
-    ) {
-      setAnswerStyle(storedStyle);
-    }
-    const storedProfile = window.localStorage.getItem("hbrag_profile");
-    if (
-      storedProfile === "auto" ||
-      storedProfile === "legal_admin" ||
-      storedProfile === "general" ||
-      storedProfile === "technical" ||
-      storedProfile === "faq" ||
-      storedProfile === "spreadsheet"
-    ) {
+    const storedProfile = window.localStorage.getItem(
+      "hbrag_ingestion_config_profile",
+    );
+    if (storedProfile) {
       setProfile(storedProfile);
     }
   }, []);
@@ -292,16 +270,6 @@ export default function Home() {
     };
   }, [citations]);
 
-  const handleAnswerModeChange = useCallback((mode: AnswerMode) => {
-    setAnswerMode(mode);
-    window.localStorage.setItem("hbrag_answer_mode", mode);
-  }, []);
-
-  const handleAnswerStyleChange = useCallback((style: AnswerStyle) => {
-    setAnswerStyle(style);
-    window.localStorage.setItem("hbrag_answer_style", style);
-  }, []);
-
   const refreshProfiles = useCallback(async () => {
     try {
       const config = await getProfiles();
@@ -311,26 +279,10 @@ export default function Home() {
     }
   }, []);
 
-  const handleProfileChange = useCallback(
-    (next: DocumentProfile) => {
-      setProfile(next);
-      window.localStorage.setItem("hbrag_profile", next);
-      const config = profilesConfig?.configs?.[next];
-      if (!config) {
-        return;
-      }
-      // Populate controls from the profile so the user can still override.
-      setChunkMode(config.chunk_mode);
-      setChunkSize(config.chunk_size);
-      setChunkOverlap(config.chunk_overlap);
-      setTopK(config.top_k);
-      setCandidateK(config.candidate_k);
-      setAnswerMode(config.answer_mode);
-      setAnswerStyle(config.answer_style);
-      setMaxContextChars(config.max_context_chars);
-    },
-    [profilesConfig],
-  );
+  const handleProfileChange = useCallback((next: string) => {
+    setProfile(next);
+    window.localStorage.setItem("hbrag_ingestion_config_profile", next);
+  }, []);
 
   const appendLog = useCallback(
     (
@@ -381,8 +333,6 @@ export default function Home() {
       setRuntimeConfig(config);
       setSystemError(null);
       if (!settingsInitialized.current) {
-        setChunkSize(config.default_chunk_size);
-        setChunkOverlap(config.default_chunk_overlap);
         setUseGraph(config.graph_enabled);
         setGraphExpansionDepth(config.graph_expansion_depth);
         setGraphExpansionLimit(config.graph_expansion_limit);
@@ -586,7 +536,7 @@ export default function Home() {
       );
       setAutoUploadMessage({
         type: "success",
-        text: `Queued ${autoFile.name} successfully.`,
+        text: `Queued ${autoFile.name} successfully. Profile will be auto-detected during ingestion.`,
       });
       await refreshDocuments(null);
     } catch (error) {
@@ -597,6 +547,47 @@ export default function Home() {
       setAutoSubmitting(false);
     }
   };
+
+  const handleReingestDocument = useCallback(
+    async (documentId: string) => {
+      setRerunningDocumentId(documentId);
+      setAutoUploadMessage(null);
+      const started = performance.now();
+      appendLog(
+        "auto",
+        "reingest",
+        "info",
+        `Queued re-ingestion for ${compactId(documentId)}.`,
+      );
+      try {
+        const job = await reingestDocument(documentId);
+        const durationMs = performance.now() - started;
+        setAutoJobs((current) => [
+          job,
+          ...current.filter((item) => item.job_id !== job.job_id),
+        ]);
+        appendLog(
+          "auto",
+          "reingest",
+          "success",
+          `Created re-ingestion job ${compactId(job.job_id)}.`,
+          durationMs,
+        );
+        setAutoUploadMessage({
+          type: "success",
+          text: "Queued re-ingestion from parse through indexing. Profile will be auto-detected again.",
+        });
+        await refreshDocuments(null);
+      } catch (error) {
+        const message = getErrorMessage(error);
+        appendLog("auto", "reingest", "error", message);
+        setAutoUploadMessage({ type: "error", text: message });
+      } finally {
+        setRerunningDocumentId(null);
+      }
+    },
+    [appendLog, refreshDocuments],
+  );
 
   const handleOpenDocumentModal = useCallback(
     async (documentId: string) => {
@@ -698,15 +689,10 @@ export default function Home() {
           {
             query,
             session_id: sessionId ?? undefined,
-            top_k: topK,
-            candidate_k: candidateK,
+            scope: { document_id: selectedDocumentId ?? undefined },
             use_memory: useMemory,
             use_mem0: useMem0,
             memory_top_k: memoryTopK,
-            answer_mode: answerMode,
-            answer_style: answerStyle,
-            max_context_chars: maxContextChars,
-            profile,
             use_graph: useGraph,
             graph_expansion_depth: graphExpansionDepth,
             graph_expansion_limit: graphExpansionLimit,
@@ -755,15 +741,10 @@ export default function Home() {
       const response = await askRagChat({
         query,
         session_id: sessionId ?? undefined,
-        top_k: topK,
-        candidate_k: candidateK,
+        document_id: selectedDocumentId ?? undefined,
         use_memory: useMemory,
         use_mem0: useMem0,
         memory_top_k: memoryTopK,
-        answer_mode: answerMode,
-        answer_style: answerStyle,
-        max_context_chars: maxContextChars,
-        profile,
         use_graph: useGraph,
         graph_expansion_depth: graphExpansionDepth,
         graph_expansion_limit: graphExpansionLimit,
@@ -933,7 +914,9 @@ export default function Home() {
             onRefreshDocuments={() => {
               void refreshDocuments(null);
             }}
+            onReingestDocument={handleReingestDocument}
             onSubmit={handleAutoSubmit}
+            rerunningDocumentId={rerunningDocumentId}
             logs={[
               ...autoJobs.flatMap((job) => mapIngestionLogs(job.logs)),
               ...logs.filter((log) => log.source === "auto"),
@@ -964,21 +947,11 @@ export default function Home() {
 
         {activeView === "settings" ? (
           <SettingsPanel
-            answerMode={answerMode}
-            answerStyle={answerStyle}
-            candidateK={candidateK}
-            chunkOverlap={chunkOverlap}
-            chunkSize={chunkSize}
-            chunkMode={chunkMode}
             memorySettings={memorySettings}
-            maxContextChars={maxContextChars}
             runtimeConfig={runtimeConfig}
-            setCandidateK={setCandidateK}
-            setChunkOverlap={setChunkOverlap}
-            setChunkSize={setChunkSize}
-            setChunkMode={setChunkMode}
+            profilesConfig={profilesConfig}
+            onProfilesConfigChange={setProfilesConfig}
             setStreamingEnabled={setStreamingEnabled}
-            setTopK={setTopK}
             setTypewriterEnabled={setTypewriterEnabled}
             setTypewriterSpeed={setTypewriterSpeed}
             setUseMem0={setUseMem0}
@@ -987,13 +960,9 @@ export default function Home() {
             setUseGraph={setUseGraph}
             setGraphExpansionDepth={setGraphExpansionDepth}
             setGraphExpansionLimit={setGraphExpansionLimit}
-            setAnswerMode={handleAnswerModeChange}
-            setAnswerStyle={handleAnswerStyleChange}
             profile={profile}
             setProfile={handleProfileChange}
-            setMaxContextChars={setMaxContextChars}
             streamingEnabled={streamingEnabled}
-            topK={topK}
             typewriterEnabled={typewriterEnabled}
             typewriterSpeed={typewriterSpeed}
             useMem0={useMem0}
@@ -1044,7 +1013,9 @@ function AutoQueueView({
   onDeletePublishedDocument,
   onOpenDocument,
   onRefreshDocuments,
+  onReingestDocument,
   onSubmit,
+  rerunningDocumentId,
 }: {
   deletingDocumentId: string | null;
   detailDocument: DocumentDetailResponse | null;
@@ -1062,7 +1033,9 @@ function AutoQueueView({
   onDeletePublishedDocument: (documentId: string) => void;
   onOpenDocument: (documentId: string) => void;
   onRefreshDocuments: () => void;
+  onReingestDocument: (documentId: string) => void;
   onSubmit: () => void;
+  rerunningDocumentId: string | null;
 }) {
   const activeJobsByDocumentId = new Map(
     jobs
@@ -1108,6 +1081,16 @@ function AutoQueueView({
               type="file"
             />
           </label>
+          <div className="rounded-xl border border-cyan-100 bg-cyan-50 px-3 py-2 text-sm text-cyan-900">
+            <div className="text-xs font-semibold uppercase tracking-wider text-cyan-700">
+              Ingestion profile
+            </div>
+            <div className="mt-1 font-medium">Auto detect</div>
+            <p className="mt-1 text-xs text-cyan-800">
+              The backend parses a preview, scores the saved ingestion profiles, and stores
+              the resolved profile on the document/job metadata.
+            </p>
+          </div>
           <Button
             className="w-full bg-[#0d3b4c] text-white hover:bg-[#114e63]"
             disabled={!file || loading}
@@ -1195,6 +1178,9 @@ function AutoQueueView({
                           <span className="truncate" title={formatDocumentScope(document)}>
                             Scope: {formatDocumentScope(document)}
                           </span>
+                          <span className="truncate" title={document.document_profile ?? "unknown"}>
+                            Profile: {document.document_profile ?? "unknown"}
+                          </span>
                           <span className="truncate" title={formatPerson(document.uploaded_by)}>
                             Uploader: {formatPerson(document.uploaded_by)}
                           </span>
@@ -1212,21 +1198,38 @@ function AutoQueueView({
                           </span>
                         </div>
                       </button>
-                      <Button
-                        className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50"
-                        disabled={deletingDocumentId === document.document_id}
-                        onClick={() => onDeletePublishedDocument(document.document_id)}
-                        title="Delete from MinIO, Qdrant, and database"
-                        type="button"
-                        variant="outline"
-                      >
-                        {deletingDocumentId === document.document_id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                        Delete
-                      </Button>
+                      <div className="flex flex-wrap gap-2 lg:justify-end">
+                        <Button
+                          className="border-cyan-200 bg-white text-cyan-800 hover:bg-cyan-50"
+                          disabled={rerunningDocumentId === document.document_id}
+                          onClick={() => onReingestDocument(document.document_id)}
+                          aria-label="Run parse, chunk, and vector indexing again for this document"
+                          title="Run parse, chunk, and vector indexing again for this document"
+                          type="button"
+                          variant="outline"
+                        >
+                          {rerunningDocumentId === document.document_id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50"
+                          disabled={deletingDocumentId === document.document_id}
+                          onClick={() => onDeletePublishedDocument(document.document_id)}
+                          title="Delete from MinIO, Qdrant, and database"
+                          type="button"
+                          variant="outline"
+                        >
+                          {deletingDocumentId === document.document_id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                          Delete
+                        </Button>
+                      </div>
                     </div>
                     <dl className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-3">
                       <QueueMetric
@@ -1251,6 +1254,9 @@ function AutoQueueView({
                           </span>
                           <span className="font-mono text-xs text-cyan-900">
                             {compactId(activeJob.job_id)}
+                          </span>
+                          <span className="text-xs text-cyan-800">
+                            Profile: {activeJob.resolved_ingestion_profile ?? activeJob.ingestion_profile ?? "auto"}
                           </span>
                         </div>
                         <PipelineStrip
@@ -1836,35 +1842,21 @@ function MemoryView({
 }
 
 function SettingsPanel({
-  answerMode,
-  answerStyle,
-  candidateK,
-  chunkOverlap,
-  chunkSize,
-  chunkMode,
   memorySettings,
   memoryTopK,
-  maxContextChars,
   runtimeConfig,
-  setAnswerMode,
-  setAnswerStyle,
+  profilesConfig,
+  onProfilesConfigChange,
   profile,
   setProfile,
-  setMaxContextChars,
-  setCandidateK,
-  setChunkOverlap,
-  setChunkSize,
-  setChunkMode,
   setMemoryTopK,
   setStreamingEnabled,
-  setTopK,
   setTypewriterEnabled,
   setTypewriterSpeed,
   setUseMem0,
   setUseGraph,
   setUseMemory,
   streamingEnabled,
-  topK,
   typewriterEnabled,
   typewriterSpeed,
   useGraph,
@@ -1875,35 +1867,21 @@ function SettingsPanel({
   graphExpansionDepth,
   graphExpansionLimit,
 }: {
-  answerMode: AnswerMode;
-  answerStyle: AnswerStyle;
-  candidateK: number;
-  chunkOverlap: number;
-  chunkSize: number;
-  chunkMode: ChunkMode;
   memorySettings: MemorySettings | null;
   memoryTopK: number;
-  maxContextChars: number;
   runtimeConfig: RuntimeConfigResponse | null;
-  setAnswerMode: (value: AnswerMode) => void;
-  setAnswerStyle: (value: AnswerStyle) => void;
-  profile: DocumentProfile;
-  setProfile: (value: DocumentProfile) => void;
-  setMaxContextChars: (value: number) => void;
-  setCandidateK: (value: number) => void;
-  setChunkOverlap: (value: number) => void;
-  setChunkSize: (value: number) => void;
-  setChunkMode: (value: ChunkMode) => void;
+  profilesConfig: ProfilesResponse | null;
+  onProfilesConfigChange: (value: ProfilesResponse) => void;
+  profile: string;
+  setProfile: (value: string) => void;
   setMemoryTopK: (value: number) => void;
   setStreamingEnabled: (value: boolean) => void;
-  setTopK: (value: number) => void;
   setTypewriterEnabled: (value: boolean) => void;
   setTypewriterSpeed: (value: TypewriterSpeed) => void;
   setUseMem0: (value: boolean) => void;
   setUseGraph: (value: boolean) => void;
   setUseMemory: (value: boolean) => void;
   streamingEnabled: boolean;
-  topK: number;
   typewriterEnabled: boolean;
   typewriterSpeed: TypewriterSpeed;
   useGraph: boolean;
@@ -1916,49 +1894,14 @@ function SettingsPanel({
 }) {
   const memoryEnabled = memorySettings?.memory_enabled ?? false;
   const mem0Available = memorySettings?.mem0_enabled ?? false;
-  const chunkModes: { value: ChunkMode; label: string; hint: string }[] = [
-    {
-      value: "recursive",
-      label: "Recursive",
-      hint: "Generic character-window chunking.",
-    },
-    {
-      value: "legal_article",
-      label: "Legal / Administrative",
-      hint: "Split by Điều, preserve chapter/article metadata.",
-    },
-  ];
-  const answerStyles: { value: AnswerStyle; label: string; hint: string }[] = [
-    { value: "concise", label: "Concise", hint: "Short 1–2 sentence reply." },
-    {
-      value: "detailed",
-      label: "Detailed",
-      hint: "Thorough explanation, exact wording.",
-    },
-    {
-      value: "policy_explainer",
-      label: "Policy explainer",
-      hint: "Direct answer + related cases + notes (legal).",
-    },
-  ];
-  const answerModes: { value: AnswerMode; label: string; hint: string }[] = [
-    {
-      value: "generative",
-      label: "Generative",
-      hint: "Natural answer, summarizes context.",
-    },
-    {
-      value: "extractive",
-      label: "Extractive",
-      hint: "Exact text only, no paraphrasing.",
-    },
-    {
-      value: "hybrid",
-      label: "Hybrid",
-      hint: "Concise answer plus supporting text.",
-    },
-  ];
   const streamingSupported = runtimeConfig?.streaming_supported ?? true;
+  const profileOptions = useMemo(() => {
+    const dynamicProfiles = profilesConfig?.profiles ?? [];
+    return [
+      "auto",
+      ...dynamicProfiles.filter((value) => value && value !== "auto"),
+    ];
+  }, [profilesConfig]);
   const modelRows = runtimeConfig
     ? [
         ["Embedding model", runtimeConfig.embedding_model ?? "Not set"],
@@ -1968,186 +1911,194 @@ function SettingsPanel({
       ]
     : [];
 
+  const activeProfileConfig = profilesConfig?.configs?.[profile] ?? null;
+  const [profileConfigDraft, setProfileConfigDraft] = useState("");
+  const [profileConfigMessage, setProfileConfigMessage] = useState<string | null>(null);
+  const [headingRuleSample, setHeadingRuleSample] = useState(
+    "CHƯƠNG I QUY ĐỊNH CHUNG\nĐiều 1. Phạm vi điều chỉnh",
+  );
+  const [headingRuleMatches, setHeadingRuleMatches] = useState<HeadingRuleTestMatch[]>([]);
+  const [profileConfigBusy, setProfileConfigBusy] = useState(false);
+
+  useEffect(() => {
+    if (!activeProfileConfig) {
+      setProfileConfigDraft("");
+      return;
+    }
+    setProfileConfigDraft(JSON.stringify(activeProfileConfig, null, 2));
+    setProfileConfigMessage(null);
+    setHeadingRuleMatches([]);
+  }, [activeProfileConfig, profile]);
+
+  const parseProfileConfigDraft = (): ProfileConfig | null => {
+    try {
+      return JSON.parse(profileConfigDraft) as ProfileConfig;
+    } catch (error) {
+      setProfileConfigMessage(getErrorMessage(error));
+      return null;
+    }
+  };
+
+  const handleSaveProfileConfig = async () => {
+    const parsed = parseProfileConfigDraft();
+    if (!parsed) {
+      return;
+    }
+    setProfileConfigBusy(true);
+    setProfileConfigMessage(null);
+    try {
+      const next = await updateProfileConfig(profile, parsed);
+      onProfilesConfigChange(next);
+      setProfileConfigMessage("Saved ingestion profile config.");
+    } catch (error) {
+      setProfileConfigMessage(getErrorMessage(error));
+    } finally {
+      setProfileConfigBusy(false);
+    }
+  };
+
+  const handleTestHeadingRules = async () => {
+    const parsed = parseProfileConfigDraft();
+    if (!parsed) {
+      return;
+    }
+    setProfileConfigBusy(true);
+    setProfileConfigMessage(null);
+    try {
+      const result = await testHeadingRules({
+        profile,
+        sample_text: headingRuleSample,
+        config: parsed,
+      });
+      setHeadingRuleMatches(result.matches);
+      setProfileConfigMessage(`Matched ${result.matches.length} heading(s).`);
+    } catch (error) {
+      setProfileConfigMessage(getErrorMessage(error));
+    } finally {
+      setProfileConfigBusy(false);
+    }
+  };
+
   return (
     <Card className="bg-white shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2">
           <ServerCog className="h-5 w-5 text-cyan-700" />
-          RAG Runtime Settings
+          RAG Settings
         </CardTitle>
         <CardDescription>
-          Tune retrieval and chunking. Model details are read-only.
+          Retrieval, answer style, and context limits are resolved automatically by the backend. Chunking is controlled by ingestion profile config.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Document profile
-          </span>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {(
-              [
-                "auto",
-                "legal_admin",
-                "general",
-                "technical",
-                "faq",
-                "spreadsheet",
-              ] as const
-            ).map((value) => (
-              <button
-                className={cn(
-                  "cursor-pointer rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
-                  profile === value
-                    ? "border-cyan-300 bg-cyan-50 text-cyan-800"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
-                )}
-                key={value}
-                onClick={() => setProfile(value)}
+        <div className="rounded-xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-cyan-900">
+          RAG runtime is automatic: backend resolves document profile, answer style,
+          retrieval window and context length from the selected document/profile.
+        </div>
+
+        <div className="space-y-4 rounded-xl border border-slate-200 p-4">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Ingestion profile config
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                Configure ingestion rules here. Runtime retrieval and answer settings are selected automatically from the resolved document profile.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Profile
+                <select
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium normal-case text-slate-700 shadow-sm"
+                  disabled={profileConfigBusy || profileOptions.length === 0}
+                  onChange={(event) => setProfile(event.target.value)}
+                  value={profile}
+                >
+                  {profileOptions.map((value) => (
+                    <option key={value} value={value}>
+                      {value === "auto" ? "Auto" : value}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <Button
+                disabled={profile === "auto" || profileConfigBusy || !activeProfileConfig}
+                onClick={handleTestHeadingRules}
+                type="button"
+                variant="outline"
+              >
+                Test rules
+              </Button>
+              <Button
+                disabled={profile === "auto" || profileConfigBusy || !activeProfileConfig}
+                onClick={handleSaveProfileConfig}
                 type="button"
               >
-                {value === "auto" ? "Auto" : value.replace("_", " / ")}
-              </button>
-            ))}
+                Save profile
+              </Button>
+            </div>
           </div>
-          <p className="mt-2 text-xs text-slate-500">
-            Selecting a profile fills the settings below; you can still override any
-            value. Auto detects the profile from the document.
-          </p>
-        </div>
 
-        <div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Answer mode
-          </span>
-          <div className="mt-2 grid gap-2 sm:grid-cols-3">
-            {answerModes.map((mode) => (
-              <label
-                className={cn(
-                  "flex cursor-pointer flex-col gap-1 rounded-xl border px-3 py-2 transition-colors",
-                  answerMode === mode.value
-                    ? "border-cyan-300 bg-cyan-50"
-                    : "border-slate-200 bg-white hover:bg-slate-50",
-                )}
-                key={mode.value}
-              >
-                <span className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                  <input
-                    checked={answerMode === mode.value}
-                    className="h-4 w-4 cursor-pointer accent-cyan-600"
-                    name="answer-mode"
-                    onChange={() => setAnswerMode(mode.value)}
-                    type="radio"
-                    value={mode.value}
+          {profile === "auto" ? (
+            <div className="space-y-3 rounded-lg bg-slate-50 px-3 py-3 text-sm text-slate-500">
+              <p>Select a concrete profile such as legal_admin or catalog_table to edit ingestion rules.</p>
+              <div className="flex flex-wrap gap-2">
+                {profileOptions
+                  .filter((value) => value !== "auto")
+                  .map((value) => (
+                    <button
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                      key={value}
+                      onClick={() => setProfile(value)}
+                      type="button"
+                    >
+                      Edit {value}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              <Textarea
+                className="min-h-[260px] font-mono text-xs"
+                onChange={(event) => setProfileConfigDraft(event.target.value)}
+                value={profileConfigDraft}
+              />
+              <div className="grid gap-3 lg:grid-cols-2">
+                <label className="space-y-2">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Test sample
+                  </span>
+                  <Textarea
+                    className="min-h-[120px] font-mono text-xs"
+                    onChange={(event) => setHeadingRuleSample(event.target.value)}
+                    value={headingRuleSample}
                   />
-                  {mode.label}
-                </span>
-                <span className="text-xs text-slate-500">{mode.hint}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Answer style
-          </span>
-          <div className="mt-2 grid gap-2 sm:grid-cols-3">
-            {answerStyles.map((style) => (
-              <label
-                className={cn(
-                  "flex cursor-pointer flex-col gap-1 rounded-xl border px-3 py-2 transition-colors",
-                  answerStyle === style.value
-                    ? "border-cyan-300 bg-cyan-50"
-                    : "border-slate-200 bg-white hover:bg-slate-50",
-                )}
-                key={style.value}
-              >
-                <span className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                  <input
-                    checked={answerStyle === style.value}
-                    className="h-4 w-4 cursor-pointer accent-cyan-600"
-                    name="answer-style"
-                    onChange={() => setAnswerStyle(style.value)}
-                    type="radio"
-                    value={style.value}
-                  />
-                  {style.label}
-                </span>
-                <span className="text-xs text-slate-500">{style.hint}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <NumberField
-            label="Chunk size"
-            max={4000}
-            min={300}
-            onChange={setChunkSize}
-            value={chunkSize}
-          />
-          <NumberField
-            label="Chunk overlap"
-            max={Math.floor(chunkSize / 2)}
-            min={0}
-            onChange={setChunkOverlap}
-            value={chunkOverlap}
-          />
-          <NumberField
-            label="top_k"
-            max={50}
-            min={1}
-            onChange={setTopK}
-            value={topK}
-          />
-          <NumberField
-            label="candidate_k"
-            max={200}
-            min={1}
-            onChange={setCandidateK}
-            value={candidateK}
-          />
-          <NumberField
-            label="max_context_chars"
-            max={20000}
-            min={500}
-            onChange={setMaxContextChars}
-            value={maxContextChars}
-          />
-        </div>
-
-        <div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Chunk mode
-          </span>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            {chunkModes.map((mode) => (
-              <label
-                className={cn(
-                  "flex cursor-pointer flex-col gap-1 rounded-xl border px-3 py-2 transition-colors",
-                  chunkMode === mode.value
-                    ? "border-cyan-300 bg-cyan-50"
-                    : "border-slate-200 bg-white hover:bg-slate-50",
-                )}
-                key={mode.value}
-              >
-                <span className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                  <input
-                    checked={chunkMode === mode.value}
-                    className="h-4 w-4 cursor-pointer accent-cyan-600"
-                    name="chunk-mode"
-                    onChange={() => setChunkMode(mode.value)}
-                    type="radio"
-                    value={mode.value}
-                  />
-                  {mode.label}
-                </span>
-                <span className="text-xs text-slate-500">{mode.hint}</span>
-              </label>
-            ))}
-          </div>
+                </label>
+                <div className="space-y-2">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Matches
+                  </span>
+                  <div className="max-h-[160px] overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+                    {headingRuleMatches.length ? (
+                      headingRuleMatches.map((match, index) => (
+                        <div className="mb-2 last:mb-0" key={`${match.start}-${index}`}>
+                          <span className="font-semibold">L{match.level}</span> {match.name}: {match.display_text}
+                          {match.boundary ? " · boundary" : ""}
+                        </div>
+                      ))
+                    ) : (
+                      <span className="text-slate-500">No test results yet.</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {profileConfigMessage ? (
+                <p className="text-xs text-slate-500">{profileConfigMessage}</p>
+              ) : null}
+            </>
+          )}
         </div>
 
         <label

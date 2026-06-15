@@ -4,10 +4,18 @@ from app.services.embeddings.openai_provider import (
     OpenAICompatibleEmbeddingProvider,
     OpenAIEmbeddingProvider,
 )
+from app.services.embeddings.sparse import (
+    HashingSparseEmbeddingProvider,
+    SparseEmbedding,
+    SparseEmbeddingProvider,
+)
 
 __all__ = [
     "EmbeddingProvider",
     "FakeEmbeddingProvider",
+    "HashingSparseEmbeddingProvider",
     "OpenAICompatibleEmbeddingProvider",
     "OpenAIEmbeddingProvider",
+    "SparseEmbedding",
+    "SparseEmbeddingProvider",
 ]

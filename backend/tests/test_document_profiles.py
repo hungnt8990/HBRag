@@ -1,8 +1,10 @@
+import asyncio
 from types import SimpleNamespace
 from uuid import UUID
 
 from fastapi.testclient import TestClient
 
+from app.api.routes.chat import _resolve_profile_settings
 from app.api.routes.documents import get_document_repository
 from app.main import app
 from app.repositories.documents import ChunkCreate
@@ -31,6 +33,17 @@ SPREADSHEET_TEXT = "\n".join(
 SERIALIZED_TABLE_TEXT = (
     "TABLE_ROW table_id=docx_t1 row=1 | cell_1: Alice | cell_2: Platform\n"
     "TABLE_ROW table_id=docx_t1 row=2 | cell_1: Bob | cell_2: QA\n"
+)
+
+CATALOG_TEXT = (
+    "DANH MỤC CÁC NGÔN NGỮ LẬP TRÌNH, PLATFORM, FRAMEWORK, "
+    "CÔNG NGHỆ DÙNG CHUNG TRONG HỆ THỐNG PHẦN MỀM CỦA EVN\n"
+    "TT\nThành phần công nghệ/Công cụ sử dụng\n"
+    "Hãng sản xuất/Nhà cung cấp\nMục đích sử dụng\n"
+    "1 Version control\n"
+    "1.1 Git - Azure Repos Microsoft Quản lý mã nguồn các dự án phát triển phần mềm\n"
+    "2 Message Queue\n"
+    "2.1 RabitMQ Vmware Inc Được sử dụng như một ứng dụng trung chuyển tin nhắn\n"
 )
 
 
@@ -78,9 +91,13 @@ def test_detect_profile_general_and_spreadsheet() -> None:
     assert detect_profile(SERIALIZED_TABLE_TEXT) == "spreadsheet"
 
 
+def test_detect_profile_catalog_table() -> None:
+    assert detect_profile(CATALOG_TEXT) == "catalog_table"
+
+
 def test_resolve_profile_auto_uses_detection() -> None:
     assert resolve_profile("auto", text=LEGAL_TEXT) == "legal_admin"
-    assert resolve_profile("technical", text=LEGAL_TEXT) == "technical"
+    assert resolve_profile("catalog_table", text=LEGAL_TEXT) == "catalog_table"
     assert resolve_profile("unknown", text=LEGAL_TEXT) == "general"
 
 
@@ -153,7 +170,59 @@ def test_admin_profiles_endpoint_returns_configs() -> None:
     assert "legal_admin" in payload["profiles"]
     assert payload["configs"]["legal_admin"]["chunk_mode"] == "legal_article"
     assert payload["configs"]["legal_admin"]["answer_style"] == "policy_explainer"
+    assert payload["configs"]["catalog_table"]["chunk_mode"] == "table_aware"
+    assert payload["configs"]["catalog_table"]["answer_style"] == "table_qa"
     assert payload["configs"]["general"]["chunk_mode"] == "recursive"
     assert payload["configs"]["general"]["answer_style"] == "detailed"
     assert payload["configs"]["spreadsheet"]["chunk_mode"] == "table_aware"
     assert payload["configs"]["spreadsheet"]["answer_style"] == "table_qa"
+
+
+def test_chat_auto_runtime_uses_saved_document_profile() -> None:
+    repository = FakeDocumentRepository(
+        parsed_text=GENERAL_TEXT,
+        document_profile="catalog_table",
+    )
+
+    resolved = asyncio.run(
+        _resolve_profile_settings(
+            repository=repository,
+            profile=None,
+            document_id=DOCUMENT_ID,
+            top_k=None,
+            candidate_k=None,
+            answer_mode=None,
+            answer_style=None,
+            max_context_chars=None,
+        )
+    )
+
+    assert resolved["profile"] == "catalog_table"
+    assert resolved["answer_style"] == "table_qa"
+    assert resolved["top_k"] == 12
+    assert resolved["candidate_k"] == 60
+    assert resolved["max_context_chars"] == 10000
+
+
+def test_chat_auto_runtime_detects_profile_when_saved_profile_is_auto() -> None:
+    repository = FakeDocumentRepository(
+        parsed_text=CATALOG_TEXT,
+        document_profile="auto",
+    )
+
+    resolved = asyncio.run(
+        _resolve_profile_settings(
+            repository=repository,
+            profile="auto",
+            document_id=DOCUMENT_ID,
+            top_k=None,
+            candidate_k=None,
+            answer_mode=None,
+            answer_style=None,
+            max_context_chars=None,
+        )
+    )
+
+    assert resolved["profile"] == "catalog_table"
+    assert resolved["answer_style"] == "table_qa"
+    assert resolved["candidate_k"] == 60

@@ -13,6 +13,7 @@ STAFF_TABLE_REQUIRED_HEADERS = (
 )
 DEPARTMENT_RE = re.compile(r"\b[A-ZĐ]{2,10}[A-Z0-9Đ/-]*\b")
 ROW_START_RE = re.compile(r"^\s*(?P<stt>\d{1,3})(?!\.)\s+(?P<body>.+)$")
+PIPE_TABLE_ROW_RE = re.compile(r"^\s*\|.*\|\s*$")
 STAFF_ITEM_RE = re.compile(
     r"(?:^|\s)(?P<index>\d{1,2})\.\s+(?P<name>.+?)(?=(?:\s+\d{1,2}\.\s+)|$)",
     flags=re.DOTALL,
@@ -230,6 +231,20 @@ def parse_technology_area_rows_from_text(
     if not looks_like_staff_area_table(text):
         return []
 
+    pipe_rows = _parse_pipe_text_rows(
+        text,
+        page_number=page_number,
+        table_id=table_id,
+        source_table=source_table or SOURCE_TABLE_DEFAULT,
+    )
+    if pipe_rows:
+        return [
+            row
+            for row in pipe_rows
+            if allow_low_confidence_text_tables
+            or row.confidence >= MIN_TRUSTED_RELATIONSHIP_CONFIDENCE
+        ]
+
     lines = [_clean_text(line) for line in text.splitlines()]
     lines = [line for line in lines if line]
     header_index = _find_text_header_index(lines)
@@ -266,6 +281,63 @@ def parse_technology_area_rows_from_text(
             parsed_rows.append(parsed)
     return parsed_rows
 
+
+
+def _parse_pipe_text_rows(
+    text: str,
+    *,
+    page_number: int | None,
+    table_id: str | None,
+    source_table: str,
+) -> list[TechnologyAreaRow]:
+    pipe_lines = [line.strip() for line in text.splitlines() if PIPE_TABLE_ROW_RE.match(line)]
+    if len(pipe_lines) < 3:
+        return []
+
+    rows = [_split_pipe_cells(line) for line in pipe_lines]
+    header_index = _find_header_row_index(rows)
+    if header_index is None:
+        return []
+
+    headers = rows[header_index]
+    column_map = _column_map(headers)
+    if not {"stt", "area", "lead_department", "staff"}.issubset(column_map):
+        return []
+
+    parsed_rows: list[TechnologyAreaRow] = []
+    for raw_row in rows[header_index + 1 :]:
+        if _is_pipe_separator_cells(raw_row):
+            continue
+        if len(raw_row) < len(headers):
+            raw_row = [*raw_row, *("" for _ in range(len(headers) - len(raw_row)))]
+        stt = _cell(raw_row, column_map["stt"])
+        area = _cell(raw_row, column_map["area"])
+        lead_department = _cell(raw_row, column_map["lead_department"])
+        staff_text = _cell(raw_row, column_map["staff"])
+        if not stt or not area or not lead_department or not staff_text:
+            continue
+        row = TechnologyAreaRow(
+            stt=stt,
+            area=area,
+            lead_department=lead_department,
+            proposed_staff=parse_staff_members(staff_text),
+            page_number=page_number,
+            source_table=source_table,
+            table_id=table_id,
+            raw_text=" | ".join(raw_row),
+            confidence=0.95,
+        )
+        if validate_technology_area_row(row):
+            parsed_rows.append(row)
+    return parsed_rows
+
+
+def _split_pipe_cells(line: str) -> list[str]:
+    return [_clean_text(cell) for cell in line.strip().strip("|").split("|")]
+
+
+def _is_pipe_separator_cells(cells: list[str]) -> bool:
+    return bool(cells) and all(re.fullmatch(r":?-{3,}:?", cell.strip()) for cell in cells)
 
 def parse_staff_members(staff_text: str) -> list[StaffMember]:
     normalized = _clean_text(staff_text)

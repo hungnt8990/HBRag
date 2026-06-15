@@ -1,0 +1,285 @@
+--- /dev/fd/63	2026-06-13 04:51:59.508396709 +0000
++++ app/services/rag_answer_service.py	2026-06-13 04:51:43.044261222 +0000
+@@ -19,6 +19,10 @@
+ from app.services.hybrid_search import is_identifier_lookup_query
+ from app.services.reranking_service import RerankingService
+ from app.services.table_aware_chunking import extract_entities_from_text
++from app.services.table_relationships import (
++    is_trusted_relationship_metadata,
++    normalize_metadata_value,
++)
+ 
+ MEMORY_RULES = (
+     "User Memory and Session Summary are background context only: never cite them, and if "
+@@ -318,20 +322,27 @@
+                 query=query,
+                 context_chunks=context_chunks,
+             )
+-            user_prompt = self._build_user_prompt(
++            deterministic_answer = self._deterministic_person_area_answer(
+                 query=query,
+                 context_chunks=context_chunks,
+-                memory_context=memory_context,
+-                session_summary=session_summary,
+             )
+-            answer = await self._llm_provider.generate(
+-                system_prompt=build_system_prompt(
+-                    answer_mode=answer_mode,
+-                    answer_style=answer_style,
++            if deterministic_answer is not None:
++                answer = deterministic_answer
++            else:
++                user_prompt = self._build_user_prompt(
+                     query=query,
+-                ),
+-                user_prompt=user_prompt,
+-            )
++                    context_chunks=context_chunks,
++                    memory_context=memory_context,
++                    session_summary=session_summary,
++                )
++                answer = await self._llm_provider.generate(
++                    system_prompt=build_system_prompt(
++                        answer_mode=answer_mode,
++                        answer_style=answer_style,
++                        query=query,
++                    ),
++                    user_prompt=user_prompt,
++                )
+             assistant_message = await self._chat_repository.create_message(
+                 session_id=chat_session.id,
+                 role="assistant",
+@@ -476,11 +487,9 @@
+                 query=query,
+                 context_chunks=context_chunks,
+             )
+-            user_prompt = self._build_user_prompt(
++            deterministic_answer = self._deterministic_person_area_answer(
+                 query=query,
+                 context_chunks=context_chunks,
+-                memory_context=memory_context,
+-                session_summary=session_summary,
+             )
+ 
+             yield RagStreamEvent(
+@@ -491,21 +500,31 @@
+                 },
+             )
+ 
+-            answer_parts: list[str] = []
+-            async for delta in self._llm_provider.stream_generate(
+-                system_prompt=build_system_prompt(
+-                    answer_mode=answer_mode,
+-                    answer_style=answer_style,
++            if deterministic_answer is not None:
++                answer = deterministic_answer
++                yield RagStreamEvent(event="token", data={"delta": answer})
++            else:
++                user_prompt = self._build_user_prompt(
+                     query=query,
+-                ),
+-                user_prompt=user_prompt,
+-            ):
+-                if not delta:
+-                    continue
+-                answer_parts.append(delta)
+-                yield RagStreamEvent(event="token", data={"delta": delta})
++                    context_chunks=context_chunks,
++                    memory_context=memory_context,
++                    session_summary=session_summary,
++                )
++                answer_parts: list[str] = []
++                async for delta in self._llm_provider.stream_generate(
++                    system_prompt=build_system_prompt(
++                        answer_mode=answer_mode,
++                        answer_style=answer_style,
++                        query=query,
++                    ),
++                    user_prompt=user_prompt,
++                ):
++                    if not delta:
++                        continue
++                    answer_parts.append(delta)
++                    yield RagStreamEvent(event="token", data={"delta": delta})
+ 
+-            answer = "".join(answer_parts)
++                answer = "".join(answer_parts)
+             assistant_message = await self._chat_repository.create_message(
+                 session_id=chat_session.id,
+                 role="assistant",
+@@ -766,6 +785,175 @@
+ 
+         return expanded
+ 
++
++    @staticmethod
++    def _deterministic_person_area_answer(
++        *,
++        query: str,
++        context_chunks: list[ContextChunk],
++    ) -> str | None:
++        """Answer person -> technology-area lookups without asking the LLM to infer.
++
++        This prevents small/free LLMs from adding nearby table rows or dropping valid rows
++        when the evidence already exists as trusted table_row/entity_profile metadata.
++        """
++
++        person_name = RagAnswerService._person_area_query_person(query)
++        if person_name is None:
++            return None
++
++        person_key = normalize_metadata_value(person_name)
++        rows: list[dict[str, str]] = []
++        seen: set[tuple[str, str, str]] = set()
++
++        def add_row(
++            *,
++            area: object,
++            department: object = "",
++            stt: object = "",
++            citation: int,
++            role_note: object = "",
++        ) -> None:
++            area_text = str(area or "").strip()
++            if not area_text:
++                return
++            department_text = str(department or "").strip()
++            stt_text = str(stt or "").strip()
++            key = (
++                normalize_metadata_value(stt_text),
++                normalize_metadata_value(area_text),
++                normalize_metadata_value(department_text),
++            )
++            if key in seen:
++                return
++            seen.add(key)
++            rows.append(
++                {
++                    "area": area_text,
++                    "department": department_text,
++                    "stt": stt_text,
++                    "citation": str(citation),
++                    "role_note": str(role_note or "").strip(),
++                }
++            )
++
++        for context_chunk in context_chunks:
++            metadata = context_chunk.chunk.chunk_metadata or {}
++            chunk_type = str(metadata.get("chunk_type") or "")
++
++            if chunk_type == "entity_profile":
++                metadata_person = str(metadata.get("person_name") or "").strip()
++                if normalize_metadata_value(metadata_person) != person_key:
++                    continue
++                for area_payload in metadata.get("areas", []) or []:
++                    if not isinstance(area_payload, dict):
++                        continue
++                    add_row(
++                        area=area_payload.get("area"),
++                        department=area_payload.get("lead_department"),
++                        stt=area_payload.get("stt"),
++                        role_note=area_payload.get("role_note"),
++                        citation=context_chunk.citation_index,
++                    )
++                continue
++
++            if is_trusted_relationship_metadata(metadata):
++                staff_names = [
++                    str(item.get("name") or "")
++                    for item in metadata.get("staff", []) or []
++                    if isinstance(item, dict)
++                ] or [str(name) for name in metadata.get("staff_names", []) or []]
++                if not any(normalize_metadata_value(name) == person_key for name in staff_names):
++                    continue
++                role_note = ""
++                for staff in metadata.get("staff", []) or []:
++                    if not isinstance(staff, dict):
++                        continue
++                    if normalize_metadata_value(str(staff.get("name") or "")) == person_key:
++                        role_note = str(staff.get("role_note") or "").strip()
++                        break
++                add_row(
++                    area=metadata.get("area"),
++                    department=metadata.get("lead_department"),
++                    stt=metadata.get("stt"),
++                    role_note=role_note,
++                    citation=context_chunk.citation_index,
++                )
++                continue
++
++            # Fallback for older table chunks that have TABLE_ROW text but no trusted metadata.
++            for line in RagAnswerService._table_context_lines(context_chunk.chunk.content or ""):
++                if "table_row" not in line.casefold():
++                    continue
++                if person_key not in normalize_metadata_value(line):
++                    continue
++                parsed = RagAnswerService._parse_table_row_line_for_area(line)
++                if parsed is None:
++                    continue
++                add_row(citation=context_chunk.citation_index, **parsed)
++
++        if not rows:
++            return None
++
++        rows.sort(key=lambda item: RagAnswerService._natural_stt_key(item.get("stt") or ""))
++        count_text = f"{len(rows):02d}" if len(rows) < 10 else str(len(rows))
++        lines = [f"{person_name} được đề xuất tham gia {count_text} mảng công nghệ:"]
++        for index, row in enumerate(rows, start=1):
++            dept = f" — Phòng chủ trì: {row['department']}" if row.get("department") else ""
++            note = f"; ghi chú: {row['role_note']}" if row.get("role_note") else ""
++            stt = f"STT {row['stt']}: " if row.get("stt") else ""
++            lines.append(f"{index}. {stt}{row['area']}{dept}{note}. [{row['citation']}]")
++        lines.append(
++            "Tôi chỉ tính các dòng/bản ghi mà tên nhân sự xuất hiện trực tiếp trong cùng dòng với mảng công nghệ."
++        )
++        return "\n".join(lines)
++
++    @staticmethod
++    def _person_area_query_person(query: str) -> str | None:
++        normalized_query = normalize_metadata_value(query)
++        if "tham gia" not in normalized_query:
++            return None
++        if not any(term in normalized_query for term in ("mang cong nghe", "cong nghe", "mang nao", "mang")):
++            return None
++        for entity in extract_entities_from_text(query):
++            if len(entity.split()) >= 2:
++                return entity.strip()
++        return None
++
++    @staticmethod
++    def _parse_table_row_line_for_area(line: str) -> dict[str, str] | None:
++        fields: dict[str, str] = {}
++        row_match = re.search(r"\brow=(?P<row>\d+)\b", line, flags=re.IGNORECASE)
++        for part in line.split("|"):
++            label, separator, value = part.partition(":")
++            if not separator:
++                continue
++            fields[normalize_metadata_value(label)] = value.strip()
++
++        area = (
++            fields.get("mang cong nghe")
++            or fields.get("nhom nhiem vu")
++            or fields.get("ten mang")
++            or fields.get("cell_2")
++        )
++        department = (
++            fields.get("phong chu tri")
++            or fields.get("don vi")
++            or fields.get("phong")
++            or fields.get("cell_3")
++        )
++        stt = fields.get("stt") or fields.get("cell_1") or (row_match.group("row") if row_match else "")
++        if not area:
++            return None
++        return {"area": area, "department": department or "", "stt": stt or ""}
++
++    @staticmethod
++    def _natural_stt_key(value: str) -> tuple[int, str]:
++        match = re.search(r"\d+", value or "")
++        if match:
++            return (int(match.group(0)), value)
++        return (10_000, value or "")
++
+     @staticmethod
+     def _query_terms(query: str) -> list[str]:
+         terms = extract_entities_from_text(query)

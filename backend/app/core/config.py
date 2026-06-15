@@ -23,17 +23,32 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://hbrag:hbrag_password@localhost:5432/hbrag"
     database_echo: bool = False
     qdrant_url: str = "http://localhost:6333"
-    qdrant_collection_name: str = "hbrag_chunks"
-    qdrant_upsert_batch_size: int = 128
+    qdrant_api_key: str | None = None
+    qdrant_collection_name: str = "hbrag_chunks_v2"
+    qdrant_upsert_batch_size: int = 64
+    qdrant_upsert_retry_count: int = 2
+    qdrant_hybrid_candidate_multiplier: int = 4
     auto_recreate_collection: bool = False
+
+    dense_vector_name: str = "dense"
+    sparse_vector_name: str = "sparse"
+    sparse_embedding_enabled: bool = True
+    sparse_embedding_provider: str = "hashing"
+    sparse_embedding_hash_dimensions: int = 1_048_576
+    store_raw_text_in_qdrant: bool = False
+    store_embedding_text_in_qdrant: bool = False
 
     default_chunk_size: int = 1000
     default_chunk_overlap: int = 150
     document_parser_provider: str = "auto"
-    enable_docling: bool = False
+    enable_docling: bool = True
+    enable_docling_v6_chunking: bool = True
+    docling_chunk_max_tokens: int = 350
+    docling_context_budget: int = 80
+    docling_context_mode: str = "metadata"
+    docling_ocr_mode: str = "off"
+    docling_strict_quality: bool = True
     enable_unstructured: bool = False
-    chunk_router_provider: str = "heuristic"
-    enable_semantic_chunking: bool = False
 
     memory_provider: str = "local"
     memory_enabled: bool = True

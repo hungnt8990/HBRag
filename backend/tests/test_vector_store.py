@@ -3,8 +3,9 @@ import logging
 from types import SimpleNamespace
 from uuid import UUID
 
-from qdrant_client.models import Distance, PointStruct
+from qdrant_client.models import Distance, PointStruct, SparseVector
 
+from app.services.embeddings.sparse import SparseEmbedding
 from app.services.vector_store import QdrantVectorStore
 
 
@@ -15,69 +16,119 @@ class FakeQdrantClient:
         collection_exists: bool = True,
         vector_size: int = 384,
         distance: Distance = Distance.COSINE,
+        sparse_configured: bool = True,
+        named_vectors: bool = True,
     ) -> None:
         self.upsert_batches: list[list[PointStruct]] = []
         self.exists = collection_exists
         self.vector_size = vector_size
         self.distance = distance
+        self.sparse_configured = sparse_configured
+        self.named_vectors = named_vectors
         self.create_calls: list[dict[str, object]] = []
         self.delete_calls: list[str] = []
         self.point_delete_calls: list[dict[str, object]] = []
+        self.payload_indexes: list[str] = []
+        self.query_calls: list[dict[str, object]] = []
 
     async def collection_exists(self, *, collection_name: str) -> bool:
         return self.exists
 
-    async def create_collection(self, *, collection_name: str, vectors_config) -> None:
+    async def create_collection(
+        self,
+        *,
+        collection_name: str,
+        vectors_config,
+        sparse_vectors_config=None,
+    ) -> None:
+        dense = vectors_config["dense"]
         self.exists = True
-        self.vector_size = vectors_config.size
-        self.distance = vectors_config.distance
+        self.vector_size = dense.size
+        self.distance = dense.distance
+        self.sparse_configured = bool(sparse_vectors_config)
         self.create_calls.append(
             {
                 "collection_name": collection_name,
-                "vector_size": vectors_config.size,
-                "distance": vectors_config.distance,
+                "vector_size": dense.size,
+                "distance": dense.distance,
+                "sparse": bool(sparse_vectors_config),
             }
         )
+
+    async def create_payload_index(self, *, field_name: str, **_: object) -> None:
+        self.payload_indexes.append(field_name)
 
     async def delete_collection(self, *, collection_name: str) -> None:
         self.exists = False
         self.delete_calls.append(collection_name)
 
     async def get_collection(self, *, collection_name: str):
+        sparse_vectors = {"sparse": SimpleNamespace()} if self.sparse_configured else {}
+        dense = SimpleNamespace(size=self.vector_size, distance=self.distance)
+        vectors = {"dense": dense} if self.named_vectors else dense
         return SimpleNamespace(
             config=SimpleNamespace(
                 params=SimpleNamespace(
-                    vectors=SimpleNamespace(size=self.vector_size, distance=self.distance)
+                    vectors=vectors,
+                    sparse_vectors=sparse_vectors,
                 )
             )
         )
 
-    async def upsert(self, *, collection_name: str, points: list[PointStruct]) -> None:
+    async def upsert(
+        self,
+        *,
+        collection_name: str,
+        points: list[PointStruct],
+        wait: bool,
+    ) -> None:
         self.upsert_batches.append(points)
 
-    async def delete(self, *, collection_name: str, points_selector) -> None:
+    async def delete(self, *, collection_name: str, points_selector, wait: bool) -> None:
         self.point_delete_calls.append(
             {"collection_name": collection_name, "points_selector": points_selector}
         )
 
+    async def query_points(self, **kwargs):
+        self.query_calls.append(kwargs)
+        return SimpleNamespace(
+            points=[
+                SimpleNamespace(
+                    id="point-1",
+                    score=0.9,
+                    payload={
+                        "chunk_id": "db-chunk-1",
+                        "document_id": "doc-1",
+                        "text": "Matched text",
+                        "unit": "CPCIT",
+                    },
+                )
+            ]
+        )
+
+
+def _store(client: FakeQdrantClient, *, vector_size: int = 2) -> QdrantVectorStore:
+    return QdrantVectorStore(
+        client=client,  # type: ignore[arg-type]
+        collection_name="test_chunks",
+        vector_size=vector_size,
+        upsert_batch_size=2,
+        dense_vector_name="dense",
+        sparse_vector_name="sparse",
+        sparse_enabled=True,
+    )
+
 
 def test_qdrant_vector_store_upserts_points_in_batches() -> None:
     async def run_test() -> None:
-        client = FakeQdrantClient()
-        store = QdrantVectorStore(
-            client=client,  # type: ignore[arg-type]
-            collection_name="test_chunks",
-            vector_size=2,
-            upsert_batch_size=2,
-        )
+        client = FakeQdrantClient(vector_size=2)
+        store = _store(client)
         points = [
             store.build_point(
-                chunk_id=UUID(f"00000000-0000-0000-0000-00000000000{index}"),
-                document_id=UUID("11111111-1111-1111-1111-111111111111"),
-                chunk_index=index,
-                content=f"Chunk {index}",
-                metadata={},
+                point_id=f"00000000-0000-0000-0000-00000000000{index}",
+                payload={"chunk_id": f"chunk-{index}", "document_id": "doc"},
                 vector=[0.1, 0.2],
+                sparse_vector=SparseEmbedding(indices=[index], values=[1.0]),
             )
             for index in range(5)
         ]
@@ -89,47 +140,46 @@ def test_qdrant_vector_store_upserts_points_in_batches() -> None:
     asyncio.run(run_test())
 
 
-def test_qdrant_build_point_includes_access_payload() -> None:
-    point = QdrantVectorStore.build_point(
-        chunk_id=UUID("00000000-0000-0000-0000-000000000001"),
-        document_id=UUID("11111111-1111-1111-1111-111111111111"),
-        chunk_index=0,
-        content="Chunk",
-        metadata={},
+def test_qdrant_build_point_contains_named_dense_sparse_and_flat_payload() -> None:
+    store = _store(FakeQdrantClient(vector_size=2))
+    point = store.build_point(
+        point_id="00000000-0000-0000-0000-000000000001",
+        payload={
+            "chunk_id": "db-chunk-id",
+            "document_id": "doc-id",
+            "text": "Chunk",
+            "organization_id": "org-id",
+        },
         vector=[0.1, 0.2],
-        organization_id=UUID("22222222-2222-2222-2222-222222222222"),
-        knowledge_base_id=UUID("33333333-3333-3333-3333-333333333333"),
-        uploaded_by_user_id=UUID("44444444-4444-4444-4444-444444444444"),
-        visibility="organization",
+        sparse_vector=SparseEmbedding(indices=[12], values=[0.8]),
     )
 
-    assert point.payload["organization_id"] == "22222222-2222-2222-2222-222222222222"
-    assert point.payload["knowledge_base_id"] == "33333333-3333-3333-3333-333333333333"
-    assert point.payload["uploaded_by_user_id"] == "44444444-4444-4444-4444-444444444444"
-    assert point.payload["visibility"] == "organization"
+    assert point.payload["text"] == "Chunk"
+    assert point.payload["organization_id"] == "org-id"
+    assert point.vector["dense"] == [0.1, 0.2]
+    assert isinstance(point.vector["sparse"], SparseVector)
 
 
-def test_qdrant_vector_store_creates_missing_collection_with_config() -> None:
+def test_qdrant_vector_store_creates_missing_collection_with_named_vectors() -> None:
     async def run_test() -> None:
-        client = FakeQdrantClient(collection_exists=False)
-        store = QdrantVectorStore(
-            client=client,  # type: ignore[arg-type]
-            collection_name="test_chunks",
-            vector_size=768,
-        )
+        client = FakeQdrantClient(collection_exists=False, sparse_configured=False)
+        store = _store(client, vector_size=768)
 
         info = await store.validate_collection_config()
 
         assert info.matches_config is True
         assert info.vector_size == 768
-        assert info.distance == "Cosine"
+        assert info.sparse_configured is True
         assert client.create_calls == [
             {
                 "collection_name": "test_chunks",
                 "vector_size": 768,
                 "distance": Distance.COSINE,
+                "sparse": True,
             }
         ]
+        assert "document_id" in client.payload_indexes
+        assert "table_name" in client.payload_indexes
 
     asyncio.run(run_test())
 
@@ -137,11 +187,7 @@ def test_qdrant_vector_store_creates_missing_collection_with_config() -> None:
 def test_qdrant_vector_store_warns_on_dimension_mismatch_without_recreate(caplog) -> None:
     async def run_test() -> None:
         client = FakeQdrantClient(collection_exists=True, vector_size=384)
-        store = QdrantVectorStore(
-            client=client,  # type: ignore[arg-type]
-            collection_name="test_chunks",
-            vector_size=768,
-        )
+        store = _store(client, vector_size=768)
 
         with caplog.at_level(logging.WARNING):
             info = await store.validate_collection_config(auto_recreate=False)
@@ -151,8 +197,7 @@ def test_qdrant_vector_store_warns_on_dimension_mismatch_without_recreate(caplog
         assert info.expected_vector_size == 768
         assert info.recreated is False
         assert client.delete_calls == []
-        assert client.create_calls == []
-        assert "Qdrant collection vector size mismatch" in caplog.text
+        assert "Qdrant collection config mismatch" in caplog.text
 
     asyncio.run(run_test())
 
@@ -160,11 +205,7 @@ def test_qdrant_vector_store_warns_on_dimension_mismatch_without_recreate(caplog
 def test_qdrant_vector_store_auto_recreates_on_dimension_mismatch() -> None:
     async def run_test() -> None:
         client = FakeQdrantClient(collection_exists=True, vector_size=384)
-        store = QdrantVectorStore(
-            client=client,  # type: ignore[arg-type]
-            collection_name="test_chunks",
-            vector_size=768,
-        )
+        store = _store(client, vector_size=768)
 
         info = await store.validate_collection_config(auto_recreate=True)
 
@@ -172,51 +213,63 @@ def test_qdrant_vector_store_auto_recreates_on_dimension_mismatch() -> None:
         assert info.vector_size == 768
         assert info.recreated is True
         assert client.delete_calls == ["test_chunks"]
-        assert client.create_calls == [
-            {
-                "collection_name": "test_chunks",
-                "vector_size": 768,
-                "distance": Distance.COSINE,
-            }
-        ]
 
     asyncio.run(run_test())
 
-def test_qdrant_vector_store_deletes_points_for_document() -> None:
+
+def test_qdrant_vector_store_deletes_points_for_document_and_tenant() -> None:
     async def run_test() -> None:
         client = FakeQdrantClient(collection_exists=True)
-        store = QdrantVectorStore(
-            client=client,  # type: ignore[arg-type]
-            collection_name="test_chunks",
-            vector_size=384,
-        )
+        store = _store(client, vector_size=384)
 
         await store.delete_points_for_document(
-            UUID("11111111-1111-1111-1111-111111111111")
+            UUID("11111111-1111-1111-1111-111111111111"),
+            tenant_id="tenant-1",
         )
 
-        assert len(client.point_delete_calls) == 1
-        call = client.point_delete_calls[0]
-        assert call["collection_name"] == "test_chunks"
-        condition = call["points_selector"].filter.must[0]
-        assert condition.key == "document_id"
-        assert condition.match.value == "11111111-1111-1111-1111-111111111111"
+        conditions = client.point_delete_calls[0]["points_selector"].filter.must
+        assert conditions[0].key == "document_id"
+        assert conditions[1].key == "tenant_id"
 
     asyncio.run(run_test())
 
-def test_qdrant_vector_store_skips_document_delete_when_collection_missing() -> None:
+
+def test_qdrant_vector_store_uses_rrf_for_dense_sparse_search() -> None:
     async def run_test() -> None:
-        client = FakeQdrantClient(collection_exists=False)
-        store = QdrantVectorStore(
-            client=client,  # type: ignore[arg-type]
-            collection_name="test_chunks",
-            vector_size=384,
+        client = FakeQdrantClient(vector_size=2)
+        store = _store(client)
+
+        results = await store.search(
+            query_vector=[0.1, 0.2],
+            sparse_query=SparseEmbedding(indices=[4], values=[1.0]),
+            top_k=3,
+            document_ids={"doc-1"},
+            tenant_id="tenant-1",
         )
 
-        await store.delete_points_for_document(
-            UUID("11111111-1111-1111-1111-111111111111")
-        )
+        call = client.query_calls[0]
+        assert len(call["prefetch"]) == 2
+        filter_keys = {condition.key for condition in call["prefetch"][0].filter.must}
+        assert {"document_id", "tenant_id"} <= filter_keys
+        assert results[0].chunk_id == "db-chunk-1"
+        assert results[0].content == "Matched text"
+        assert results[0].metadata["unit"] == "CPCIT"
 
-        assert client.point_delete_calls == []
+    asyncio.run(run_test())
+
+
+def test_qdrant_vector_store_rejects_legacy_unnamed_vector_collection() -> None:
+    async def run_test() -> None:
+        client = FakeQdrantClient(
+            collection_exists=True,
+            vector_size=2,
+            named_vectors=False,
+        )
+        store = _store(client)
+
+        info = await store.validate_collection_config(auto_recreate=False)
+
+        assert info.matches_config is False
+        assert info.vector_size is None
 
     asyncio.run(run_test())

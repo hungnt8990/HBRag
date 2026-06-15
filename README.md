@@ -58,6 +58,7 @@ If port `9000` is already used locally, set `MINIO_API_PORT` and
 ```powershell
 cd backend
 python -m venv .venv
+#MacOS source .venv/bin/activate
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
@@ -251,19 +252,26 @@ npm run lint
 - Backend and frontend application containers can be added later when deployment targets are defined.
 - Keep credentials in `.env`; do not commit real secrets.
 
-
 ## Check Backend
+
 cd backend
 .\.venv\Scripts\python.exe -m alembic upgrade head
 .\.venv\Scripts\python.exe -m pytest
 .\.venv\Scripts\python.exe -m ruff check .
 
 ## Check Frontend
+
 cd frontend
 npm run typecheck
 npm run lint
 npm run build
 
 ## Reload backend
+
 cd backend
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
+
+alembic upgrade head
+pytest
+ruff check .
+uvicorn app.main:app --reload

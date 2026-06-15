@@ -1,0 +1,169 @@
+--- app/services/rag_answer_service.py	2026-06-14 15:04:00.514396988 +0000
++++ app/services/rag_answer_service.py	2026-06-14 15:15:54.387013732 +0000
+@@ -2964,6 +2964,7 @@
+             sections.append(f"Session Summary:\n{session_summary}")
+ 
+         query_terms = RagAnswerService._query_terms(query)
++        technology_area_detail_query = RagAnswerService._is_technology_area_detail_query(query)
+         identifier_lookup = is_identifier_lookup_query(query)
+         if identifier_lookup:
+             exact_chunks = [
+@@ -3008,7 +3009,41 @@
+             include_all_table_rows=include_all_table_rows,
+         )
+ 
+-        if matched_rows:
++        # Technology-area objective/detail questions need the narrative section, not
++        # just the matching staff/table row.  If we switch to ENTITY_MATCHED_ROWS
++        # here, the LLM only sees text such as "Mảng công nghệ: Xây dựng nền tảng
++        # RAG..." and answers by repeating the title.  Keep the full retrieved
++        # evidence for these questions and promote objective/description chunks in
++        # the prompt so fields like Mục tiêu, Công nghệ, Tính năng, Quản trị, and
++        # Độ trùng lặp remain available to the answer.
++        if technology_area_detail_query:
++            sections.append(
++                "Technology area answer constraints:\n"
++                "- Câu hỏi đang hỏi mục tiêu/nội dung của một mảng công nghệ.\n"
++                "- Ưu tiên các chunk mô tả trực tiếp cùng mảng có các nhãn như "
++                "Mục tiêu, Công nghệ, Tính năng, Quản trị, Độ trùng lặp, "
++                "Công việc liên quan.\n"
++                "- Không chỉ lặp lại tên mảng từ TABLE_ROW; hãy giải thích mục "
++                "tiêu chính và các nội dung trọng tâm nếu chúng có trong ngữ cảnh.\n"
++                "- Chỉ dùng thông tin có trong Retrieved Technology Area Context."
++            )
++            ordered_context_chunks = RagAnswerService._order_technology_area_prompt_context(
++                context_chunks=context_chunks,
++                query=query,
++            )
++            context = "\n".join(
++                f"[{context_chunk.citation_index}] {context_chunk.chunk.content}"
++                for context_chunk in ordered_context_chunks
++            )
++            sections.append(f"Retrieved Technology Area Context:\n{context}")
++            if matched_rows:
++                sections.append(
++                    "Matched table rows are support only; do not use them as the full answer:\n"
++                    + "\n".join(matched_rows)
++                )
++            if table_support:
++                sections.append("TABLE_SUPPORT:\n" + "\n".join(table_support))
++        elif matched_rows:
+             sections.append("ENTITY_MATCHED_ROWS:\n" + "\n".join(matched_rows))
+             if table_support:
+                 sections.append("TABLE_SUPPORT:\n" + "\n".join(table_support))
+@@ -3023,6 +3058,59 @@
+         return "\n\n".join(sections)
+ 
+     @staticmethod
++    def _order_technology_area_prompt_context(
++        *,
++        context_chunks: list[ContextChunk],
++        query: str,
++    ) -> list[ContextChunk]:
++        normalized_query = normalize_metadata_value(
++            RagAnswerService._strip_vietnamese_accents(query)
++        )
++        wants_goal = "muc tieu" in normalized_query
++
++        def score(context_chunk: ContextChunk) -> tuple[int, int, int, int]:
++            chunk = context_chunk.chunk
++            metadata = chunk.chunk_metadata or {}
++            chunk_type = str(metadata.get("chunk_type") or "")
++            haystack_parts = [chunk.content or ""]
++            for field_name in (
++                "area",
++                "title",
++                "section_title",
++                "heading_path",
++                "table_title",
++                "document_title",
++            ):
++                value = metadata.get(field_name)
++                if isinstance(value, list):
++                    haystack_parts.extend(str(item) for item in value)
++                elif value is not None:
++                    haystack_parts.append(str(value))
++            haystack = normalize_metadata_value(
++                RagAnswerService._strip_vietnamese_accents(" ".join(haystack_parts))
++            )
++            objective_hit = any(
++                term in haystack
++                for term in (
++                    "muc tieu",
++                    "cong nghe",
++                    "tinh nang",
++                    "quan tri",
++                    "do trung lap",
++                    "cong viec lien quan",
++                )
++            )
++            table_like = chunk_type in {"table_row", "entity_profile", "entity_summary"}
++            # Narrative/objective chunks should appear before table rows for
++            # goal/detail questions, otherwise the model tends to answer from the
++            # area title only.
++            objective_priority = 0 if (wants_goal and objective_hit) else 1
++            table_priority = 1 if table_like else 0
++            return (objective_priority, table_priority, chunk.chunk_index, context_chunk.citation_index)
++
++        return sorted(context_chunks, key=score)
++
++    @staticmethod
+     def _table_context_sections(
+         *,
+         context_chunks: list[ContextChunk],
+--- tests/test_rag_chat.py	2026-06-14 15:04:34.499006330 +0000
++++ tests/test_rag_chat.py	2026-06-14 15:16:07.992358908 +0000
+@@ -1471,3 +1471,53 @@
+     contents = [item.chunk.content for item in augmented]
+     assert any("Mục tiêu: khai thác tri thức nội bộ" in content for content in contents)
+     assert all("Platform AI" not in content for content in contents)
++
++
++def test_technology_area_goal_prompt_keeps_narrative_context_with_table_row() -> None:
++    from uuid import uuid4
++
++    document_id = uuid4()
++    table_row = SimpleNamespace(
++        id=uuid4(),
++        document_id=document_id,
++        chunk_index=3,
++        content=(
++            "TABLE_ROW table_id=tbl row=3 | Mảng công nghệ: Xây dựng nền tảng "
++            "RAG trên dữ liệu nội bộ | Phòng chủ trì: PTUD | Nhân sự đề xuất: "
++            "Nguyễn Quang Lâm"
++        ),
++        chunk_metadata={
++            "chunk_type": "table_row",
++            "area": "Xây dựng nền tảng RAG trên dữ liệu nội bộ",
++        },
++    )
++    objective = SimpleNamespace(
++        id=uuid4(),
++        document_id=document_id,
++        chunk_index=4,
++        content=(
++            "3. Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
++            "Mục tiêu: khai thác tri thức nội bộ thông qua hệ thống hỏi-đáp "
++            "có dẫn nguồn, chính xác và được phân quyền.\n"
++            "Công nghệ: Advanced RAG, hybrid retrieval, reranking, query rewriting, GraphRAG.\n"
++            "Tính năng: kết hợp tìm kiếm từ khóa + ngữ nghĩa, trích dẫn nguồn."
++        ),
++        chunk_metadata={
++            "chunk_type": "text",
++            "section_title": "Xây dựng nền tảng RAG trên dữ liệu nội bộ",
++        },
++    )
++
++    prompt = RagAnswerService._build_user_prompt(
++        query="Mảng công nghệ RAG trên dữ liệu nội bộ có mục tiêu gì?",
++        context_chunks=[
++            ContextChunk(citation_index=1, chunk=table_row),
++            ContextChunk(citation_index=2, chunk=objective),
++        ],
++    )
++
++    assert "Retrieved Technology Area Context" in prompt
++    assert "ENTITY_MATCHED_ROWS" not in prompt
++    assert prompt.index("Mục tiêu: khai thác tri thức nội bộ") < prompt.index("TABLE_ROW table_id")
++    assert "Công nghệ: Advanced RAG" in prompt
++    assert "Không chỉ lặp lại tên mảng" in prompt

@@ -1,1 +1,6 @@
-slide_aware_chunking.py : ể chunk theo nhóm slide, giữ metadata page_numbers, page_start, page_end, slide_titles.
+Postgres có thể dùng, nhưng chỉ nên dùng cho cấu hình tùy biến như:
+
+- alias tổ chức: EVNCPC = Tổng công ty Điện lực miền Trung
+- alias chức danh: NLĐ = người lao động
+- alias phòng ban / viết tắt nội bộ
+- field mapping theo loại bảng nếu người dùng muốn khai báo thêm

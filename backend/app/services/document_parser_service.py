@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
 import logging
 from datetime import UTC, datetime
+from io import BytesIO
+from pathlib import Path
 from uuid import UUID
 
 import anyio
@@ -64,11 +67,16 @@ class DocumentParserService:
         self._storage = storage
         self._parsers = parsers or build_default_parsers()
 
-    async def parse_document(self, document_id: UUID) -> DocumentParseResponse:
+    async def parse_document(
+        self,
+        document_id: UUID,
+        *,
+        force_reparse: bool = False,
+    ) -> DocumentParseResponse:
         document = await self._repository.get_document(document_id)
         if document is None:
             raise DocumentNotFoundError("Document not found.")
-        if document.status != "uploaded":
+        if document.status != "uploaded" and not force_reparse:
             raise DocumentParseStatusError("Only uploaded documents can be parsed.")
 
         document_file = await self._repository.get_primary_document_file(document_id)
@@ -82,7 +90,13 @@ class DocumentParserService:
 
         try:
             file_content = await self._storage.get_file(object_name=document_file.storage_path)
-            parsed = await anyio.to_thread.run_sync(lambda: parser.parse(file_content))
+            parsed = await anyio.to_thread.run_sync(
+                lambda: parser.parse_document(
+                    file_content,
+                    filename=document_file.filename,
+                    mime_type=document_file.mime_type,
+                )
+            )
             parsed_text = _sanitize_parsed_text(parsed.text)
             logger.info(
                 "parsed document=%s parser=%s file_bytes=%d parsed_chars=%d",
@@ -97,10 +111,16 @@ class DocumentParserService:
                 parsed_at=datetime.now(UTC),
                 status="parsed",
             )
+            parsed_metadata = dict(parsed.metadata or {})
+            await self._persist_parser_artifacts(
+                document_id=document.id,
+                filename=document_file.filename,
+                parsed_metadata=parsed_metadata,
+            )
             await self._update_structured_parse_metadata(
                 document=document,
                 parser=parser,
-                parsed_metadata=parsed.metadata,
+                parsed_metadata=parsed_metadata,
                 parsed_elements=parsed.elements,
             )
             await self._repository.commit()
@@ -129,6 +149,30 @@ class DocumentParserService:
 
         raise UnsupportedDocumentParserError("No parser available for this document type.")
 
+    async def _persist_parser_artifacts(
+        self,
+        *,
+        document_id: UUID,
+        filename: str,
+        parsed_metadata: dict,
+    ) -> None:
+        docling_document = parsed_metadata.pop("docling_document", None)
+        if not isinstance(docling_document, dict):
+            return
+
+        stem = Path(filename).stem or "document"
+        object_name = f"documents/{document_id}/artifacts/{stem}.docling.json"
+        payload = json.dumps(docling_document, ensure_ascii=False).encode("utf-8")
+        await self._storage.put_file(
+            object_name=object_name,
+            data=BytesIO(payload),
+            length=len(payload),
+            content_type="application/json",
+        )
+        artifact_paths = dict(parsed_metadata.get("artifact_paths") or {})
+        artifact_paths["docling_json"] = object_name
+        parsed_metadata["artifact_paths"] = artifact_paths
+
     async def _update_structured_parse_metadata(
         self,
         *,
@@ -153,14 +197,17 @@ class DocumentParserService:
             },
         )
 
+
 def _sanitize_parsed_text(text: str) -> str:
     return text.replace("\x00", "")
+
 
 def _parser_storage_name(parser: DocumentParser) -> str:
     name = type(parser).__name__
     if name in {"PdfParser", "DocxParser", "TextParser", "MarkdownParser"}:
         return f"builtin_{name.removesuffix('Parser').lower()}"
     return name.removesuffix("Parser").lower()
+
 
 def build_default_parsers() -> tuple[DocumentParser, ...]:
     provider = settings.document_parser_provider.lower().strip()

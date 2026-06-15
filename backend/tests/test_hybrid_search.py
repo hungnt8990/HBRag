@@ -276,6 +276,46 @@ def test_person_area_membership_boosts_valid_entity_or_table_row() -> None:
     assert "membership_boost" not in results[1].metadata
 
 
+def test_identifier_lookup_boosts_doc_code_metadata_over_topical_vector_match() -> None:
+    caption_chunk_id = UUID("99999999-9999-9999-9999-999999999999")
+    dispatch_chunk_id = UUID("77777777-7777-7777-7777-777777777777")
+
+    results = HybridSearchService.fuse_results(
+        query="3113",
+        vector_results=[
+            VectorSearchResult(
+                chunk_id=caption_chunk_id,
+                document_id=DOCUMENT_ID,
+                score=0.99,
+                content_preview="Màn hình ứng dụng EVN CSKH, tài liệu 907.",
+                metadata={
+                    "chunk_type": "app_ui_caption",
+                    "identifiers": ["907"],
+                },
+            ),
+            VectorSearchResult(
+                chunk_id=dispatch_chunk_id,
+                document_id=DOCUMENT_ID,
+                score=0.4,
+                content_preview="Công văn cập nhật phiên bản chính thức EVN CSKH.",
+                metadata={
+                    "chunk_type": "official_dispatch_main",
+                    "doc_codes": ["3113/EVN-KDMBĐ"],
+                    "identifiers": ["3113/EVN-KDMBĐ", "3113", "EVN-KDMBĐ"],
+                },
+            ),
+        ],
+        keyword_results=[],
+        top_k=2,
+    )
+
+    assert results[0].chunk_id == dispatch_chunk_id
+    assert results[0].metadata["identifier_exact_boost"] == 50.0
+    assert "lexical_exact" in results[0].source_flags
+    assert results[1].chunk_id == caption_chunk_id
+    assert "identifier_exact_boost" not in results[1].metadata
+
+
 def test_hybrid_endpoint_rejects_empty_query() -> None:
     service = FakeHybridSearchService()
     app.dependency_overrides[get_hybrid_search_service] = lambda: service

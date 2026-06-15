@@ -1,0 +1,296 @@
+--- a/app/services/ingestion_queue.py
++++ b/app/services/ingestion_queue.py
+@@ -1,5 +1,6 @@
+ from __future__ import annotations
+ 
++import logging
+ import time
+ from dataclasses import dataclass, field
+ from datetime import UTC, datetime
+@@ -26,6 +27,7 @@
+ LogLevel = Literal["info", "success", "error"]
+ 
+ PIPELINE_STEPS = ("upload", "parse", "chunk", "index")
++logger = logging.getLogger(__name__)
+ 
+ 
+ @dataclass
+@@ -122,15 +124,18 @@
+         self._log(job, step="queue", level="info", message="Automatic ingestion started.")
+ 
+         try:
+-            async with AsyncSessionLocal() as session:
+-                repository = DocumentRepository(session)
+-                storage = get_storage_client()
++            storage = get_storage_client()
+ 
++            # Each pipeline stage owns a fresh AsyncSession. Reusing one session
++            # across multiple services that commit independently can leave ORM
++            # instances expired/stale and trigger SQLAlchemy MissingGreenlet when
++            # a later stage reads an attribute outside the greenlet bridge.
++            async with AsyncSessionLocal() as session:
+                 upload_response = await self._run_step(
+                     job,
+                     "upload",
+                     lambda: DocumentService(
+-                        repository=repository,
++                        repository=DocumentRepository(session),
+                         storage=storage,
+                     ).upload_document(self._to_upload_file(payload)),
+                     lambda response: {
+@@ -140,13 +145,14 @@
+                         "storage_path": response.storage_path,
+                     },
+                 )
+-                job.document_id = upload_response.document_id
++            job.document_id = upload_response.document_id
+ 
++            async with AsyncSessionLocal() as session:
+                 await self._run_step(
+                     job,
+                     "parse",
+                     lambda: DocumentParserService(
+-                        repository=repository,
++                        repository=DocumentRepository(session),
+                         storage=storage,
+                     ).parse_document(upload_response.document_id),
+                     lambda response: {
+@@ -156,12 +162,15 @@
+                         "preview": response.preview,
+                     },
+                 )
++
++            async with AsyncSessionLocal() as session:
+                 await self._run_step(
+                     job,
+                     "chunk",
+-                    lambda: ChunkingService(repository=repository, storage=storage).chunk_document(
+-                        upload_response.document_id
+-                    ),
++                    lambda: ChunkingService(
++                        repository=DocumentRepository(session),
++                        storage=storage,
++                    ).chunk_document(upload_response.document_id),
+                     lambda response: {
+                         "document_id": str(response.document_id),
+                         "status": response.status,
+@@ -169,11 +178,13 @@
+                         "preview": [chunk.model_dump(mode="json") for chunk in response.preview],
+                     },
+                 )
++
++            async with AsyncSessionLocal() as session:
+                 await self._run_step(
+                     job,
+                     "index",
+                     lambda: VectorIndexingService(
+-                        repository=repository,
++                        repository=DocumentRepository(session),
+                         embedding_provider=get_embedding_provider(),
+                         vector_store=get_vector_store(),
+                         sparse_embedding_provider=get_sparse_embedding_provider(),
+@@ -185,6 +196,11 @@
+                     },
+                 )
+         except Exception as exc:
++            logger.exception(
++                "Automatic ingestion failed job=%s document=%s",
++                job.job_id,
++                job.document_id,
++            )
+             job.status = "failed"
+             job.error = str(exc)
+             self._touch(job)
+--- a/app/services/vector_indexing_service.py
++++ b/app/services/vector_indexing_service.py
+@@ -68,36 +68,45 @@
+         document = await self._repository.get_document(document_id)
+         if document is None:
+             raise DocumentNotFoundError("Document not found.")
+-        if document.status not in {"chunked", "indexed"}:
++
++        # Snapshot scalar values immediately after the explicit SELECT. The
++        # indexing flow performs commits/rollbacks and must never depend on lazy
++        # ORM attribute loading afterwards, especially in an AsyncSession.
++        document_status = str(document.status)
++        tenant_id = getattr(document, "organization_id", None)
++        response_document_id = document.id
++
++        if document_status not in {"chunked", "indexed"}:
+             raise DocumentVectorIndexStatusError(
+                 "Only chunked or indexed documents can be vector indexed."
+             )
+ 
+-        chunks = await self._repository.list_chunks_for_document(document_id)
+-        if not chunks:
+-            raise DocumentChunksNotFoundError("Document has no chunks to index.")
+-
+-        document_file = await self._get_primary_document_file(document_id)
+-        source_file = str(getattr(document_file, "filename", "document"))
+-        source_uri = str(getattr(document_file, "storage_path", "")) or None
+-        rag_chunks = [
+-            rag_chunk_from_database(
+-                chunk,
+-                document=document,
+-                source_file=source_file,
+-                source_uri=source_uri,
+-            )
+-            for chunk in chunks
+-        ]
+-        indexable_chunks = [chunk for chunk in rag_chunks if should_index_chunk(chunk)]
+-        if not indexable_chunks:
+-            raise DocumentChunksNotFoundError(
+-                "Document has no indexable chunks after quality and footer filtering."
+-            )
+-        embedding_texts = [build_embedding_text(chunk) for chunk in indexable_chunks]
+-        self._validate_chunks_for_indexing(indexable_chunks)
+-
+         try:
++            chunks = await self._repository.list_chunks_for_document(document_id)
++            if not chunks:
++                raise DocumentChunksNotFoundError("Document has no chunks to index.")
++
++            document_file = await self._get_primary_document_file(document_id)
++            source_file = str(getattr(document_file, "filename", "document"))
++            source_uri = str(getattr(document_file, "storage_path", "")) or None
++            rag_chunks = [
++                rag_chunk_from_database(
++                    chunk,
++                    document=document,
++                    source_file=source_file,
++                    source_uri=source_uri,
++                )
++                for chunk in chunks
++            ]
++            indexable_chunks = [chunk for chunk in rag_chunks if should_index_chunk(chunk)]
++            if not indexable_chunks:
++                raise DocumentChunksNotFoundError(
++                    "Document has no indexable chunks after quality and footer filtering."
++                )
++
++            embedding_texts = [build_embedding_text(chunk) for chunk in indexable_chunks]
++            self._validate_chunks_for_indexing(indexable_chunks)
++
+             await self._mark_index_started(
+                 document,
+                 total_chunks=len(rag_chunks),
+@@ -145,9 +154,12 @@
+                     )
+                 )
+ 
+-            # Delete by document before upsert so stale points from an older
+-            # chunking version cannot survive a re-index.
+-            await self._delete_existing_document_points(document)
++            # Delete by primitive identifiers before upsert so stale points from
++            # an older chunking version cannot survive a re-index.
++            await self._delete_existing_document_points(
++                document_id=response_document_id,
++                tenant_id=tenant_id,
++            )
+             await self._vector_store.upsert_chunks(points)
+             await self._update_index_metadata(
+                 document,
+@@ -156,30 +168,42 @@
+             )
+             await self._repository.update_document_status(document, "indexed")
+             await self._repository.commit()
++        except (
++            DocumentChunksNotFoundError,
++            DocumentVectorIndexStatusError,
++            DocumentNotFoundError,
++        ):
++            raise
+         except Exception as exc:
+             await self._repository.rollback()
+-            # A Qdrant batch can fail after earlier batches succeeded. Remove all
+-            # points for the document so retrieval never observes a partial index.
++            # Rollback expires ORM instances. Cleanup and failure persistence use
++            # primitive IDs / a freshly loaded object so they cannot trigger
++            # SQLAlchemy MissingGreenlet and mask the original indexing error.
+             try:
+-                await self._delete_existing_document_points(document)
++                await self._delete_existing_document_points(
++                    document_id=response_document_id,
++                    tenant_id=tenant_id,
++                )
+             except Exception:
+                 logger.exception(
+                     "Failed to clean partial Qdrant points for document=%s",
+-                    document_id,
++                    response_document_id,
+                 )
+-            await self._mark_index_failed(document, exc)
+-            raise VectorIndexingError("Failed to vector index document.") from exc
++            await self._mark_index_failed(response_document_id, exc)
++            raise VectorIndexingError(
++                f"Failed to vector index document: {exc}"
++            ) from exc
+ 
+         logger.info(
+             "indexed document=%s total_chunks=%s indexable_chunks=%s collection=%s",
+-            document_id,
++            response_document_id,
+             len(rag_chunks),
+             len(indexable_chunks),
+             self._vector_store.collection_name,
+         )
+         return DocumentVectorIndexResponse(
+-            document_id=document.id,
+-            status=document.status,
++            document_id=response_document_id,
++            status="indexed",
+             indexed_chunk_count=len(indexable_chunks),
+         )
+ 
+@@ -284,15 +308,20 @@
+         )
+         return await self._vector_store.search(**supported)
+ 
+-    async def _delete_existing_document_points(self, document: Any) -> None:
++    async def _delete_existing_document_points(
++        self,
++        *,
++        document_id: UUID | str,
++        tenant_id: UUID | str | None,
++    ) -> None:
+         delete_method = getattr(self._vector_store, "delete_points_for_document", None)
+         if delete_method is None:
+             return
+         parameters = inspect.signature(delete_method).parameters
+         kwargs: dict[str, Any] = {}
+         if "tenant_id" in parameters:
+-            kwargs["tenant_id"] = getattr(document, "organization_id", None)
+-        await delete_method(document.id, **kwargs)
++            kwargs["tenant_id"] = tenant_id
++        await delete_method(document_id, **kwargs)
+ 
+     async def _get_primary_document_file(self, document_id: UUID) -> Any | None:
+         getter = getattr(self._repository, "get_primary_document_file", None)
+@@ -362,11 +391,17 @@
+             },
+         )
+ 
+-    async def _mark_index_failed(self, document: Any, exc: Exception) -> None:
++    async def _mark_index_failed(self, document_id: UUID, exc: Exception) -> None:
+         updater = getattr(self._repository, "update_document_metadata", None)
+         if updater is None:
+             return
+         try:
++            # The previous rollback expires ORM instances. Load a fresh one
++            # before updating failure metadata to avoid implicit async IO on an
++            # expired attribute.
++            document = await self._repository.get_document(document_id)
++            if document is None:
++                return
+             await updater(
+                 document,
+                 {
+@@ -379,7 +414,7 @@
+         except Exception:
+             logger.exception(
+                 "Failed to persist index failure metadata for document=%s",
+-                getattr(document, "id", None),
++                document_id,
+             )
+             await self._repository.rollback()
+ 

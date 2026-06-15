@@ -6,9 +6,8 @@ from fastapi.testclient import TestClient
 from app.api.routes.documents import get_document_repository
 from app.main import app
 from app.repositories.documents import ChunkCreate
-from app.services.chunking_service import RecursiveTextChunker
+from app.services.chunking_service import RecursiveTextChunker, document_profile_column_value
 from app.services.parsers import ParsedElement, parsed_element_to_dict
-from tests.test_segment_router import GIS_MIXED_TEXT, PAGE_ELEMENTS
 
 DOCUMENT_ID = UUID("33333333-3333-3333-3333-333333333333")
 
@@ -92,6 +91,15 @@ def test_chunker_overlap_behavior() -> None:
     assert chunks[1].content == "hijklmnopq"
     assert chunks[1].start_char == 7
     assert chunks[1].end_char == 17
+
+
+def test_document_profile_column_value_fits_database_column() -> None:
+    assert (
+        document_profile_column_value("mixed_administrative_technical_with_relationships")
+        == "mixed_admin_tech_rel"
+    )
+    assert len(document_profile_column_value("mixed_administrative_technical")) <= 32
+    assert len(document_profile_column_value("a_very_long_future_document_profile_name")) <= 32
 
 
 def test_chunker_ignores_split_boundary_inside_overlap() -> None:
@@ -454,58 +462,6 @@ def test_chunk_service_uses_parsed_heading_elements_for_heading_mode() -> None:
     assert "Details" not in repository.created_chunks[0].content
     assert repository.created_chunks[1].metadata["heading_path"] == ["Details"]
 
-
-def test_chunk_service_uses_adaptive_segments_for_mixed_gis_document() -> None:
-    repository = FakeDocumentRepository(
-        status="parsed",
-        parsed_text=GIS_MIXED_TEXT,
-        document_metadata={
-            "parser": "fixture",
-            "parsed_elements": [parsed_element_to_dict(element) for element in PAGE_ELEMENTS],
-        },
-    )
-    app.dependency_overrides[get_document_repository] = lambda: repository
-
-    try:
-        client = TestClient(app)
-        response = client.post(f"/api/documents/{DOCUMENT_ID}/chunk")
-    finally:
-        app.dependency_overrides.clear()
-
-    assert response.status_code == 200
-    chunk_types = {chunk.metadata.get("chunk_type") for chunk in repository.created_chunks}
-    assert {
-        "administrative_overview",
-        "assignment_section",
-        "procedure_table_row",
-        "schema_appendix_overview",
-        "schema_object_summary",
-        "schema_field_row",
-        "administrative_footer",
-    } <= chunk_types
-    assert all(
-        chunk.metadata["chunk_strategy"] == "adaptive_segmented"
-        for chunk in repository.created_chunks
-    )
-    assert all(
-        chunk.metadata["document_profile"] == "mixed_administrative_technical"
-        for chunk in repository.created_chunks
-    )
-    assert not any(
-        chunk.metadata.get("chunk_type") == "heading_section"
-        for chunk in repository.created_chunks
-    )
-    no_overlap_types = {
-        "procedure_table_row",
-        "schema_field_row",
-        "schema_object_summary",
-        "attribute_table_schema",
-        "gis_relationship_schema",
-    }
-    for chunk in repository.created_chunks:
-        if chunk.metadata.get("chunk_type") in no_overlap_types:
-            assert chunk.metadata["chunk_overlap"] == 0
-            assert chunk.metadata["overlap_applied"] is False
 
 def test_chunking_service_creates_table_row_chunks() -> None:
     row_element = ParsedElement(

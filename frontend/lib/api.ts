@@ -137,6 +137,7 @@ export type DocumentListItem = {
   knowledge_base: DocumentKnowledgeBase | null;
   uploaded_by: DocumentPerson | null;
   visibility: string;
+  document_profile?: string | null;
   parsed_character_count: number;
   chunk_count: number;
   vector_indexed_count: number | null;
@@ -206,15 +207,9 @@ export type RagChatRequest = {
   document_id?: string;
   organization_id?: string;
   include_descendants?: boolean;
-  top_k?: number;
-  candidate_k?: number;
   use_memory?: boolean;
   use_mem0?: boolean;
   memory_top_k?: number;
-  answer_mode?: AnswerMode;
-  answer_style?: AnswerStyle;
-  max_context_chars?: number;
-  profile?: DocumentProfile;
   use_graph?: boolean;
   graph_expansion_depth?: number;
   graph_expansion_limit?: number;
@@ -246,14 +241,19 @@ export type MemoryType =
   | "fact";
 
 export type AnswerMode = "generative" | "extractive" | "hybrid";
-export type AnswerStyle = "concise" | "detailed" | "policy_explainer";
-export type DocumentProfile =
-  | "auto"
-  | "legal_admin"
-  | "general"
-  | "technical"
-  | "faq"
-  | "spreadsheet";
+export type AnswerStyle = "concise" | "detailed" | "policy_explainer" | "table_qa";
+export type DocumentProfile = string;
+
+export type HeadingRuleConfig = {
+  name: string;
+  level: number;
+  pattern: string;
+  metadata_key?: string | null;
+  number_metadata_key?: string | null;
+  metadata_value?: "title" | "display_text" | string;
+  boundary?: boolean;
+  enabled?: boolean;
+};
 
 export type ProfileConfig = {
   chunk_mode: ChunkMode;
@@ -264,6 +264,24 @@ export type ProfileConfig = {
   answer_mode: AnswerMode;
   answer_style: AnswerStyle;
   max_context_chars: number;
+  heading_rules?: HeadingRuleConfig[];
+  [key: string]: unknown;
+};
+
+export type HeadingRuleTestMatch = {
+  start: number;
+  end: number;
+  level: number;
+  name: string;
+  label: string;
+  number: string;
+  title: string;
+  display_text: string;
+  boundary: boolean;
+};
+
+export type HeadingRuleTestResponse = {
+  matches: HeadingRuleTestMatch[];
 };
 
 export type ProfilesResponse = {
@@ -276,6 +294,32 @@ export async function getProfiles(): Promise<ProfilesResponse> {
   return requestJson<ProfilesResponse>("/api/admin/profiles", {
     method: "GET",
   });
+}
+
+export async function updateProfileConfig(
+  profileName: string,
+  config: ProfileConfig,
+): Promise<ProfilesResponse> {
+  return requestJson<ProfilesResponse>(`/api/admin/profiles/${profileName}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ config }),
+  });
+}
+
+export async function testHeadingRules(options: {
+  profile: string;
+  sample_text: string;
+  config?: ProfileConfig;
+}): Promise<HeadingRuleTestResponse> {
+  return requestJson<HeadingRuleTestResponse>(
+    "/api/admin/profiles/test-heading-rules",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(options),
+    },
+  );
 }
 
 export type RagChatResponse = {
@@ -343,6 +387,8 @@ export type IngestionJob = {
   updated_at: string;
   document_id: string | null;
   error: string | null;
+  ingestion_profile?: string;
+  resolved_ingestion_profile?: string | null;
   steps: IngestionStep[];
   logs: IngestionLog[];
 };
@@ -454,7 +500,14 @@ export async function parseDocument(
   });
 }
 
-export type ChunkMode = "recursive" | "legal_article";
+export type ChunkMode =
+  | "recursive"
+  | "legal_article"
+  | "table_aware"
+  | "hybrid_structured"
+  | "docling_v6"
+  | "slide_page"
+  | "heading_aware";
 
 export async function chunkDocument(
   documentId: string,
@@ -636,6 +689,14 @@ export async function enqueueIngestionJob(file: File): Promise<IngestionJob> {
   return requestJson<IngestionJob>("/api/admin/ingestion-jobs", {
     method: "POST",
     body: formData,
+  });
+}
+
+export async function reingestDocument(documentId: string): Promise<IngestionJob> {
+  return requestJson<IngestionJob>(`/api/admin/documents/${documentId}/reingest`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ingestion_profile: "auto" }),
   });
 }
 

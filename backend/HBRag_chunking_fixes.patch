@@ -1,0 +1,1287 @@
+--- a/app/services/docling_v6_chunking.py
++++ b/app/services/docling_v6_chunking.py
+@@ -27,6 +27,19 @@
+ SUBSECTION_RE = re.compile(r"^\s*(\d+)\.(\d+)\.\s+(.+?)\s*$")
+ OBJECT_HEADING_RE = re.compile(
+     r"^\s*\((\d+)\)\s+(F\d+_[A-Za-z0-9_]+)\s*[–-]\s*(.+?)\s*$"
++)
++ATTRIBUTE_TABLE_HEADING_RE = re.compile(
++    r"^\s*\((\d+)\)\s+"
++    r"(HinhAnh(?:CotDien|KhachHang|HoSoKhachHang))\s*[–-]\s*(.+?)\s*$",
++    re.IGNORECASE,
++)
++ATTRIBUTE_TABLE_NAME_RE = re.compile(
++    r"(?im)^\s*Tên\s+bảng\s+dữ\s+liệu\s*:\s*"
++    r"(HinhAnh(?:CotDien|KhachHang|HoSoKhachHang))\s*$"
++)
++RELATIONSHIP_NAME_RE = re.compile(
++    r"\b(P[A-Z0-9]+_(?:CotDien|CongToKhachHang)_HT_"
++    r"HinhAnh(?:CotDien|KhachHang|HoSoKhachHang))\b"
+ )
+ PAREN_HEADING_RE = re.compile(r"^\s*\((\d+)\)\s+(.+?)\s*$")
+ APPENDIX_RE = re.compile(r"^\s*Phụ\s+lục\s+\d+\b.*$", re.IGNORECASE)
+@@ -127,6 +140,24 @@
+     return output
+ 
+ 
++def source_fragments(record: dict[str, Any]) -> list[str]:
++    fragments = record.get("_source_fragments")
++    if isinstance(fragments, list):
++        return unique_preserve_order(str(value) for value in fragments if str(value).strip())
++    source = record.get("source_raw_text")
++    if source is None:
++        source = record.get("raw_text")
++    return [str(source)] if source is not None and str(source).strip() else []
++
++
++def merged_source_fragments(records: Iterable[dict[str, Any]]) -> list[str]:
++    return unique_preserve_order(
++        fragment
++        for record in records
++        for fragment in source_fragments(record)
++    )
++
++
+ def extract_page_1_preamble(doc: DoclingDocument) -> str:
+     candidates: list[tuple[int, str]] = []
+     for item in getattr(doc, "texts", []) or []:
+@@ -219,6 +250,54 @@
+ 
+ def normalized_heading_text(line: str) -> str:
+     return normalize_space(line).lstrip("- ").replace("\\_", "_")
++
++
++def explicit_attribute_table_name(text: str) -> str | None:
++    match = ATTRIBUTE_TABLE_NAME_RE.search(text or "")
++    return match.group(1) if match else None
++
++
++def heading_table_name(heading: str | None) -> str | None:
++    if not heading:
++        return None
++    clean = normalized_heading_text(heading).rstrip(":")
++    object_match = OBJECT_HEADING_RE.match(clean)
++    if object_match:
++        return object_match.group(2)
++    attribute_match = ATTRIBUTE_TABLE_HEADING_RE.match(clean)
++    if attribute_match:
++        return attribute_match.group(2)
++    return None
++
++
++def infer_table_name_from_record(record: dict[str, Any]) -> str | None:
++    """Resolve the logical table name with explicit in-table metadata first.
++
++    Docling may carry the previous object's heading into the first chunk of a new
++    attribute table.  The ``Tên bảng dữ liệu:`` line is therefore more reliable
++    than a prefixed Fxx heading and must win.
++    """
++
++    text = str(record.get("contextualized_text") or record.get("text") or "")
++    explicit = explicit_attribute_table_name(text)
++    if explicit:
++        return explicit
++
++    for heading in reversed(record.get("section_path") or record.get("headings") or []):
++        table_name = heading_table_name(str(heading))
++        if table_name:
++            return table_name
++
++    for line in text.splitlines():
++        table_name = heading_table_name(line)
++        if table_name:
++            return table_name
++    return None
++
++
++def table_heading_matches_name(heading: str, table_name: str) -> bool:
++    candidate = heading_table_name(heading)
++    return bool(candidate and candidate.casefold() == table_name.casefold())
+ 
+ 
+ def is_heading_line(line: str) -> bool:
+@@ -640,6 +719,9 @@
+                 previous["pages"] = sorted(
+                     set(previous.get("pages", [])) | set(record.get("pages", []))
+                 )
++                previous["_source_fragments"] = merged_source_fragments(
++                    [previous, record]
++                )
+                 previous.setdefault("repair_metadata", {}).setdefault("merged_from", []).append(
+                     record.get("chunk_id")
+                 )
+@@ -710,6 +792,7 @@
+         merged["pages"] = sorted(
+             set().union(*(set(part.get("pages", [])) for part in chain))
+         )
++        merged["_source_fragments"] = merged_source_fragments(chain)
+         merged.setdefault("repair_metadata", {})["heading_chain"] = [
+             record_primary_heading(part["contextualized_text"]) for part in chain
+         ]
+@@ -786,6 +869,9 @@
+             next_record["pages"] = sorted(
+                 set(current.get("pages", [])) | set(next_record.get("pages", []))
+             )
++            next_record["_source_fragments"] = merged_source_fragments(
++                [current, next_record]
++            )
+             next_record.setdefault("repair_metadata", {}).setdefault("merged_from", []).append(
+                 current.get("chunk_id")
+             )
+@@ -838,10 +924,36 @@
+         record = copy.deepcopy(source)
+         text = record["contextualized_text"]
+         heading = record_primary_heading(text)
+-        object_match = OBJECT_HEADING_RE.match((heading or "").rstrip(":"))
++        clean_heading = (heading or "").rstrip(":")
++        object_match = OBJECT_HEADING_RE.match(clean_heading)
++        attribute_match = ATTRIBUTE_TABLE_HEADING_RE.match(clean_heading)
++        explicit_attribute = explicit_attribute_table_name(text)
+         row_number = first_table_row_number(text)
+ 
+-        if object_match:
++        # A named attribute table is an authoritative context reset.  Never let
++        # F10/F08 (or any previous object) leak into HinhAnh* tables.
++        if explicit_attribute:
++            matching_heading = next(
++                (
++                    normalized_heading_text(line).rstrip(":")
++                    for line in text.splitlines()
++                    if table_heading_matches_name(line, explicit_attribute)
++                ),
++                explicit_attribute,
++            )
++            current_object = matching_heading
++            if (
++                heading
++                and heading_table_name(heading) is not None
++                and not table_heading_matches_name(heading, explicit_attribute)
++            ):
++                text = replace_first_heading(text, matching_heading)
++                record.setdefault("repair_metadata", {})["stale_heading_replaced"] = {
++                    "from": heading,
++                    "to": matching_heading,
++                    "reason": "explicit_attribute_table_name",
++                }
++        elif object_match or attribute_match:
+             candidate = heading.rstrip(":") if heading else None
+             if (
+                 current_object
+@@ -858,6 +970,17 @@
+                 heading = current_object
+             else:
+                 current_object = candidate
++        elif heading and APPENDIX_RE.match(clean_heading):
++            current_object = None
++        elif heading and TOP_SECTION_RE.match(clean_heading):
++            # New appendix subsection, such as "3. Khởi tạo bổ sung ...",
++            # resets the previous schema object. The following child heading
++            # will establish the new table identity.
++            if any(
++                keyword in clean_heading.casefold()
++                for keyword in ("mục tiêu", "chi tiết", "khởi tạo", "mối quan hệ")
++            ):
++                current_object = None
+         elif row_number is not None and current_object:
+             text = current_object + "\n" + text
+             heading = current_object
+@@ -1077,6 +1200,115 @@
+ 
+         record["contextualized_text"] = clean_record_text(text)
+         record["text"] = record["contextualized_text"]
++        output.append(record)
++    return output
++
++
++def _table_description_from_text(text: str, table_name: str) -> str | None:
++    for line in text.splitlines():
++        match = ATTRIBUTE_TABLE_HEADING_RE.match(normalized_heading_text(line).rstrip(":"))
++        if match and match.group(2).casefold() == table_name.casefold():
++            return normalize_space(match.group(3)) or None
++        match = OBJECT_HEADING_RE.match(normalized_heading_text(line).rstrip(":"))
++        if match and match.group(2).casefold() == table_name.casefold():
++            return normalize_space(match.group(3)) or None
++    description_match = re.search(
++        r"(?im)^\s*Mô\s+tả\s+(?!dữ liệu)([^\n|]+?)\s*$",
++        text,
++    )
++    return normalize_space(description_match.group(1)) if description_match else None
++
++
++def _canonical_table_heading(text: str, table_name: str) -> str:
++    for line in text.splitlines():
++        clean = normalized_heading_text(line).rstrip(":")
++        if table_heading_matches_name(clean, table_name):
++            return clean
++    description = _table_description_from_text(text, table_name)
++    return f"{table_name} - {description}" if description else table_name
++
++
++def _dedupe_table_prefix(prefix: list[str], table_name: str) -> list[str]:
++    """Drop stale peer-object headings while preserving appendix parents."""
++
++    output: list[str] = []
++    seen: set[str] = set()
++    for line in prefix:
++        clean = normalized_heading_text(line).rstrip(":")
++        candidate_name = heading_table_name(clean)
++        if candidate_name and candidate_name.casefold() != table_name.casefold():
++            continue
++        key = normalize_space(line).casefold()
++        if key and key in seen:
++            continue
++        if key:
++            seen.add(key)
++        output.append(line)
++    return output
++
++
++def repair_table_identity(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
++    """Make table content, section path and metadata agree.
++
++    This is intentionally content-first: an explicit ``Tên bảng dữ liệu`` line
++    overrides inherited Docling headings.  It fixes the common transition from
++    ``F10_TuPhanPhoi_HT`` to ``HinhAnhCotDien`` on the same page.
++    """
++
++    output: list[dict[str, Any]] = []
++    for source in records:
++        record = copy.deepcopy(source)
++        parts = table_components(record["contextualized_text"])
++        if not parts:
++            output.append(record)
++            continue
++
++        table_name = infer_table_name_from_record(record)
++        if not table_name:
++            output.append(record)
++            continue
++
++        prefix, header, rows = parts
++        cleaned_prefix = _dedupe_table_prefix(prefix, table_name)
++        canonical_heading = _canonical_table_heading(
++            "\n".join(prefix + header + rows), table_name
++        )
++        if not any(table_heading_matches_name(line, table_name) for line in cleaned_prefix):
++            # Insert after a parent appendix heading, not before it.
++            insert_at = 0
++            while insert_at < len(cleaned_prefix):
++                clean = normalized_heading_text(cleaned_prefix[insert_at]).rstrip(":")
++                if TOP_SECTION_RE.match(clean) or APPENDIX_RE.match(clean):
++                    insert_at += 1
++                    continue
++                break
++            cleaned_prefix.insert(insert_at, canonical_heading)
++
++        previous_name = record.get("table_name")
++        if previous_name and str(previous_name).casefold() != table_name.casefold():
++            record.setdefault("repair_metadata", {})["table_identity_replaced"] = {
++                "from": str(previous_name),
++                "to": table_name,
++            }
++
++        text = clean_record_text("\n".join(cleaned_prefix + header + rows))
++        path = list(record.get("section_path") or record.get("headings") or [])
++        parent_path = [
++            item
++            for item in path
++            if heading_table_name(str(item)) is None
++        ]
++        path = unique_preserve_order([*parent_path, canonical_heading])
++
++        record["contextualized_text"] = text
++        record["text"] = text
++        record["headings"] = path
++        record["section_path"] = path
++        record["table_name"] = table_name
++        record["entity"] = table_name
++        record["table_description"] = _table_description_from_text(text, table_name)
++        record["chunk_type"] = "table_rows"
++        record["content_format"] = "markdown_table"
+         output.append(record)
+     return output
+ 
+@@ -1220,6 +1452,180 @@
+     return tuple(normalize_space(cell).casefold() for cell in split_md_cells(header[0]))
+ 
+ 
++def table_row_cells(text: str) -> tuple[list[str], list[list[str]]]:
++    parts = table_components(text)
++    if not parts:
++        return [], []
++    _, header, rows = parts
++    columns = split_md_cells(header[0])
++    return columns, [split_md_cells(row) for row in rows]
++
++
++def _header_index(columns: Sequence[str], *candidates: str) -> int | None:
++    normalized = [normalize_space(column).casefold() for column in columns]
++    for candidate in candidates:
++        key = candidate.casefold()
++        for index, value in enumerate(normalized):
++            if key == value or key in value:
++                return index
++    return None
++
++
++def enrich_table_metadata(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
++    output: list[dict[str, Any]] = []
++    for source in records:
++        record = copy.deepcopy(source)
++        columns, rows = table_row_cells(record["contextualized_text"])
++        if not columns:
++            output.append(record)
++            continue
++
++        record["table_columns"] = columns
++        row_numbers = [
++            int(row[0])
++            for row in rows
++            if row and normalize_space(row[0]).isdigit()
++        ]
++        if row_numbers:
++            record["row_start"] = min(row_numbers)
++            record["row_end"] = max(row_numbers)
++
++        field_index = _header_index(columns, "trường dữ liệu", "tên trường")
++        source_index = _header_index(columns, "nguồn dữ liệu")
++        conversion_index = _header_index(columns, "chuyển đổi sang gis")
++        field_names: list[str] = []
++        source_systems: list[str] = []
++        convertible_fields: list[str] = []
++        for row in rows:
++            if field_index is not None and field_index < len(row):
++                field = normalize_space(row[field_index])
++                if field:
++                    field_names.append(field)
++            else:
++                field = ""
++            if source_index is not None and source_index < len(row):
++                source = normalize_space(row[source_index])
++                if source:
++                    source_systems.extend(
++                        normalize_space(value)
++                        for value in re.split(r"[/,;]", source)
++                        if normalize_space(value)
++                    )
++            if conversion_index is not None and conversion_index < len(row):
++                conversion = normalize_space(row[conversion_index])
++                if field and conversion:
++                    convertible_fields.append(field)
++
++        if field_names:
++            record["field_names"] = unique_preserve_order(field_names)
++        if source_systems:
++            record["source_systems"] = unique_preserve_order(source_systems)
++        if convertible_fields:
++            record["convertible_fields"] = unique_preserve_order(convertible_fields)
++        if record.get("table_name"):
++            record["entity"] = record["table_name"]
++        output.append(record)
++    return output
++
++
++def enrich_relationship_metadata(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
++    output: list[dict[str, Any]] = []
++    for source in records:
++        record = copy.deepcopy(source)
++        text = record["contextualized_text"]
++        path_text = "\n".join(record.get("section_path") or [])
++        if not (
++            re.search(r"Mối\s+quan\s+hệ", text, re.I)
++            or re.search(r"Mối\s+quan\s+hệ", path_text, re.I)
++            or "Tên mối quan hệ" in text
++        ):
++            output.append(record)
++            continue
++
++        relationship_match = RELATIONSHIP_NAME_RE.search(text)
++        if relationship_match:
++            record["relationship_name"] = relationship_match.group(1)
++        identifiers = unique_preserve_order(
++            match.group(0)
++            for match in re.finditer(
++                r"\b(?:F\d{2}|PX|P[A-Z0-9]+)_[A-Za-z0-9_]+\b",
++                text,
++            )
++        )
++        source_entity = next((value for value in identifiers if value.startswith("F")), None)
++        target_table = next(
++            (
++                value
++                for value in identifiers
++                if value.startswith("PX_HinhAnh")
++            ),
++            None,
++        )
++        if source_entity:
++            record["source_entity"] = source_entity
++            record["source_key"] = "ID"
++        if target_table:
++            record["target_table"] = target_table
++            record["target_key"] = (
++                "IDCotDien" if "CotDien" in target_table else "IDCongToKhachHang"
++            )
++        if re.search(r"1\s*-\s*Nhiều\s*\(1-M\)", text, re.I):
++            record["cardinality"] = "1-M"
++        record["chunk_type"] = "relationship_definition"
++        record["content_format"] = "markdown_table"
++        output.append(record)
++    return output
++
++
++def section_id_from_record(record: dict[str, Any]) -> str | None:
++    if record.get("section_id"):
++        return str(record["section_id"])
++    path = record.get("section_path") or record.get("headings") or []
++    for heading in reversed(path):
++        match = re.match(r"^(\d+(?:\.\d+)*)\.", normalize_space(str(heading)))
++        if match:
++            return match.group(1)
++    heading = record_primary_heading(record.get("contextualized_text", ""))
++    if heading:
++        match = re.match(r"^(\d+(?:\.\d+)*)\.", heading)
++        if match:
++            return match.group(1)
++    return None
++
++
++def resolve_cross_references(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
++    section_map: dict[str, str] = {}
++    for record in records:
++        section_id = section_id_from_record(record)
++        if section_id and section_id not in section_map:
++            section_map[section_id] = record["contextualized_text"]
++
++    output: list[dict[str, Any]] = []
++    reference_re = re.compile(r"(?:theo|tại)\s+mục\s+(\d+(?:\.\d+)*)", re.I)
++    for source in records:
++        record = copy.deepcopy(source)
++        references = unique_preserve_order(
++            match.group(1)
++            for match in reference_re.finditer(record["contextualized_text"])
++        )
++        if references:
++            record["cross_references"] = references
++            resolved = [section_map[ref] for ref in references if ref in section_map]
++            if resolved:
++                record["resolved_reference_text"] = "\n\n".join(resolved)
++            unresolved = [ref for ref in references if ref not in section_map]
++            if unresolved:
++                record.setdefault("validation_issues", []).append(
++                    {
++                        "type": "unresolved_cross_reference",
++                        "severity": "warning",
++                        "references": unresolved,
++                    }
++                )
++        output.append(record)
++    return output
++
++
+ def canonicalize_object_leads(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+     """Chuẩn hóa câu mô tả object bị đảo/tách giữa các chunk bảng."""
+ 
+@@ -1304,16 +1710,41 @@
+     if current:
+         packed.append(current)
+ 
+-    # Tránh chunk cuối chỉ có một hàng: ưu tiên gộp, nếu không thì chuyển
+-    # một hàng.
+-    if len(packed) >= 2 and len(packed[-1]) < min_rows:
+-        combined = packed[-2] + packed[-1]
+-        combined_text = "\n".join(prefix + header + [row for row, _ in combined])
+-        if tokenizer.count_tokens(combined_text) <= max_tokens:
+-            packed[-2:] = [combined]
+-        elif len(packed[-2]) > min_rows:
+-            moved = packed[-2].pop()
+-            packed[-1].insert(0, moved)
++    # Rebalance a very small tail instead of greedily filling the previous
++    # chunk to the limit. This avoids 15/17/2-row layouts for large schemas.
++    if len(packed) >= 2:
++        target_tail_tokens = max(72, int(max_tokens * 0.30))
++        while len(packed[-2]) > min_rows:
++            tail_text = "\n".join(prefix + header + [row for row, _ in packed[-1]])
++            if (
++                len(packed[-1]) >= min_rows
++                and tokenizer.count_tokens(tail_text) >= target_tail_tokens
++            ):
++                break
++            candidate_previous = packed[-2][:-1]
++            candidate_tail = [packed[-2][-1], *packed[-1]]
++            previous_text = "\n".join(
++                prefix + header + [row for row, _ in candidate_previous]
++            )
++            candidate_tail_text = "\n".join(
++                prefix + header + [row for row, _ in candidate_tail]
++            )
++            if (
++                tokenizer.count_tokens(previous_text) > max_tokens
++                or tokenizer.count_tokens(candidate_tail_text) > max_tokens
++            ):
++                break
++            packed[-2] = candidate_previous
++            packed[-1] = candidate_tail
++
++        if len(packed[-1]) < min_rows:
++            combined = packed[-2] + packed[-1]
++            combined_text = "\n".join(prefix + header + [row for row, _ in combined])
++            if tokenizer.count_tokens(combined_text) <= max_tokens:
++                packed[-2:] = [combined]
++            elif len(packed[-2]) > min_rows:
++                moved = packed[-2].pop()
++                packed[-1].insert(0, moved)
+ 
+     output: list[dict[str, Any]] = []
+     for part_no, items in enumerate(packed, start=1):
+@@ -1322,6 +1753,7 @@
+         base["contextualized_text"] = clean_record_text(text)
+         base["text"] = base["contextualized_text"]
+         base["pages"] = sorted(set().union(*(pages for _, pages in items)))
++        base["_source_fragments"] = merged_source_fragments(group)
+         base.setdefault("repair_metadata", {})["table_repacked"] = {
+             "source_chunks": [record.get("chunk_id") for record in group],
+             "part": part_no,
+@@ -1397,6 +1829,180 @@
+     return issues
+ 
+ 
++def semantic_validation_issues(record: dict[str, Any]) -> list[dict[str, Any]]:
++    text = str(record.get("contextualized_text") or "")
++    issues: list[dict[str, Any]] = []
++    explicit_name = explicit_attribute_table_name(text)
++    metadata_name = str(record.get("table_name") or "").strip() or None
++    if explicit_name and metadata_name and explicit_name.casefold() != metadata_name.casefold():
++        issues.append(
++            {
++                "type": "table_name_content_mismatch",
++                "severity": "critical",
++                "table_name": metadata_name,
++                "explicit_table_name": explicit_name,
++            }
++        )
++
++    expected_name = explicit_name or metadata_name
++    if expected_name:
++        path_names = [
++            heading_table_name(str(value))
++            for value in record.get("section_path") or []
++        ]
++        conflicting = unique_preserve_order(
++            value
++            for value in path_names
++            if value and value.casefold() != expected_name.casefold()
++        )
++        if conflicting:
++            issues.append(
++                {
++                    "type": "section_path_table_mismatch",
++                    "severity": "critical",
++                    "table_name": expected_name,
++                    "conflicting_headings": conflicting,
++                }
++            )
++
++    raw_text = str(record.get("raw_text") or "")
++    if raw_text and normalize_space(raw_text) != normalize_space(text):
++        issues.append(
++            {
++                "type": "raw_text_not_chunk_aligned",
++                "severity": "critical",
++            }
++        )
++    return issues
++
++
++def synchronize_record_provenance(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
++    """Keep an exact chunk-level raw_text and preserve parser output separately."""
++
++    output: list[dict[str, Any]] = []
++    for source in records:
++        record = copy.deepcopy(source)
++        text = clean_record_text(record["contextualized_text"])
++        fragments = source_fragments(record)
++        if fragments:
++            record["source_raw_text"] = "\n\n".join(fragments)
++        record.pop("_source_fragments", None)
++        record["normalized_text"] = text
++        record["contextualized_text"] = text
++        record["text"] = text
++        # raw_text is now guaranteed to describe only this final chunk.  The
++        # untouched Docling payload remains available in source_raw_text.
++        record["raw_text"] = text
++        record["provenance_status"] = "chunk_aligned"
++        output.append(record)
++    return output
++
++
++def add_table_parent_chunks(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
++    groups: dict[str, list[int]] = {}
++    for index, record in enumerate(records):
++        table_name = str(record.get("table_name") or "").strip()
++        if (
++            table_name
++            and record.get("chunk_type") == "table_rows"
++            and record.get("field_names")
++        ):
++            groups.setdefault(table_name, []).append(index)
++
++    parent_by_first_index: dict[int, dict[str, Any]] = {}
++    parent_key_by_table: dict[str, str] = {}
++    for table_name, indexes in groups.items():
++        if len(indexes) < 2:
++            continue
++        children = [records[index] for index in indexes]
++        parent_key = f"table_parent::{table_name}"
++        parent_key_by_table[table_name] = parent_key
++        field_names = unique_preserve_order(
++            field
++            for child in children
++            for field in child.get("field_names", [])
++        )
++        source_systems = unique_preserve_order(
++            value
++            for child in children
++            for value in child.get("source_systems", [])
++        )
++        convertible_fields = unique_preserve_order(
++            field
++            for child in children
++            for field in child.get("convertible_fields", [])
++        )
++        description = next(
++            (
++                str(child.get("table_description"))
++                for child in children
++                if child.get("table_description")
++            ),
++            None,
++        )
++        lines = [
++            f"Bảng dữ liệu: {table_name}.",
++            f"Mô tả: {description}." if description else "",
++            f"Tổng số trường: {len(field_names)}.",
++            f"Các trường: {', '.join(field_names)}.",
++        ]
++        if source_systems:
++            lines.append(f"Nguồn dữ liệu: {', '.join(source_systems)}.")
++        if convertible_fields:
++            lines.append(
++                "Các trường có chỉ dẫn chuyển đổi sang GIS: "
++                + ", ".join(convertible_fields)
++                + "."
++            )
++        text = "\n".join(line for line in lines if line)
++        parent_by_first_index[indexes[0]] = {
++            "_record_key": parent_key,
++            "chunk_type": "table_parent",
++            "content_format": "text",
++            "pages": sorted(
++                set().union(*(set(child.get("pages", [])) for child in children))
++            ),
++            "headings": list(children[0].get("headings") or []),
++            "section_path": list(children[0].get("section_path") or []),
++            "table_name": table_name,
++            "entity": table_name,
++            "table_description": description,
++            "field_names": field_names,
++            "source_systems": source_systems,
++            "convertible_fields": convertible_fields,
++            "row_start": min(
++                child.get("row_start")
++                for child in children
++                if child.get("row_start") is not None
++            ),
++            "row_end": max(
++                child.get("row_end")
++                for child in children
++                if child.get("row_end") is not None
++            ),
++            "contextualized_text": text,
++            "text": text,
++            "raw_text": text,
++            "source_raw_text": "\n\n".join(
++                str(child.get("source_raw_text") or child.get("raw_text") or "")
++                for child in children
++            ),
++            "indexable": True,
++            "embedding_enabled": True,
++        }
++
++    output: list[dict[str, Any]] = []
++    for index, source in enumerate(records):
++        if index in parent_by_first_index:
++            output.append(parent_by_first_index[index])
++        record = copy.deepcopy(source)
++        table_name = str(record.get("table_name") or "").strip()
++        if table_name in parent_key_by_table and record.get("chunk_type") == "table_rows":
++            record["_parent_record_key"] = parent_key_by_table[table_name]
++        output.append(record)
++    return output
++
++
+ def finalize_record_metadata(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+     output: list[dict[str, Any]] = []
+     for source in records:
+@@ -1408,9 +2014,21 @@
+             record.setdefault("repair_metadata", {})["identifier_repairs"] = relevant
+         elif "repair_metadata" in record:
+             record["repair_metadata"].pop("identifier_repairs", None)
+-        issues = detect_identifier_conflicts(text)
+-        if issues:
+-            record["validation_issues"] = issues
++        issues = list(record.get("validation_issues") or [])
++        issues.extend(detect_identifier_conflicts(text))
++        issues.extend(semantic_validation_issues(record))
++        deduped: list[dict[str, Any]] = []
++        seen_issue_keys: set[str] = set()
++        for issue in issues:
++            key = repr(sorted(issue.items()))
++            if key not in seen_issue_keys:
++                seen_issue_keys.add(key)
++                deduped.append(issue)
++        record["validation_issues"] = deduped
++        severities = {str(issue.get("severity") or "warning") for issue in deduped}
++        record["quality_status"] = (
++            "fail" if "critical" in severities else "warning" if deduped else "pass"
++        )
+         record.setdefault("indexable", record.get("chunk_type") != "administrative_footer")
+         record.setdefault("embedding_enabled", record["indexable"])
+         output.append(record)
+@@ -1421,11 +2039,19 @@
+     records: list[dict[str, Any]], tokenizer: RegexVietnameseTokenizer
+ ) -> list[dict[str, Any]]:
+     output: list[dict[str, Any]] = []
++    key_to_id: dict[str, str] = {}
+     for index, source in enumerate(records, start=1):
+         record = copy.deepcopy(source)
+         record["chunk_id"] = f"chunk_{index:03d}"
+         record["token_count_approx"] = tokenizer.count_tokens(record["contextualized_text"])
++        if record.get("_record_key"):
++            key_to_id[str(record["_record_key"])] = record["chunk_id"]
+         output.append(record)
++    for record in output:
++        parent_key = record.pop("_parent_record_key", None)
++        record.pop("_record_key", None)
++        if parent_key and str(parent_key) in key_to_id:
++            record["parent_chunk_id"] = key_to_id[str(parent_key)]
+     return output
+ 
+ 
+@@ -1441,6 +2067,8 @@
+     stage: list[dict[str, Any]] = []
+     for record in records:
+         cleaned = strip_misplaced_furniture(record)
++        cleaned.setdefault("source_raw_text", cleaned.get("raw_text", ""))
++        cleaned["_source_fragments"] = source_fragments(cleaned)
+         repairs = collect_identifier_repairs(cleaned["contextualized_text"])
+         if repairs:
+             cleaned.setdefault("repair_metadata", {})["identifier_repairs"] = repairs
+@@ -1457,19 +2085,29 @@
+ 
+     hierarchy = extract_top_level_sections(doc)
+     stage = apply_hierarchy(stage, hierarchy)
++    stage = repair_table_identity(stage)
+     stage = canonicalize_object_leads(stage)
+     stage = rebalance_table_chunks(stage, tokenizer, max_tokens)
+     stage = apply_hierarchy(stage, hierarchy)
++    stage = repair_table_identity(stage)
+ 
+     stage = enforce_token_limit(stage, tokenizer, max_tokens)
+     stage = apply_hierarchy(stage, hierarchy)
++    stage = repair_table_identity(stage)
+     stage = canonicalize_object_leads(stage)
+     stage = rebalance_table_chunks(stage, tokenizer, max_tokens)
+     stage = apply_hierarchy(stage, hierarchy)
++    stage = repair_table_identity(stage)
+ 
+     # Bảo đảm giới hạn cuối sau khi bổ sung context/heading.
+     stage = enforce_token_limit(stage, tokenizer, max_tokens)
+     stage = apply_hierarchy(stage, hierarchy)
++    stage = repair_table_identity(stage)
++    stage = enrich_table_metadata(stage)
++    stage = enrich_relationship_metadata(stage)
++    stage = resolve_cross_references(stage)
++    stage = add_table_parent_chunks(stage)
++    stage = synchronize_record_provenance(stage)
+     stage = finalize_record_metadata(stage)
+     return reindex_records(stage, tokenizer)
+ 
+@@ -1634,7 +2272,15 @@
+             critical.append({"chunk_id": chunk_id, "issue": "footer_is_indexable"})
+ 
+         for issue in record.get("validation_issues", []):
+-            warnings.append({"chunk_id": chunk_id, "issue": issue.get("type"), "detail": issue})
++            rendered = {
++                "chunk_id": chunk_id,
++                "issue": issue.get("type"),
++                "detail": issue,
++            }
++            if str(issue.get("severity") or "warning") == "critical":
++                critical.append(rendered)
++            else:
++                warnings.append(rendered)
+ 
+         cells_rows = [
+             split_md_cells(line)
+--- a/app/services/rag_chunk.py
++++ b/app/services/rag_chunk.py
+@@ -14,7 +14,7 @@
+     "parse_error",
+     "footer",
+ }
+-FAILED_QUALITY_STATUSES = {"failed", "rejected"}
++FAILED_QUALITY_STATUSES = {"fail", "failed", "rejected"}
+ 
+ 
+ class RagChunk(BaseModel):
+@@ -30,6 +30,9 @@
+ 
+     text: str
+     raw_text: str | None = None
++    source_raw_text: str | None = None
++    normalized_text: str | None = None
++    provenance_status: str | None = None
+ 
+     section_path: list[str] = Field(default_factory=list)
+     section_id: str | None = None
+@@ -48,6 +51,20 @@
+     row_start: int | None = None
+     row_end: int | None = None
+     table_columns: list[str] = Field(default_factory=list)
++    entity: str | None = None
++    field_names: list[str] = Field(default_factory=list)
++    source_systems: list[str] = Field(default_factory=list)
++    convertible_fields: list[str] = Field(default_factory=list)
++
++    relationship_name: str | None = None
++    source_entity: str | None = None
++    source_key: str | None = None
++    target_table: str | None = None
++    target_key: str | None = None
++    cardinality: str | None = None
++
++    cross_references: list[str] = Field(default_factory=list)
++    resolved_reference_text: str | None = None
+ 
+     source_file: str
+     source_uri: str | None = None
+@@ -131,9 +148,9 @@
+     combined = "\n".join([*section_path, text[:1000]])
+     table_name: str | None = None
+     for pattern in (
+-        r"\b(F\d+_[A-Za-z0-9_]+)\b",
+         r"Tên bảng dữ liệu:\s*([A-Za-z][A-Za-z0-9_]+)",
+         r"\b(HinhAnh(?:CotDien|KhachHang|HoSoKhachHang))\b",
++        r"\b(F\d+_[A-Za-z0-9_]+)\b",
+     ):
+         match = re.search(pattern, combined)
+         if match:
+@@ -201,6 +218,13 @@
+     add_context("Mục", " > ".join(missing_headings) if missing_headings else None)
+     add_context("Bảng", chunk.table_name)
+     add_context("Mô tả bảng", chunk.table_description)
++    add_context("Thực thể", chunk.entity)
++    add_context("Quan hệ", chunk.relationship_name)
++    add_context("Nguồn dữ liệu", ", ".join(chunk.source_systems) if chunk.source_systems else None)
++    add_context(
++        "Tham chiếu đã giải quyết",
++        chunk.resolved_reference_text,
++    )
+ 
+     if chunk.row_start is not None or chunk.row_end is not None:
+         start = chunk.row_start if chunk.row_start is not None else "?"
+@@ -285,6 +309,13 @@
+         content_format=content_format,
+         text=text,
+         raw_text=str(raw_text) if raw_text is not None else None,
++        source_raw_text=(
++            str(record["source_raw_text"]) if record.get("source_raw_text") is not None else None
++        ),
++        normalized_text=(
++            str(record["normalized_text"]) if record.get("normalized_text") is not None else None
++        ),
++        provenance_status=str(record.get("provenance_status") or "").strip() or None,
+         section_path=headings,
+         section_id=str(section_id) if section_id is not None else None,
+         parent_section_id=(
+@@ -311,6 +342,24 @@
+         row_start=_optional_int(record.get("row_start")) or inferred_row_start,
+         row_end=_optional_int(record.get("row_end")) or inferred_row_end,
+         table_columns=list(record.get("table_columns") or infer_table_columns(text)),
++        entity=str(record.get("entity") or "").strip() or None,
++        field_names=[str(value) for value in record.get("field_names") or []],
++        source_systems=[str(value) for value in record.get("source_systems") or []],
++        convertible_fields=[
++            str(value) for value in record.get("convertible_fields") or []
++        ],
++        relationship_name=str(record.get("relationship_name") or "").strip() or None,
++        source_entity=str(record.get("source_entity") or "").strip() or None,
++        source_key=str(record.get("source_key") or "").strip() or None,
++        target_table=str(record.get("target_table") or "").strip() or None,
++        target_key=str(record.get("target_key") or "").strip() or None,
++        cardinality=str(record.get("cardinality") or "").strip() or None,
++        cross_references=[str(value) for value in record.get("cross_references") or []],
++        resolved_reference_text=(
++            str(record["resolved_reference_text"])
++            if record.get("resolved_reference_text") is not None
++            else None
++        ),
+         source_file=source_file,
+         source_uri=source_uri,
+         document_title=document_title,
+@@ -392,7 +441,7 @@
+ def qdrant_payload(chunk: RagChunk, *, store_raw_text: bool = False) -> dict[str, Any]:
+     payload = chunk.model_dump(
+         mode="json",
+-        exclude={"raw_text"},
++        exclude={"raw_text", "source_raw_text", "normalized_text"},
+         exclude_none=True,
+     )
+     if store_raw_text and chunk.raw_text is not None:
+--- a/app/services/chunking_service.py
++++ b/app/services/chunking_service.py
+@@ -755,7 +755,10 @@
+         quality_status = str(result.quality.get("status") or "pass")
+         rag_chunks = [
+             rag_chunk_from_record(
+-                {**record, "quality_status": quality_status},
++                {
++                    **record,
++                    "quality_status": record.get("quality_status", quality_status),
++                },
+                 document_id=document.id,
+                 source_file=source_file,
+                 source_uri=source_uri,
+@@ -781,6 +784,8 @@
+                         exclude={
+                             "text",
+                             "raw_text",
++                            "source_raw_text",
++                            "normalized_text",
+                             "document_id",
+                             "tenant_id",
+                             "source_file",
+--- /dev/null
++++ b/tests/test_docling_v6_repairs.py
+@@ -0,0 +1,320 @@
++from __future__ import annotations
++
++import importlib.util
++import sys
++from pathlib import Path
++from types import ModuleType, SimpleNamespace
++
++from pydantic import BaseModel
++
++
++def _stub_modules() -> dict[str, ModuleType]:
++    modules = {
++        "docling": ModuleType("docling"),
++        "docling.chunking": ModuleType("docling.chunking"),
++        "docling_core": ModuleType("docling_core"),
++        "docling_core.transforms": ModuleType("docling_core.transforms"),
++        "docling_core.transforms.chunker": ModuleType("docling_core.transforms.chunker"),
++        "docling_core.transforms.chunker.hierarchical_chunker": ModuleType(
++            "docling_core.transforms.chunker.hierarchical_chunker"
++        ),
++        "docling_core.transforms.chunker.tokenizer": ModuleType(
++            "docling_core.transforms.chunker.tokenizer"
++        ),
++        "docling_core.transforms.chunker.tokenizer.base": ModuleType(
++            "docling_core.transforms.chunker.tokenizer.base"
++        ),
++        "docling_core.transforms.serializer": ModuleType(
++            "docling_core.transforms.serializer"
++        ),
++        "docling_core.transforms.serializer.markdown": ModuleType(
++            "docling_core.transforms.serializer.markdown"
++        ),
++        "docling_core.types": ModuleType("docling_core.types"),
++        "docling_core.types.doc": ModuleType("docling_core.types.doc"),
++    }
++
++    class Dummy:
++        def __init__(self, *args, **kwargs) -> None:
++            pass
++
++    class BaseTokenizer(BaseModel):
++        pass
++
++    modules["docling.chunking"].HybridChunker = Dummy
++    hierarchical = modules[
++        "docling_core.transforms.chunker.hierarchical_chunker"
++    ]
++    hierarchical.ChunkingDocSerializer = Dummy
++    hierarchical.ChunkingSerializerProvider = Dummy
++    modules["docling_core.transforms.chunker.tokenizer.base"].BaseTokenizer = BaseTokenizer
++    modules["docling_core.transforms.serializer.markdown"].MarkdownParams = Dummy
++    modules["docling_core.transforms.serializer.markdown"].MarkdownTableSerializer = Dummy
++    modules["docling_core.types.doc"].DoclingDocument = Dummy
++    return modules
++
++
++def _load_docling_v6_module():
++    if importlib.util.find_spec("docling") is not None:
++        from app.services import docling_v6_chunking
++
++        return docling_v6_chunking
++
++    stubs = _stub_modules()
++    previous = {name: sys.modules.get(name) for name in stubs}
++    try:
++        sys.modules.update(stubs)
++        module_path = (
++            Path(__file__).resolve().parents[1]
++            / "app"
++            / "services"
++            / "docling_v6_chunking.py"
++        )
++        spec = importlib.util.spec_from_file_location(
++            "_test_docling_v6_chunking", module_path
++        )
++        assert spec is not None and spec.loader is not None
++        module = importlib.util.module_from_spec(spec)
++        sys.modules[spec.name] = module
++        spec.loader.exec_module(module)
++        return module
++    finally:
++        for name, value in previous.items():
++            if value is None:
++                sys.modules.pop(name, None)
++            else:
++                sys.modules[name] = value
++
++
++_docling_v6 = _load_docling_v6_module()
++RegexVietnameseTokenizer = _docling_v6.RegexVietnameseTokenizer
++add_table_parent_chunks = _docling_v6.add_table_parent_chunks
++finalize_record_metadata = _docling_v6.finalize_record_metadata
++reindex_records = _docling_v6.reindex_records
++repack_table_group = _docling_v6.repack_table_group
++repair_records = _docling_v6.repair_records
++repair_table_identity = _docling_v6.repair_table_identity
++resolve_cross_references = _docling_v6.resolve_cross_references
++semantic_validation_issues = _docling_v6.semantic_validation_issues
++synchronize_record_provenance = _docling_v6.synchronize_record_provenance
++
++def test_explicit_attribute_table_name_resets_stale_f10_context() -> None:
++    text = """3. Khởi tạo bổ sung 03 bảng dữ liệu thuộc tính
++(7) F10_TuPhanPhoi_HT - Lớp tủ phân phối
++(1) HinhAnhCotDien - Hình ảnh cột điện
++Tên bảng dữ liệu: HinhAnhCotDien
++Mô tả đường dẫn hình ảnh cột điện
++| TT | Tên trường | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng |
++|---|---|---|---|---|---|
++| 1 | IDHinhAnh | ID hình ảnh | Text | | 50 |
++| 2 | IDCotDien | ID cột điện | Text | | 50 |"""
++    records = repair_table_identity(
++        [
++            {
++                "contextualized_text": text,
++                "text": text,
++                "table_name": "F10_TuPhanPhoi_HT",
++                "section_path": [
++                    "3. Khởi tạo bổ sung 03 bảng dữ liệu thuộc tính",
++                    "(7) F10_TuPhanPhoi_HT - Lớp tủ phân phối",
++                ],
++                "headings": [],
++                "pages": [9, 10],
++            }
++        ]
++    )
++
++    record = records[0]
++    assert record["table_name"] == "HinhAnhCotDien"
++    assert "F10_TuPhanPhoi_HT" not in record["contextualized_text"]
++    assert all("F10_TuPhanPhoi_HT" not in item for item in record["section_path"])
++    assert record["section_path"][-1].startswith("(1) HinhAnhCotDien")
++    assert record["repair_metadata"]["table_identity_replaced"]["to"] == "HinhAnhCotDien"
++
++
++def test_full_repair_pipeline_does_not_carry_f10_into_hinhanhcotdien() -> None:
++    f10_text = """(7) F10_TuPhanPhoi_HT - Lớp tủ phân phối
++| TT | Trường dữ liệu | Mô tả | Kiểu dữ liệu | Nguồn dữ liệu |
++|---|---|---|---|---|
++| 1 | ID | ID tủ hạ thế | Text | ID tự sinh của GIS |"""
++    attribute_text = """3. Khởi tạo bổ sung 03 bảng dữ liệu thuộc tính
++(7) F10_TuPhanPhoi_HT - Lớp tủ phân phối
++(1) HinhAnhCotDien - Hình ảnh cột điện
++Tên bảng dữ liệu: HinhAnhCotDien
++Mô tả đường dẫn hình ảnh cột điện
++| TT | Tên trường | Mô tả | Kiểu dữ liệu | Độ rộng |
++|---|---|---|---|---|
++| 1 | IDHinhAnh | ID hình ảnh | Text | 50 |
++| 2 | IDCotDien | ID cột điện | Text | 50 |"""
++    records = []
++    for index, text in enumerate((f10_text, attribute_text), start=1):
++        records.append(
++            {
++                "chunk_id": f"raw_{index:03d}",
++                "chunk_type": "docling_hybrid_repaired",
++                "pages": [9, 10],
++                "headings": [],
++                "raw_text": text,
++                "raw_contextualized_text": text,
++                "text": text,
++                "contextualized_text": text,
++                "doc_item_types": ["table"],
++                "document_context": "",
++            }
++        )
++
++    repaired = repair_records(
++        records,
++        doc=SimpleNamespace(texts=[]),
++        tokenizer=RegexVietnameseTokenizer(max_tokens=350),
++        max_tokens=350,
++    )
++
++    attribute = next(
++        record for record in repaired if record.get("table_name") == "HinhAnhCotDien"
++    )
++    assert "F10_TuPhanPhoi_HT" not in attribute["text"]
++    assert attribute["raw_text"] == attribute["text"]
++    assert attribute["quality_status"] == "pass"
++    assert attribute["validation_issues"] == []
++
++
++def test_final_provenance_keeps_parser_source_but_aligns_raw_text_to_chunk() -> None:
++    record = {
++        "contextualized_text": "1.2. GIS hạ thế:\nNội dung đã sửa.",
++        "text": "old",
++        "raw_text": "một block nguồn dài chứa cả mục 1.2 và 2.1",
++        "pages": [1, 2],
++    }
++
++    result = synchronize_record_provenance([record])[0]
++
++    assert result["raw_text"] == result["text"]
++    assert result["normalized_text"] == result["text"]
++    assert result["source_raw_text"] == "một block nguồn dài chứa cả mục 1.2 và 2.1"
++    assert result["provenance_status"] == "chunk_aligned"
++
++
++def test_table_repacking_avoids_a_tiny_tail() -> None:
++    prefix = ["(1) F05_CongToKhachHang_HT - Lớp công tơ khách hàng"]
++    header = [
++        "| TT | Trường dữ liệu | Mô tả | Kiểu dữ liệu | Nguồn dữ liệu |",
++        "|---|---|---|---|---|",
++    ]
++    rows = [
++        f"| {index} | Field{index} | Mô tả trường dữ liệu số {index} có nội dung | Text | CMIS |"
++        for index in range(1, 25)
++    ]
++    groups = []
++    for start, end in ((0, 10), (10, 21), (21, 24)):
++        text = "\n".join(prefix + header + rows[start:end])
++        groups.append(
++            {
++                "contextualized_text": text,
++                "text": text,
++                "pages": [6, 7],
++                "section_path": prefix,
++            }
++        )
++
++    tokenizer = RegexVietnameseTokenizer(max_tokens=150)
++    packed = repack_table_group(groups, tokenizer, max_tokens=150)
++    row_counts = [
++        sum(
++            1
++            for line in record["contextualized_text"].splitlines()
++            if line.startswith("| ") and line.split("|")[1].strip().isdigit()
++        )
++        for record in packed
++    ]
++
++    assert min(row_counts) >= 3
++    assert all(tokenizer.count_tokens(record["contextualized_text"]) <= 150 for record in packed)
++
++
++def test_table_parent_is_inserted_and_children_point_to_it() -> None:
++    children = [
++        {
++            "contextualized_text": "F08 part 1",
++            "text": "F08 part 1",
++            "raw_text": "F08 part 1",
++            "table_name": "F08_CotDien_HT",
++            "table_description": "Lớp cột điện",
++            "chunk_type": "table_rows",
++            "content_format": "markdown_table",
++            "field_names": ["ID", "MaTramBienAp"],
++            "source_systems": ["GIS", "TTHT"],
++            "convertible_fields": ["MaTramBienAp"],
++            "row_start": 1,
++            "row_end": 2,
++            "pages": [5],
++            "section_path": ["F08_CotDien_HT - Lớp cột điện"],
++            "headings": ["F08_CotDien_HT - Lớp cột điện"],
++        },
++        {
++            "contextualized_text": "F08 part 2",
++            "text": "F08 part 2",
++            "raw_text": "F08 part 2",
++            "table_name": "F08_CotDien_HT",
++            "table_description": "Lớp cột điện",
++            "chunk_type": "table_rows",
++            "content_format": "markdown_table",
++            "field_names": ["X", "Y"],
++            "source_systems": ["TTHT"],
++            "convertible_fields": ["X", "Y"],
++            "row_start": 3,
++            "row_end": 4,
++            "pages": [6],
++            "section_path": ["F08_CotDien_HT - Lớp cột điện"],
++            "headings": ["F08_CotDien_HT - Lớp cột điện"],
++        },
++    ]
++
++    records = add_table_parent_chunks(children)
++    records = synchronize_record_provenance(records)
++    records = finalize_record_metadata(records)
++    records = reindex_records(records, RegexVietnameseTokenizer(max_tokens=350))
++
++    parent = next(record for record in records if record["chunk_type"] == "table_parent")
++    child_records = [record for record in records if record["chunk_type"] == "table_rows"]
++    assert parent["field_names"] == ["ID", "MaTramBienAp", "X", "Y"]
++    assert all(record["parent_chunk_id"] == parent["chunk_id"] for record in child_records)
++
++
++def test_cross_reference_is_resolved_to_section_text() -> None:
++    records = [
++        {
++            "contextualized_text": "2.2. GIS hạ thế:\nHoàn thành trong tháng 9/2026.",
++            "section_path": ["2. Các CTĐL", "2.2. GIS hạ thế"],
++        },
++        {
++            "contextualized_text": "3.2. GIS hạ thế:\nTriển khai theo kế hoạch tại mục 2.2.",
++            "section_path": ["3. KHoPC", "3.2. GIS hạ thế"],
++        },
++    ]
++
++    resolved = resolve_cross_references(records)
++
++    assert resolved[1]["cross_references"] == ["2.2"]
++    assert "tháng 9/2026" in resolved[1]["resolved_reference_text"]
++
++
++def test_semantic_validator_rejects_table_metadata_mismatch() -> None:
++    text = """Tên bảng dữ liệu: HinhAnhCotDien
++| TT | Tên trường |
++|---|---|
++| 1 | IDHinhAnh |"""
++    issues = semantic_validation_issues(
++        {
++            "contextualized_text": text,
++            "raw_text": text,
++            "table_name": "F10_TuPhanPhoi_HT",
++            "section_path": ["(7) F10_TuPhanPhoi_HT - Lớp tủ phân phối"],
++        }
++    )
++
++    assert {issue["type"] for issue in issues} == {
++        "table_name_content_mismatch",
++        "section_path_table_mismatch",
++    }
++    assert all(issue["severity"] == "critical" for issue in issues)
