@@ -249,12 +249,21 @@ async def _resolve_profile_settings(
                 content_type = getattr(files[0], "mime_type", None)
 
     if requested_profile == "auto":
-        concrete_profile = saved_profile or resolve_profile(
-            "auto",
-            text=parsed_text,
-            filename=filename,
-            content_type=content_type,
-        )
+        normalized_saved_profile = (saved_profile or "").strip().lower()
+        if normalized_saved_profile and normalized_saved_profile != "auto":
+            concrete_profile = resolve_profile(
+                normalized_saved_profile,
+                text=parsed_text,
+                filename=filename,
+                content_type=content_type,
+            )
+        else:
+            concrete_profile = resolve_profile(
+                "auto",
+                text=parsed_text,
+                filename=filename,
+                content_type=content_type,
+            )
     else:
         concrete_profile = resolve_profile(
             requested_profile,

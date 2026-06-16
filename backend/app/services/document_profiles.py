@@ -25,6 +25,15 @@ ProfileName = Literal[
     "slide",
 ]
 
+__all__ = [
+    "FALLBACK_CONFIG",
+    "PROFILE_CONFIGS",
+    "PROFILE_NAMES",
+    "detect_profile",
+    "profile_config",
+    "resolve_profile",
+]
+
 PROFILE_CONFIGS: dict[str, dict[str, Any]] = get_profile_configs()
 PROFILE_NAMES: tuple[str, ...] = get_profile_names()
 _DETECTION_SAMPLE = 20000
