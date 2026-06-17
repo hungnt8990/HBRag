@@ -13,6 +13,7 @@ from app.api.routes.documents import (
     get_graph_repository,
     get_storage_client,
 )
+from app.core.config import settings
 from app.main import app
 from app.repositories.documents import DocumentListRow
 from app.schemas.documents import DocumentUploadResponse
@@ -292,7 +293,9 @@ def test_list_documents_returns_summary_counts() -> None:
     assert payload["items"][0]["graph_indexed"] is True
 
 
-def test_document_list_permissions_hide_inaccessible_documents() -> None:
+def test_document_list_permissions_hide_inaccessible_documents(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "access_read_all_documents", False)
+
     repository = FakeDocumentRepository()
     app.dependency_overrides[get_current_user] = lambda: _user(role="VIEWER")
     app.dependency_overrides[get_auth_repository] = lambda: FakeAuthRepository()

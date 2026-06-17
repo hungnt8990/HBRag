@@ -15,6 +15,7 @@ from qdrant_client.models import (
     FilterSelector,
     Fusion,
     FusionQuery,
+    IsNullCondition,
     MatchAny,
     MatchValue,
     PayloadSchemaType,
@@ -26,6 +27,7 @@ from qdrant_client.models import (
 )
 
 from app.core.config import settings
+from app.services.access_control import AccessFilter
 from app.services.embeddings.sparse import SparseEmbedding
 
 logger = logging.getLogger(__name__)
@@ -80,6 +82,21 @@ class QdrantVectorStore:
         "quality_status",
         "table_name",
         "visibility",
+        "owner_org_id",
+        "owner_org_path",
+        "classification",
+        "business_domains",
+        "project_codes",
+        "allowed_org_ids",
+        "allowed_org_paths",
+        "allowed_role_names",
+        "allowed_group_codes",
+        "allowed_user_ids",
+        "denied_org_ids",
+        "denied_org_paths",
+        "denied_role_names",
+        "denied_group_codes",
+        "denied_user_ids",
         "identifiers",
         "doc_codes",
         "dates",
@@ -255,6 +272,7 @@ class QdrantVectorStore:
         unit: str | None = None,
         chunk_type: str | None = None,
         table_name: str | None = None,
+        access_filter: AccessFilter | None = None,
     ) -> list[VectorSearchResult]:
         await self.ensure_collection()
         query_filter = self._payload_filter(
@@ -266,6 +284,7 @@ class QdrantVectorStore:
             unit=unit,
             chunk_type=chunk_type,
             table_name=table_name,
+            access_filter=access_filter,
         )
 
         if self.sparse_enabled and sparse_query is not None and sparse_query.indices:
@@ -394,8 +413,11 @@ class QdrantVectorStore:
         unit: str | None = None,
         chunk_type: str | None = None,
         table_name: str | None = None,
+        access_filter: AccessFilter | None = None,
     ) -> Filter | None:
         must: list[FieldCondition] = []
+        must_not: list[FieldCondition] = []
+        should: list[FieldCondition] = []
         if document_ids is not None:
             must.append(
                 FieldCondition(key="document_id", match=MatchAny(any=sorted(document_ids)))
@@ -417,7 +439,95 @@ class QdrantVectorStore:
         ):
             if value is not None:
                 must.append(FieldCondition(key=key, match=MatchValue(value=value)))
-        return Filter(must=must) if must else None
+        if access_filter is not None and not settings.access_read_all_documents:
+            allowed_classifications = [
+                name
+                for name, rank in settings.access_classification_rank.items()
+                if rank <= access_filter.clearance_rank
+            ]
+            must.append(
+                Filter(
+                    should=[
+                        FieldCondition(
+                            key="classification",
+                            match=MatchAny(any=allowed_classifications),
+                        ),
+                        IsNullCondition(is_null={"key": "classification"}),
+                    ]
+                )
+            )
+            org_ids = set(access_filter.descendant_org_ids)
+            if access_filter.organization_id:
+                org_ids.add(access_filter.organization_id)
+            for key, values in (
+                ("denied_user_ids", {access_filter.subject_user_id}),
+                ("denied_org_ids", org_ids),
+                ("denied_role_names", access_filter.role_names),
+                ("denied_group_codes", access_filter.group_codes),
+            ):
+                if values:
+                    must_not.append(
+                        FieldCondition(key=key, match=MatchAny(any=sorted(values)))
+                    )
+            if org_ids:
+                should.append(
+                    FieldCondition(key="owner_org_id", match=MatchAny(any=sorted(org_ids)))
+                )
+                should.append(
+                    FieldCondition(key="organization_id", match=MatchAny(any=sorted(org_ids)))
+                )
+                should.append(
+                    FieldCondition(key="allowed_org_ids", match=MatchAny(any=sorted(org_ids)))
+                )
+            if access_filter.org_path:
+                should.append(
+                    FieldCondition(
+                        key="allowed_org_paths",
+                        match=MatchAny(any=[access_filter.org_path]),
+                    )
+                )
+            should.append(
+                FieldCondition(
+                    key="scope",
+                    match=MatchAny(any=sorted(settings.access_corp_wide_scopes)),
+                )
+            )
+            should.append(IsNullCondition(is_null={"key": "scope"}))
+            should.append(
+                FieldCondition(
+                    key="allowed_user_ids",
+                    match=MatchAny(any=[access_filter.subject_user_id]),
+                )
+            )
+            if access_filter.role_names:
+                should.append(
+                    FieldCondition(
+                        key="allowed_role_names",
+                        match=MatchAny(any=sorted(access_filter.role_names)),
+                    )
+                )
+            if access_filter.group_codes:
+                should.append(
+                    FieldCondition(
+                        key="allowed_group_codes",
+                        match=MatchAny(any=sorted(access_filter.group_codes)),
+                    )
+                )
+            if access_filter.business_domains:
+                should.append(
+                    FieldCondition(
+                        key="business_domains",
+                        match=MatchAny(any=sorted(access_filter.business_domains)),
+                    )
+                )
+            if access_filter.project_codes:
+                should.append(
+                    FieldCondition(
+                        key="project_codes",
+                        match=MatchAny(any=sorted(access_filter.project_codes)),
+                    )
+                )
+        return Filter(must=must, must_not=must_not, should=should) if must or must_not or should else None
 
     @staticmethod
     def _batched(points: list[PointStruct], batch_size: int) -> list[list[PointStruct]]:

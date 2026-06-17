@@ -5,6 +5,8 @@ from uuid import UUID
 
 from qdrant_client.models import Distance, PointStruct, SparseVector
 
+from app.core.config import settings
+from app.services.access_control import AccessFilter
 from app.services.embeddings.sparse import SparseEmbedding
 from app.services.vector_store import QdrantVectorStore
 
@@ -257,6 +259,40 @@ def test_qdrant_vector_store_uses_rrf_for_dense_sparse_search() -> None:
 
     asyncio.run(run_test())
 
+
+def test_qdrant_access_filter_keeps_legacy_payloads_searchable(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "access_read_all_documents", False)
+
+    async def run_test() -> None:
+        client = FakeQdrantClient(vector_size=2)
+        store = _store(client)
+
+        await store.search(
+            query_vector=[0.1, 0.2],
+            top_k=3,
+            organization_id="org-1",
+            access_filter=AccessFilter(
+                subject_user_id="user-1",
+                organization_id="org-1",
+                descendant_org_ids={"org-2"},
+                org_path="/EVN/CPC/IT",
+                role_names={"reader"},
+                clearance_rank=1,
+            ),
+        )
+
+        query_filter = client.query_calls[0]["query_filter"]
+        dumped_filter = query_filter.model_dump(mode="json")
+
+        assert "classification" in str(dumped_filter)
+        assert "is_null" in str(dumped_filter)
+        assert "scope" in str(dumped_filter)
+        assert any(
+            getattr(condition, "key", None) == "organization_id"
+            for condition in query_filter.should
+        )
+
+    asyncio.run(run_test())
 
 def test_qdrant_vector_store_rejects_legacy_unnamed_vector_collection() -> None:
     async def run_test() -> None:

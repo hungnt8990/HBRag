@@ -98,9 +98,36 @@ def _candidate_texts(value_text: str) -> list[str]:
     candidates = [value_text]
     for part in re.split(r"[;,]", value_text):
         part = part.strip()
-        if part and part not in candidates:
+        if part and len(tokenize(part)) >= 3 and part not in candidates:
             candidates.append(part)
+    candidates.extend(_expanded_composite_candidates(value_text))
     return candidates
+
+def _expanded_composite_candidates(value_text: str) -> list[str]:
+    """Expand compact alternatives like ``A, B event`` into ``A event``.
+
+    This keeps scoring generic while handling common table shorthand where a
+    suffix applies to several comma-separated subjects in the same cell.
+    """
+
+    expanded: list[str] = []
+    for segment in re.split(r";", value_text):
+        parts = [part.strip() for part in segment.split(",") if part.strip()]
+        if len(parts) <= 1:
+            continue
+        last_tokens = parts[-1].split()
+        if len(last_tokens) < 2:
+            continue
+        suffix = " ".join(last_tokens[1:])
+        suffix_norm = normalize_metadata_value(suffix)
+        if not suffix_norm:
+            continue
+        for part in parts[:-1]:
+            part_norm = normalize_metadata_value(part)
+            if suffix_norm in part_norm:
+                continue
+            expanded.append(f"{part} {suffix}")
+    return expanded
 
 
 def _score_text_against_query(
@@ -125,7 +152,8 @@ def _score_text_against_query(
 
     normalized_value = normalize_metadata_value(value_text)
     if normalized_value and normalized_value in normalized_query:
-        field_score += 1.2 * weight
+        exact_token_count = len(tokenize(normalized_value))
+        field_score += (2.5 if exact_token_count >= 3 else 0.5) * weight
     elif normalized_query and normalized_query in normalized_value:
         field_score += 0.25 * weight
 

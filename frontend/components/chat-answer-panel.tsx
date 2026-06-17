@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, FileText, Quote } from "lucide-react";
+import { Download, ExternalLink, FileText, Quote } from "lucide-react";
 import type { ReactNode } from "react";
 import React from "react";
 import ReactMarkdown from "react-markdown";
@@ -21,6 +21,8 @@ type Props = {
 };
 
 const CITATION_PATTERN = /\[(\d+)\]/g;
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "http://localhost:8000";
 
 export function ChatAnswerPanel({
   answer,
@@ -40,10 +42,10 @@ export function ChatAnswerPanel({
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-              Answer
+              Câu trả lời
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Rendered markdown with inline citations.
+              Nội dung được hiển thị kèm citation trong dòng.
             </p>
           </div>
           <span
@@ -56,20 +58,27 @@ export function ChatAnswerPanel({
                   : "bg-slate-100 text-slate-500",
             )}
           >
-            {asking ? "Streaming" : answer ? "Ready" : "Idle"}
+            {asking ? "Đang trả lời" : answer ? "Sẵn sàng" : "Chưa hỏi"}
           </span>
         </div>
 
         <div className="min-h-40">
           {answer ? (
-            <MarkdownAnswer
-              citationMap={citationMap}
-              markdown={normalizeMarkdown(answer)}
-              onCitationClick={onCitationClick}
-            />
+            <>
+              <MarkdownAnswer
+                citationMap={citationMap}
+                markdown={normalizeMarkdown(answer)}
+                onCitationClick={onCitationClick}
+              />
+              <AnswerSourceList
+                citationDocuments={citationDocuments}
+                citations={citations}
+                onCitationClick={onCitationClick}
+              />
+            </>
           ) : (
             <p className="text-sm leading-7 text-slate-500">
-              The generated answer will appear here.
+              Câu trả lời sẽ hiển thị tại đây.
             </p>
           )}
           {asking ? (
@@ -88,7 +97,7 @@ export function ChatAnswerPanel({
 
         {citations.length === 0 ? (
           <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-            Citation details will appear after an answer is generated.
+            Chi tiết trích dẫn sẽ hiển thị sau khi có câu trả lời.
           </p>
         ) : (
           <div className="space-y-3">
@@ -124,7 +133,7 @@ export function ChatAnswerPanel({
                           {document?.title ?? `Document ${citation.document_id.slice(0, 8)}`}
                         </span>
                         <span className="font-mono text-xs text-slate-500">
-                          Chunk {citation.chunk_index}
+                          Đoạn {citation.chunk_index}
                         </span>
                       </div>
 
@@ -140,7 +149,7 @@ export function ChatAnswerPanel({
                         ) : null}
                         {pageNumber ? (
                           <span className="rounded-full bg-white px-2.5 py-1">
-                            Page {pageNumber}
+                            Trang {pageNumber}
                           </span>
                         ) : null}
                         {sourceFlags.map((flag) => (
@@ -160,7 +169,7 @@ export function ChatAnswerPanel({
                       type="button"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
-                      Focus
+                      Xem nguồn
                     </button>
                   </div>
 
@@ -174,10 +183,10 @@ export function ChatAnswerPanel({
                   <div className="mt-3 rounded-xl bg-white px-4 py-3">
                     <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                       <Quote className="h-3.5 w-3.5" />
-                      Quote
+                      Trích đoạn
                     </div>
                     <p className="text-sm leading-7 text-slate-700">
-                      {citation.quote ?? "No quote available."}
+                      {citation.quote ?? "Không có trích đoạn."}
                     </p>
                   </div>
                 </article>
@@ -186,6 +195,83 @@ export function ChatAnswerPanel({
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function AnswerSourceList({
+  citations,
+  citationDocuments,
+  onCitationClick,
+}: {
+  citations: RagCitation[];
+  citationDocuments: Record<string, DocumentDetailResponse>;
+  onCitationClick: (citationIndex: number) => void;
+}) {
+  if (citations.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-5 border-t border-slate-200 pt-4">
+      <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
+        <Quote className="h-4 w-4 text-cyan-700" />
+        Trích dẫn từ:
+      </div>
+      <div className="space-y-2">
+        {citations.map((citation) => {
+          const document = citationDocuments[citation.document_id];
+          const file = document?.files?.[0];
+          const downloadUrl = file?.download_url
+            ? absoluteDownloadUrl(file.download_url)
+            : null;
+          const title =
+            document?.title ?? citation.document_title ?? `Tài liệu ${citation.document_id.slice(0, 8)}`;
+          const fileName = file?.filename ?? citation.file_name ?? document?.filename ?? "Không rõ file";
+
+          return (
+            <div
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+              key={`answer-source-${citation.document_id}-${citation.chunk_id}-${citation.citation_index}`}
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  className="inline-flex h-6 min-w-6 cursor-pointer items-center justify-center rounded-full bg-slate-900 px-2 text-xs font-semibold text-white"
+                  onClick={() => onCitationClick(citation.citation_index)}
+                  type="button"
+                >
+                  {citation.citation_index}
+                </button>
+                <span className="font-medium text-slate-900">{title}</span>
+                <span className="text-xs text-slate-500">Đoạn {citation.chunk_index}</span>
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1">
+                  <FileText className="h-3.5 w-3.5" />
+                  {fileName}
+                </span>
+                {downloadUrl ? (
+                  <a
+                    className="inline-flex max-w-full items-center gap-1 rounded-full bg-white px-2.5 py-1 font-medium text-cyan-700 hover:text-cyan-900"
+                    href={downloadUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                    title={downloadUrl}
+                  >
+                    <Download className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">Tải file</span>
+                  </a>
+                ) : null}
+              </div>
+              {citation.quote ? (
+                <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-600">
+                  {citation.quote}
+                </p>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -307,6 +393,13 @@ function normalizeMarkdown(markdown: string): string {
   return markdown
     .replace(/\r\n/g, "\n")
     .replace(/([^\n])\n(?!\n|[-*]\s|\d+\.\s|>\s)/g, "$1  \n");
+}
+
+function absoluteDownloadUrl(downloadUrl: string): string {
+  if (/^https?:\/\//i.test(downloadUrl)) {
+    return downloadUrl;
+  }
+  return `${API_BASE_URL}${downloadUrl.startsWith("/") ? "" : "/"}${downloadUrl}`;
 }
 
 function stringValue(value: unknown): string | null {

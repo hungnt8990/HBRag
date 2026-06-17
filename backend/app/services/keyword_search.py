@@ -13,13 +13,16 @@ from sqlalchemy import (
     cast,
     func,
     literal_column,
+    not_,
     or_,
     select,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.models.chunk import Chunk
 from app.schemas.documents import KeywordSearchResponse, KeywordSearchResult
+from app.services.access_control import AccessFilter
 from app.services.table_aware_chunking import extract_entities_from_text
 from app.services.table_relationships import analyze_person_area_membership_query
 
@@ -98,12 +101,18 @@ class KeywordSearchService:
         query: str,
         top_k: int,
         document_ids: set[UUID] | None = None,
+        access_filter: AccessFilter | None = None,
     ) -> KeywordSearchResponse:
         exact_terms = self._extract_exact_terms(query)
         try:
             if document_ids is not None and not document_ids:
                 return KeywordSearchResponse(query=query, top_k=top_k, results=[])
-            statement = self.build_statement(query=query, top_k=top_k, document_ids=document_ids)
+            statement = self.build_statement(
+                query=query,
+                top_k=top_k,
+                document_ids=document_ids,
+                access_filter=access_filter,
+            )
             result = await self._session.execute(statement)
             rows = result.mappings().all()
         except Exception as exc:
@@ -134,6 +143,7 @@ class KeywordSearchService:
         query: str,
         top_k: int,
         document_ids: set[UUID] | None = None,
+        access_filter: AccessFilter | None = None,
     ) -> Select[tuple[Any, ...]]:
         query_param = bindparam(KEYWORD_QUERY_PARAM, value=query)
         ts_query = func.plainto_tsquery(TS_CONFIG, query_param)
@@ -189,7 +199,62 @@ class KeywordSearchService:
         )
         if document_ids is not None:
             statement = statement.where(Chunk.document_id.in_(document_ids))
+        if access_filter is not None:
+            statement = statement.where(*KeywordSearchService._access_clauses(access_filter))
         return statement
+
+    @staticmethod
+    def _access_clauses(access_filter: AccessFilter) -> list[Any]:
+        if settings.access_read_all_documents:
+            return []
+        access = Chunk.chunk_metadata["access"]
+        allowed_classifications = [
+            name
+            for name, rank in settings.access_classification_rank.items()
+            if rank <= access_filter.clearance_rank
+        ]
+        org_ids = set(access_filter.descendant_org_ids)
+        if access_filter.organization_id:
+            org_ids.add(access_filter.organization_id)
+        clauses: list[Any] = [
+            or_(
+                access["classification"].as_string().is_(None),
+                access["classification"].as_string().in_(allowed_classifications),
+            ),
+            or_(
+                access["denied_user_ids"].is_(None),
+                not_(access["denied_user_ids"].contains([access_filter.subject_user_id])),
+            ),
+        ]
+        for key, values in (
+            ("denied_org_ids", org_ids),
+            ("denied_role_names", access_filter.role_names),
+            ("denied_group_codes", access_filter.group_codes),
+        ):
+            for value in values:
+                clauses.append(or_(access[key].is_(None), not_(access[key].contains([value]))))
+
+        should = [
+            access["scope"].as_string().is_(None),
+            access["scope"].as_string().in_(settings.access_corp_wide_scopes),
+        ]
+        if org_ids:
+            should.append(access["owner_org_id"].as_string().in_(sorted(org_ids)))
+            for org_id in org_ids:
+                should.append(access["allowed_org_ids"].contains([org_id]))
+        should.append(access["allowed_user_ids"].contains([access_filter.subject_user_id]))
+        for key, values in (
+            ("allowed_role_names", access_filter.role_names),
+            ("allowed_group_codes", access_filter.group_codes),
+            ("business_domains", access_filter.business_domains),
+            ("project_codes", access_filter.project_codes),
+        ):
+            for value in values:
+                should.append(access[key].contains([value]))
+        if access_filter.org_path:
+            should.append(access["allowed_org_paths"].contains([access_filter.org_path]))
+        clauses.append(or_(*should))
+        return clauses
 
     @staticmethod
     def _preview(content: str) -> str:

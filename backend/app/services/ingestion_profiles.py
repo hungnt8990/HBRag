@@ -87,6 +87,40 @@ BOOTSTRAP_PROFILE_CONFIGS: dict[str, dict[str, Any]] = {
             ".Net Core": ".NET Core",
         },
     },
+    "staff_technology_matrix": {
+        "chunk_mode": "table_aware",
+        "chunk_size": 1600,
+        "chunk_overlap": 120,
+        "top_k": 12,
+        "candidate_k": 80,
+        "answer_mode": "hybrid",
+        "answer_style": "table_qa",
+        "max_context_chars": 10000,
+        "heading_rules": [],
+        "detect_rules": {
+            "title_keywords": [
+                "nhiệm vụ các mảng công nghệ",
+                "mảng công nghệ nền tảng ai",
+                "danh sách nhân sự",
+                "nhân sự phụ trách",
+                "nhân sự đề xuất",
+            ],
+            "table_headers": [
+                "STT",
+                "Mảng công nghệ",
+                "Phòng chủ trì",
+                "Nhân sự đề xuất",
+                "Nhân sự tham gia",
+                "Mục tiêu",
+            ],
+            "min_score": 6,
+        },
+        "semantic_chunk_types": [
+            "person_technology_assignment",
+            "technology_area_summary",
+            "staff_matrix_row",
+        ],
+    },
     "general": {
         "chunk_mode": "recursive",
         "chunk_size": 1000,
@@ -153,9 +187,10 @@ def _load_file_configs() -> dict[str, dict[str, Any]] | None:
 
 
 def get_profile_configs() -> dict[str, dict[str, Any]]:
-    configs = _load_file_configs()
-    if configs is None:
-        configs = BOOTSTRAP_PROFILE_CONFIGS
+    file_configs = _load_file_configs()
+    configs = copy.deepcopy(BOOTSTRAP_PROFILE_CONFIGS)
+    if file_configs is not None:
+        configs.update(file_configs)
     merged: dict[str, dict[str, Any]] = {}
     for name, config in configs.items():
         merged[name] = {**FALLBACK_CONFIG, **copy.deepcopy(config)}

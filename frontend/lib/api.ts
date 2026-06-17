@@ -47,6 +47,49 @@ export type DocumentBatchUploadResponse = {
   failed_count: number;
 };
 
+export type DocumentAccessPolicy = {
+  scope?: string | null;
+  classification?: string | null;
+  owner_org_id?: string | null;
+  owner_org_path?: string | null;
+  business_domains: string[];
+  project_codes: string[];
+  allowed_org_ids: string[];
+  allowed_org_paths: string[];
+  allowed_role_names: string[];
+  allowed_group_codes: string[];
+  allowed_user_ids: string[];
+  denied_org_ids: string[];
+  denied_org_paths: string[];
+  denied_role_names: string[];
+  denied_group_codes: string[];
+  denied_user_ids: string[];
+  inherit_permission: boolean;
+  access_policy_id?: string | null;
+};
+
+export type DocumentAccessResponse = {
+  document_id: string;
+  access: DocumentAccessPolicy;
+};
+
+export type UploadAccessOptions = {
+  organization_id?: string;
+  access_scope?: string;
+  classification?: string;
+  allowed_org_ids?: string;
+  allowed_org_paths?: string;
+  allowed_role_names?: string;
+  allowed_group_codes?: string;
+  allowed_user_ids?: string;
+  denied_org_ids?: string;
+  denied_org_paths?: string;
+  denied_role_names?: string;
+  denied_group_codes?: string;
+  denied_user_ids?: string;
+  inherit_permission?: boolean;
+};
+
 export type DocumentParseResponse = {
   document_id: string;
   status: string;
@@ -440,9 +483,28 @@ export async function getCurrentUser(): Promise<AuthUser> {
   });
 }
 
-export async function uploadDocument(file: File): Promise<DocumentUploadResponse> {
+function appendUploadAccessOptions(
+  formData: FormData,
+  access?: UploadAccessOptions,
+) {
+  if (!access) {
+    return;
+  }
+  for (const [key, value] of Object.entries(access)) {
+    if (value === undefined || value === null || value === "") {
+      continue;
+    }
+    formData.append(key, String(value));
+  }
+}
+
+export async function uploadDocument(
+  file: File,
+  access?: UploadAccessOptions,
+): Promise<DocumentUploadResponse> {
   const formData = new FormData();
   formData.append("file", file);
+  appendUploadAccessOptions(formData, access);
 
   return requestJson<DocumentUploadResponse>("/api/documents/upload", {
     method: "POST",
@@ -452,11 +514,13 @@ export async function uploadDocument(file: File): Promise<DocumentUploadResponse
 
 export async function uploadDocumentBatch(
   files: File[],
+  access?: UploadAccessOptions,
 ): Promise<DocumentBatchUploadResponse> {
   const formData = new FormData();
   for (const file of files) {
     formData.append("files", file);
   }
+  appendUploadAccessOptions(formData, access);
   return requestJson<DocumentBatchUploadResponse>("/api/documents/upload-batch", {
     method: "POST",
     body: formData,
@@ -581,6 +645,25 @@ export async function getDocumentDetail(
   });
 }
 
+export async function getDocumentAccess(
+  documentId: string,
+): Promise<DocumentAccessResponse> {
+  return requestJson<DocumentAccessResponse>(`/api/documents/${documentId}/access`, {
+    method: "GET",
+  });
+}
+
+export async function updateDocumentAccess(
+  documentId: string,
+  access: DocumentAccessPolicy,
+): Promise<DocumentAccessResponse> {
+  return requestJson<DocumentAccessResponse>(`/api/documents/${documentId}/access`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(access),
+  });
+}
+
 export async function downloadDocumentFile(file: DocumentDetailFile): Promise<void> {
   const headers = new Headers();
   const token = getStoredAccessToken();
@@ -682,9 +765,13 @@ export async function getGraphHealth(): Promise<GraphHealthResponse> {
   });
 }
 
-export async function enqueueIngestionJob(file: File): Promise<IngestionJob> {
+export async function enqueueIngestionJob(
+  file: File,
+  access?: UploadAccessOptions,
+): Promise<IngestionJob> {
   const formData = new FormData();
   formData.append("file", file);
+  appendUploadAccessOptions(formData, access);
 
   return requestJson<IngestionJob>("/api/admin/ingestion-jobs", {
     method: "POST",

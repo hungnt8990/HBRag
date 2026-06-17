@@ -17,6 +17,10 @@ from app.repositories.documents import DocumentRepository
 from app.repositories.graph import GraphRepository
 from app.repositories.knowledge_bases import KnowledgeBaseRepository
 from app.schemas.documents import (
+    DocumentAccessDecisionResponse,
+    DocumentAccessResponse,
+    DocumentAccessTestRequest,
+    DocumentAccessUpdateRequest,
     DocumentBatchUploadItem,
     DocumentBatchUploadResponse,
     DocumentChunkDetailResponse,
@@ -35,6 +39,13 @@ from app.schemas.documents import (
     GraphExtractionLogResponse,
     GraphIndexRequest,
     GraphIndexResponse,
+)
+from app.services.access_control import (
+    AccessAction,
+    build_resource_context,
+    build_subject_context,
+    can_access_resource,
+    normalize_document_access_metadata,
 )
 from app.services.chunking_service import (
     ChunkingService,
@@ -195,6 +206,19 @@ async def upload_document(
     visibility: Annotated[str, Form()] = "organization",
     organization_id: Annotated[UUID | None, Form()] = None,
     knowledge_base_id: Annotated[UUID | None, Form()] = None,
+    access_scope: Annotated[str | None, Form()] = None,
+    classification: Annotated[str | None, Form()] = None,
+    allowed_org_ids: Annotated[str | None, Form()] = None,
+    allowed_org_paths: Annotated[str | None, Form()] = None,
+    allowed_role_names: Annotated[str | None, Form()] = None,
+    allowed_group_codes: Annotated[str | None, Form()] = None,
+    allowed_user_ids: Annotated[str | None, Form()] = None,
+    denied_org_ids: Annotated[str | None, Form()] = None,
+    denied_org_paths: Annotated[str | None, Form()] = None,
+    denied_role_names: Annotated[str | None, Form()] = None,
+    denied_group_codes: Annotated[str | None, Form()] = None,
+    denied_user_ids: Annotated[str | None, Form()] = None,
+    inherit_permission: Annotated[bool | None, Form()] = None,
 ) -> DocumentUploadResponse:
     if not can_upload_document(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Upload is not allowed.")
@@ -223,6 +247,22 @@ async def upload_document(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot upload to the selected organization.",
         )
+    access = _upload_access_payload(
+        target_organization_id=target_organization_id,
+        access_scope=access_scope,
+        classification=classification,
+        allowed_org_ids=allowed_org_ids,
+        allowed_org_paths=allowed_org_paths,
+        allowed_role_names=allowed_role_names,
+        allowed_group_codes=allowed_group_codes,
+        allowed_user_ids=allowed_user_ids,
+        denied_org_ids=denied_org_ids,
+        denied_org_paths=denied_org_paths,
+        denied_role_names=denied_role_names,
+        denied_group_codes=denied_group_codes,
+        denied_user_ids=denied_user_ids,
+        inherit_permission=inherit_permission,
+    )
 
     try:
         response = await service.upload_document(
@@ -231,6 +271,7 @@ async def upload_document(
             organization_id=target_organization_id,
             knowledge_base_id=knowledge_base.id,
             visibility=visibility,
+            access=access,
         )
         await log_repository.create_pipeline_log(
             document_id=response.document_id,
@@ -242,6 +283,7 @@ async def upload_document(
             metadata={
                 "storage_path": response.storage_path,
                 "knowledge_base_id": str(knowledge_base.id),
+                "access": access,
             },
         )
         await repository.commit()
@@ -282,6 +324,19 @@ async def upload_documents_batch(
     visibility: Annotated[str, Form()] = "organization",
     organization_id: Annotated[UUID | None, Form()] = None,
     knowledge_base_id: Annotated[UUID | None, Form()] = None,
+    access_scope: Annotated[str | None, Form()] = None,
+    classification: Annotated[str | None, Form()] = None,
+    allowed_org_ids: Annotated[str | None, Form()] = None,
+    allowed_org_paths: Annotated[str | None, Form()] = None,
+    allowed_role_names: Annotated[str | None, Form()] = None,
+    allowed_group_codes: Annotated[str | None, Form()] = None,
+    allowed_user_ids: Annotated[str | None, Form()] = None,
+    denied_org_ids: Annotated[str | None, Form()] = None,
+    denied_org_paths: Annotated[str | None, Form()] = None,
+    denied_role_names: Annotated[str | None, Form()] = None,
+    denied_group_codes: Annotated[str | None, Form()] = None,
+    denied_user_ids: Annotated[str | None, Form()] = None,
+    inherit_permission: Annotated[bool | None, Form()] = None,
 ) -> DocumentBatchUploadResponse:
     if not can_upload_document(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Upload is not allowed.")
@@ -310,6 +365,22 @@ async def upload_documents_batch(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot upload to the selected organization.",
         )
+    access = _upload_access_payload(
+        target_organization_id=target_organization_id,
+        access_scope=access_scope,
+        classification=classification,
+        allowed_org_ids=allowed_org_ids,
+        allowed_org_paths=allowed_org_paths,
+        allowed_role_names=allowed_role_names,
+        allowed_group_codes=allowed_group_codes,
+        allowed_user_ids=allowed_user_ids,
+        denied_org_ids=denied_org_ids,
+        denied_org_paths=denied_org_paths,
+        denied_role_names=denied_role_names,
+        denied_group_codes=denied_group_codes,
+        denied_user_ids=denied_user_ids,
+        inherit_permission=inherit_permission,
+    )
 
     results: list[DocumentBatchUploadItem] = []
     for upload_file in files:
@@ -320,6 +391,7 @@ async def upload_documents_batch(
                 organization_id=target_organization_id,
                 knowledge_base_id=knowledge_base.id,
                 visibility=visibility,
+                access=access,
             )
             await log_repository.create_pipeline_log(
                 document_id=response.document_id,
@@ -331,6 +403,7 @@ async def upload_documents_batch(
                 metadata={
                     "storage_path": response.storage_path,
                     "knowledge_base_id": str(knowledge_base.id),
+                    "access": access,
                 },
             )
             await repository.commit()
@@ -367,6 +440,52 @@ async def upload_documents_batch(
         failed_count=len(results) - success_count,
     )
 
+
+def _upload_access_payload(
+    *,
+    target_organization_id: UUID | None,
+    access_scope: str | None,
+    classification: str | None,
+    allowed_org_ids: str | None,
+    allowed_org_paths: str | None,
+    allowed_role_names: str | None,
+    allowed_group_codes: str | None,
+    allowed_user_ids: str | None,
+    denied_org_ids: str | None,
+    denied_org_paths: str | None,
+    denied_role_names: str | None,
+    denied_group_codes: str | None,
+    denied_user_ids: str | None,
+    inherit_permission: bool | None,
+) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "owner_org_id": str(target_organization_id) if target_organization_id else None,
+        "scope": access_scope,
+        "classification": classification,
+        "allowed_org_ids": _split_form_list(allowed_org_ids),
+        "allowed_org_paths": _split_form_list(allowed_org_paths),
+        "allowed_role_names": _split_form_list(allowed_role_names),
+        "allowed_group_codes": _split_form_list(allowed_group_codes),
+        "allowed_user_ids": _split_form_list(allowed_user_ids),
+        "denied_org_ids": _split_form_list(denied_org_ids),
+        "denied_org_paths": _split_form_list(denied_org_paths),
+        "denied_role_names": _split_form_list(denied_role_names),
+        "denied_group_codes": _split_form_list(denied_group_codes),
+        "denied_user_ids": _split_form_list(denied_user_ids),
+    }
+    if inherit_permission is not None:
+        payload["inherit_permission"] = inherit_permission
+    return {
+        key: value
+        for key, value in payload.items()
+        if value is not None and value != "" and value != []
+    }
+
+def _split_form_list(value: str | None) -> list[str]:
+    if value is None:
+        return []
+    normalized = value.replace(";", ",").replace("|", ",")
+    return [item.strip() for item in normalized.split(",") if item.strip()]
 
 async def _resolve_upload_knowledge_base(
     *,
@@ -691,6 +810,104 @@ async def parse_document(
         ) from exc
 
 
+@router.get("/{document_id}/access", response_model=DocumentAccessResponse)
+async def get_document_access(
+    document_id: UUID,
+    repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+    auth_repository: Annotated[AuthRepository, Depends(get_auth_repository)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> DocumentAccessResponse:
+    document = await _require_manageable_document(
+        document_id=document_id,
+        repository=repository,
+        auth_repository=auth_repository,
+        current_user=current_user,
+    )
+    return DocumentAccessResponse(
+        document_id=document.id,
+        access=normalize_document_access_metadata(document),
+    )
+
+@router.patch("/{document_id}/access", response_model=DocumentAccessResponse)
+async def update_document_access(
+    document_id: UUID,
+    request: DocumentAccessUpdateRequest,
+    repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+    auth_repository: Annotated[AuthRepository, Depends(get_auth_repository)],
+    log_repository: Annotated[DocumentLogRepository, Depends(get_document_log_repository)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> DocumentAccessResponse:
+    document = await _require_manageable_document(
+        document_id=document_id,
+        repository=repository,
+        auth_repository=auth_repository,
+        current_user=current_user,
+    )
+    document = await repository.update_document_access(
+        document,
+        request.model_dump(exclude_none=True),
+    )
+    await log_repository.create_access_log(
+        document_id=document.id,
+        user_id=current_user.id,
+        organization_id=current_user.organization_id,
+        action="manage_acl",
+        metadata={"decision": "allowed"},
+    )
+    await log_repository.commit()
+    return DocumentAccessResponse(
+        document_id=document.id,
+        access=normalize_document_access_metadata(document),
+    )
+
+@router.post("/{document_id}/access/test", response_model=DocumentAccessDecisionResponse)
+async def test_document_access(
+    document_id: UUID,
+    request: DocumentAccessTestRequest,
+    repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+    auth_repository: Annotated[AuthRepository, Depends(get_auth_repository)],
+    log_repository: Annotated[DocumentLogRepository, Depends(get_document_log_repository)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> DocumentAccessDecisionResponse:
+    document = await _require_manageable_document(
+        document_id=document_id,
+        repository=repository,
+        auth_repository=auth_repository,
+        current_user=current_user,
+    )
+    target_user = await auth_repository.get_user_by_id(request.user_id)
+    if target_user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    try:
+        action = AccessAction(request.action)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid access action.",
+        ) from exc
+    descendant_ids = await auth_repository.get_descendant_organization_ids(
+        target_user.organization_id
+    )
+    decision = can_access_resource(
+        build_subject_context(target_user, descendant_organization_ids=descendant_ids),
+        build_resource_context(document),
+        action,
+    )
+    await log_repository.create_access_log(
+        document_id=document.id,
+        user_id=current_user.id,
+        organization_id=current_user.organization_id,
+        action="manage_acl",
+        metadata={
+            "tested_user_id": str(target_user.id),
+            "tested_action": action.value,
+            "decision": "allowed" if decision.allowed else "denied",
+            "reason": decision.reason,
+        },
+    )
+    await log_repository.commit()
+    return DocumentAccessDecisionResponse(**decision.model_dump())
+
 @router.get("/{document_id}", response_model=DocumentDetailResponse)
 async def get_document_detail(
     document_id: UUID,
@@ -708,6 +925,14 @@ async def get_document_detail(
         current_user.organization_id
     )
     if not can_view_document(current_user, document, descendant_organization_ids=descendant_ids):
+        await log_repository.create_access_log(
+            document_id=document.id,
+            user_id=current_user.id,
+            organization_id=current_user.organization_id,
+            action="denied_access",
+            metadata={"attempted_action": "open_document"},
+        )
+        await log_repository.commit()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Document is not visible.",
@@ -718,6 +943,7 @@ async def get_document_detail(
         user_id=current_user.id,
         organization_id=current_user.organization_id,
         action="view",
+        metadata={"canonical_action": "open_document"},
     )
     pipeline_logs = await log_repository.latest_pipeline_logs(document_id=document.id)
     pipeline_logs_count = await log_repository.count_pipeline_logs(document_id=document.id)
@@ -825,6 +1051,14 @@ async def download_document_file(
         current_user.organization_id
     )
     if not can_view_document(current_user, document, descendant_organization_ids=descendant_ids):
+        await log_repository.create_access_log(
+            document_id=document.id,
+            user_id=current_user.id,
+            organization_id=current_user.organization_id,
+            action="denied_access",
+            metadata={"attempted_action": "download", "file_id": str(file_id)},
+        )
+        await log_repository.commit()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Document is not visible.",

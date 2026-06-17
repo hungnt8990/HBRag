@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 from uuid import UUID, uuid4
 
 import anyio
@@ -51,6 +52,7 @@ class DocumentService:
         organization_id: UUID | None = None,
         knowledge_base_id: UUID | None = None,
         visibility: str = "organization",
+        access: dict[str, Any] | None = None,
     ) -> DocumentUploadResponse:
         filename = self._clean_filename(upload_file.filename)
         extension = Path(filename).suffix.lower()
@@ -92,6 +94,7 @@ class DocumentService:
                     organization_id=organization_id,
                     knowledge_base_id=knowledge_base_id,
                     visibility=visibility,
+                    access=access,
                 )
             except TypeError:
                 document = await self._repository.create_document(

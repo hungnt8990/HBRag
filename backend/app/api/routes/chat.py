@@ -1,3 +1,4 @@
+import inspect
 import json
 from typing import Annotated
 from uuid import UUID
@@ -18,6 +19,7 @@ from app.repositories.documents import DocumentRepository
 from app.repositories.knowledge_bases import KnowledgeBaseRepository
 from app.repositories.memory import MemoryRepository
 from app.schemas.chat import RagChatRequest, RagChatResponse, RagChatStreamRequest
+from app.services.access_control import build_access_filter, build_subject_context
 from app.services.document_profiles import profile_config, resolve_profile
 from app.services.llms import LLMProvider
 from app.services.llms.factory import get_llm_provider
@@ -139,6 +141,10 @@ async def rag_chat(
             visible_document_ids,
             request.session_context.allowed_document_ids if request.session_context else None,
         )
+        subject_context = await _subject_context(
+            auth_repository=auth_repository,
+            current_user=current_user,
+        )
         memory_context, session_summary = await _gather_memory(
             memory_repository=memory_repository,
             current_user=current_user,
@@ -167,7 +173,8 @@ async def rag_chat(
             answer_style=request.answer_style,
             max_context_chars=request.max_context_chars,
         )
-        response = await service.answer(
+        response = await _call_answer_service(
+            service,
             query=request.query,
             session_id=request.session_id,
             top_k=resolved["top_k"],
@@ -183,6 +190,8 @@ async def rag_chat(
             use_graph=request.use_graph,
             graph_expansion_depth=request.graph_expansion_depth,
             graph_expansion_limit=request.graph_expansion_limit,
+            access_filter=build_access_filter(subject_context),
+            subject_context=subject_context,
         )
         await _auto_save(
             memory_repository=memory_repository,
@@ -394,6 +403,10 @@ async def rag_chat_stream(
         visible_document_ids,
         request.session_context.allowed_document_ids if request.session_context else None,
     )
+    subject_context = await _subject_context(
+        auth_repository=auth_repository,
+        current_user=current_user,
+    )
     memory_context, session_summary = await _gather_memory(
         memory_repository=memory_repository,
         current_user=current_user,
@@ -425,7 +438,8 @@ async def rag_chat_stream(
 
     async def event_stream():
         try:
-            async for event in service.answer_stream(
+            async for event in _call_answer_stream_service(
+                service,
                 query=request.query,
                 session_id=request.session_id,
                 top_k=resolved["top_k"],
@@ -441,6 +455,8 @@ async def rag_chat_stream(
                 use_graph=request.use_graph,
                 graph_expansion_depth=request.graph_expansion_depth,
                 graph_expansion_limit=request.graph_expansion_limit,
+                access_filter=build_access_filter(subject_context),
+                subject_context=subject_context,
             ):
                 yield _format_sse_event(event)
         except ChatSessionNotFoundError:
@@ -535,3 +551,45 @@ async def _visible_document_ids(
             if document.id == candidate_id and document.organization_id in requested_org_ids
         }
     return visible_ids
+
+
+async def _subject_context(
+    *,
+    auth_repository: AuthRepository,
+    current_user: User,
+):
+    descendant_ids = await auth_repository.get_descendant_organization_ids(
+        current_user.organization_id
+    )
+    return build_subject_context(
+        current_user,
+        descendant_organization_ids=descendant_ids,
+    )
+
+
+async def _call_answer_service(service, **kwargs):
+    parameters = inspect.signature(service.answer).parameters
+    accepts_var_kwargs = any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD
+        for parameter in parameters.values()
+    )
+    supported = (
+        kwargs
+        if accepts_var_kwargs
+        else {key: value for key, value in kwargs.items() if key in parameters}
+    )
+    return await service.answer(**supported)
+
+
+def _call_answer_stream_service(service, **kwargs):
+    parameters = inspect.signature(service.answer_stream).parameters
+    accepts_var_kwargs = any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD
+        for parameter in parameters.values()
+    )
+    supported = (
+        kwargs
+        if accepts_var_kwargs
+        else {key: value for key, value in kwargs.items() if key in parameters}
+    )
+    return service.answer_stream(**supported)

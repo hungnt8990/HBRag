@@ -36,6 +36,8 @@ class FakeIngestionQueue:
             updated_at=datetime.now(UTC),
         )
         self.run_calls: list[object] = []
+        self.upload_access: dict[str, object] | None = None
+        self.organization_id: UUID | None = None
 
     def enqueue_upload(
         self,
@@ -43,9 +45,13 @@ class FakeIngestionQueue:
         filename: str,
         content_type: str | None,
         content: bytes,
+        organization_id: UUID | None = None,
+        access: dict[str, object] | None = None,
     ) -> IngestionJob:
         self.job.filename = filename
         self.job.content_type = content_type
+        self.organization_id = organization_id
+        self.upload_access = access
         return self.job
 
     def get_job(self, job_id: object) -> IngestionJob | None:
@@ -180,6 +186,40 @@ def test_admin_enqueue_ingestion_job_returns_queued_job() -> None:
     assert payload["steps"][0]["name"] == "upload"
     assert payload["logs"] == []
     assert queue.run_calls == [queue.job.job_id]
+
+def test_admin_enqueue_ingestion_job_accepts_access_fields() -> None:
+    queue = FakeIngestionQueue()
+    organization_id = UUID("bbbbbbbb-2222-2222-2222-bbbbbbbbbbbb")
+    app.dependency_overrides[get_ingestion_queue] = lambda: queue
+    app.dependency_overrides[get_document_repository] = lambda: FakeDocumentRepository()
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/admin/ingestion-jobs",
+            data={
+                "organization_id": str(organization_id),
+                "access_scope": "explicit_acl",
+                "classification": "restricted",
+                "allowed_org_ids": "org-a,org-b",
+                "allowed_role_names": "COMPANY_ADMIN|UNIT_USER",
+                "allowed_group_codes": "ai-team;legal-team",
+            },
+            files={"file": ("sample.pdf", b"%PDF-1.4 test", "application/pdf")},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 202
+    assert queue.organization_id == organization_id
+    assert queue.upload_access == {
+        "owner_org_id": str(organization_id),
+        "scope": "explicit_acl",
+        "classification": "restricted",
+        "allowed_org_ids": ["org-a", "org-b"],
+        "allowed_role_names": ["COMPANY_ADMIN", "UNIT_USER"],
+        "allowed_group_codes": ["ai-team", "legal-team"],
+    }
 
 def test_admin_enqueue_ingestion_job_rejects_duplicate_file() -> None:
     queue = FakeIngestionQueue()

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import logging
 import re
 import unicodedata
@@ -16,16 +17,23 @@ from app.repositories.chat import ChatRepository, CitationCreate
 from app.repositories.document_logs import DocumentLogRepository
 from app.schemas.chat import RagChatResponse, RagCitationResponse, RagSessionContext
 from app.schemas.documents import RerankSearchResult
+from app.services.access_control import (
+    AccessAction,
+    AccessFilter,
+    SubjectContext,
+    build_access_filter,
+    build_resource_context,
+    build_subject_context,
+    can_access_resource,
+)
 from app.services.hybrid_search import is_identifier_lookup_query
 from app.services.llms import LLMProvider
 from app.services.memory.base import MemoryResult
+from app.services.query_rewrite_service import QueryRewriteResult, QueryRewriteService
 from app.services.query_scope_router import classify_query_scope, scoped_direct_answer
 from app.services.reranking_service import RerankingService
-from app.services.structured.answer_renderer import render_structured_answer
-from app.services.structured.context_completion import collect_structured_evidence
 from app.services.table_aware_chunking import extract_entities_from_text
 from app.services.table_relationships import (
-    analyze_person_area_membership_query,
     is_trusted_relationship_metadata,
     normalize_metadata_value,
 )
@@ -36,16 +44,19 @@ MEMORY_RULES = (
     "Citations must only refer to the numbered retrieved document chunks."
 )
 
-SYSTEM_PROMPT = (
-    "You are a grounded RAG assistant. Answer only from the provided document context. "
-    "If the answer is not in the context, say you do not have enough information. "
-    f"{MEMORY_RULES}"
+LANGUAGE_OUTPUT_RULES = (
+    "Answer in the same language as the user's question unless the user asks for a "
+    "different language. Preserve proper names, document titles, identifiers, and quoted "
+    "source text exactly as written in the retrieved context. Use only inline numeric "
+    "citation markers like [1]. Do not create a separate Sources, References, or "
+    "Documents section; the application renders the source list separately. Never output "
+    "hidden reasoning, chain-of-thought, scratchpad text, or <think> tags."
 )
 
+SYSTEM_PROMPT = f"You are a grounded RAG assistant. Answer only from the provided document context. If the answer is not in the context, say you do not have enough information. {MEMORY_RULES} {LANGUAGE_OUTPUT_RULES}"
+
 GENERATIVE_PROMPT = (
-    "You are a grounded RAG assistant. Answer naturally and summarize the retrieved "
-    "document context. If the answer is not in the context, say you do not have enough "
-    f"information. {MEMORY_RULES}"
+    f"You are a grounded RAG assistant. Answer naturally and summarize the retrieved document context. If the answer is not in the context, say you do not have enough information. {MEMORY_RULES} {LANGUAGE_OUTPUT_RULES}"
 )
 
 EXTRACTIVE_PROMPT = (
@@ -54,14 +65,10 @@ EXTRACTIVE_PROMPT = (
     "Do not infer. Do not summarize. Do not rewrite legal wording. "
     "Prefer direct quotations from the retrieved chunks. "
     "If the answer is not in the context, say you do not have enough information. "
-    f"{MEMORY_RULES}"
+    f"{MEMORY_RULES} {LANGUAGE_OUTPUT_RULES}"
 )
 
-HYBRID_PROMPT = (
-    "Provide a concise answer. Then provide supporting text from the retrieved context. "
-    "If the answer is not in the context, say you do not have enough information. "
-    f"{MEMORY_RULES}"
-)
+HYBRID_PROMPT = f"Provide a concise answer grounded in the retrieved context, with supporting details. If the answer is not in the context, say you do not have enough information. {MEMORY_RULES} {LANGUAGE_OUTPUT_RULES}"
 
 ANSWER_MODE_PROMPTS = {
     "generative": GENERATIVE_PROMPT,
@@ -71,10 +78,7 @@ ANSWER_MODE_PROMPTS = {
 DEFAULT_ANSWER_MODE = "hybrid"
 
 CONCISE_STYLE = "Answer style: Concise. Reply in 1-2 sentences without filler."
-DETAILED_STYLE = (
-    "Answer style: Detailed. Provide a thorough explanation. Preserve exact numbers, "
-    "dates, money amounts, and legal wording from the context."
-)
+DETAILED_STYLE = "Answer style: Detailed. Provide a thorough explanation. Preserve exact numbers, dates, money amounts, and legal wording from the context."
 POLICY_EXPLAINER_STYLE = (
     "Answer style: Policy explainer. "
     "1) Answer the direct question first using exact numbers, dates, monetary amounts, "
@@ -87,15 +91,13 @@ POLICY_EXPLAINER_STYLE = (
     "4) If table rows exist in the context and the user asks for a list, convert them "
     "into clear bullet points. "
     "5) Cite source chunks using their numeric markers. "
-    "6) Use Vietnamese administrative style. "
-    "For short identifier/code queries such as '3113', answer what the identifier refers "
+    "For short identifier/code queries, answer what the identifier refers "
     "to and the directly attached date/topic only; do not expand into other retrieved "
     "chunks unless they literally contain the same identifier. "
     "Do not say 'hôm nay' unless the retrieved context explicitly says today. "
     "Do not repeat the same source line or quote more than once. "
     "Do not list duplicate citations. "
     "If only one relevant item is found, give one concise answer and one source. "
-    "Answer in Vietnamese only; do not use foreign words when Vietnamese wording is available. "
     "Do not invent information."
 )
 
@@ -110,8 +112,8 @@ IDENTIFIER_LOOKUP_STYLE = (
     "as part of a longer code, preserve the full longer code exactly. If there is any "
     "uncertainty, quote the exact identifier string from the context instead of "
     "paraphrasing. Do not infer approval, issuer actions, legal effect, signer, or "
-    "recipient unless explicitly stated in the retrieved context. Answer in Vietnamese "
-    "only, in 1-3 concise sentences, and cite the supporting chunk. "
+    "recipient unless explicitly stated in the retrieved context. Keep the answer to "
+    "1-3 concise sentences and cite the supporting chunk. "
 )
 
 TABLE_QA_STYLE = (
@@ -135,11 +137,11 @@ TABLE_QA_STYLE = (
     "Use TABLE_TITLE and TABLE_HEADER context when available to explain the row. "
     "If multiple rows contain the same entity, list all non-duplicate matching rows. "
     "For each row, prefer descriptive fields over ordinal-only fields. "
-    "For yes/no questions, start the first sentence with Có or Không. "
-    "If a row says Nhân sự đề xuất, say the person is được đề xuất tham gia; do not infer "
-    "they are owner, lead, implementer, or solely responsible. "
-    "For person-area membership, only use table_row or entity_profile context with high "
-    "confidence and relationship_type technology_area_staff. "
+    "For yes/no questions, start with a clear affirmative or negative in the user's language. "
+    "When a table row states a proposed/assigned/listed role, preserve that wording and "
+    "do not infer ownership, leadership, implementation, or sole responsibility. "
+    "For entity-to-topic membership, only use table_row or entity_profile context with "
+    "high confidence metadata. "
     "If context has table_parse_warning or low confidence, say there is not enough direct "
     "evidence and do not use it to confirm membership. "
     "Apply role_note only to the exact person whose row metadata states that note. "
@@ -150,8 +152,7 @@ TABLE_QA_STYLE = (
     "Do not infer missing fields. "
     "Do not use legal/policy language if the document is not a legal/policy document. "
     "Do not say detailed rows are unavailable when TABLE_ROW records are present. "
-    "If there is not enough information, say so clearly. "
-    "Answer in Vietnamese. Do not use foreign words when Vietnamese wording is available. "
+    "If there is not enough information, say so clearly in the user's language. "
     "Do not invent information."
 )
 
@@ -248,11 +249,13 @@ class RagAnswerService:
         reranking_service: RerankingService,
         llm_provider: LLMProvider,
         document_log_repository: DocumentLogRepository | None = None,
+        query_rewrite_service: QueryRewriteService | None = None,
     ) -> None:
         self._chat_repository = chat_repository
         self._reranking_service = reranking_service
         self._llm_provider = llm_provider
         self._document_log_repository = document_log_repository
+        self._query_rewrite_service = query_rewrite_service or QueryRewriteService(llm_provider)
 
     async def answer(
         self,
@@ -272,6 +275,8 @@ class RagAnswerService:
         use_graph: bool = False,
         graph_expansion_depth: int = 1,
         graph_expansion_limit: int = 20,
+        access_filter: AccessFilter | None = None,
+        subject_context: SubjectContext | None = None,
     ) -> RagChatResponse:
         if current_user is not None and document_ids is None:
             raise RagAnswerError("Scoped document ids are required for authenticated RAG.")
@@ -300,13 +305,24 @@ class RagAnswerService:
                     citations=[],
                 )
 
-            retrieval_query = self._query_with_short_term_context(
+            rewrite_result = await self._rewrite_for_retrieval(
                 query=query,
                 session_context=session_context,
+                memory_context=memory_context,
+                session_summary=session_summary,
             )
+            retrieval_query = rewrite_result.retrieval_query
+            evidence_query = self._evidence_query_for_rewrite(
+                query=query,
+                rewrite_result=rewrite_result,
+            )
+            if current_user is not None and subject_context is None:
+                subject_context = build_subject_context(current_user)
+            if subject_context is not None and access_filter is None:
+                access_filter = build_access_filter(subject_context)
 
             if document_ids is None:
-                rerank_response = await self._reranking_service.search(
+                rerank_response = await self._run_reranking_search(
                     query=retrieval_query,
                     top_k=top_k,
                     candidate_k=candidate_k,
@@ -314,9 +330,11 @@ class RagAnswerService:
                     use_graph=use_graph,
                     graph_expansion_depth=graph_expansion_depth,
                     graph_expansion_limit=graph_expansion_limit,
+                    access_filter=access_filter,
+                    subject_context=subject_context,
                 )
             else:
-                rerank_response = await self._reranking_service.search(
+                rerank_response = await self._run_reranking_search(
                     query=retrieval_query,
                     top_k=top_k,
                     candidate_k=candidate_k,
@@ -325,51 +343,60 @@ class RagAnswerService:
                     use_graph=use_graph,
                     graph_expansion_depth=graph_expansion_depth,
                     graph_expansion_limit=graph_expansion_limit,
+                    access_filter=access_filter,
+                    subject_context=subject_context,
                 )
             context_chunks = await self._load_context_chunks(
                 rerank_results=rerank_response.results,
             )
+            context_chunks = self._filter_accessible_context_chunks(
+                context_chunks,
+                subject_context=subject_context,
+            )
             context_chunks = await self._expand_with_neighbors(
-                query=query,
+                query=evidence_query,
                 context_chunks=context_chunks,
                 max_context_chars=max_context_chars,
             )
+            context_chunks = self._filter_accessible_context_chunks(
+                context_chunks,
+                subject_context=subject_context,
+            )
             context_chunks = self._deduplicate_context_chunks(context_chunks)
             context_chunks = self._filter_identifier_context(
-                query=query,
+                query=evidence_query,
                 context_chunks=context_chunks,
             )
             context_chunks = await self._augment_person_area_context(
-                query=query,
+                query=evidence_query,
                 context_chunks=context_chunks,
                 scoped_document_ids=document_ids,
+            )
+            context_chunks = self._filter_accessible_context_chunks(
+                context_chunks,
+                subject_context=subject_context,
             )
             context_chunks = await self._augment_legal_leave_context(
-                query=query,
+                query=evidence_query,
                 context_chunks=context_chunks,
                 scoped_document_ids=document_ids,
             )
-            deterministic_answer = self._deterministic_legal_leave_answer(
-                query=query,
+            context_chunks = self._filter_accessible_context_chunks(
+                context_chunks,
+                subject_context=subject_context,
+            )
+            requires_direct_evidence = self._query_requires_direct_entity_evidence(
+                query=evidence_query,
                 context_chunks=context_chunks,
             )
-            if deterministic_answer is None:
-                deterministic_answer = self._deterministic_person_area_answer(
-                    query=query,
-                    context_chunks=context_chunks,
-                )
-            if deterministic_answer is None:
-                deterministic_answer = self._deterministic_narrative_section_answer(
-                    query=query,
-                    context_chunks=context_chunks,
-                )
-            if deterministic_answer is not None:
-                answer = deterministic_answer
-            elif self._person_area_query_person(query) is not None:
-                answer = self._insufficient_person_area_answer(query)
+            if not context_chunks:
+                answer = self._missing_accessible_context_answer(query)
+            elif requires_direct_evidence:
+                answer = self._insufficient_direct_evidence_answer(query)
             else:
                 user_prompt = self._build_user_prompt(
                     query=query,
+                    standalone_query=evidence_query,
                     context_chunks=context_chunks,
                     memory_context=memory_context,
                     session_summary=session_summary,
@@ -379,10 +406,11 @@ class RagAnswerService:
                     system_prompt=build_system_prompt(
                         answer_mode=answer_mode,
                         answer_style=answer_style,
-                        query=query,
+                        query=evidence_query,
                     ),
                     user_prompt=user_prompt,
                 )
+                answer = self._clean_llm_answer(answer)
             assistant_message = await self._chat_repository.create_message(
                 session_id=chat_session.id,
                 role="assistant",
@@ -401,16 +429,21 @@ class RagAnswerService:
                 ],
             )
             if current_user is not None and self._document_log_repository is not None:
-                cited_document_ids = {
-                    context_chunk.chunk.document_id for context_chunk in context_chunks
-                }
+                cited_document_ids = {context_chunk.chunk.document_id for context_chunk in context_chunks}
                 for document_id in cited_document_ids:
                     await self._document_log_repository.create_access_log(
                         document_id=document_id,
                         user_id=current_user.id,
                         organization_id=current_user.organization_id,
                         action="chat",
-                        metadata={"session_id": str(chat_session.id), "query": query},
+                        metadata={
+                            "session_id": str(chat_session.id),
+                            "query": query,
+                            "retrieval_query": retrieval_query,
+                            "evidence_query": evidence_query,
+                            "rewrite_used": rewrite_result.rewritten,
+                            "rewrite_reason": rewrite_result.reason,
+                        },
                     )
             await self._chat_repository.commit()
         except ChatSessionNotFoundError:
@@ -425,10 +458,7 @@ class RagAnswerService:
             user_message_id=user_message.id,
             assistant_message_id=assistant_message.id,
             answer=answer,
-            citations=[
-                self._build_citation_response(context_chunk=context_chunk, quote=citation.quote)
-                for context_chunk, citation in zip(context_chunks, citation_records, strict=True)
-            ],
+            citations=[self._build_citation_response(context_chunk=context_chunk, quote=citation.quote) for context_chunk, citation in zip(context_chunks, citation_records, strict=True)],
         )
 
     async def answer_stream(
@@ -449,6 +479,8 @@ class RagAnswerService:
         use_graph: bool = False,
         graph_expansion_depth: int = 1,
         graph_expansion_limit: int = 20,
+        access_filter: AccessFilter | None = None,
+        subject_context: SubjectContext | None = None,
     ) -> AsyncIterator[RagStreamEvent]:
         if current_user is not None and document_ids is None:
             yield RagStreamEvent(
@@ -494,13 +526,24 @@ class RagAnswerService:
                 )
                 return
 
-            retrieval_query = self._query_with_short_term_context(
+            rewrite_result = await self._rewrite_for_retrieval(
                 query=query,
                 session_context=session_context,
+                memory_context=memory_context,
+                session_summary=session_summary,
             )
+            retrieval_query = rewrite_result.retrieval_query
+            evidence_query = self._evidence_query_for_rewrite(
+                query=query,
+                rewrite_result=rewrite_result,
+            )
+            if current_user is not None and subject_context is None:
+                subject_context = build_subject_context(current_user)
+            if subject_context is not None and access_filter is None:
+                access_filter = build_access_filter(subject_context)
 
             if document_ids is None:
-                rerank_response = await self._reranking_service.search(
+                rerank_response = await self._run_reranking_search(
                     query=retrieval_query,
                     top_k=top_k,
                     candidate_k=candidate_k,
@@ -508,9 +551,11 @@ class RagAnswerService:
                     use_graph=use_graph,
                     graph_expansion_depth=graph_expansion_depth,
                     graph_expansion_limit=graph_expansion_limit,
+                    access_filter=access_filter,
+                    subject_context=subject_context,
                 )
             else:
-                rerank_response = await self._reranking_service.search(
+                rerank_response = await self._run_reranking_search(
                     query=retrieval_query,
                     top_k=top_k,
                     candidate_k=candidate_k,
@@ -519,62 +564,74 @@ class RagAnswerService:
                     use_graph=use_graph,
                     graph_expansion_depth=graph_expansion_depth,
                     graph_expansion_limit=graph_expansion_limit,
+                    access_filter=access_filter,
+                    subject_context=subject_context,
                 )
             context_chunks = await self._load_context_chunks(
                 rerank_results=rerank_response.results,
             )
+            context_chunks = self._filter_accessible_context_chunks(
+                context_chunks,
+                subject_context=subject_context,
+            )
             context_chunks = await self._expand_with_neighbors(
-                query=query,
+                query=evidence_query,
                 context_chunks=context_chunks,
                 max_context_chars=max_context_chars,
             )
+            context_chunks = self._filter_accessible_context_chunks(
+                context_chunks,
+                subject_context=subject_context,
+            )
             context_chunks = self._deduplicate_context_chunks(context_chunks)
             context_chunks = self._filter_identifier_context(
-                query=query,
+                query=evidence_query,
                 context_chunks=context_chunks,
             )
             context_chunks = await self._augment_person_area_context(
-                query=query,
+                query=evidence_query,
                 context_chunks=context_chunks,
                 scoped_document_ids=document_ids,
+            )
+            context_chunks = self._filter_accessible_context_chunks(
+                context_chunks,
+                subject_context=subject_context,
             )
             context_chunks = await self._augment_legal_leave_context(
-                query=query,
+                query=evidence_query,
                 context_chunks=context_chunks,
                 scoped_document_ids=document_ids,
             )
-            deterministic_answer = self._deterministic_legal_leave_answer(
-                query=query,
+            context_chunks = self._filter_accessible_context_chunks(
+                context_chunks,
+                subject_context=subject_context,
+            )
+            requires_direct_evidence = self._query_requires_direct_entity_evidence(
+                query=evidence_query,
                 context_chunks=context_chunks,
             )
-            if deterministic_answer is None:
-                deterministic_answer = self._deterministic_person_area_answer(
-                    query=query,
-                    context_chunks=context_chunks,
-                )
-            if deterministic_answer is None:
-                deterministic_answer = self._deterministic_narrative_section_answer(
-                    query=query,
-                    context_chunks=context_chunks,
-                )
-
             yield RagStreamEvent(
                 event="metadata",
                 data={
                     "session_id": str(chat_session.id),
                     "user_message_id": str(user_message.id),
+                    "retrieval_query": retrieval_query,
+                    "evidence_query": evidence_query,
+                    "rewrite_used": rewrite_result.rewritten,
+                    "rewrite_reason": rewrite_result.reason,
                 },
             )
 
-            if deterministic_answer is not None:
-                answer = deterministic_answer
+            if not context_chunks:
+                answer = self._missing_accessible_context_answer(query)
                 yield RagStreamEvent(event="token", data={"delta": answer})
-            elif self._person_area_query_person(query) is not None:
-                answer = self._insufficient_person_area_answer(query)
+            elif requires_direct_evidence:
+                answer = self._insufficient_direct_evidence_answer(query)
                 yield RagStreamEvent(event="token", data={"delta": answer})
             else:
                 user_prompt = self._build_user_prompt(
                     query=query,
+                    standalone_query=evidence_query,
                     context_chunks=context_chunks,
                     memory_context=memory_context,
                     session_summary=session_summary,
@@ -585,16 +642,17 @@ class RagAnswerService:
                     system_prompt=build_system_prompt(
                         answer_mode=answer_mode,
                         answer_style=answer_style,
-                        query=query,
+                        query=evidence_query,
                     ),
                     user_prompt=user_prompt,
                 ):
                     if not delta:
                         continue
                     answer_parts.append(delta)
-                    yield RagStreamEvent(event="token", data={"delta": delta})
 
-                answer = "".join(answer_parts)
+                answer = self._clean_llm_answer("".join(answer_parts))
+                if answer:
+                    yield RagStreamEvent(event="token", data={"delta": answer})
             assistant_message = await self._chat_repository.create_message(
                 session_id=chat_session.id,
                 role="assistant",
@@ -613,16 +671,21 @@ class RagAnswerService:
                 ],
             )
             if current_user is not None and self._document_log_repository is not None:
-                cited_document_ids = {
-                    context_chunk.chunk.document_id for context_chunk in context_chunks
-                }
+                cited_document_ids = {context_chunk.chunk.document_id for context_chunk in context_chunks}
                 for document_id in cited_document_ids:
                     await self._document_log_repository.create_access_log(
                         document_id=document_id,
                         user_id=current_user.id,
                         organization_id=current_user.organization_id,
                         action="chat",
-                        metadata={"session_id": str(chat_session.id), "query": query},
+                        metadata={
+                            "session_id": str(chat_session.id),
+                            "query": query,
+                            "retrieval_query": retrieval_query,
+                            "evidence_query": evidence_query,
+                            "rewrite_used": rewrite_result.rewritten,
+                            "rewrite_reason": rewrite_result.reason,
+                        },
                     )
             await self._chat_repository.commit()
         except Exception as exc:
@@ -644,9 +707,7 @@ class RagAnswerService:
                     context_chunk=context_chunk,
                     quote=citation.quote,
                 ).model_dump(mode="json")
-                for context_chunk, citation in zip(
-                    context_chunks, citation_records, strict=True
-                )
+                for context_chunk, citation in zip(context_chunks, citation_records, strict=True)
             ],
         )
         yield RagStreamEvent(
@@ -667,6 +728,56 @@ class RagAnswerService:
         if chat_session is None:
             raise ChatSessionNotFoundError("Chat session not found.")
         return chat_session
+
+    async def _run_reranking_search(self, **kwargs):
+        parameters = inspect.signature(self._reranking_service.search).parameters
+        accepts_var_kwargs = any(parameter.kind is inspect.Parameter.VAR_KEYWORD for parameter in parameters.values())
+        supported = kwargs if accepts_var_kwargs else {key: value for key, value in kwargs.items() if key in parameters}
+        return await self._reranking_service.search(**supported)
+
+    async def _rewrite_for_retrieval(
+        self,
+        *,
+        query: str,
+        session_context: RagSessionContext | None,
+        memory_context: list[MemoryResult] | None,
+        session_summary: str | None,
+    ) -> QueryRewriteResult:
+        try:
+            result = await self._query_rewrite_service.rewrite(
+                query=query,
+                session_context=session_context,
+                memory_context=memory_context,
+                session_summary=session_summary,
+            )
+        except Exception:
+            fallback_query = self._query_with_short_term_context(
+                query=query,
+                session_context=session_context,
+            )
+            return QueryRewriteResult(
+                original_query=query,
+                retrieval_query=fallback_query,
+                rewritten=fallback_query != query,
+                reason="rewrite_service_error_context_hints",
+            )
+
+        retrieval_query = " ".join((result.retrieval_query or query).split())
+        if not retrieval_query:
+            retrieval_query = query
+        if retrieval_query == result.retrieval_query:
+            return result
+        return replace(result, retrieval_query=retrieval_query)
+
+    @staticmethod
+    def _evidence_query_for_rewrite(
+        *,
+        query: str,
+        rewrite_result: QueryRewriteResult,
+    ) -> str:
+        if rewrite_result.reason.endswith("context_hints"):
+            return query
+        return rewrite_result.retrieval_query or query
 
     async def _load_context_chunks(
         self,
@@ -689,6 +800,29 @@ class RagAnswerService:
             if (chunk := chunk_by_id.get(chunk_id)) is not None
         ]
 
+    @staticmethod
+    def _filter_accessible_context_chunks(
+        context_chunks: list[ContextChunk],
+        *,
+        subject_context: SubjectContext | None,
+    ) -> list[ContextChunk]:
+        if subject_context is None:
+            return context_chunks
+        filtered: list[ContextChunk] = []
+        for context_chunk in context_chunks:
+            metadata = context_chunk.chunk.chunk_metadata or {}
+            if not isinstance(metadata, dict) or not isinstance(metadata.get("access"), dict):
+                filtered.append(context_chunk)
+                continue
+            decision = can_access_resource(
+                subject_context,
+                build_resource_context(None, context_chunk.chunk),
+                AccessAction.READ_ANSWER,
+            )
+            if decision.allowed:
+                filtered.append(context_chunk)
+        return filtered
+
     async def _expand_with_neighbors(
         self,
         *,
@@ -706,11 +840,7 @@ class RagAnswerService:
             None,
         )
         get_table_chunks = getattr(self._chat_repository, "get_table_chunks", None)
-        if (
-            get_article_neighbors is None
-            and get_table_chunks is None
-            and get_entity_coverage_chunks is None
-        ):
+        if get_article_neighbors is None and get_table_chunks is None and get_entity_coverage_chunks is None:
             return context_chunks
 
         existing_ids: set[UUID] = {context_chunk.chunk.id for context_chunk in context_chunks}
@@ -719,12 +849,11 @@ class RagAnswerService:
         seen_tables: set[tuple[UUID, str]] = set()
         total_chars = sum(len(item.chunk.content) for item in context_chunks)
         query_terms = self._query_terms(query)
+        if self._is_schema_count_query(query):
+            query_terms = self._schema_count_search_terms(query_terms)
         wants_full_table = self._is_table_enumeration_query(query)
-        context_char_limit = (
-            max(max_context_chars, TABLE_ENUMERATION_CONTEXT_CHAR_LIMIT)
-            if wants_full_table
-            else max_context_chars
-        )
+        wants_schema_context = self._is_schema_count_query(query)
+        context_char_limit = max(max_context_chars, TABLE_ENUMERATION_CONTEXT_CHAR_LIMIT) if wants_full_table or wants_schema_context else max_context_chars
 
         expanded = list(context_chunks)
         next_index = max((item.citation_index for item in context_chunks), default=0) + 1
@@ -732,11 +861,7 @@ class RagAnswerService:
         for context_chunk in context_chunks:
             metadata = context_chunk.chunk.chunk_metadata or {}
             document_id = context_chunk.chunk.document_id
-            if (
-                query_terms
-                and get_entity_coverage_chunks is not None
-                and document_id not in seen_documents
-            ):
+            if query_terms and get_entity_coverage_chunks is not None and document_id not in seen_documents:
                 seen_documents.add(document_id)
                 try:
                     coverage_chunks = await get_entity_coverage_chunks(
@@ -756,12 +881,9 @@ class RagAnswerService:
                         continue
                     coverage_len = len(coverage_chunk.content or "")
                     over_context_limit = total_chars + coverage_len > context_char_limit
-                    allow_budget_override = (
-                        coverage_added < 2
-                        and RagAnswerService._is_high_signal_context_chunk(
-                            chunk=coverage_chunk,
-                            query_terms=query_terms,
-                        )
+                    allow_budget_override = coverage_added < 2 and RagAnswerService._is_high_signal_context_chunk(
+                        chunk=coverage_chunk,
+                        query_terms=query_terms,
                     )
                     if over_context_limit and not allow_budget_override:
                         continue
@@ -796,11 +918,7 @@ class RagAnswerService:
                         )
                     except Exception:
                         neighbors = []
-                    neighbors = [
-                        neighbor
-                        for neighbor in neighbors
-                        if neighbor.document_id == document_id
-                    ]
+                    neighbors = [neighbor for neighbor in neighbors if neighbor.document_id == document_id]
 
                     relevant_neighbors = self._prioritize_table_neighbors(
                         neighbors=neighbors,
@@ -868,7 +986,6 @@ class RagAnswerService:
                 next_index += 1
 
         return expanded
-
 
     async def _augment_legal_leave_context(
         self,
@@ -973,9 +1090,7 @@ class RagAnswerService:
         actually relevant.
         """
 
-        normalized = normalize_metadata_value(
-            RagAnswerService._strip_vietnamese_accents(query)
-        )
+        normalized = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(query))
         return bool(normalized)
 
     @staticmethod
@@ -1007,9 +1122,7 @@ class RagAnswerService:
         Vietnamese intent words, table cases, legal terms, or organization names.
         """
 
-        normalized = normalize_metadata_value(
-            RagAnswerService._strip_vietnamese_accents(query)
-        )
+        normalized = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(query))
         tokens = [token for token in re.findall(r"[a-z0-9]+", normalized) if len(token) > 1]
         if not tokens:
             return []
@@ -1032,10 +1145,7 @@ class RagAnswerService:
         relationship_type = str(metadata.get("relationship_type") or "")
         legacy_relationship_type = str(metadata.get("legacy_relationship_type") or "")
         return (
-            "row" in chunk_type
-            or relationship_type in {"structured_fact_row", "legal_leave_benefit"}
-            or legacy_relationship_type == "legal_leave_benefit"
-            or bool(metadata.get("case_name") or metadata.get("row_text"))
+            "row" in chunk_type or relationship_type in {"structured_fact_row", "legal_leave_benefit"} or legacy_relationship_type == "legal_leave_benefit" or bool(metadata.get("case_name") or metadata.get("row_text"))
         )
 
     @staticmethod
@@ -1046,30 +1156,13 @@ class RagAnswerService:
     ) -> list[Chunk]:
         def priority(chunk: Chunk) -> tuple[int, float, int]:
             metadata = chunk.chunk_metadata or {}
-            content_key = normalize_metadata_value(
-                RagAnswerService._strip_vietnamese_accents(chunk.content or "")
-            )
+            content_key = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(chunk.content or ""))
             if RagAnswerService._is_structured_fact_row(metadata):
-                row = {
-                    "case_name": str(metadata.get("case_name") or ""),
-                    "row_text": str(metadata.get("row_text") or chunk.content or ""),
-                    "total_leave_benefit": str(
-                        metadata.get("total_leave_benefit")
-                        or metadata.get("total_benefit")
-                        or ""
-                    ),
-                    "labor_code_benefit": str(
-                        metadata.get("labor_code_benefit")
-                        or metadata.get("base_benefit")
-                        or ""
-                    ),
-                    "collective_agreement_benefit": str(
-                        metadata.get("collective_agreement_benefit")
-                        or metadata.get("additional_benefit")
-                        or ""
-                    ),
-                }
-                score = RagAnswerService._legal_table_fact_row_score(query, row)
+                score = RagAnswerService._structured_fact_metadata_score(
+                    query=query,
+                    metadata=metadata,
+                    content=chunk.content or "",
+                )
                 return (0, -score, chunk.chunk_index)
             if any(term in content_key for term in RagAnswerService._query_content_phrases(query)):
                 return (3, 0.0, chunk.chunk_index)
@@ -1078,567 +1171,34 @@ class RagAnswerService:
         return sorted(chunks, key=priority)
 
     @staticmethod
-    def _legal_table_fact_tokens(value: Any) -> set[str]:
-        """Tokenize fact text without language/domain-specific stopword lists."""
-
-        text = normalize_metadata_value(
-            RagAnswerService._strip_vietnamese_accents(str(value or ""))
-        )
+    def _metadata_score_tokens(value: Any) -> set[str]:
+        text = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(str(value or "")))
         return {token for token in re.findall(r"[a-z0-9]+", text) if len(token) > 1}
 
     @staticmethod
-    def _legal_table_fact_row_score(query: str, row: dict[str, Any]) -> float:
-        """Score how well a query matches one legal_table_row without case hardcodes."""
-
-        query_norm = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(query))
-        case_name = str(row.get("case_name") or "")
-        row_text = " ".join(
-            str(row.get(key) or "")
-            for key in (
-                "case_name",
-                "row_text",
-                "total_leave_benefit",
-                "labor_code_benefit",
-                "collective_agreement_benefit",
-            )
-        )
-        case_norm = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(case_name))
-        row_norm = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(row_text))
-        query_tokens = RagAnswerService._legal_table_fact_tokens(query_norm)
-        case_tokens = RagAnswerService._legal_table_fact_tokens(case_norm)
-        row_tokens = RagAnswerService._legal_table_fact_tokens(row_norm)
+    def _structured_fact_metadata_score(
+        *,
+        query: str,
+        metadata: dict[str, Any],
+        content: str,
+    ) -> float:
+        query_tokens = RagAnswerService._metadata_score_tokens(query)
         if not query_tokens:
             return 0.0
 
-        case_overlap = len(query_tokens & case_tokens) / max(len(query_tokens), 1)
-        row_overlap = len(query_tokens & row_tokens) / max(len(query_tokens), 1)
-        score = case_overlap * 0.65 + row_overlap * 0.20
+        field_values = [value for key, value in metadata.items() if key not in {"chunk_id", "chunk_type", "source_file", "source_uri"}]
+        field_values.append(content)
+        metadata_tokens = set().union(*(RagAnswerService._metadata_score_tokens(value) for value in field_values))
+        if not metadata_tokens:
+            return 0.0
 
-        variants = RagAnswerService._legal_table_case_variants(case_name)
-        variant_scores: list[float] = []
-        for variant in variants:
-            variant_norm = normalize_metadata_value(
-                RagAnswerService._strip_vietnamese_accents(variant)
-            )
-            variant_tokens = RagAnswerService._legal_table_fact_tokens(variant_norm)
-            if not variant_tokens:
-                continue
-            variant_overlap = len(query_tokens & variant_tokens) / max(len(variant_tokens), 1)
-            query_coverage = len(query_tokens & variant_tokens) / max(len(query_tokens), 1)
-            variant_score = variant_overlap * 0.65 + query_coverage * 0.35
-            if variant_norm and variant_norm in query_norm:
-                variant_score += 0.35
-            if query_norm and query_norm in variant_norm:
-                variant_score += 0.2
-            generic_event_tokens = {"ket", "hon", "sinh", "con", "chet"}
-            specific_tokens = variant_tokens - generic_event_tokens
-            if specific_tokens and specific_tokens.issubset(query_tokens):
-                variant_score += min(0.35, 0.12 * len(specific_tokens))
-            variant_scores.append(variant_score)
-        if variant_scores:
-            score = max(score, max(variant_scores))
+        overlap = query_tokens & metadata_tokens
+        if not overlap:
+            return 0.0
 
-        # Generic phrase containment bonuses. These do not encode any benefit or
-        # case answer; they only reward a table row whose case text appears in the
-        # user question, or whose question tokens are mostly contained in the case.
-        if case_norm and case_norm in query_norm:
-            score += 0.25
-        if query_norm and query_norm in case_norm:
-            score += 0.15
-        if case_tokens and case_tokens.issubset(query_tokens):
-            score += 0.15
-
-        # Penalize broad rows when the user supplied additional content tokens.
-        # This is generic token coverage, not a case-specific rule.
-        extra_query_tokens = query_tokens - case_tokens
-        if extra_query_tokens and len(case_tokens) <= 2:
-            score -= min(0.35, 0.10 * len(extra_query_tokens))
-
-        return max(score, 0.0)
-
-    @staticmethod
-    def _split_legal_table_case_names(value: Any) -> list[str]:
-        """Split compound case names in a generic way for cleaner answers."""
-
-        name = re.sub(r"\s+", " ", str(value or "")).strip().rstrip(" .;:")
-        if not name:
-            return ["Trường hợp liên quan"]
-        # Some legal table cells contain multiple cases separated by semicolons.
-        # Preserve one answer bullet per case without hardcoding the actual cases.
-        if ";" in name:
-            parts = [part.strip().rstrip(" .;:") for part in name.split(";")]
-            return [part for part in parts if part]
-        return [name]
-
-    @staticmethod
-    def _legal_table_query_asks_for_related_cases(query: str) -> bool:
-        """Return True only when the user explicitly asks for a broader list.
-
-        This keeps a specific row question (for example one relative/event in a
-        benefits table) from expanding into every other row in the same table.
-        The check is intentionally generic: it detects list/related-intent words,
-        not any concrete legal case or answer.
-        """
-
-        normalized = normalize_metadata_value(
-            RagAnswerService._strip_vietnamese_accents(query)
-        )
-        broad_patterns = (
-            "cac truong hop",
-            "truong hop nao",
-            "nhung truong hop",
-            "cac dong",
-            "cac muc",
-            "cac quyen loi",
-            "quyen loi lien quan",
-            "truong hop lien quan",
-            "ngoai truong hop",
-            "ngoai ra",
-            "lien quan",
-            "liet ke",
-            "danh sach",
-            "tat ca",
-            "day du",
-            "bao gom",
-            "gom nhung",
-            "nhung ai",
-        )
-        return any(pattern in normalized for pattern in broad_patterns)
-
-    @staticmethod
-    def _legal_table_case_variants(case_name: str) -> list[str]:
-        """Create readable case variants from a table cell without case hardcodes.
-
-        Legal table cells often write compact alternatives like
-        "A, B <event>". For direct answers we can render the matched alternative
-        and mention the remaining alternatives. This function uses only syntax
-        from the row text; it does not encode any concrete legal case.
-        """
-
-        cleaned = re.sub(r"\s+", " ", str(case_name or "")).strip().rstrip(" .;:")
-        if not cleaned:
-            return []
-
-        semicolon_parts = [part.strip().rstrip(" .;:") for part in cleaned.split(";") if part.strip()]
-        variants: list[str] = []
-        for segment in semicolon_parts:
-            comma_parts = [part.strip().rstrip(" .;:") for part in segment.split(",") if part.strip()]
-            if len(comma_parts) <= 1:
-                variants.append(segment)
-                continue
-
-            last = comma_parts[-1]
-            last_tokens = last.split()
-            suffix = " ".join(last_tokens[-2:]) if len(last_tokens) >= 3 else ""
-            for index, part in enumerate(comma_parts):
-                if index == len(comma_parts) - 1 or not suffix:
-                    variants.append(part)
-                else:
-                    part_norm = normalize_metadata_value(
-                        RagAnswerService._strip_vietnamese_accents(part)
-                    )
-                    suffix_norm = normalize_metadata_value(
-                        RagAnswerService._strip_vietnamese_accents(suffix)
-                    )
-                    if suffix_norm and suffix_norm not in part_norm:
-                        variants.append(f"{part} {suffix}")
-                    else:
-                        variants.append(part)
-
-        # Stable de-duplication while preserving original order.
-        result: list[str] = []
-        seen: set[str] = set()
-        for variant in variants:
-            key = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(variant))
-            if key and key not in seen:
-                seen.add(key)
-                result.append(variant)
-        return result or [cleaned]
-
-    @staticmethod
-    def _select_legal_table_case_variant(query: str, case_name: str) -> tuple[str, list[str]]:
-        """Pick the row phrase most directly matched by the query.
-
-        The selected phrase and alternatives are derived from the row text and
-        token overlap only. No row labels or legal outcomes are hardcoded.
-        """
-
-        variants = RagAnswerService._legal_table_case_variants(case_name)
-        if not variants:
-            return "Trường hợp liên quan", []
-
-        query_tokens = RagAnswerService._legal_table_fact_tokens(query)
-        scored: list[tuple[float, int, str]] = []
-        for index, variant in enumerate(variants):
-            variant_tokens = RagAnswerService._legal_table_fact_tokens(variant)
-            if not variant_tokens:
-                score = 0.0
-            else:
-                score = len(query_tokens & variant_tokens) / max(len(variant_tokens), 1)
-            scored.append((score, -index, variant))
-
-        scored.sort(reverse=True)
-        selected = scored[0][2]
-        selected_key = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(selected))
-        alternatives = [
-            variant
-            for variant in variants
-            if normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(variant)) != selected_key
-        ]
-        return selected, alternatives
-
-    @staticmethod
-    def _legal_table_source_label(row: dict[str, Any]) -> str:
-        source_value = next(
-            (
-                str(row.get(key) or "").strip()
-                for key in ("source_label", "document_title", "source_file")
-                if str(row.get(key) or "").strip()
-            ),
-            "tài liệu được truy xuất",
-        )
-        source_name = RagAnswerService._clean_source_label(source_value)
-        source_context = " ".join(
-            str(row.get(key) or "")
-            for key in ("source_date", "document_date", "doc_date", "source_file")
-        )
-        date_match = re.search(r"(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})", source_context)
-        if not date_match:
-            return source_name
-
-        day, month, year = date_match.groups()
-        date_label = f"{int(day):02d}/{int(month):02d}/{year}"
-        source_name = re.sub(r"^\d+\s*[.\-]\s*", "", source_name).strip()
-        source_name = re.sub(r"KY\s+KET", "ký ngày", source_name, flags=re.IGNORECASE)
-        source_name = re.sub(r"\d{1,2}[.\-/]\d{1,2}[.\-/]\d{4}", "", source_name)
-        source_name = re.sub(r"\s+", " ", source_name).strip(" .;:-")
-        if "ký ngày" in source_name.casefold():
-            return f"{source_name} {date_label}"
-        return f"{source_name} ký ngày {date_label}"
-
-    @staticmethod
-    def _clean_source_label(value: str) -> str:
-        label = str(value or "").strip().split("/")[-1]
-        label = re.sub(r"\.(docx?|pdf|xlsx?|pptx?)$", "", label, flags=re.IGNORECASE)
-        label = re.sub(r"[_-]+", " ", label)
-        return re.sub(r"\s+", " ", label).strip() or "tài liệu được truy xuất"
-
-    @staticmethod
-    def _legal_table_topic_label(row: dict[str, Any]) -> str:
-        value = next(
-            (
-                str(row.get(key) or "").strip()
-                for key in ("table_name", "article_title", "section_title")
-                if str(row.get(key) or "").strip()
-            ),
-            "",
-        )
-        value = re.sub(r"^Điều\s+\d+\s*[.:\-]?\s*", "", value, flags=re.IGNORECASE)
-        return re.sub(r"\s+", " ", value).strip(" .;:")
-
-    @staticmethod
-    def _legal_table_fact_days(row: dict[str, Any]) -> int | None:
-        value = row.get("total_leave_days") or row.get("total_days")
-        try:
-            if value is None or value == "":
-                benefit = RagAnswerService._legal_table_fact_benefit(row)
-                return RagAnswerService._extract_first_day_count(benefit)
-            return int(value)
-        except (TypeError, ValueError):
-            return None
-
-    @staticmethod
-    def _legal_table_fact_benefit(row: dict[str, Any]) -> str:
-        return str(
-            row.get("total_leave_benefit")
-            or row.get("total_benefit")
-            or row.get("labor_code_benefit")
-            or row.get("base_benefit")
-            or row.get("collective_agreement_benefit")
-            or row.get("additional_benefit")
-            or ""
-        ).strip()
-
-    @staticmethod
-    def _legal_table_fact_note(row: dict[str, Any]) -> str:
-        """Build a generic explanation from base/additional fact columns."""
-
-        base = str(row.get("labor_code_benefit") or row.get("base_benefit") or "").strip()
-        additional = str(
-            row.get("collective_agreement_benefit")
-            or row.get("additional_benefit")
-            or ""
-        ).strip()
-        base_days = RagAnswerService._extract_first_day_count(base)
-        additional_days = RagAnswerService._extract_first_day_count(additional)
-        if base_days is not None and additional_days is not None:
-            return (
-                f" ({base_days:02d} ngày theo quy định nền + "
-                f"{additional_days:02d} ngày theo quy định bổ sung)"
-            )
-        return ""
-
-    @staticmethod
-    def _extract_first_day_count(value: str) -> int | None:
-        text = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(value))
-        match = re.search(r"nghi\s+(\d+)\s+ngay", text)
-        if not match:
-            return None
-        try:
-            return int(match.group(1))
-        except ValueError:
-            return None
-
-    @staticmethod
-    def _is_yes_no_question(query: str) -> bool:
-        """Best-effort yes/no detector without language-specific keyword rules.
-
-        This deterministic answer path can safely render a factual answer even
-        when the question is not yes/no. We only use a weak, punctuation-based
-        signal here and avoid embedding Vietnamese cue phrases in code.
-        """
-
-        return False
-
-    @staticmethod
-    def _lowercase_initial(value: str) -> str:
-        value = str(value or "").strip()
-        if not value:
-            return value
-        return value[:1].lower() + value[1:]
-
-    @staticmethod
-    def _legal_case_match_key(value: str) -> str:
-        return normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(value))
-
-    @staticmethod
-    def _legal_table_topic_subject(topic: str) -> str:
-        topic_text = RagAnswerService._lowercase_initial(topic).strip()
-        if not topic_text:
-            return "quyền lợi liên quan"
-        topic_key = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(topic_text))
-        if topic_key.startswith("nghi"):
-            return f"người lao động được {topic_text}"
-        return topic_text
-
-    @staticmethod
-    def _legal_table_notice_suffix(row: dict[str, Any]) -> str:
-        """Preserve row-level conditions such as notice/approval requirements."""
-
-        for key in (
-            "total_leave_benefit",
-            "total_benefit",
-            "collective_agreement_benefit",
-            "additional_benefit",
-            "labor_code_benefit",
-            "base_benefit",
-            "row_text",
-        ):
-            value = str(row.get(key) or "").strip()
-            value_key = normalize_metadata_value(
-                RagAnswerService._strip_vietnamese_accents(value)
-            )
-            if "phai thong bao" not in value_key:
-                continue
-
-            match = re.search(
-                r"(?i)(phải\s+thông\s+báo\b.*|phai\s+thong\s+bao\b.*)",
-                value,
-            )
-            notice = match.group(1) if match else value
-            notice = re.sub(r"\bNSDLĐ\b", "người sử dụng lao động", notice)
-            notice = re.sub(
-                r"\bNSDLD\b",
-                "người sử dụng lao động",
-                notice,
-                flags=re.IGNORECASE,
-            )
-            notice = re.sub(r"\s+", " ", notice).strip(" .;,")
-            if not notice:
-                continue
-            return f" và {RagAnswerService._lowercase_initial(notice)}"
-        return ""
-
-    @staticmethod
-    def _legal_table_day_breakdown(row: dict[str, Any]) -> str:
-        base = str(row.get("labor_code_benefit") or row.get("base_benefit") or "").strip()
-        additional = str(
-            row.get("collective_agreement_benefit")
-            or row.get("additional_benefit")
-            or ""
-        ).strip()
-        base_days = RagAnswerService._extract_first_day_count(base)
-        additional_days = RagAnswerService._extract_first_day_count(additional)
-        if base_days is None or additional_days is None:
-            return ""
-        return (
-            f" (bao gồm {base_days:02d} ngày theo quy định nền và "
-            f"{additional_days:02d} ngày theo quy định bổ sung trong tài liệu)"
-        )
-
-    @staticmethod
-    def _legal_table_related_case_bullet(case_name: str, row: dict[str, Any]) -> str | None:
-        label = re.sub(r"\s+", " ", str(case_name or "")).strip().rstrip(" .;:")
-        if not label:
-            return None
-
-        days = RagAnswerService._legal_table_fact_days(row)
-        benefit = RagAnswerService._legal_table_fact_benefit(row)
-        if days is None and not benefit:
-            return None
-
-        if days is not None:
-            detail = f"Được nghỉ **{days:02d} ngày**"
-            detail += RagAnswerService._legal_table_day_breakdown(row)
-            detail += RagAnswerService._legal_table_notice_suffix(row)
-            detail = detail.rstrip(" .") + "."
-        else:
-            detail = f"Được hưởng: {benefit.rstrip(' .')}."
-
-        return f"- **{label}:** {detail}"
-
-    @staticmethod
-    def _build_related_legal_table_case_section(
-        *,
-        query: str,
-        best: dict[str, Any],
-        rows: list[dict[str, Any]],
-    ) -> str | None:
-        selected_case, _ = RagAnswerService._select_legal_table_case_variant(
-            query,
-            str(best.get("case_name") or ""),
-        )
-        selected_key = RagAnswerService._legal_case_match_key(selected_case)
-        best_case_key = RagAnswerService._legal_case_match_key(
-            str(best.get("case_name") or "")
-        )
-        if not selected_key or selected_key != best_case_key:
-            return None
-
-        bullets: list[str] = []
-        seen: set[str] = set()
-        for row in sorted(rows, key=lambda item: str(item.get("case_code") or "")):
-            if row is best:
-                continue
-            row_case_name = str(row.get("case_name") or "")
-            row_case_key = RagAnswerService._legal_case_match_key(row_case_name)
-            if selected_key not in row_case_key:
-                continue
-
-            for case_part in RagAnswerService._split_legal_table_case_names(row_case_name):
-                case_key = RagAnswerService._legal_case_match_key(case_part)
-                if not case_key or selected_key not in case_key or case_key in seen:
-                    continue
-                bullet = RagAnswerService._legal_table_related_case_bullet(case_part, row)
-                if not bullet:
-                    continue
-                seen.add(case_key)
-                bullets.append(bullet)
-
-        if not bullets:
-            return None
-
-        selected_text = RagAnswerService._lowercase_initial(selected_case)
-        topic = RagAnswerService._legal_table_topic_label(best)
-        topic_text = RagAnswerService._lowercase_initial(topic) if topic else "quyền lợi này"
-        return "\n".join(
-            [
-                f"Ngoài trường hợp **{selected_text}**, tài liệu còn quy định "
-                f"cụ thể về {topic_text} cho các trường hợp liên quan như sau:",
-                "",
-                *bullets,
-            ]
-        )
-
-    @staticmethod
-    def _build_legal_table_fact_answer(row: dict[str, Any], *, query: str) -> str | None:
-        """Build a direct answer from one matched row's metadata only."""
-
-        case_name = str(row.get("case_name") or "").strip()
-        selected_case, alternatives = RagAnswerService._select_legal_table_case_variant(
-            query, case_name
-        )
-        selected_case_text = RagAnswerService._lowercase_initial(selected_case)
-        days = RagAnswerService._legal_table_fact_days(row)
-        benefit = RagAnswerService._legal_table_fact_benefit(row)
-        labor = str(row.get("labor_code_benefit") or "").strip()
-        collective = str(row.get("collective_agreement_benefit") or "").strip()
-        labor_days = RagAnswerService._extract_first_day_count(labor)
-        collective_days = RagAnswerService._extract_first_day_count(collective)
-        source_label = RagAnswerService._legal_table_source_label(row)
-        yes_no_question = RagAnswerService._is_yes_no_question(query)
-        topic = RagAnswerService._legal_table_topic_label(row)
-        topic_subject = RagAnswerService._legal_table_topic_subject(topic)
-
-        if days is not None:
-            if yes_no_question:
-                lines = [
-                    (
-                        f"Có, theo {source_label}, trường hợp **{selected_case_text}** "
-                        "có trong dữ liệu được truy xuất."
-                    ),
-                    f"Cụ thể, {topic_subject} là **{days:02d} ngày**.",
-                ]
-            else:
-                lines = [
-                    (
-                        f"Theo {source_label}, khi **{selected_case_text}**, "
-                        f"{topic_subject} là **{days:02d} ngày**."
-                    )
-                ]
-        elif benefit:
-            if yes_no_question:
-                lines = [
-                    (
-                        f"Có, theo {source_label}, trường hợp **{selected_case_text}** "
-                        f"được hưởng quyền lợi này: {benefit}."
-                    )
-                ]
-            else:
-                lines = [f"Theo {source_label}, khi **{selected_case_text}**: {benefit}."]
-        else:
-            return None
-
-        if labor_days is not None and collective_days is not None:
-            lines.extend(
-                [
-                    "",
-                    "Số ngày nghỉ này được tính cụ thể như sau:",
-                    f"- {labor_days:02d} ngày theo quy định của Bộ luật Lao động.",
-                    (
-                        f"- {collective_days:02d} ngày được hưởng thêm theo "
-                        "quy định bổ sung trong tài liệu."
-                    ),
-                ]
-            )
-
-        if alternatives:
-            alternatives_text = "; ".join(
-                RagAnswerService._lowercase_initial(alternative)
-                for alternative in alternatives
-            )
-            lines.extend(
-                [
-                    "",
-                    (
-                        "Quy định này cũng áp dụng tương tự đối với trường hợp "
-                        f"{alternatives_text}."
-                    ),
-                ]
-            )
-
-        return "\n".join(lines).strip() or None
-
-    @staticmethod
-    def _deterministic_legal_leave_answer(
-        *,
-        query: str,
-        context_chunks: list[ContextChunk],
-    ) -> str | None:
-        return RagAnswerService._deterministic_structured_fact_answer(
-            query=query,
-            context_chunks=context_chunks,
-        )
+        precision = len(overlap) / max(len(metadata_tokens), 1)
+        recall = len(overlap) / max(len(query_tokens), 1)
+        return (recall * 0.75) + (precision * 0.25) + (0.05 * len(overlap))
 
     async def _augment_person_area_context(
         self,
@@ -1647,7 +1207,7 @@ class RagAnswerService:
         context_chunks: list[ContextChunk],
         scoped_document_ids: set[UUID] | None = None,
     ) -> list[ContextChunk]:
-        """Pull exact person rows before deterministic person-area answers."""
+        """Pull exact entity rows so the LLM receives complete grounded evidence."""
 
         person_name = self._person_area_query_person(query)
         if person_name is None:
@@ -1749,99 +1309,6 @@ class RagAnswerService:
         return bool(person_tokens) and set(person_tokens).issubset(candidate_tokens)
 
     @staticmethod
-    def _person_area_matches(area: str, target: str) -> bool:
-        area_key = normalize_metadata_value(area)
-        target_key = normalize_metadata_value(target)
-        if not area_key or not target_key:
-            return False
-        if area_key == target_key or area_key in target_key or target_key in area_key:
-            return True
-
-        target_acronyms = set(re.findall(r"\b[A-Z0-9][A-Z0-9._/-]{1,}\b", target))
-        area_acronyms = set(re.findall(r"\b[A-Z0-9][A-Z0-9._/-]{1,}\b", area))
-        if target_acronyms and not (target_acronyms & area_acronyms):
-            return False
-
-        area_tokens = re.findall(r"[a-z0-9]+", area_key)
-        target_tokens = re.findall(r"[a-z0-9]+", target_key)
-        if not area_tokens or not target_tokens:
-            return False
-
-        def ngrams(tokens: list[str], size: int) -> set[tuple[str, ...]]:
-            return {
-                tuple(tokens[index : index + size])
-                for index in range(0, len(tokens) - size + 1)
-            }
-
-        area_token_set = set(area_tokens)
-        target_token_set = set(target_tokens)
-        token_overlap = area_token_set & target_token_set
-        token_coverage = len(token_overlap) / max(len(target_token_set), 1)
-
-        area_bigrams = ngrams(area_tokens, 2)
-        target_bigrams = ngrams(target_tokens, 2)
-        bigram_overlap = area_bigrams & target_bigrams
-        bigram_coverage = len(bigram_overlap) / max(len(target_bigrams), 1)
-
-        return token_coverage >= 0.65 or bigram_coverage >= 0.45
-
-    @staticmethod
-    def _is_generic_person_area_candidate(value: str | None) -> bool:
-        """Return True for low-signal area candidates without fixed phrases."""
-
-        raw = str(value or "").strip()
-        normalized = normalize_metadata_value(raw)
-        if not normalized:
-            return True
-        tokens = re.findall(r"[a-z0-9]+", normalized)
-        if not tokens:
-            return True
-        has_anchor = bool(re.search(r"[A-Z]{2,}|\d", raw)) or any(
-            len(token) >= 6 for token in tokens
-        )
-        return len(tokens) <= 6 and not has_anchor
-
-    @staticmethod
-    def _parse_person_area_profile_text(
-        content: str,
-        *,
-        person_name: str,
-        citation: int,
-    ) -> list[dict[str, str]]:
-        if not content or not person_name:
-            return []
-        person_match = re.search(r"(?im)^\s*Nhân sự\s*:\s*(?P<name>[^.\n]+)", content)
-        if person_match is None:
-            return []
-        profile_name = " ".join(person_match.group("name").split()).strip(" .;:")
-        if not RagAnswerService._person_name_matches(profile_name, person_name):
-            return []
-
-        rows: list[dict[str, str]] = []
-        for line in content.splitlines():
-            match = re.match(
-                r"\s*-\s*(?P<area>.+?)\s*;\s*phòng chủ trì\s*:\s*"
-                r"(?P<department>[^.;\n]+)(?:\s*;\s*ghi chú\s*:\s*(?P<note>[^.\n]+))?\.??\s*$",
-                line,
-                flags=re.IGNORECASE,
-            )
-            if match is None:
-                continue
-            row = {
-                "area": " ".join(match.group("area").split()).strip(" .;:"),
-                "department": " ".join(match.group("department").split()).strip(" .;:"),
-                "stt": "",
-                "citation": str(citation),
-                "role_note": "",
-            }
-            note = match.group("note")
-            if note:
-                row["role_note"] = " ".join(note.split()).strip(" .;:")
-            if row["area"]:
-                rows.append(row)
-        return rows
-
-    @staticmethod
     def _strip_vietnamese_accents(value: str) -> str:
         normalized = unicodedata.normalize("NFD", value or "")
         stripped = "".join(char for char in normalized if unicodedata.category(char) != "Mn")
@@ -1857,9 +1324,7 @@ class RagAnswerService:
             metadata = chunk.chunk_metadata or {}
             chunk_type = str(metadata.get("chunk_type") or "")
             if chunk_type == "entity_profile":
-                metadata_name = str(
-                    metadata.get("person_name") or metadata.get("entity_name") or ""
-                )
+                metadata_name = str(metadata.get("person_name") or metadata.get("entity_name") or "")
                 if RagAnswerService._person_name_matches(metadata_name, person_name):
                     return (0, chunk.chunk_index)
                 if RagAnswerService._person_name_matches(chunk.content or "", person_name):
@@ -1882,234 +1347,6 @@ class RagAnswerService:
 
         return sorted(chunks, key=priority)
 
-
-    @staticmethod
-    def _deterministic_person_area_answer(
-        *,
-        query: str,
-        context_chunks: list[ContextChunk],
-    ) -> str | None:
-        """Answer person -> technology-area lookups without asking the LLM to infer.
-
-        This prevents small/free LLMs from adding nearby table rows or dropping valid rows
-        when the evidence already exists as trusted table_row/entity_profile metadata.
-        """
-
-        membership_query = analyze_person_area_membership_query(query)
-        person_name = RagAnswerService._person_area_query_person(query)
-        if person_name is None and membership_query is not None:
-            person_name = membership_query.person_candidate
-        if person_name is None:
-            return None
-
-        person_key = normalize_metadata_value(person_name)
-        rows: list[dict[str, str]] = []
-        seen: dict[tuple[str, str], int] = {}
-
-        def add_row(
-            *,
-            area: object,
-            department: object = "",
-            stt: object = "",
-            citation: int,
-            role_note: object = "",
-        ) -> None:
-            area_text = str(area or "").strip()
-            if not area_text:
-                return
-            department_text = str(department or "").strip()
-            stt_text = str(stt or "").strip()
-            key = (
-                normalize_metadata_value(area_text),
-                normalize_metadata_value(department_text),
-            )
-            if key in seen:
-                existing = rows[seen[key]]
-                if not existing.get("stt") and stt_text:
-                    existing["stt"] = stt_text
-                    existing["citation"] = str(citation)
-                if not existing.get("role_note") and str(role_note or "").strip():
-                    existing["role_note"] = str(role_note or "").strip()
-                return
-            seen[key] = len(rows)
-            rows.append(
-                {
-                    "area": area_text,
-                    "department": department_text,
-                    "stt": stt_text,
-                    "citation": str(citation),
-                    "role_note": str(role_note or "").strip(),
-                }
-            )
-
-        for context_chunk in context_chunks:
-            metadata = context_chunk.chunk.chunk_metadata or {}
-            chunk_type = str(metadata.get("chunk_type") or "")
-
-            if chunk_type == "entity_profile":
-                metadata_person = str(
-                    metadata.get("person_name") or metadata.get("entity_name") or ""
-                ).strip()
-                handled_profile = False
-                if metadata_person and RagAnswerService._person_name_matches(
-                    metadata_person,
-                    person_name,
-                ):
-                    for area_payload in metadata.get("areas", []) or []:
-                        if not isinstance(area_payload, dict):
-                            continue
-                        add_row(
-                            area=area_payload.get("area"),
-                            department=area_payload.get("lead_department"),
-                            stt=area_payload.get("stt"),
-                            role_note=area_payload.get("role_note"),
-                            citation=context_chunk.citation_index,
-                        )
-                    handled_profile = True
-                else:
-                    for parsed in RagAnswerService._parse_person_area_profile_text(
-                        context_chunk.chunk.content or "",
-                        person_name=person_name,
-                        citation=context_chunk.citation_index,
-                    ):
-                        add_row(**parsed)
-                        handled_profile = True
-                if handled_profile:
-                    continue
-                continue
-
-            if is_trusted_relationship_metadata(metadata):
-                staff_names = [
-                    str(item.get("name") or "")
-                    for item in metadata.get("staff", []) or []
-                    if isinstance(item, dict)
-                ] or [str(name) for name in metadata.get("staff_names", []) or []]
-                if not any(
-                    RagAnswerService._person_name_matches(name, person_name)
-                    for name in staff_names
-                ):
-                    continue
-                role_note = ""
-                for staff in metadata.get("staff", []) or []:
-                    if not isinstance(staff, dict):
-                        continue
-                    if RagAnswerService._person_name_matches(
-                        str(staff.get("name") or ""),
-                        person_name,
-                    ):
-                        role_note = str(staff.get("role_note") or "").strip()
-                        break
-                add_row(
-                    area=metadata.get("area"),
-                    department=metadata.get("lead_department"),
-                    stt=metadata.get("stt"),
-                    role_note=role_note,
-                    citation=context_chunk.citation_index,
-                )
-                continue
-
-            # Fallback for older table chunks that have TABLE_ROW text but no trusted metadata.
-            for line in RagAnswerService._table_context_lines(context_chunk.chunk.content or ""):
-                if "table_row" not in line.casefold():
-                    continue
-                if person_key not in normalize_metadata_value(line):
-                    continue
-                parsed = RagAnswerService._parse_table_row_line_for_area(line)
-                if parsed is None:
-                    continue
-                add_row(citation=context_chunk.citation_index, **parsed)
-
-            # Fallback for canonical relationship table blocks generated as plain
-            # text by parsers, e.g. repeated blocks of:
-            # STT / Mảng công nghệ / Phòng chủ trì / Nhân sự đề xuất.
-            # These blocks are direct row evidence, but older indexes may not have
-            # chunk_type=table_row or entity_profile metadata yet.
-            chunk_content = context_chunk.chunk.content or ""
-
-            for parsed in RagAnswerService._parse_canonical_person_area_blocks(
-                chunk_content,
-                person_key=person_key,
-            ):
-                add_row(citation=context_chunk.citation_index, **parsed)
-
-            for parsed in RagAnswerService._parse_pipe_person_area_rows(
-                chunk_content,
-                person_key=person_key,
-            ):
-                add_row(citation=context_chunk.citation_index, **parsed)
-
-        if not rows:
-            return None
-
-        rows.sort(key=lambda item: RagAnswerService._natural_stt_key(item.get("stt") or ""))
-        if (
-            membership_query is not None
-            and not RagAnswerService._is_generic_person_area_candidate(
-                membership_query.area_candidate
-            )
-        ):
-            matched_rows = [
-                row
-                for row in rows
-                if RagAnswerService._person_area_matches(
-                    row.get("area") or "",
-                    membership_query.area_candidate or "",
-                )
-            ]
-            if matched_rows:
-                matched = matched_rows[0]
-                dept = (
-                    f" — Phòng chủ trì: {matched['department']}"
-                    if matched.get("department")
-                    else ""
-                )
-                lines = [
-                    (
-                        f"Đúng, {person_name} được đề xuất tham gia mảng công nghệ "
-                        f"{matched['area']}{dept}. [{matched['citation']}]"
-                    )
-                ]
-                other_rows = [row for row in rows if row not in matched_rows]
-                if other_rows:
-                    lines.append("Ngoài ra, nhân sự này còn được đề xuất ở các mảng:")
-                    for row in other_rows:
-                        other_dept = (
-                            f" — Phòng chủ trì: {row['department']}"
-                            if row.get("department")
-                            else ""
-                        )
-                        lines.append(f"- {row['area']}{other_dept}. [{row['citation']}]")
-                return "\n".join(lines)
-
-            known_areas = "; ".join(row["area"] for row in rows if row.get("area"))
-            return (
-                f"Chưa thấy dòng/bản ghi trực tiếp xác nhận {person_name} tham gia "
-                f"mảng {membership_query.area_candidate}. "
-                f"Các mảng tìm thấy cho nhân sự này là: {known_areas}."
-            ).strip()
-
-        count_text = f"{len(rows):02d}" if len(rows) < 10 else str(len(rows))
-        lines = [f"{person_name} được đề xuất tham gia {count_text} mảng công nghệ:"]
-        for index, row in enumerate(rows, start=1):
-            dept = f" — Phòng chủ trì: {row['department']}" if row.get("department") else ""
-            note = f"; ghi chú: {row['role_note']}" if row.get("role_note") else ""
-            stt = f"STT {row['stt']}: " if row.get("stt") else ""
-            lines.append(f"{index}. {stt}{row['area']}{dept}{note}. [{row['citation']}]")
-        lines.append("Thông tin trên được tổng hợp từ các bản ghi nhân sự trong tài liệu.")
-        return "\n".join(lines)
-
-
-    @staticmethod
-    def _insufficient_person_area_answer(query: str) -> str:
-        person_name = RagAnswerService._person_area_query_person(query) or "nhân sự này"
-        return (
-            f"Chưa đủ căn cứ trực tiếp trong các dòng/bản ghi đã truy xuất để xác định "
-            f"{person_name} tham gia những mảng công nghệ nào. "
-            "Tôi không suy luận từ các dòng lân cận; hãy re-index tài liệu hoặc kiểm tra "
-            "rằng các TABLE_ROW/entity_profile của bảng nhân sự đã được tạo đầy đủ."
-        )
-
-
     @staticmethod
     def _person_area_query_person(query: str) -> str | None:
         """Extract a likely person/entity name without intent-keyword gates."""
@@ -2122,171 +1359,76 @@ class RagAnswerService:
         return None
 
     @staticmethod
-    def _parse_canonical_person_area_blocks(
-        content: str,
+    def _query_requires_direct_entity_evidence(
         *,
-        person_key: str,
-    ) -> list[dict[str, str]]:
-        """Extract person-area rows from explicit canonical table-block text.
-
-        This is intentionally narrow: it only reads blocks that contain the
-        original labels emitted by the table relationship parser. It does not use
-        neighboring prose or loose row adjacency, so it remains grounded while
-        supporting older indexes that missed per-row metadata.
-        """
-
-        if not content or not person_key:
-            return []
-        if person_key not in normalize_metadata_value(content):
-            return []
-        if not re.search(r"Mảng công nghệ\s*:", content, flags=re.IGNORECASE):
-            return []
-        if not re.search(r"Nhân sự đề xuất\s*:", content, flags=re.IGNORECASE):
-            return []
-
-        blocks = re.split(r"(?=^\s*STT\s*:)", content, flags=re.IGNORECASE | re.MULTILINE)
-        rows: list[dict[str, str]] = []
-        for block in blocks:
-            if person_key not in normalize_metadata_value(block):
-                continue
-            stt = RagAnswerService._extract_labeled_value(block, "STT")
-            area = RagAnswerService._extract_labeled_value(block, "Mảng công nghệ")
-            department = RagAnswerService._extract_labeled_value(block, "Phòng chủ trì")
-            staff = RagAnswerService._extract_labeled_value(block, "Nhân sự đề xuất")
-            if not area or not staff:
-                continue
-            if person_key not in normalize_metadata_value(staff):
-                continue
-            rows.append({"area": area, "department": department or "", "stt": stt or ""})
-        return rows
-
-    @staticmethod
-    def _parse_pipe_person_area_rows(
-        content: str,
-        *,
-        person_key: str,
-    ) -> list[dict[str, str]]:
-        """Extract person-area rows from pipe-delimited table text.
-
-        Some parsers keep the source table as plain text using ``|`` separators,
-        for example ``| STT | Mảng công nghệ | Phòng chủ trì | Nhân sự đề xuất |``.
-        These rows are direct table evidence even when no per-row metadata exists.
-        """
-
-        if not content or not person_key:
-            return []
-        normalized_content = normalize_metadata_value(content)
-        if person_key not in normalized_content:
-            return []
-        if "|" not in content:
-            return []
-
-        rows: list[dict[str, str]] = []
-        header_map: dict[str, int] = {}
-        for raw_line in content.splitlines():
-            line = raw_line.strip()
-            if not line.startswith("|") or line.count("|") < 4:
-                continue
-
-            cells = [cell.strip() for cell in line.strip("|").split("|")]
-            if not cells:
-                continue
-            normalized_cells = [normalize_metadata_value(cell) for cell in cells]
-
-            # Separator rows such as |---|---|---|---| are not data.
-            if all(re.fullmatch(r":?-{3,}:?", cell.replace(" ", "")) for cell in cells):
-                continue
-
-            if (
-                "stt" in normalized_cells
-                and "mang cong nghe" in normalized_cells
-                and "nhan su de xuat" in normalized_cells
-            ):
-                header_map = {name: index for index, name in enumerate(normalized_cells)}
-                continue
-
-            if not header_map:
-                continue
-            if person_key not in normalize_metadata_value(" ".join(cells)):
-                continue
-
-            area_index = header_map.get("mang cong nghe")
-            staff_index = header_map.get("nhan su de xuat")
-            if area_index is None or staff_index is None:
-                continue
-            if area_index >= len(cells) or staff_index >= len(cells):
-                continue
-
-            staff = cells[staff_index]
-            if person_key not in normalize_metadata_value(staff):
-                continue
-
-            department = ""
-            department_index = header_map.get("phong chu tri")
-            if department_index is not None and department_index < len(cells):
-                department = cells[department_index]
-
-            stt = ""
-            stt_index = header_map.get("stt")
-            if stt_index is not None and stt_index < len(cells):
-                stt = cells[stt_index]
-
-            rows.append(
-                {
-                    "area": cells[area_index],
-                    "department": department,
-                    "stt": stt,
-                }
-            )
-        return rows
-
-    @staticmethod
-    def _extract_labeled_value(content: str, label: str) -> str:
-        labels = ("STT", "Mảng công nghệ", "Phòng chủ trì", "Nhân sự đề xuất")
-        next_labels = [candidate for candidate in labels if candidate != label]
-        next_pattern = "|".join(re.escape(candidate) for candidate in next_labels)
-        pattern = re.compile(
-            rf"{re.escape(label)}\s*:\s*(?P<value>.*?)(?=^\s*(?:{next_pattern})\s*:|\Z)",
-            flags=re.IGNORECASE | re.DOTALL | re.MULTILINE,
+        query: str,
+        context_chunks: list[ContextChunk],
+    ) -> bool:
+        entities = RagAnswerService._query_named_entities(query)
+        if not entities:
+            return False
+        return not RagAnswerService._context_contains_named_entity(
+            entities=entities,
+            context_chunks=context_chunks,
         )
-        match = pattern.search(content)
-        if match is None:
+
+    @staticmethod
+    def _query_named_entities(query: str) -> list[str]:
+        entities: list[str] = []
+        for entity in extract_entities_from_text(query):
+            cleaned = " ".join(entity.strip(" ?!.,;:").split())
+            if len(cleaned.split()) >= 2:
+                entities.append(cleaned)
+        return RagAnswerService._dedupe_text_values(entities, limit=8)
+
+    @staticmethod
+    def _context_contains_named_entity(
+        *,
+        entities: list[str],
+        context_chunks: list[ContextChunk],
+    ) -> bool:
+        entity_keys = [normalize_metadata_value(entity) for entity in entities]
+        entity_keys = [key for key in entity_keys if key]
+        if not entity_keys:
+            return False
+
+        for context_chunk in context_chunks:
+            chunk = context_chunk.chunk
+            metadata = chunk.chunk_metadata or {}
+            metadata_text = " ".join(RagAnswerService._stringify_metadata_value(value) for value in metadata.values())
+            haystack = normalize_metadata_value(f"{chunk.content or ''} {metadata_text}")
+            if any(key in haystack for key in entity_keys):
+                return True
+        return False
+
+    @staticmethod
+    def _stringify_metadata_value(value: Any) -> str:
+        if value is None:
             return ""
-        return " ".join(match.group("value").split()).strip(" -;:|/")
+        if isinstance(value, dict):
+            return " ".join(RagAnswerService._stringify_metadata_value(item) for item in value.values())
+        if isinstance(value, (list, tuple, set)):
+            return " ".join(RagAnswerService._stringify_metadata_value(item) for item in value)
+        return str(value)
 
     @staticmethod
-    def _parse_table_row_line_for_area(line: str) -> dict[str, str] | None:
-        fields: dict[str, str] = {}
-        row_match = re.search(r"\brow=(?P<row>\d+)\b", line, flags=re.IGNORECASE)
-        for part in line.split("|"):
-            label, separator, value = part.partition(":")
-            if not separator:
-                continue
-            fields[normalize_metadata_value(label)] = value.strip()
-
-        area = (
-            fields.get("mang cong nghe")
-            or fields.get("nhom nhiem vu")
-            or fields.get("ten mang")
-            or fields.get("cell_2")
-        )
-        department = (
-            fields.get("phong chu tri")
-            or fields.get("don vi")
-            or fields.get("phong")
-            or fields.get("cell_3")
-        )
-        stt = fields.get("stt") or fields.get("cell_1") or (row_match.group("row") if row_match else "")
-        if not area:
-            return None
-        return {"area": area, "department": department or "", "stt": stt or ""}
+    def _looks_vietnamese_query(query: str) -> bool:
+        if re.search(r"[ăâđêôơưĂÂĐÊÔƠƯ]", query or ""):
+            return True
+        normalized = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(query or ""))
+        return bool(re.search(r"\b(la|co|khong|nhung|cua|trong|theo)\b", normalized))
 
     @staticmethod
-    def _natural_stt_key(value: str) -> tuple[int, str]:
-        match = re.search(r"\d+", value or "")
-        if match:
-            return (int(match.group(0)), value)
-        return (10_000, value or "")
+    def _missing_accessible_context_answer(query: str) -> str:
+        if RagAnswerService._looks_vietnamese_query(query):
+            return "Không tìm thấy tài liệu phù hợp trong phạm vi quyền truy cập."
+        return "No relevant document was found within the accessible scope."
+
+    @staticmethod
+    def _insufficient_direct_evidence_answer(query: str) -> str:
+        if RagAnswerService._looks_vietnamese_query(query):
+            return "Không đủ căn cứ trực tiếp trong các tài liệu đã truy xuất để trả lời câu hỏi này."
+        return "There is not enough direct evidence in the retrieved documents to answer this question."
 
     @staticmethod
     def _query_terms(query: str) -> list[str]:
@@ -2326,14 +1468,7 @@ class RagAnswerService:
             if re.fullmatch(r"[A-Z0-9][A-Z0-9._/-]{1,}", word):
                 phrases.append(word)
 
-        normalized_tokens = [
-            token
-            for token in (
-                normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(word))
-                for word in words
-            )
-            if len(token) >= 2
-        ]
+        normalized_tokens = [token for token in (normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(word)) for word in words) if len(token) >= 2]
 
         max_n = min(7, len(normalized_tokens))
         for size in range(max_n, 1, -1):
@@ -2372,17 +1507,13 @@ class RagAnswerService:
     ) -> bool:
         if not query_terms:
             return False
-        content = normalize_metadata_value(
-            RagAnswerService._strip_vietnamese_accents(chunk.content or "")
-        )
+        content = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(chunk.content or ""))
         if not content:
             return False
 
         matched = 0
         for term in query_terms:
-            term_key = normalize_metadata_value(
-                RagAnswerService._strip_vietnamese_accents(term)
-            )
+            term_key = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(term))
             if not term_key or len(term_key) < 2:
                 continue
             if term_key in content:
@@ -2404,14 +1535,8 @@ class RagAnswerService:
             )
             if (value := metadata.get(key)) is not None
         )
-        metadata_key = normalize_metadata_value(
-            RagAnswerService._strip_vietnamese_accents(metadata_text)
-        )
-        return any(
-            normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(term))
-            and normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(term)) in metadata_key
-            for term in query_terms
-        )
+        metadata_key = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(metadata_text))
+        return any(normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(term)) and normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(term)) in metadata_key for term in query_terms)
 
     @staticmethod
     def _table_references(metadata: dict[str, Any]) -> list[str]:
@@ -2529,9 +1654,8 @@ class RagAnswerService:
     ) -> list[ContextChunk]:
         """For code-only lookups, keep only chunks that literally contain the code.
 
-        This prevents a query like ``3113`` from carrying topical neighbor chunks into
-        the LLM prompt, which previously caused unrelated summaries and hallucinated
-        "related cases" sections.
+        This prevents short identifier lookups from carrying unrelated topical
+        neighbor chunks into the LLM prompt.
         """
 
         if not is_identifier_lookup_query(query):
@@ -2541,17 +1665,10 @@ class RagAnswerService:
         if not normalized_query:
             return context_chunks
 
-        exact_chunks = [
-            context_chunk
-            for context_chunk in context_chunks
-            if normalized_query in (context_chunk.chunk.content or "").casefold()
-        ]
+        exact_chunks = [context_chunk for context_chunk in context_chunks if normalized_query in (context_chunk.chunk.content or "").casefold()]
         if not exact_chunks:
             return context_chunks
-        return [
-            replace(context_chunk, citation_index=index)
-            for index, context_chunk in enumerate(exact_chunks, start=1)
-        ]
+        return [replace(context_chunk, citation_index=index) for index, context_chunk in enumerate(exact_chunks, start=1)]
 
     def _deduplicate_context_chunks(
         self,
@@ -2593,15 +1710,11 @@ class RagAnswerService:
                 seen_article_lines.add(article_key)
             deduplicated.append(context_chunk)
 
-        return [
-            replace(context_chunk, citation_index=index)
-            for index, context_chunk in enumerate(deduplicated, start=1)
-        ]
+        return [replace(context_chunk, citation_index=index) for index, context_chunk in enumerate(deduplicated, start=1)]
 
     @staticmethod
     def _normalize_text(text: str | None) -> str:
         return " ".join((text or "").split()).lower()
-
 
     @staticmethod
     def _query_with_short_term_context(
@@ -2640,12 +1753,7 @@ class RagAnswerService:
         if not hints:
             return query
 
-        return (
-            f"{query}\n\n"
-            "Ngữ cảnh hội thoại ngắn hạn do chatbot cung cấp để hỗ trợ truy xuất, "
-            "không phải nguồn trích dẫn:\n"
-            + "\n".join(f"- {hint}" for hint in hints[:8])
-        )
+        return f"{query}\n\nNgữ cảnh hội thoại ngắn hạn do chatbot cung cấp để hỗ trợ truy xuất, không phải nguồn trích dẫn:\n" + "\n".join(f"- {hint}" for hint in hints[:8])
 
     @staticmethod
     def _short_term_context_section(
@@ -2679,11 +1787,7 @@ class RagAnswerService:
         if not lines:
             return None
 
-        return (
-            "Short-term chatbot context (for query understanding only; "
-            "do not cite it; retrieved document context wins if there is any conflict):\n"
-            + "\n".join(lines[:10])
-        )
+        return "Short-term chatbot context (for query understanding only; do not cite it; retrieved document context wins if there is any conflict):\n" + "\n".join(lines[:10])
 
     @staticmethod
     def _identifier_values_from_context(context_chunks: list[ContextChunk]) -> list[str]:
@@ -2738,64 +1842,62 @@ class RagAnswerService:
     def _build_user_prompt(
         *,
         query: str,
+        standalone_query: str | None = None,
         context_chunks: list[ContextChunk],
         memory_context: list[MemoryResult] | None = None,
         session_summary: str | None = None,
         session_context: RagSessionContext | None = None,
     ) -> str:
         sections: list[str] = []
+        retrieval_query = " ".join((standalone_query or query or "").split())
+        has_standalone_query = bool(retrieval_query and normalize_metadata_value(retrieval_query) != normalize_metadata_value(query or ""))
 
-        session_context_section = RagAnswerService._short_term_context_section(
-            session_context=session_context
-        )
+        language_instruction = RagAnswerService._answer_language_instruction(query)
+        if language_instruction:
+            sections.append(language_instruction)
+
+        if has_standalone_query:
+            sections.append(f"Standalone retrieval question (for resolving conversational references; answer the user's original question, and do not cite this as evidence):\n{retrieval_query}")
+
+        session_context_section = RagAnswerService._short_term_context_section(session_context=session_context)
         if session_context_section:
             sections.append(session_context_section)
 
         if memory_context:
-            memory_lines = "\n".join(
-                f"- ({memory.memory_type}) {memory.content}" for memory in memory_context
-            )
+            memory_lines = "\n".join(f"- ({memory.memory_type}) {memory.content}" for memory in memory_context)
             sections.append(f"User Memory:\n{memory_lines}")
 
         if session_summary:
             sections.append(f"Session Summary:\n{session_summary}")
 
-        query_terms = RagAnswerService._query_terms(query)
-        identifier_lookup = is_identifier_lookup_query(query)
+        evidence_query = retrieval_query or query
+        query_terms = RagAnswerService._query_terms(evidence_query)
+        identifier_lookup = is_identifier_lookup_query(evidence_query)
         if identifier_lookup:
             exact_chunks = [
                 context_chunk
                 for context_chunk in context_chunks
-                if str((context_chunk.chunk.chunk_metadata or {}).get("identifier_exact_boost") or "0") != "0"
-                or query.strip().casefold() in (context_chunk.chunk.content or "").casefold()
+                if str((context_chunk.chunk.chunk_metadata or {}).get("identifier_exact_boost") or "0") != "0" or evidence_query.strip().casefold() in (context_chunk.chunk.content or "").casefold()
             ]
             if exact_chunks:
                 context_chunks = exact_chunks
         if identifier_lookup:
             exact_values = RagAnswerService._identifier_values_from_context(context_chunks)
             if exact_values:
-                exact_value_lines = "\n".join(f"  - {value}" for value in exact_values) or "  - Không có mã định danh chính xác trong metadata; hãy dùng nguyên văn mã xuất hiện trong ngữ cảnh."
+                exact_value_lines = "\n".join(f"  - {value}" for value in exact_values)
 
                 sections.append(
-                    "Identifier lookup constraints:\n"
-                    f"- User query is an identifier/code lookup: {query.strip()}\n"
-                    "- Use only the retrieved chunks below that contain the exact identifier.\n"
-                    "- Copy these exact identifier/document-code strings exactly; do not rewrite, abbreviate, translate, normalize, or guess them:\n"
+                    "Exact identifier evidence policy:\n"
+                    f"- Retrieval query is an identifier/code lookup: {evidence_query.strip()}\n"
+                    "- Use the retrieved chunks that contain the exact identifier.\n"
+                    "- Preserve these exact identifier/document-code strings without rewriting them:\n"
                     f"{exact_value_lines}\n"
-                    "- If the user only enters a short number/code, answer in this structure when possible:\n"
-                    f"  1) Identify the code/document: 'Số {query.strip()} (cụ thể là văn bản số {{exact_doc_code}}) là văn bản do {{issuing_org}} ban hành ngày {{exact_date}} về {{subject}}.'\n"
-                    "  2) State the main subject of that referenced document.\n"
-                    "  3) Explain that the current EVNICT document uses that referenced document as the basis for its notification.\n"
-                    "  4) Summarize the implementation details from the current document, such as app download links, feature updates, CMS updates, and update mechanism.\n"
-                    "- For short identifier/code queries, do not answer too briefly if the retrieved context contains implementation details.\n"
-                    "- It is acceptable to use bullets for implementation details when the context contains multiple items.\n"
-                    f"- Prefer the phrase 'Số {query.strip()} (cụ thể là văn bản số ...)' or '{query.strip()} là một phần trong số hiệu văn bản ...' for short numeric/code queries.\n"
-                    f"- Do not start the answer with 'Văn bản {query.strip()}' when the query is only a short number/code.\n"
-                    "- Clearly distinguish the referenced EVN document from the current EVNICT notification document.\n"
-                    "- If the context says 'Căn cứ văn bản số ...', say that the current document uses it as a basis; do not imply the referenced document was issued by the current document's issuing unit.\n"
-                    "- Do not use vague or unsupported phrases such as 'căn cứ tham chiếu', 'số thứ tự', 'có nội dung chính thức đề', 'phê duyệt', or similar wording unless the context explicitly says so.\n"
-                    "- Do not add related documents, related systems, or inferred approval/issuer details unless explicitly stated in the retrieved chunks.\n"
-                    "- Keep the answer in Vietnamese and grounded in the retrieved context.\n"
+                    "- Extract any directly attached fields, dates, parties, titles, links, "
+                    "lists, notes, status text, responsibilities, or mechanisms from the same "
+                    "evidence. Do not stop at the first sentence if additional attached details "
+                    "answer the question.\n"
+                    "- Do not add related records or inferred legal/business effect unless the "
+                    "retrieved evidence explicitly states it.\n"
                 )
 
         include_all_table_rows = RagAnswerService._is_table_enumeration_query(query)
@@ -2810,6 +1912,13 @@ class RagAnswerService:
             if table_support:
                 sections.append("TABLE_SUPPORT:\n" + "\n".join(table_support))
 
+        count_evidence = RagAnswerService._count_evidence_section(
+            query=query,
+            context_chunks=context_chunks,
+        )
+        if count_evidence:
+            sections.append(count_evidence)
+
         document_context_chunks = context_chunks
         if matched_rows:
             document_context_chunks = [
@@ -2822,10 +1931,7 @@ class RagAnswerService:
                 )
             ]
 
-        context = "\n".join(
-            f"[{context_chunk.citation_index}] {context_chunk.chunk.content}"
-            for context_chunk in document_context_chunks
-        )
+        context = "\n".join(f"[{context_chunk.citation_index}] {context_chunk.chunk.content}" for context_chunk in document_context_chunks)
         if context:
             sections.append(
                 "Retrieved Document Context:\n"
@@ -2841,8 +1947,165 @@ class RagAnswerService:
                 "short sentence."
             )
 
+        sections.append(
+            "Dynamic answer requirements:\n"
+            "- Answer in the same language as the user's question unless the question asks otherwise.\n"
+            "- Infer the question type from the wording and the retrieved evidence; do not rely on fixed document names, people, organizations, or domain-specific templates.\n"
+            "- If a standalone retrieval question is present, use it only to resolve references in the original question; do not treat it as a cited source.\n"
+            "- Start with the direct answer. For count questions, state the count first. For yes/no questions, state the decision first. For list questions, list the matching records.\n"
+            "- When COUNT_EVIDENCE exists, use it to choose the count whose nearby noun "
+            "phrase, label, heading, or row field best matches the entity being counted "
+            "in the question. If several counts could match, state the ambiguity and "
+            "list the competing counts instead of choosing a broader total.\n"
+            "- For count questions about attributes, tables, columns, fields, layers, or "
+            "objects, do not substitute a broader category total when COUNT_EVIDENCE "
+            "contains a candidate that explicitly matches the narrower counted entity.\n"
+            "- Prefer the smallest evidence span that directly answers the question, then add only details that explain that answer.\n"
+            "- Do not expand into field-level schemas, unrelated rows, or long background details unless the question asks for those details.\n"
+            "- For table-like evidence, use the row fields and original labels shown in ENTITY_MATCHED_ROWS or context; do not assume fixed column names.\n"
+            "- For narrative evidence, preserve the relevant section heading and bullet structure when it helps answer the question.\n"
+            "- If retrieved evidence is insufficient or conflicting, say that clearly instead of guessing.\n"
+            "- Do not create a Sources, References, Documents, or source-list section at the end.\n"
+            "- Attach inline citation markers like [1], [2] to each factual sentence or bullet. The application renders the source/download list separately."
+        )
         sections.append(f"Question:\n{query}")
         return "\n\n".join(sections)
+
+    @staticmethod
+    def _answer_language_instruction(query: str) -> str:
+        if RagAnswerService._looks_vietnamese_query(query):
+            return (
+                "Language constraint:\n"
+                "- The user's question is Vietnamese. Answer only in Vietnamese.\n"
+                "- Preserve exact source names, identifiers, product names, URLs, and "
+                "technical terms as written in the evidence.\n"
+                "- Do not mix unrelated languages into the answer."
+            )
+        return (
+            "Language constraint:\n"
+            "- Answer in the same language as the user's question.\n"
+            "- Preserve exact source names, identifiers, product names, URLs, and "
+            "technical terms as written in the evidence.\n"
+            "- Do not mix unrelated languages into the answer."
+        )
+
+    @staticmethod
+    def _clean_llm_answer(answer: str) -> str:
+        cleaned = str(answer or "")
+        cleaned = re.sub(r"(?is)<think>.*?</think>", "", cleaned)
+        cleaned = re.sub(r"(?is)<think>.*$", "", cleaned)
+        cleaned = re.sub(r"(?is)^.*?</think>", "", cleaned)
+        cleaned = re.sub(r"(?im)^\s*(?:supporting text|sources?|references?)\s*:\s*$", "", cleaned)
+        cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+        return cleaned.strip()
+
+    @staticmethod
+    def _count_evidence_section(
+        *,
+        query: str,
+        context_chunks: list[ContextChunk],
+    ) -> str | None:
+        if not RagAnswerService._is_count_query(query):
+            return None
+        query_tokens = RagAnswerService._count_query_tokens(query)
+        query_phrases = RagAnswerService._count_query_phrases(query)
+        if not query_tokens:
+            return None
+
+        candidates: list[tuple[float, int, str, str]] = []
+        seen: set[str] = set()
+        for context_chunk in context_chunks:
+            for line in RagAnswerService._count_candidate_lines(context_chunk.chunk.content or ""):
+                normalized = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(line))
+                numbers = re.findall(r"\b\d{1,4}\b", normalized)
+                if not numbers:
+                    continue
+                tokens = set(re.findall(r"[a-z0-9]+", normalized))
+                overlap = query_tokens & tokens
+                if not overlap:
+                    continue
+                phrase_hits = sum(1 for phrase in query_phrases if phrase in normalized)
+                score = len(overlap) + (2.5 * phrase_hits)
+                key = normalize_metadata_value(line)
+                if key in seen:
+                    continue
+                seen.add(key)
+                candidates.append((score, context_chunk.citation_index, numbers[0], line))
+
+        if not candidates:
+            return None
+
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        lines = [
+            "COUNT_EVIDENCE:",
+            "Use these candidate counts only as extracted evidence; still answer from the cited context.",
+        ]
+        for score, citation, number, text in candidates[:8]:
+            lines.append(f"- score={score:.2f}; citation=[{citation}]; count={number}; text={text}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _is_count_query(query: str) -> bool:
+        normalized = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(query))
+        count_terms = (
+            "bao nhieu",
+            "co may",
+            "count",
+            "how many",
+            "number of",
+            "so luong",
+            "tong so",
+        )
+        return any(term in normalized for term in count_terms)
+
+    @staticmethod
+    def _count_query_tokens(query: str) -> set[str]:
+        normalized = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(query))
+        stopwords = {
+            "a",
+            "an",
+            "and",
+            "are",
+            "bao",
+            "co",
+            "count",
+            "cua",
+            "duoc",
+            "how",
+            "la",
+            "may",
+            "many",
+            "number",
+            "of",
+            "so",
+            "the",
+            "there",
+            "trong",
+            "what",
+        }
+        return {token for token in re.findall(r"[a-z0-9]+", normalized) if len(token) > 1 and token not in stopwords and not token.isdigit()}
+
+    @staticmethod
+    def _count_query_phrases(query: str) -> list[str]:
+        normalized = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(query))
+        tokens = [token for token in re.findall(r"[a-z0-9]+", normalized) if len(token) > 1]
+        phrases: list[str] = []
+        for size in (3, 2):
+            for index in range(0, max(len(tokens) - size + 1, 0)):
+                phrase = " ".join(tokens[index : index + size])
+                if phrase not in phrases:
+                    phrases.append(phrase)
+        return phrases[:16]
+
+    @staticmethod
+    def _count_candidate_lines(content: str) -> list[str]:
+        lines: list[str] = []
+        for raw_line in (content or "").replace("\\_", "_").splitlines():
+            for part in re.split(r"(?<=[.;:])\s+(?=\S)", raw_line):
+                line = " ".join(part.split()).strip(" -*•‣◦")
+                if line and re.search(r"\b\d{1,4}\b", line):
+                    lines.append(line)
+        return lines
 
     @staticmethod
     def _table_context_sections(
@@ -2869,21 +2132,13 @@ class RagAnswerService:
                     "table_row",
                     "entity_profile",
                 }
-                if is_result_row and (
-                    include_all_table_rows
-                    or RagAnswerService._contains_any_query_term(line, query_terms)
-                ):
+                if is_result_row and (include_all_table_rows or RagAnswerService._contains_any_query_term(line, query_terms)):
                     if formatted not in seen_rows:
                         seen_rows.add(formatted)
                         matched_rows.append(formatted)
                     continue
 
-                is_support_line = (
-                    "table_title" in normalized_line
-                    or "table_header" in normalized_line
-                    or "table_caption" in normalized_line
-                    or chunk_type in {"table_title", "table_header", "table_caption"}
-                )
+                is_support_line = "table_title" in normalized_line or "table_header" in normalized_line or "table_caption" in normalized_line or chunk_type in {"table_title", "table_header", "table_caption"}
                 if is_support_line and formatted not in seen_support:
                     seen_support.add(formatted)
                     support.append(formatted)
@@ -2919,17 +2174,9 @@ class RagAnswerService:
         for line in RagAnswerService._table_context_lines(content):
             normalized_line = line.casefold()
             is_result_row = "table_row" in normalized_line or chunk_type in result_chunk_types
-            is_support_line = (
-                "table_title" in normalized_line
-                or "table_header" in normalized_line
-                or "table_caption" in normalized_line
-                or chunk_type in support_chunk_types
-            )
+            is_support_line = "table_title" in normalized_line or "table_header" in normalized_line or "table_caption" in normalized_line or chunk_type in support_chunk_types
 
-            if is_result_row and (
-                include_all_table_rows
-                or RagAnswerService._contains_any_query_term(line, query_terms)
-            ):
+            if is_result_row and (include_all_table_rows or RagAnswerService._contains_any_query_term(line, query_terms)):
                 has_result_line = True
                 continue
             if is_support_line:
@@ -2941,9 +2188,7 @@ class RagAnswerService:
 
     @staticmethod
     def _table_context_lines(content: str) -> list[str]:
-        marker_pattern = re.compile(
-            r"\s+(?=(?:TABLE_TITLE|TABLE_CAPTION|TABLE_HEADER|TABLE_ROW)\b)"
-        )
+        marker_pattern = re.compile(r"\s+(?=(?:TABLE_TITLE|TABLE_CAPTION|TABLE_HEADER|TABLE_ROW)\b)")
         lines: list[str] = []
         for raw_line in content.splitlines():
             for line in marker_pattern.split(raw_line.strip()):
@@ -3046,226 +2291,63 @@ class RagAnswerService:
             return None
         text = str(value).strip()
         return text or None
-    
-    @staticmethod
-    def _structured_evidence_can_answer_directly(evidence: Any) -> bool:
-        """Return True only when a structured row contains an answer value.
-
-        Matching an identifier-like field such as a table row title, staff name,
-        area, department, or page is not enough to produce a deterministic answer.
-        Those rows are still useful as retrieval context, but the final answer
-        should be generated by the normal RAG prompt so nearby narrative/section
-        chunks can answer descriptive questions such as goals, scope, or purpose.
-        """
-
-        fields = getattr(getattr(evidence, "row", None), "fields", {}) or {}
-        answer_field_keys = {
-            "answer",
-            "description",
-            "definition",
-            "goal",
-            "objective",
-            "purpose",
-            "summary",
-            "value",
-            "measure_value",
-            "measure_text",
-            "total_benefit",
-            "total_days",
-            "total_leave_benefit",
-            "total_leave_days",
-            "base_benefit",
-            "additional_benefit",
-            "labor_code_benefit",
-            "collective_agreement_benefit",
-            "condition",
-            "conditions",
-        }
-        for key in answer_field_keys:
-            value = fields.get(key)
-            if value not in (None, "", [], {}):
-                return True
-        return False
-
 
     @staticmethod
-    def _is_narrative_chunk(chunk: Chunk) -> bool:
-        metadata = getattr(chunk, "chunk_metadata", None) or {}
-        chunk_type = str(metadata.get("chunk_type") or "")
-        structured_types = {
-            "entity_profile",
-            "legal_table_row",
-            "structured_fact_row",
-            "table_block",
-            "table_complete",
-            "table_header",
-            "table_row",
-            "table_rows",
-            "table_title",
-        }
-        return chunk_type not in structured_types
+    def _is_schema_count_query(query: str) -> bool:
+        normalized = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(query))
+        count_terms = (
+            "how many",
+            "number of",
+            "count",
+            "may",
+            "bao nhieu",
+            "so luong",
+        )
+        structure_terms = (
+            "schema",
+            "database",
+            "table",
+            "column",
+            "field",
+            "attribute",
+            "layer",
+            "object",
+            "csdl",
+            "co so du lieu",
+            "bang",
+            "cot",
+            "truong",
+            "thuoc tinh",
+            "lop",
+            "doi tuong",
+        )
+        return any(term in normalized for term in count_terms) and any(term in normalized for term in structure_terms)
 
     @staticmethod
-    def _section_text_lines(content: str) -> list[str]:
-        return [line.strip() for line in (content or "").splitlines() if line.strip()]
-
-    @staticmethod
-    def _is_section_list_item(line: str) -> bool:
-        return bool(re.match(r"^\s*(?:[-*•‣◦]\s+|\d{1,3}[\.)]\s+)", line))
-
-    @staticmethod
-    def _strip_section_list_marker(line: str) -> str:
-        return re.sub(r"^\s*(?:[-*•‣◦]\s+|\d{1,3}[\.)]\s+)", "", line).strip()
-
-    @staticmethod
-    def _clean_section_heading(line: str) -> str:
-        heading = re.sub(r"^\s*#+\s*", "", line or "").strip()
-        heading = re.sub(r"^\s*\d+(?:\.\d+)*\s*[.)-]?\s*", "", heading).strip()
-        return heading.strip(" -*•‣◦")
-
-    @staticmethod
-    def _clean_section_summary(line: str) -> str:
-        summary = " ".join((line or "").split()).strip(" .;:")
-        if ":" in summary:
-            label, value = summary.split(":", 1)
-            if 0 < len(label.split()) <= 8 and value.strip():
-                summary = value.strip(" .;:")
-        return summary
-
-    @staticmethod
-    def _ensure_sentence(text: str) -> str:
-        text = " ".join((text or "").split()).strip()
-        if not text:
-            return text
-        if text[-1] in ".!?…":
-            return text
-        return f"{text}."
-
-    @staticmethod
-    def _narrative_section_score(query: str, *, heading: str, content: str) -> float:
-        query_tokens = set(re.findall(r"[a-z0-9]+", normalize_metadata_value(query)))
-        if not query_tokens:
-            return 0.0
-        heading_tokens = set(re.findall(r"[a-z0-9]+", normalize_metadata_value(heading)))
-        content_tokens = set(re.findall(r"[a-z0-9]+", normalize_metadata_value(content)))
-        heading_overlap = query_tokens & heading_tokens
-        content_overlap = query_tokens & content_tokens
-        score = 0.0
-        if heading_tokens:
-            score += 2.0 * (len(heading_overlap) / max(len(heading_tokens), 1))
-        score += len(content_overlap) / max(len(query_tokens), 1)
-        normalized_query = normalize_metadata_value(query)
-        normalized_heading = normalize_metadata_value(heading)
-        if normalized_heading and normalized_heading in normalized_query:
-            score += 1.0
-        elif normalized_query and normalized_query in normalized_heading:
-            score += 0.75
-        return score
-
-    @staticmethod
-    def _deterministic_narrative_section_answer(
-        *,
-        query: str,
-        context_chunks: list[ContextChunk],
-    ) -> str | None:
-        """Render a complete narrative section when the evidence is self-contained.
-
-        This is intentionally schema-free and language-agnostic at detection time:
-        it does not look for labels such as a concrete policy, topic, or Vietnamese
-        keyword. It only uses section structure: a heading, one or more summary
-        lines, and several list items in the same retrieved chunk.
-        """
-
-        candidates: list[tuple[float, ContextChunk, str, str, list[str]]] = []
-        for context_chunk in context_chunks:
-            chunk = context_chunk.chunk
-            if not RagAnswerService._is_narrative_chunk(chunk):
-                continue
-            lines = RagAnswerService._section_text_lines(chunk.content or "")
-            if len(lines) < 4:
-                continue
-
-            heading = RagAnswerService._clean_section_heading(lines[0])
-            if not heading:
-                continue
-
-            bullet_lines = [
-                RagAnswerService._strip_section_list_marker(line)
-                for line in lines[1:]
-                if RagAnswerService._is_section_list_item(line)
-            ]
-            bullet_lines = [line for line in bullet_lines if line]
-            if len(bullet_lines) < 2:
-                continue
-
-            summary_parts: list[str] = []
-            for line in lines[1:]:
-                if RagAnswerService._is_section_list_item(line):
-                    break
-                cleaned = RagAnswerService._clean_section_summary(line)
-                if cleaned:
-                    summary_parts.append(cleaned)
-                if len(summary_parts) >= 2:
-                    break
-            if not summary_parts:
-                continue
-
-            score = RagAnswerService._narrative_section_score(
-                query,
-                heading=heading,
-                content=chunk.content or "",
-            )
-            if score < 0.6:
-                continue
-            candidates.append(
-                (
-                    score,
-                    context_chunk,
-                    heading,
-                    " ".join(summary_parts),
-                    bullet_lines[:8],
-                )
-            )
-
-        if not candidates:
-            return None
-
-        candidates.sort(key=lambda item: item[0], reverse=True)
-        _, context_chunk, heading, summary, bullet_lines = candidates[0]
-        citation = context_chunk.citation_index
-        lines = [
-            (
-                f"**{heading}** có nội dung chính: "
-                f"{RagAnswerService._ensure_sentence(summary)} [{citation}]"
-            ),
-            "",
-            "Các nội dung trọng tâm:",
+    def _schema_count_search_terms(existing_terms: list[str]) -> list[str]:
+        terms = [
+            *existing_terms,
+            "table",
+            "attribute",
+            "schema",
+            "layer",
+            "bảng dữ liệu",
+            "thuộc tính",
+            "lớp dữ liệu",
         ]
-        lines.extend(
-            f"- {RagAnswerService._ensure_sentence(item)} [{citation}]"
-            for item in bullet_lines
-        )
-        return "\n".join(lines).strip()
+        for term in existing_terms:
+            terms.extend(RagAnswerService._query_surface_phrases(term))
+            terms.extend(RagAnswerService._query_content_phrases(term))
+        return RagAnswerService._dedupe_text_values(terms, limit=64)
 
     @staticmethod
-    def _deterministic_structured_fact_answer(
-        *,
-        query: str,
-        context_chunks: list[ContextChunk],
-    ) -> str | None:
-        evidences = collect_structured_evidence(
-            query=query,
-            context_chunks=context_chunks,
-            min_score=0.25,
-        )
-        direct_evidences = [
-            evidence
-            for evidence in evidences
-            if RagAnswerService._structured_evidence_can_answer_directly(evidence)
-        ]
-        if not direct_evidences:
-            return None
-        return render_structured_answer(
-            query=query,
-            evidences=direct_evidences,
-        )
+    def _query_surface_phrases(query: str) -> list[str]:
+        words = [word.strip(" ,.;:()[]{}<>!?\"'`") for word in query.split()]
+        words = [word for word in words if len(word) > 1]
+        phrases: list[str] = []
+        for size in range(min(4, len(words)), 0, -1):
+            for index in range(0, len(words) - size + 1):
+                phrase = " ".join(words[index : index + size])
+                if 2 <= len(phrase) <= 80:
+                    phrases.append(phrase)
+        return RagAnswerService._dedupe_text_values(phrases, limit=16)

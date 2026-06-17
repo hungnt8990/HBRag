@@ -4,6 +4,7 @@ from uuid import UUID
 
 import pytest
 
+from app.core.config import settings
 from app.core.security import (
     TokenError,
     create_access_token,
@@ -46,7 +47,9 @@ def test_role_upload_permissions() -> None:
     assert can_upload_document(_user("VIEWER")) is False
 
 
-def test_document_visibility_rules() -> None:
+def test_document_visibility_rules(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "access_read_all_documents", False)
+
     unit_user = _user("UNIT_USER", organization_id=ORG_ID)
     company_admin = _user("COMPANY_ADMIN", organization_id=ORG_ID)
     visible_orgs = {ORG_ID, CHILD_ORG_ID}

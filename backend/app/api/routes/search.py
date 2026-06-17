@@ -1,3 +1,4 @@
+import inspect
 from typing import Annotated
 from uuid import UUID
 
@@ -21,6 +22,7 @@ from app.schemas.documents import (
     VectorSearchRequest,
     VectorSearchResponse,
 )
+from app.services.access_control import build_access_filter, build_subject_context
 from app.services.embeddings.base import EmbeddingProvider
 from app.services.embeddings.factory import get_embedding_provider
 from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
@@ -156,10 +158,16 @@ async def vector_search(
             current_user=current_user,
             knowledge_base_ids=request.knowledge_base_ids,
         )
-        return await service.search(
+        subject_context = await _subject_context(
+            auth_repository=auth_repository,
+            current_user=current_user,
+        )
+        return await _call_search_service(
+            service,
             query=request.query,
             top_k=request.top_k,
             document_ids={str(document_id) for document_id in visible_ids},
+            access_filter=build_access_filter(subject_context),
         )
     except VectorSearchError as exc:
         raise HTTPException(
@@ -188,12 +196,18 @@ async def hybrid_search(
             current_user=current_user,
             knowledge_base_ids=request.knowledge_base_ids,
         )
-        return await service.search(
+        subject_context = await _subject_context(
+            auth_repository=auth_repository,
+            current_user=current_user,
+        )
+        return await _call_search_service(
+            service,
             query=request.query,
             top_k=request.top_k,
             vector_weight=request.vector_weight,
             keyword_weight=request.keyword_weight,
             document_ids=visible_ids,
+            access_filter=build_access_filter(subject_context),
         )
     except HybridSearchError as exc:
         raise HTTPException(
@@ -222,11 +236,18 @@ async def rerank_search(
             current_user=current_user,
             knowledge_base_ids=request.knowledge_base_ids,
         )
-        return await service.search(
+        subject_context = await _subject_context(
+            auth_repository=auth_repository,
+            current_user=current_user,
+        )
+        return await _call_search_service(
+            service,
             query=request.query,
             top_k=request.top_k,
             candidate_k=request.candidate_k,
             document_ids=visible_ids,
+            access_filter=build_access_filter(subject_context),
+            subject_context=subject_context,
         )
     except RerankingError as exc:
         raise HTTPException(
@@ -255,10 +276,16 @@ async def keyword_search(
             current_user=current_user,
             knowledge_base_ids=request.knowledge_base_ids,
         )
-        return await service.search(
+        subject_context = await _subject_context(
+            auth_repository=auth_repository,
+            current_user=current_user,
+        )
+        return await _call_search_service(
+            service,
             query=request.query,
             top_k=request.top_k,
             document_ids=visible_ids,
+            access_filter=build_access_filter(subject_context),
         )
     except KeywordSearchError as exc:
         raise HTTPException(
@@ -314,3 +341,31 @@ async def _visible_document_ids(
             descendant_organization_ids=descendant_ids,
         )
     }
+
+
+async def _subject_context(
+    *,
+    auth_repository: AuthRepository,
+    current_user: User,
+):
+    descendant_ids = await auth_repository.get_descendant_organization_ids(
+        current_user.organization_id
+    )
+    return build_subject_context(
+        current_user,
+        descendant_organization_ids=descendant_ids,
+    )
+
+
+async def _call_search_service(service, **kwargs):
+    parameters = inspect.signature(service.search).parameters
+    accepts_var_kwargs = any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD
+        for parameter in parameters.values()
+    )
+    supported = (
+        kwargs
+        if accepts_var_kwargs
+        else {key: value for key, value in kwargs.items() if key in parameters}
+    )
+    return await service.search(**supported)

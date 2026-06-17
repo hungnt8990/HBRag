@@ -221,6 +221,40 @@ def test_rrf_keeps_vector_only_and_keyword_only_results() -> None:
     assert by_chunk_id[KEYWORD_ONLY_CHUNK_ID].vector_score is None
 
 
+def test_schema_count_query_boosts_schema_chunks_over_flow_summary() -> None:
+    schema_chunk_id = UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
+    flow_chunk_id = UUID("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
+
+    results = HybridSearchService.fuse_results(
+        query="Khung CSDL gis hạ thế có mấy lớp thuộc tính",
+        vector_results=[
+            VectorSearchResult(
+                chunk_id=flow_chunk_id,
+                document_id=DOCUMENT_ID,
+                score=0.95,
+                content_preview="CÁC LỚP DỮ LIỆU\nCMIS/TTHT → Lưu trữ & Tổng hợp → GIS Hạ thế",
+                metadata={"chunk_type": "docling_hybrid_repaired"},
+            ),
+            VectorSearchResult(
+                chunk_id=schema_chunk_id,
+                document_id=DOCUMENT_ID,
+                score=0.70,
+                content_preview="Bảng dữ liệu: F08_CotDien_HT. Tổng số trường: 18.",
+                metadata={
+                    "chunk_type": "table_parent",
+                    "table_name": "F08_CotDien_HT",
+                    "field_names": ["ID", "MaTramBienAp"],
+                },
+            ),
+        ],
+        keyword_results=[],
+        top_k=2,
+    )
+
+    assert results[0].chunk_id == schema_chunk_id
+    assert results[0].metadata["metadata_exact_boost"] >= 20
+
+
 def test_person_area_membership_boosts_valid_entity_or_table_row() -> None:
     valid_chunk_id = UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
     warning_chunk_id = UUID("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")

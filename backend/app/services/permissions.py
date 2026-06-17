@@ -2,19 +2,26 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from app.core.config import settings
 from app.models.document import Document
 from app.models.knowledge_base import KnowledgeBase
 from app.models.user import User
+from app.services.access_control import (
+    AccessAction,
+    build_resource_context,
+    build_subject_context,
+    can_access_resource,
+)
 
-SUPER_ADMIN = "SUPER_ADMIN"
-CORP_ADMIN = "CORP_ADMIN"
-COMPANY_ADMIN = "COMPANY_ADMIN"
-UNIT_USER = "UNIT_USER"
-VIEWER = "VIEWER"
-ADMIN_ROLES = {SUPER_ADMIN, CORP_ADMIN, COMPANY_ADMIN}
-KB_VIEW_PERMISSIONS = {"owner", "admin", "editor", "viewer"}
-KB_MANAGE_PERMISSIONS = {"owner", "admin"}
-KB_UPLOAD_PERMISSIONS = {"owner", "admin", "editor"}
+SUPER_ADMIN = settings.permission_super_admin_role
+CORP_ADMIN = settings.permission_corp_admin_role
+COMPANY_ADMIN = settings.permission_company_admin_role
+UNIT_USER = settings.permission_unit_user_role
+VIEWER = settings.permission_viewer_role
+ADMIN_ROLES = set(settings.permission_admin_roles)
+KB_VIEW_PERMISSIONS = set(settings.knowledge_base_view_permissions)
+KB_MANAGE_PERMISSIONS = set(settings.knowledge_base_manage_permissions)
+KB_UPLOAD_PERMISSIONS = set(settings.knowledge_base_upload_permissions)
 
 
 def role_names(user: User) -> set[str]:
@@ -23,7 +30,7 @@ def role_names(user: User) -> set[str]:
 
 def can_upload_document(user: User) -> bool:
     roles = role_names(user)
-    return bool(roles & {SUPER_ADMIN, CORP_ADMIN, COMPANY_ADMIN, UNIT_USER})
+    return bool(roles & set(settings.permission_upload_roles))
 
 
 def can_manage_document(
@@ -32,6 +39,16 @@ def can_manage_document(
     *,
     descendant_organization_ids: set[UUID],
 ) -> bool:
+    decision = can_access_resource(
+        build_subject_context(user, descendant_organization_ids=descendant_organization_ids),
+        build_resource_context(document),
+        AccessAction.MANAGE_ACL,
+    )
+    if decision.allowed:
+        return True
+    if _has_explicit_access_metadata(document):
+        return False
+
     roles = role_names(user)
     if SUPER_ADMIN in roles:
         return True
@@ -53,6 +70,19 @@ def can_view_document(
     *,
     descendant_organization_ids: set[UUID],
 ) -> bool:
+    subject = build_subject_context(
+        user,
+        descendant_organization_ids=descendant_organization_ids,
+    )
+    decision = can_access_resource(
+        subject,
+        build_resource_context(document),
+        AccessAction.OPEN_DOCUMENT,
+    )
+    if decision.allowed:
+        return True
+    if _has_explicit_access_metadata(document):
+        return False
     if not user.is_active:
         return False
 
@@ -90,7 +120,7 @@ def can_assign_upload_organization(
     roles = role_names(user)
     if SUPER_ADMIN in roles:
         return True
-    if CORP_ADMIN in roles or COMPANY_ADMIN in roles:
+    if roles & set(settings.permission_cross_org_upload_roles):
         return organization_id in descendant_organization_ids
     return organization_id == user.organization_id
 
@@ -184,3 +214,10 @@ def _has_knowledge_base_permission(
         if getattr(member, "role_id", None) in role_ids:
             return True
     return False
+
+
+def _has_explicit_access_metadata(document: Document) -> bool:
+    metadata = getattr(document, "document_metadata", None)
+    if not isinstance(metadata, dict):
+        return False
+    return isinstance(metadata.get("access"), dict)

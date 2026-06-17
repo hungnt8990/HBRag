@@ -238,6 +238,39 @@ def _should_include_related_rows(
     return selected_tokens.issubset(candidate_tokens)
 
 
+def _query_directness_score(
+    query: str, evidence: StructuredEvidence
+) -> tuple[float, int, float]:
+    """Rank rows by how directly their subject answers the user query."""
+
+    row = evidence.row
+    subject = _row_subject(row)
+    selected_subject, _, _ = _select_subject_for_query(query, subject)
+    selected_norm = _norm(selected_subject)
+    query_norm = _norm(query)
+    selected_tokens = _tokens(selected_subject)
+    query_tokens = _tokens(query)
+    if not selected_tokens:
+        return (0.0, 0, evidence.score)
+
+    overlap = selected_tokens & query_tokens
+    missing = selected_tokens - query_tokens
+    score = (len(overlap) / len(selected_tokens)) + (
+        len(overlap) / max(len(query_tokens), 1)
+    )
+    if selected_norm and selected_norm in query_norm:
+        score += 2.0
+    score -= 0.12 * len(missing)
+
+    return (score, -len(selected_tokens), evidence.score)
+
+
+def _select_best_evidence(
+    query: str, evidences: list[StructuredEvidence]
+) -> StructuredEvidence:
+    return max(evidences, key=lambda evidence: _query_directness_score(query, evidence))
+
+
 def render_structured_answer(
     *,
     query: str,
@@ -247,8 +280,11 @@ def render_structured_answer(
     if not evidences:
         return None
 
-    top = evidences[:max_rows]
-    best = top[0].row
+    best_evidence = _select_best_evidence(query, evidences[:max_rows])
+    top = [best_evidence, *(evidence for evidence in evidences if evidence is not best_evidence)][
+        :max_rows
+    ]
+    best = best_evidence.row
     source_label = _source_label(best)
     subject = _row_subject(best)
     selected_subject, alternatives, selected_is_full_subject = _select_subject_for_query(

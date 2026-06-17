@@ -14,6 +14,7 @@ from app.schemas.documents import (
     VectorSearchResponse,
     VectorSearchResult,
 )
+from app.services.access_control import AccessFilter
 from app.services.embeddings import EmbeddingProvider
 from app.services.embeddings.sparse import SparseEmbeddingProvider
 from app.services.rag_chunk import (
@@ -221,6 +222,7 @@ class VectorIndexingService:
         unit: str | None = None,
         chunk_type: str | None = None,
         table_name: str | None = None,
+        access_filter: AccessFilter | None = None,
     ) -> VectorSearchResponse:
         try:
             if document_ids is not None and not document_ids:
@@ -244,6 +246,7 @@ class VectorIndexingService:
                 unit=unit,
                 chunk_type=chunk_type,
                 table_name=table_name,
+                access_filter=access_filter,
             )
         except Exception as exc:
             raise VectorSearchError("Failed to run vector search.") from exc

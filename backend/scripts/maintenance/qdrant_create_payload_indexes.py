@@ -13,6 +13,21 @@ from qdrant_client.models import PayloadSchemaType
 from app.services.vector_store import get_vector_store
 
 KEYWORD_FIELDS = [
+    "document_id",
+    "owner_org_id",
+    "owner_org_path",
+    "scope",
+    "classification",
+    "business_domains",
+    "project_codes",
+    "allowed_org_paths",
+    "allowed_role_names",
+    "allowed_group_codes",
+    "allowed_user_ids",
+    "denied_org_paths",
+    "denied_role_names",
+    "denied_group_codes",
+    "denied_user_ids",
     "identifiers",
     "doc_codes",
     "dates",

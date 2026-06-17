@@ -1,5 +1,7 @@
 from functools import lru_cache
+from typing import Any
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -108,6 +110,99 @@ class Settings(BaseSettings):
     jwt_secret_key: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
+
+    access_classification_rank: dict[str, int] = Field(
+        default_factory=lambda: {
+            "public_internal": 0,
+            "internal": 1,
+            "restricted": 2,
+            "personal_data": 3,
+            "confidential": 4,
+            "secret": 5,
+        }
+    )
+    access_sensitive_classifications: list[str] = Field(
+        default_factory=lambda: ["personal_data", "confidential", "secret"]
+    )
+    access_read_all_documents: bool = True
+    access_default_classification: str = "internal"
+    access_default_scope: str = "corp_wide"
+    access_explicit_acl_scope: str = "explicit_acl"
+    access_scope_aliases: dict[str, str] = Field(
+        default_factory=lambda: {
+            "global": "corp_wide",
+            "organization": "unit_only",
+            "private": "explicit_acl",
+        }
+    )
+    access_visibility_defaults: dict[str, dict[str, Any]] = Field(
+        default_factory=lambda: {
+            "global": {
+                "scope": "corp_wide",
+                "classification": "internal",
+                "inherit_permission": True,
+            },
+            "subtree": {
+                "scope": "subtree",
+                "classification": "internal",
+                "inherit_permission": True,
+            },
+            "private": {
+                "scope": "explicit_acl",
+                "classification": "restricted",
+                "inherit_permission": False,
+            },
+            "organization": {
+                "scope": "corp_wide",
+                "classification": "internal",
+                "inherit_permission": True,
+            },
+        }
+    )
+    access_manage_roles: list[str] = Field(
+        default_factory=lambda: ["CORP_ADMIN", "COMPANY_ADMIN"]
+    )
+    access_leadership_roles: list[str] = Field(
+        default_factory=lambda: ["SUPER_ADMIN", "CORP_ADMIN", "COMPANY_ADMIN"]
+    )
+    access_leadership_positions: list[str] = Field(
+        default_factory=lambda: [
+            "corp_leader",
+            "board_head",
+            "board_deputy",
+            "company_director",
+            "company_deputy_director",
+            "department_head",
+            "department_deputy",
+        ]
+    )
+    access_corp_wide_scopes: list[str] = Field(
+        default_factory=lambda: ["public_internal", "corp_wide"]
+    )
+    access_org_tree_scopes: list[str] = Field(default_factory=lambda: ["unit_only", "subtree"])
+    permission_super_admin_role: str = "SUPER_ADMIN"
+    permission_corp_admin_role: str = "CORP_ADMIN"
+    permission_company_admin_role: str = "COMPANY_ADMIN"
+    permission_unit_user_role: str = "UNIT_USER"
+    permission_viewer_role: str = "VIEWER"
+    permission_admin_roles: list[str] = Field(
+        default_factory=lambda: ["SUPER_ADMIN", "CORP_ADMIN", "COMPANY_ADMIN"]
+    )
+    permission_upload_roles: list[str] = Field(
+        default_factory=lambda: ["SUPER_ADMIN", "CORP_ADMIN", "COMPANY_ADMIN", "UNIT_USER"]
+    )
+    permission_cross_org_upload_roles: list[str] = Field(
+        default_factory=lambda: ["CORP_ADMIN", "COMPANY_ADMIN"]
+    )
+    knowledge_base_view_permissions: list[str] = Field(
+        default_factory=lambda: ["owner", "admin", "editor", "viewer"]
+    )
+    knowledge_base_manage_permissions: list[str] = Field(
+        default_factory=lambda: ["owner", "admin"]
+    )
+    knowledge_base_upload_permissions: list[str] = Field(
+        default_factory=lambda: ["owner", "admin", "editor"]
+    )
 
     @property
     def async_database_url(self) -> str:

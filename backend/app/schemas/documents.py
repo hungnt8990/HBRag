@@ -88,6 +88,42 @@ class DocumentDeleteResponse(BaseModel):
     deleted_files: int
     vector_points_deleted: bool
 
+class DocumentAccessPolicy(BaseModel):
+    scope: str | None = None
+    classification: str | None = None
+    owner_org_id: str | None = None
+    owner_org_path: str | None = None
+    business_domains: list[str] = Field(default_factory=list)
+    project_codes: list[str] = Field(default_factory=list)
+    allowed_org_ids: list[str] = Field(default_factory=list)
+    allowed_org_paths: list[str] = Field(default_factory=list)
+    allowed_role_names: list[str] = Field(default_factory=list)
+    allowed_group_codes: list[str] = Field(default_factory=list)
+    allowed_user_ids: list[str] = Field(default_factory=list)
+    denied_org_ids: list[str] = Field(default_factory=list)
+    denied_org_paths: list[str] = Field(default_factory=list)
+    denied_role_names: list[str] = Field(default_factory=list)
+    denied_group_codes: list[str] = Field(default_factory=list)
+    denied_user_ids: list[str] = Field(default_factory=list)
+    inherit_permission: bool = True
+    access_policy_id: str | None = None
+
+class DocumentAccessResponse(BaseModel):
+    document_id: UUID
+    access: DocumentAccessPolicy
+
+class DocumentAccessUpdateRequest(DocumentAccessPolicy):
+    pass
+
+class DocumentAccessTestRequest(BaseModel):
+    user_id: UUID
+    action: str = "open_document"
+
+class DocumentAccessDecisionResponse(BaseModel):
+    allowed: bool
+    reason: str
+    matched_policy: str | None = None
+
 
 class GraphIndexRequest(BaseModel):
     force_rebuild: bool = False

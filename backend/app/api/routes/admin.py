@@ -284,6 +284,8 @@ def _enqueue_upload_with_optional_profile(
     content_type: str | None,
     content: bytes,
     ingestion_profile: str,
+    organization_id: UUID | None = None,
+    access: dict[str, object] | None = None,
 ) -> IngestionJob:
     """Call queue.enqueue_upload while supporting older test fakes.
 
@@ -304,8 +306,12 @@ def _enqueue_upload_with_optional_profile(
         "content_type": content_type,
         "content": content,
     }
+    if "organization_id" in parameters:
+        upload_kwargs["organization_id"] = organization_id
     if "ingestion_profile" in parameters:
         upload_kwargs["ingestion_profile"] = ingestion_profile
+    if "access" in parameters:
+        upload_kwargs["access"] = access
     return enqueue_upload(**upload_kwargs)
 
 
@@ -320,6 +326,20 @@ async def enqueue_ingestion_job(
     repository: Annotated[DocumentRepository, Depends(get_document_repository)],
     file: Annotated[UploadFile, File(...)],
     ingestion_profile: Annotated[str, Form()] = "auto",
+    organization_id: Annotated[UUID | None, Form()] = None,
+    access_scope: Annotated[str | None, Form()] = None,
+    classification: Annotated[str | None, Form()] = None,
+    allowed_org_ids: Annotated[str | None, Form()] = None,
+    allowed_org_paths: Annotated[str | None, Form()] = None,
+    allowed_role_names: Annotated[str | None, Form()] = None,
+    allowed_group_codes: Annotated[str | None, Form()] = None,
+    allowed_user_ids: Annotated[str | None, Form()] = None,
+    denied_org_ids: Annotated[str | None, Form()] = None,
+    denied_org_paths: Annotated[str | None, Form()] = None,
+    denied_role_names: Annotated[str | None, Form()] = None,
+    denied_group_codes: Annotated[str | None, Form()] = None,
+    denied_user_ids: Annotated[str | None, Form()] = None,
+    inherit_permission: Annotated[bool | None, Form()] = None,
 ) -> IngestionJobResponse:
     content = await file.read()
     filename = DocumentService._clean_filename(file.filename)
@@ -340,9 +360,72 @@ async def enqueue_ingestion_job(
         content_type=file.content_type,
         content=content,
         ingestion_profile=ingestion_profile,
+        organization_id=organization_id,
+        access=_upload_access_payload(
+            organization_id=organization_id,
+            access_scope=access_scope,
+            classification=classification,
+            allowed_org_ids=allowed_org_ids,
+            allowed_org_paths=allowed_org_paths,
+            allowed_role_names=allowed_role_names,
+            allowed_group_codes=allowed_group_codes,
+            allowed_user_ids=allowed_user_ids,
+            denied_org_ids=denied_org_ids,
+            denied_org_paths=denied_org_paths,
+            denied_role_names=denied_role_names,
+            denied_group_codes=denied_group_codes,
+            denied_user_ids=denied_user_ids,
+            inherit_permission=inherit_permission,
+        ),
     )
     background_tasks.add_task(queue.run_job, job.job_id)
     return _to_ingestion_job_response(job)
+
+def _upload_access_payload(
+    *,
+    organization_id: UUID | None,
+    access_scope: str | None,
+    classification: str | None,
+    allowed_org_ids: str | None,
+    allowed_org_paths: str | None,
+    allowed_role_names: str | None,
+    allowed_group_codes: str | None,
+    allowed_user_ids: str | None,
+    denied_org_ids: str | None,
+    denied_org_paths: str | None,
+    denied_role_names: str | None,
+    denied_group_codes: str | None,
+    denied_user_ids: str | None,
+    inherit_permission: bool | None,
+) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "owner_org_id": str(organization_id) if organization_id else None,
+        "scope": access_scope,
+        "classification": classification,
+        "allowed_org_ids": _split_form_list(allowed_org_ids),
+        "allowed_org_paths": _split_form_list(allowed_org_paths),
+        "allowed_role_names": _split_form_list(allowed_role_names),
+        "allowed_group_codes": _split_form_list(allowed_group_codes),
+        "allowed_user_ids": _split_form_list(allowed_user_ids),
+        "denied_org_ids": _split_form_list(denied_org_ids),
+        "denied_org_paths": _split_form_list(denied_org_paths),
+        "denied_role_names": _split_form_list(denied_role_names),
+        "denied_group_codes": _split_form_list(denied_group_codes),
+        "denied_user_ids": _split_form_list(denied_user_ids),
+    }
+    if inherit_permission is not None:
+        payload["inherit_permission"] = inherit_permission
+    return {
+        key: value
+        for key, value in payload.items()
+        if value is not None and value != "" and value != []
+    }
+
+def _split_form_list(value: str | None) -> list[str]:
+    if value is None:
+        return []
+    normalized = value.replace(";", ",").replace("|", ",")
+    return [item.strip() for item in normalized.split(",") if item.strip()]
 
 
 @router.post(

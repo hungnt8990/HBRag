@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import logging
 from uuid import UUID
 
@@ -9,6 +10,13 @@ from app.schemas.documents import (
     HybridSearchResult,
     RerankSearchResponse,
     RerankSearchResult,
+)
+from app.services.access_control import (
+    AccessAction,
+    AccessFilter,
+    SubjectContext,
+    build_resource_context,
+    can_access_resource,
 )
 from app.services.graph.graph_retrieval_service import GraphRetrievalService
 from app.services.graph.models import GraphChunkCandidate
@@ -52,24 +60,28 @@ class RerankingService:
         use_graph: bool = False,
         graph_expansion_depth: int = 1,
         graph_expansion_limit: int = 20,
+        access_filter: AccessFilter | None = None,
+        subject_context: SubjectContext | None = None,
     ) -> RerankSearchResponse:
         try:
             if document_ids is None:
-                hybrid_run = await self._hybrid_search_service.run_search(
+                hybrid_run = await self._run_hybrid_search(
                     query=query,
                     top_k=candidate_k,
                     vector_weight=DEFAULT_VECTOR_WEIGHT,
                     keyword_weight=DEFAULT_KEYWORD_WEIGHT,
                     save_log=False,
+                    access_filter=access_filter,
                 )
             else:
-                hybrid_run = await self._hybrid_search_service.run_search(
+                hybrid_run = await self._run_hybrid_search(
                     query=query,
                     top_k=candidate_k,
                     vector_weight=DEFAULT_VECTOR_WEIGHT,
                     keyword_weight=DEFAULT_KEYWORD_WEIGHT,
                     save_log=False,
                     document_ids=document_ids,
+                    access_filter=access_filter,
                 )
             hybrid_results = list(hybrid_run.hybrid_response.results)
             if use_graph and self._graph_retrieval_service is not None:
@@ -87,7 +99,14 @@ class RerankingService:
                     )
                 except Exception:
                     pass
-            full_content_by_chunk_id = await self._load_full_content(hybrid_results)
+            full_content_by_chunk_id, allowed_chunk_ids = await self._load_full_content(
+                hybrid_results,
+                subject_context=subject_context,
+            )
+            if subject_context is not None:
+                hybrid_results = [
+                    result for result in hybrid_results if str(result.chunk_id) in allowed_chunk_ids
+                ]
             candidates = [
                 RerankCandidate(
                     chunk_id=str(result.chunk_id),
@@ -138,13 +157,45 @@ class RerankingService:
 
         return response
 
+    async def _run_hybrid_search(self, **kwargs):
+        if kwargs.get("access_filter") is None:
+            kwargs.pop("access_filter", None)
+        parameters = inspect.signature(self._hybrid_search_service.run_search).parameters
+        accepts_var_kwargs = any(
+            parameter.kind is inspect.Parameter.VAR_KEYWORD
+            for parameter in parameters.values()
+        )
+        supported = (
+            kwargs
+            if accepts_var_kwargs
+            else {key: value for key, value in kwargs.items() if key in parameters}
+        )
+        return await self._hybrid_search_service.run_search(**supported)
+
     async def _load_full_content(
         self,
         hybrid_results: list[HybridSearchResult],
-    ) -> dict[str, str]:
+        *,
+        subject_context: SubjectContext | None = None,
+    ) -> tuple[dict[str, str], set[str]]:
         chunk_ids = [UUID(str(result.chunk_id)) for result in hybrid_results]
         chunks = await self._chunk_repository.get_chunks_by_ids(chunk_ids)
-        return {str(chunk.id): chunk.content for chunk in chunks}
+        allowed: dict[str, str] = {}
+        for chunk in chunks:
+            if subject_context is not None:
+                metadata = getattr(chunk, "chunk_metadata", None) or {}
+                if not isinstance(metadata, dict) or not isinstance(metadata.get("access"), dict):
+                    allowed[str(chunk.id)] = chunk.content
+                    continue
+                decision = can_access_resource(
+                    subject_context,
+                    build_resource_context(getattr(chunk, "document", None), chunk),
+                    AccessAction.READ_ANSWER,
+                )
+                if not decision.allowed:
+                    continue
+            allowed[str(chunk.id)] = chunk.content
+        return allowed, set(allowed)
 
     @staticmethod
     def _merge_graph_candidates(

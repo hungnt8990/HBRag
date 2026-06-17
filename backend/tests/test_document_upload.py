@@ -17,6 +17,7 @@ DOCUMENT_ID = UUID("11111111-1111-1111-1111-111111111111")
 USER_ID = UUID("22222222-2222-2222-2222-222222222222")
 OTHER_USER_ID = UUID("33333333-3333-3333-3333-333333333333")
 ORG_ID = UUID("44444444-4444-4444-4444-444444444444")
+OTHER_ORG_ID = UUID("66666666-6666-6666-6666-666666666666")
 KNOWLEDGE_BASE_ID = UUID("55555555-5555-5555-5555-555555555555")
 
 
@@ -37,6 +38,7 @@ class FakeDocumentRepository:
         organization_id=None,
         knowledge_base_id=None,
         visibility: str = "organization",
+        access=None,
     ) -> SimpleNamespace:
         document = SimpleNamespace(
             id=DOCUMENT_ID,
@@ -47,6 +49,7 @@ class FakeDocumentRepository:
             organization_id=organization_id,
             knowledge_base_id=knowledge_base_id,
             visibility=visibility,
+            document_metadata={"access": access or {}},
             files=[],
         )
         self.documents.append(document)
@@ -208,6 +211,43 @@ def test_upload_document_to_owned_knowledge_base_sets_document_scope() -> None:
 
     assert response.status_code == 201
     assert repository.documents[0].knowledge_base_id == KNOWLEDGE_BASE_ID
+
+def test_upload_document_accepts_access_acl_fields() -> None:
+    repository = FakeDocumentRepository()
+    storage = FakeStorageClient()
+    app.dependency_overrides[get_current_user] = lambda: _user()
+    app.dependency_overrides[get_document_repository] = lambda: repository
+    app.dependency_overrides[get_storage_client] = lambda: storage
+    app.dependency_overrides[get_knowledge_base_repository] = (
+        lambda: FakeKnowledgeBaseRepository(owner_user_id=USER_ID)
+    )
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/documents/upload",
+            data={
+                "access_scope": "explicit_acl",
+                "classification": "restricted",
+                "allowed_org_ids": f"{ORG_ID};{OTHER_ORG_ID}",
+                "allowed_role_names": "COMPANY_ADMIN,UNIT_USER",
+                "allowed_group_codes": "ai-team|legal-team",
+                "inherit_permission": "false",
+            },
+            files={"file": ("sample.pdf", b"%PDF-1.4 test", "application/pdf")},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 201
+    access = repository.documents[0].document_metadata["access"]
+    assert access["owner_org_id"] == str(ORG_ID)
+    assert access["scope"] == "explicit_acl"
+    assert access["classification"] == "restricted"
+    assert access["allowed_org_ids"] == [str(ORG_ID), str(OTHER_ORG_ID)]
+    assert access["allowed_role_names"] == ["COMPANY_ADMIN", "UNIT_USER"]
+    assert access["allowed_group_codes"] == ["ai-team", "legal-team"]
+    assert access["inherit_permission"] is False
 
 def test_upload_document_to_knowledge_base_without_editor_permission_returns_403() -> None:
     repository = FakeDocumentRepository()

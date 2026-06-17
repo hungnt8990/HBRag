@@ -8,6 +8,7 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.services.access_control import flatten_access_payload, normalize_access_payload
 from app.services.table_relationships import (
     parse_technology_area_rows_from_text,
     validate_technology_area_row,
@@ -134,6 +135,21 @@ class RagChunk(BaseModel):
     knowledge_base_id: str | None = None
     uploaded_by_user_id: str | None = None
     visibility: str | None = None
+    access: dict[str, Any] = Field(default_factory=dict)
+    classification: str | None = None
+    owner_org_id: str | None = None
+    owner_org_path: str | None = None
+    business_domains: list[str] = Field(default_factory=list)
+    project_codes: list[str] = Field(default_factory=list)
+    allowed_org_paths: list[str] = Field(default_factory=list)
+    allowed_role_names: list[str] = Field(default_factory=list)
+    allowed_group_codes: list[str] = Field(default_factory=list)
+    allowed_user_ids: list[str] = Field(default_factory=list)
+    denied_org_paths: list[str] = Field(default_factory=list)
+    denied_role_names: list[str] = Field(default_factory=list)
+    denied_group_codes: list[str] = Field(default_factory=list)
+    denied_user_ids: list[str] = Field(default_factory=list)
+    inherit_permission: bool = True
 
     # Search/embedding enrichment fields. They are persisted into Qdrant payload
     # and can also live inside chunks.metadata JSONB without a SQL schema change.
@@ -789,6 +805,10 @@ def rag_chunk_from_database(
         chunker_version=metadata.get("chunker_version"),
         chunk_index=int(getattr(chunk, "chunk_index", 0)),
     )
+    flat_access = flatten_access_payload(
+        normalize_access_payload(metadata.get("access") if isinstance(metadata, dict) else {})
+    )
+    flat_access.pop("scope", None)
     return rag_chunk.model_copy(
         update={
             "database_chunk_id": str(chunk.id),
@@ -808,6 +828,10 @@ def rag_chunk_from_database(
                 else None
             ),
             "visibility": getattr(document, "visibility", None),
+            **flat_access,
+            "access": normalize_access_payload(
+                metadata.get("access") if isinstance(metadata, dict) else {}
+            ),
         }
     )
 
@@ -822,6 +846,9 @@ def qdrant_payload(chunk: RagChunk, *, store_raw_text: bool = False) -> dict[str
         payload["raw_text"] = chunk.raw_text
     payload["chunk_id"] = chunk.database_chunk_id or chunk.chunk_id
     payload["semantic_chunk_id"] = chunk.chunk_id
+    access = normalize_access_payload(payload.get("access") or {})
+    payload["access"] = access
+    payload.update(flatten_access_payload(access))
     return payload
 
 

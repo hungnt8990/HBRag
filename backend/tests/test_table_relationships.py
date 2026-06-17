@@ -161,7 +161,7 @@ def test_person_area_membership_retrieval_boost() -> None:
 def test_rag_prompt_membership_answer_no_role_hallucination() -> None:
     prompt = build_system_prompt(answer_mode="hybrid", answer_style="table_qa")
 
-    assert "Có or Không" in prompt
-    assert "được đề xuất tham gia" in prompt
+    assert "clear affirmative or negative in the user's language" in prompt
+    assert "proposed/assigned/listed role" in prompt
     assert "do not infer" in prompt
     assert "table_row or entity_profile" in prompt

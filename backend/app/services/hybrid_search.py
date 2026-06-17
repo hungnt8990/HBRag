@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import logging
 import re
 import unicodedata
@@ -16,6 +17,7 @@ from app.schemas.documents import (
     VectorSearchResponse,
     VectorSearchResult,
 )
+from app.services.access_control import AccessFilter
 from app.services.keyword_search import KeywordSearchService
 from app.services.table_relationships import (
     analyze_person_area_membership_query,
@@ -148,10 +150,11 @@ def legal_leave_metadata_boost(query: str, content: str, metadata: dict[str, obj
     return structured_row_metadata_boost(query, content, metadata)
 
 def schema_or_procedure_metadata_boost(query: str, metadata: dict[str, object]) -> float:
-    """Boost structured GIS metadata without depending on the removed segment router."""
+    """Boost structured schema/procedure metadata without document-specific rules."""
 
     normalized_query = _normalize_metadata_value(query)
     chunk_type = str(metadata.get("chunk_type") or "")
+    table_name = str(metadata.get("table_name") or "")
     boost = 0.0
     for metadata_field, amount in (
         ("object_code", 8.0),
@@ -164,6 +167,38 @@ def schema_or_procedure_metadata_boost(query: str, metadata: dict[str, object]) 
         value = str(metadata.get(metadata_field) or "")
         if value and _normalize_metadata_value(value) in normalized_query:
             boost += amount
+
+    schema_count_query = any(
+        term in normalized_query
+        for term in (
+            "schema",
+            "database",
+            "table",
+            "column",
+            "field",
+            "attribute",
+            "layer",
+            "object",
+            "csdl",
+            "co so du lieu",
+            "bang",
+            "cot",
+            "truong",
+            "thuoc tinh",
+            "lop",
+            "doi tuong",
+        )
+    ) and any(
+        term in normalized_query
+        for term in ("how many", "number of", "count", "may", "bao nhieu", "so luong")
+    )
+    if schema_count_query:
+        if chunk_type in {"table_parent", "table_complete", "table_rows"} and table_name:
+            boost += 18.0
+        if metadata.get("field_names"):
+            boost += 4.0
+        if metadata.get("relationship_name") or metadata.get("target_table"):
+            boost += 6.0
     appendix_id = str(metadata.get("appendix_id") or "")
     if appendix_id:
         appendix_number = re.escape(appendix_id.lstrip("0") or appendix_id)
@@ -336,6 +371,7 @@ class HybridSearchService:
         keyword_weight: float,
         save_log: bool = True,
         document_ids: set[UUID] | None = None,
+        access_filter: AccessFilter | None = None,
     ) -> HybridSearchResponse:
         run = await self.run_search(
             query=query,
@@ -344,6 +380,7 @@ class HybridSearchService:
             keyword_weight=keyword_weight,
             save_log=save_log,
             document_ids=document_ids,
+            access_filter=access_filter,
         )
         return run.hybrid_response
 
@@ -356,21 +393,26 @@ class HybridSearchService:
         keyword_weight: float,
         save_log: bool = True,
         document_ids: set[UUID] | None = None,
+        access_filter: AccessFilter | None = None,
     ) -> HybridSearchRun:
         depth = top_k * HYBRID_DEPTH_MULTIPLIER
 
         try:
             try:
                 if document_ids is None:
-                    vector_response = await self._vector_search_service.search(
+                    vector_response = await self._call_search_service(
+                        self._vector_search_service,
                         query=query,
                         top_k=depth,
+                        access_filter=access_filter,
                     )
                 else:
-                    vector_response = await self._vector_search_service.search(
+                    vector_response = await self._call_search_service(
+                        self._vector_search_service,
                         query=query,
                         top_k=depth,
                         document_ids={str(document_id) for document_id in document_ids},
+                        access_filter=access_filter,
                     )
             except Exception:
                 logger.exception(
@@ -383,15 +425,19 @@ class HybridSearchService:
                 )
 
             if document_ids is None:
-                keyword_response = await self._keyword_search_service.search(
+                keyword_response = await self._call_search_service(
+                    self._keyword_search_service,
                     query=query,
                     top_k=depth,
+                    access_filter=access_filter,
                 )
             else:
-                keyword_response = await self._keyword_search_service.search(
+                keyword_response = await self._call_search_service(
+                    self._keyword_search_service,
                     query=query,
                     top_k=depth,
                     document_ids=document_ids,
+                    access_filter=access_filter,
                 )
             hybrid_results = self.fuse_results(
                 query=query,
@@ -428,6 +474,22 @@ class HybridSearchService:
             raise HybridSearchError("Failed to run hybrid search.") from exc
 
         return run
+
+    @staticmethod
+    async def _call_search_service(service, **kwargs):
+        if kwargs.get("access_filter") is None:
+            kwargs.pop("access_filter", None)
+        parameters = inspect.signature(service.search).parameters
+        accepts_var_kwargs = any(
+            parameter.kind is inspect.Parameter.VAR_KEYWORD
+            for parameter in parameters.values()
+        )
+        supported = (
+            kwargs
+            if accepts_var_kwargs
+            else {key: value for key, value in kwargs.items() if key in parameters}
+        )
+        return await service.search(**supported)
 
     @staticmethod
     def fuse_results(

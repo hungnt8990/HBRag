@@ -14,7 +14,9 @@ from app.services.document_profiles import (
     detect_profile,
     profile_config,
     resolve_profile,
+    resolve_profile_with_evidence,
 )
+from app.services.ingestion_queue import IngestionQueue
 
 DOCUMENT_ID = UUID("55555555-5555-5555-5555-555555555555")
 
@@ -46,6 +48,14 @@ CATALOG_TEXT = (
     "2.1 RabitMQ Vmware Inc Được sử dụng như một ứng dụng trung chuyển tin nhắn\n"
 )
 
+STAFF_TECH_MATRIX_TEXT = (
+    "NHIỆM VỤ CÁC MẢNG CÔNG NGHỆ NỀN TẢNG AI\n"
+    "DANH SÁCH NHÂN SỰ PHỤ TRÁCH TỪNG MẢNG CÔNG NGHỆ LÕI\n"
+    "STT | Mảng công nghệ | Phòng chủ trì | Nhân sự đề xuất | Mục tiêu\n"
+    "1 | RAG trên dữ liệu nội bộ | Ban Công nghệ thông tin | "
+    "Nguyễn Trọng Hùng, Phước Lâm | Xây dựng nền tảng hỏi đáp trên dữ liệu nội bộ\n"
+)
+
 
 class FakeDocumentRepository:
     def __init__(self, *, parsed_text: str, document_profile: str = "auto") -> None:
@@ -56,6 +66,7 @@ class FakeDocumentRepository:
             document_profile=document_profile,
         )
         self.created_chunks: list[ChunkCreate] = []
+        self.metadata_updates: dict[str, object] = {}
         self.committed = False
 
     async def get_document(self, document_id: UUID):
@@ -72,6 +83,11 @@ class FakeDocumentRepository:
 
     async def update_document_status(self, document, status: str):
         document.status = status
+        return document
+
+    async def update_document_metadata(self, document, metadata: dict[str, object]):
+        self.metadata_updates.update(metadata)
+        document.document_metadata = dict(self.metadata_updates)
         return document
 
     async def commit(self) -> None:
@@ -93,6 +109,16 @@ def test_detect_profile_general_and_spreadsheet() -> None:
 
 def test_detect_profile_catalog_table() -> None:
     assert detect_profile(CATALOG_TEXT) == "catalog_table"
+
+def test_detect_profile_staff_technology_matrix() -> None:
+    assert detect_profile(STAFF_TECH_MATRIX_TEXT) == "staff_technology_matrix"
+
+    detection = resolve_profile_with_evidence("auto", text=STAFF_TECH_MATRIX_TEXT)
+
+    assert detection["profile"] == "staff_technology_matrix"
+    assert detection["mode"] == "configured_rules"
+    assert detection["score"] >= 6
+    assert detection["evidence"]
 
 
 def test_resolve_profile_auto_uses_detection() -> None:
@@ -172,6 +198,8 @@ def test_admin_profiles_endpoint_returns_configs() -> None:
     assert payload["configs"]["legal_admin"]["answer_style"] == "policy_explainer"
     assert payload["configs"]["catalog_table"]["chunk_mode"] == "table_aware"
     assert payload["configs"]["catalog_table"]["answer_style"] == "table_qa"
+    assert payload["configs"]["staff_technology_matrix"]["chunk_mode"] == "table_aware"
+    assert payload["configs"]["staff_technology_matrix"]["answer_style"] == "table_qa"
     assert payload["configs"]["general"]["chunk_mode"] == "recursive"
     assert payload["configs"]["general"]["answer_style"] == "detailed"
     assert payload["configs"]["spreadsheet"]["chunk_mode"] == "table_aware"
@@ -226,3 +254,27 @@ def test_chat_auto_runtime_detects_profile_when_saved_profile_is_auto() -> None:
     assert resolved["profile"] == "catalog_table"
     assert resolved["answer_style"] == "table_qa"
     assert resolved["candidate_k"] == 60
+
+def test_ingestion_profile_resolution_persists_detection_evidence() -> None:
+    repository = FakeDocumentRepository(
+        parsed_text=STAFF_TECH_MATRIX_TEXT,
+        document_profile="auto",
+    )
+    queue = IngestionQueue()
+
+    resolved = asyncio.run(
+        queue._resolve_profile_for_document(
+            document_id=DOCUMENT_ID,
+            repository=repository,
+            requested_profile="auto",
+            filename="staff-matrix.md",
+            content_type="text/markdown",
+        )
+    )
+
+    assert resolved == "staff_technology_matrix"
+    assert repository.metadata_updates["resolved_ingestion_profile"] == "staff_technology_matrix"
+    assert repository.metadata_updates["profile_detection_mode"] == "auto"
+    assert repository.metadata_updates["profile_detection_score"] >= 6
+    assert repository.metadata_updates["profile_detection_evidence"]
+    assert repository.committed is True

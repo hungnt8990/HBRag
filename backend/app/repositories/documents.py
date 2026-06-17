@@ -13,6 +13,7 @@ from app.models.document import Document, DocumentFile
 from app.models.document_log import DocumentPipelineLog
 from app.models.graph import GraphDocumentStatus
 from app.models.knowledge_base import KnowledgeBase
+from app.services.access_control import access_payload_for_chunk, normalize_access_payload
 
 
 @dataclass(frozen=True)
@@ -48,7 +49,11 @@ class DocumentRepository:
         organization_id: UUID | None = None,
         knowledge_base_id: UUID | None = None,
         visibility: str = "organization",
+        access: dict[str, Any] | None = None,
     ) -> Document:
+        document_metadata = {}
+        if access is not None:
+            document_metadata["access"] = normalize_access_payload(access)
         document = Document(
             title=title,
             source_type=source_type,
@@ -57,6 +62,7 @@ class DocumentRepository:
             organization_id=organization_id,
             knowledge_base_id=knowledge_base_id,
             visibility=visibility,
+            document_metadata=document_metadata,
         )
         self._session.add(document)
         await self._session.flush()
@@ -159,6 +165,17 @@ class DocumentRepository:
         await self._session.flush()
         return document
 
+    async def update_document_access(
+        self,
+        document: Document,
+        access: dict[str, Any],
+    ) -> Document:
+        current_metadata = dict(getattr(document, "document_metadata", None) or {})
+        current_metadata["access"] = normalize_access_payload(access)
+        document.document_metadata = current_metadata
+        await self._session.flush()
+        return document
+
     async def delete_document(self, document: Document) -> None:
         await self._session.delete(document)
         await self._session.flush()
@@ -173,13 +190,22 @@ class DocumentRepository:
         document_id: UUID,
         chunks: Sequence[ChunkCreate],
     ) -> list[Chunk]:
+        document = await self.get_document(document_id)
         chunk_models = [
             Chunk(
                 document_id=document_id,
                 chunk_index=chunk.chunk_index,
                 content=chunk.content,
                 token_count=chunk.token_count,
-                chunk_metadata=chunk.metadata,
+                chunk_metadata={
+                    **chunk.metadata,
+                    "access": access_payload_for_chunk(
+                        document=document,
+                        chunk_metadata=chunk.metadata,
+                    ) if document is not None else normalize_access_payload(
+                        dict(chunk.metadata.get("access") or {})
+                    ),
+                },
             )
             for chunk in chunks
         ]
@@ -210,7 +236,11 @@ class DocumentRepository:
         if not chunk_ids:
             return []
 
-        statement = select(Chunk).where(Chunk.id.in_(chunk_ids))
+        statement = (
+            select(Chunk)
+            .options(selectinload(Chunk.document))
+            .where(Chunk.id.in_(chunk_ids))
+        )
         result = await self._session.execute(statement)
         return list(result.scalars().all())
 

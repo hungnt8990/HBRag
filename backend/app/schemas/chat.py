@@ -7,7 +7,13 @@ SearchQuery = Annotated[str, StringConstraints(strip_whitespace=True, min_length
 AnswerMode = Literal["generative", "extractive", "hybrid"]
 AnswerStyle = Literal["concise", "detailed", "policy_explainer", "table_qa"]
 ProfileName = Literal[
-    "auto", "legal_admin", "catalog_table", "general", "spreadsheet", "slide"
+    "auto",
+    "legal_admin",
+    "catalog_table",
+    "staff_technology_matrix",
+    "general",
+    "spreadsheet",
+    "slide",
 ]
 
 

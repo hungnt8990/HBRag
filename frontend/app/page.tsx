@@ -19,6 +19,7 @@ import {
   Rows3,
   Send,
   ServerCog,
+  ShieldCheck,
   TerminalSquare,
   Trash2,
   Upload,
@@ -30,7 +31,6 @@ import {
   type FormEvent,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -55,23 +55,22 @@ import {
   deleteMemory,
   downloadDocumentFile,
   enqueueIngestionJob,
+  getDocumentAccess,
   getDocumentDetail,
   getCurrentUser,
   getErrorMessage,
   getMemorySettings,
-  getProfiles,
   getRuntimeConfig,
-  testHeadingRules,
-  updateProfileConfig,
+  updateDocumentAccess,
   listDocuments,
   listIngestionJobs,
   reingestDocument,
   listMemories,
   type DocumentDetailResponse,
+  type DocumentAccessPolicy,
   type DocumentListItem,
   type IngestionJob,
   type IngestionLog,
-  type HeadingRuleTestMatch,
   type IngestionStep,
   type MemoryItem,
   type MemorySettings,
@@ -79,8 +78,7 @@ import {
   type RagCitation,
   type RuntimeConfigResponse,
   type AuthUser,
-  type ProfileConfig,
-  type ProfilesResponse,
+  type UploadAccessOptions,
 } from "@/lib/api";
 import { streamRagChat } from "@/lib/streaming";
 import { cn } from "@/lib/utils";
@@ -90,6 +88,68 @@ type TypewriterSpeed = "slow" | "normal" | "fast";
 type PipelineStepKey = "upload" | "parse" | "chunk" | "index" | "graph";
 type RunState = "idle" | "running" | "succeeded" | "failed";
 type LogSource = "auto" | "debug" | "chat" | "system";
+
+type UploadAccessForm = Required<
+  Pick<
+    UploadAccessOptions,
+    | "organization_id"
+    | "access_scope"
+    | "classification"
+    | "allowed_org_ids"
+    | "allowed_role_names"
+    | "allowed_group_codes"
+    | "denied_org_ids"
+    | "denied_role_names"
+    | "denied_group_codes"
+  >
+>;
+
+const DEFAULT_UPLOAD_ACCESS: UploadAccessForm = {
+  organization_id: "",
+  access_scope: "corp_wide",
+  classification: "internal",
+  allowed_org_ids: "",
+  allowed_role_names: "",
+  allowed_group_codes: "",
+  denied_org_ids: "",
+  denied_role_names: "",
+  denied_group_codes: "",
+};
+
+const DEFAULT_DOCUMENT_ACCESS: DocumentAccessPolicy = {
+  scope: "unit_only",
+  classification: "internal",
+  owner_org_id: null,
+  owner_org_path: null,
+  business_domains: [],
+  project_codes: [],
+  allowed_org_ids: [],
+  allowed_org_paths: [],
+  allowed_role_names: [],
+  allowed_group_codes: [],
+  allowed_user_ids: [],
+  denied_org_ids: [],
+  denied_org_paths: [],
+  denied_role_names: [],
+  denied_group_codes: [],
+  denied_user_ids: [],
+  inherit_permission: true,
+  access_policy_id: null,
+};
+
+type DocumentAccessListField =
+  | "business_domains"
+  | "project_codes"
+  | "allowed_org_ids"
+  | "allowed_org_paths"
+  | "allowed_role_names"
+  | "allowed_group_codes"
+  | "allowed_user_ids"
+  | "denied_org_ids"
+  | "denied_org_paths"
+  | "denied_role_names"
+  | "denied_group_codes"
+  | "denied_user_ids";
 
 type DebugStep = {
   key: PipelineStepKey;
@@ -165,6 +225,9 @@ export default function Home() {
   const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
 
   const [autoFile, setAutoFile] = useState<File | null>(null);
+  const [uploadAccess, setUploadAccess] = useState<UploadAccessForm>(
+    DEFAULT_UPLOAD_ACCESS,
+  );
   const [autoJobs, setAutoJobs] = useState<IngestionJob[]>([]);
   const [autoSubmitting, setAutoSubmitting] = useState(false);
   const [rerunningDocumentId, setRerunningDocumentId] = useState<string | null>(null);
@@ -196,10 +259,6 @@ export default function Home() {
   const [useGraph, setUseGraph] = useState(false);
   const [graphExpansionDepth, setGraphExpansionDepth] = useState(1);
   const [graphExpansionLimit, setGraphExpansionLimit] = useState(20);
-  const [profile, setProfile] = useState<string>("auto");
-  const [profilesConfig, setProfilesConfig] = useState<ProfilesResponse | null>(
-    null,
-  );
   const settingsInitialized = useRef(false);
 
   const pendingTextRef = useRef("");
@@ -223,15 +282,6 @@ export default function Home() {
   }, []);
 
   useEffect(() => clearTypewriter, [clearTypewriter]);
-
-  useEffect(() => {
-    const storedProfile = window.localStorage.getItem(
-      "hbrag_ingestion_config_profile",
-    );
-    if (storedProfile) {
-      setProfile(storedProfile);
-    }
-  }, []);
 
   useEffect(() => {
     if (citations.length === 0) {
@@ -269,20 +319,6 @@ export default function Home() {
       cancelled = true;
     };
   }, [citations]);
-
-  const refreshProfiles = useCallback(async () => {
-    try {
-      const config = await getProfiles();
-      setProfilesConfig(config);
-    } catch (error) {
-      setSystemError(getErrorMessage(error));
-    }
-  }, []);
-
-  const handleProfileChange = useCallback((next: string) => {
-    setProfile(next);
-    window.localStorage.setItem("hbrag_ingestion_config_profile", next);
-  }, []);
 
   const appendLog = useCallback(
     (
@@ -446,7 +482,6 @@ export default function Home() {
     void refreshJobs();
     void refreshMemorySettings();
     void refreshMemoryItems();
-    void refreshProfiles();
   }, [
       authChecked,
     refreshDocuments,
@@ -454,7 +489,6 @@ export default function Home() {
     refreshRuntimeConfig,
     refreshMemorySettings,
     refreshMemoryItems,
-    refreshProfiles,
   ]);
 
   useEffect(() => {
@@ -524,7 +558,7 @@ export default function Home() {
     appendLog("auto", "queue", "info", `Queued ${autoFile.name}.`);
 
     try {
-      const job = await enqueueIngestionJob(autoFile);
+      const job = await enqueueIngestionJob(autoFile, compactUploadAccess(uploadAccess));
       const durationMs = performance.now() - started;
       setAutoJobs((current) => [job, ...current.filter((item) => item.job_id !== job.job_id)]);
       appendLog(
@@ -689,7 +723,6 @@ export default function Home() {
           {
             query,
             session_id: sessionId ?? undefined,
-            scope: { document_id: selectedDocumentId ?? undefined },
             use_memory: useMemory,
             use_mem0: useMem0,
             memory_top_k: memoryTopK,
@@ -741,7 +774,6 @@ export default function Home() {
       const response = await askRagChat({
         query,
         session_id: sessionId ?? undefined,
-        document_id: selectedDocumentId ?? undefined,
         use_memory: useMemory,
         use_mem0: useMem0,
         memory_top_k: memoryTopK,
@@ -907,8 +939,10 @@ export default function Home() {
             jobs={autoJobs}
             loading={autoSubmitting}
             message={autoUploadMessage}
+            uploadAccess={uploadAccess}
             onCloseDetail={() => setDocumentModalOpen(false)}
             onFileChange={handleAutoFileChange}
+            onUploadAccessChange={setUploadAccess}
             onDeletePublishedDocument={handleDeleteDocument}
             onOpenDocument={handleOpenDocumentModal}
             onRefreshDocuments={() => {
@@ -949,8 +983,6 @@ export default function Home() {
           <SettingsPanel
             memorySettings={memorySettings}
             runtimeConfig={runtimeConfig}
-            profilesConfig={profilesConfig}
-            onProfilesConfigChange={setProfilesConfig}
             setStreamingEnabled={setStreamingEnabled}
             setTypewriterEnabled={setTypewriterEnabled}
             setTypewriterSpeed={setTypewriterSpeed}
@@ -960,8 +992,6 @@ export default function Home() {
             setUseGraph={setUseGraph}
             setGraphExpansionDepth={setGraphExpansionDepth}
             setGraphExpansionLimit={setGraphExpansionLimit}
-            profile={profile}
-            setProfile={handleProfileChange}
             streamingEnabled={streamingEnabled}
             typewriterEnabled={typewriterEnabled}
             typewriterSpeed={typewriterSpeed}
@@ -1008,8 +1038,10 @@ function AutoQueueView({
   loading,
   logs,
   message,
+  uploadAccess,
   onCloseDetail,
   onFileChange,
+  onUploadAccessChange,
   onDeletePublishedDocument,
   onOpenDocument,
   onRefreshDocuments,
@@ -1028,8 +1060,10 @@ function AutoQueueView({
   loading: boolean;
   logs: UiLog[];
   message: { type: "success" | "error"; text: string } | null;
+  uploadAccess: UploadAccessForm;
   onCloseDetail: () => void;
   onFileChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onUploadAccessChange: (value: UploadAccessForm) => void;
   onDeletePublishedDocument: (documentId: string) => void;
   onOpenDocument: (documentId: string) => void;
   onRefreshDocuments: () => void;
@@ -1054,9 +1088,12 @@ function AutoQueueView({
       label: "Chunks",
       value: documents
         .reduce((total, document) => total + document.chunk_count, 0)
-        .toLocaleString(),
+      .toLocaleString(),
     },
   ];
+  const setAccessField = (key: keyof UploadAccessForm, value: string) => {
+    onUploadAccessChange({ ...uploadAccess, [key]: value });
+  };
 
   return (
     <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)_360px]">
@@ -1090,6 +1127,86 @@ function AutoQueueView({
               The backend parses a preview, scores the saved ingestion profiles, and stores
               the resolved profile on the document/job metadata.
             </p>
+          </div>
+          <div className="space-y-3 rounded-xl border border-slate-200 bg-white px-3 py-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Scope
+                </span>
+                <select
+                  className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
+                  onChange={(event) => setAccessField("access_scope", event.target.value)}
+                  value={uploadAccess.access_scope}
+                >
+                  <option value="unit_only">Unit only</option>
+                  <option value="subtree">Subtree</option>
+                  <option value="corp_wide">Corp wide</option>
+                  <option value="explicit_acl">Explicit ACL</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Classification
+                </span>
+                <select
+                  className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
+                  onChange={(event) => setAccessField("classification", event.target.value)}
+                  value={uploadAccess.classification}
+                >
+                  <option value="internal">Internal</option>
+                  <option value="restricted">Restricted</option>
+                  <option value="confidential">Confidential</option>
+                  <option value="secret">Secret</option>
+                </select>
+              </label>
+            </div>
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Owner company ID
+              </span>
+              <Input
+                className="mt-2"
+                onChange={(event) => setAccessField("organization_id", event.target.value)}
+                placeholder="UUID công ty sở hữu"
+                value={uploadAccess.organization_id}
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Allowed company IDs
+              </span>
+              <Input
+                className="mt-2"
+                onChange={(event) => setAccessField("allowed_org_ids", event.target.value)}
+                placeholder="UUID1, UUID2"
+                value={uploadAccess.allowed_org_ids}
+              />
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Allowed roles
+                </span>
+                <Input
+                  className="mt-2"
+                  onChange={(event) => setAccessField("allowed_role_names", event.target.value)}
+                  placeholder="COMPANY_ADMIN, UNIT_USER"
+                  value={uploadAccess.allowed_role_names}
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Allowed groups
+                </span>
+                <Input
+                  className="mt-2"
+                  onChange={(event) => setAccessField("allowed_group_codes", event.target.value)}
+                  placeholder="ai-team, legal-team"
+                  value={uploadAccess.allowed_group_codes}
+                />
+              </label>
+            </div>
           </div>
           <Button
             className="w-full bg-[#0d3b4c] text-white hover:bg-[#114e63]"
@@ -1307,16 +1424,57 @@ function DocumentDetailModal({
   onClose: () => void;
   open: boolean;
 }) {
-  const [activeTab, setActiveTab] = useState<"parse" | "chunk" | "embed">("parse");
+  const [activeTab, setActiveTab] = useState<"parse" | "chunk" | "embed" | "access">("parse");
   const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [accessPolicy, setAccessPolicy] = useState<DocumentAccessPolicy>(
+    DEFAULT_DOCUMENT_ACCESS,
+  );
+  const [accessLoading, setAccessLoading] = useState(false);
+  const [accessSaving, setAccessSaving] = useState(false);
+  const [accessMessage, setAccessMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     if (open) {
       setActiveTab("parse");
       setDownloadError(null);
+      setAccessMessage(null);
     }
   }, [open, document?.document_id]);
+
+  useEffect(() => {
+    if (!open || !document?.document_id) {
+      setAccessPolicy(DEFAULT_DOCUMENT_ACCESS);
+      return;
+    }
+
+    let cancelled = false;
+    setAccessLoading(true);
+    setAccessMessage(null);
+    void getDocumentAccess(document.document_id)
+      .then((response) => {
+        if (!cancelled) {
+          setAccessPolicy({ ...DEFAULT_DOCUMENT_ACCESS, ...response.access });
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setAccessMessage({ type: "error", text: getErrorMessage(error) });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setAccessLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [document?.document_id, open]);
 
   useEffect(() => {
     if (!open) {
@@ -1345,6 +1503,37 @@ function DocumentDetailModal({
     }
   };
 
+  const handleAccessScalarChange = (
+    key: "scope" | "classification" | "owner_org_id" | "owner_org_path",
+    value: string,
+  ) => {
+    setAccessPolicy((current) => ({
+      ...current,
+      [key]: value.trim() === "" ? null : value,
+    }));
+  };
+
+  const handleAccessListChange = (key: DocumentAccessListField, value: string) => {
+    setAccessPolicy((current) => ({ ...current, [key]: splitListInput(value) }));
+  };
+
+  const handleSaveAccess = async () => {
+    if (!document?.document_id) {
+      return;
+    }
+    setAccessSaving(true);
+    setAccessMessage(null);
+    try {
+      const response = await updateDocumentAccess(document.document_id, accessPolicy);
+      setAccessPolicy({ ...DEFAULT_DOCUMENT_ACCESS, ...response.access });
+      setAccessMessage({ type: "success", text: "Document access was updated." });
+    } catch (error) {
+      setAccessMessage({ type: "error", text: getErrorMessage(error) });
+    } finally {
+      setAccessSaving(false);
+    }
+  };
+
   if (!open) {
     return null;
   }
@@ -1356,6 +1545,7 @@ function DocumentDetailModal({
     { key: "parse", label: "Parse", icon: FileSearch },
     { key: "chunk", label: "Chunk", icon: Rows3 },
     { key: "embed", label: "Embed", icon: Database },
+    { key: "access", label: "Access", icon: ShieldCheck },
   ] as const;
 
   return (
@@ -1565,11 +1755,234 @@ function DocumentDetailModal({
                 <PipelineLogList logs={vectorLogs} />
               </div>
             ) : null}
+
+            {activeTab === "access" ? (
+              <div className="space-y-4">
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        Document access
+                      </p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        Update company, role, group, and user access for this file.
+                      </p>
+                    </div>
+                    <Button
+                      className="h-9 bg-[#0d3b4c] text-white hover:bg-[#114e63]"
+                      disabled={accessLoading || accessSaving}
+                      onClick={() => void handleSaveAccess()}
+                      type="button"
+                    >
+                      {accessSaving ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ShieldCheck className="h-4 w-4" />
+                      )}
+                      Save access
+                    </Button>
+                  </div>
+
+                  {accessLoading ? (
+                    <div className="flex min-h-32 items-center justify-center gap-3 text-sm text-slate-500">
+                      <Loader2 className="h-4 w-4 animate-spin text-cyan-700" />
+                      Loading access policy...
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <label className="block">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Scope
+                          </span>
+                          <select
+                            className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
+                            onChange={(event) => handleAccessScalarChange("scope", event.target.value)}
+                            value={accessPolicy.scope ?? "unit_only"}
+                          >
+                            <option value="unit_only">Unit only</option>
+                            <option value="subtree">Subtree</option>
+                            <option value="corp_wide">Corp wide</option>
+                            <option value="public_internal">Public internal</option>
+                            <option value="explicit_acl">Explicit ACL</option>
+                            <option value="functional_vertical">Functional vertical</option>
+                            <option value="project_only">Project only</option>
+                            <option value="leadership_only">Leadership only</option>
+                          </select>
+                        </label>
+                        <label className="block">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Classification
+                          </span>
+                          <select
+                            className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
+                            onChange={(event) => handleAccessScalarChange("classification", event.target.value)}
+                            value={accessPolicy.classification ?? "internal"}
+                          >
+                            <option value="public_internal">Public internal</option>
+                            <option value="internal">Internal</option>
+                            <option value="restricted">Restricted</option>
+                            <option value="personal_data">Personal data</option>
+                            <option value="confidential">Confidential</option>
+                            <option value="secret">Secret</option>
+                          </select>
+                        </label>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <AccessTextField
+                          label="Owner company ID"
+                          onChange={(value) => handleAccessScalarChange("owner_org_id", value)}
+                          placeholder="UUID công ty sở hữu"
+                          value={accessPolicy.owner_org_id ?? ""}
+                        />
+                        <AccessTextField
+                          label="Owner org path"
+                          onChange={(value) => handleAccessScalarChange("owner_org_path", value)}
+                          placeholder="EVNCPC/PC_DANANG"
+                          value={accessPolicy.owner_org_path ?? ""}
+                        />
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <AccessTextField
+                          label="Allowed company IDs"
+                          onChange={(value) => handleAccessListChange("allowed_org_ids", value)}
+                          placeholder="UUID1, UUID2"
+                          value={joinListInput(accessPolicy.allowed_org_ids)}
+                        />
+                        <AccessTextField
+                          label="Denied company IDs"
+                          onChange={(value) => handleAccessListChange("denied_org_ids", value)}
+                          placeholder="UUID1, UUID2"
+                          value={joinListInput(accessPolicy.denied_org_ids)}
+                        />
+                        <AccessTextField
+                          label="Allowed roles"
+                          onChange={(value) => handleAccessListChange("allowed_role_names", value)}
+                          placeholder="COMPANY_ADMIN, UNIT_USER"
+                          value={joinListInput(accessPolicy.allowed_role_names)}
+                        />
+                        <AccessTextField
+                          label="Denied roles"
+                          onChange={(value) => handleAccessListChange("denied_role_names", value)}
+                          placeholder="VIEWER"
+                          value={joinListInput(accessPolicy.denied_role_names)}
+                        />
+                        <AccessTextField
+                          label="Allowed groups"
+                          onChange={(value) => handleAccessListChange("allowed_group_codes", value)}
+                          placeholder="ai-team, legal-team"
+                          value={joinListInput(accessPolicy.allowed_group_codes)}
+                        />
+                        <AccessTextField
+                          label="Denied groups"
+                          onChange={(value) => handleAccessListChange("denied_group_codes", value)}
+                          placeholder="external"
+                          value={joinListInput(accessPolicy.denied_group_codes)}
+                        />
+                        <AccessTextField
+                          label="Allowed users"
+                          onChange={(value) => handleAccessListChange("allowed_user_ids", value)}
+                          placeholder="user UUID1, user UUID2"
+                          value={joinListInput(accessPolicy.allowed_user_ids)}
+                        />
+                        <AccessTextField
+                          label="Denied users"
+                          onChange={(value) => handleAccessListChange("denied_user_ids", value)}
+                          placeholder="user UUID1, user UUID2"
+                          value={joinListInput(accessPolicy.denied_user_ids)}
+                        />
+                        <AccessTextField
+                          label="Business domains"
+                          onChange={(value) => handleAccessListChange("business_domains", value)}
+                          placeholder="kinh_doanh, ky_thuat"
+                          value={joinListInput(accessPolicy.business_domains)}
+                        />
+                        <AccessTextField
+                          label="Project codes"
+                          onChange={(value) => handleAccessListChange("project_codes", value)}
+                          placeholder="project-a, project-b"
+                          value={joinListInput(accessPolicy.project_codes)}
+                        />
+                      </div>
+
+                      <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                        <input
+                          checked={accessPolicy.inherit_permission}
+                          className="h-4 w-4 rounded border-slate-300 text-cyan-700"
+                          onChange={(event) =>
+                            setAccessPolicy((current) => ({
+                              ...current,
+                              inherit_permission: event.target.checked,
+                            }))
+                          }
+                          type="checkbox"
+                        />
+                        Inherit document-level permissions to chunks
+                      </label>
+                    </div>
+                  )}
+
+                  {accessMessage ? (
+                    <p
+                      className={cn(
+                        "mt-3 rounded-lg border px-3 py-2 text-sm",
+                        accessMessage.type === "error"
+                          ? "border-rose-200 bg-rose-50 text-rose-700"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-700",
+                      )}
+                    >
+                      {accessMessage.text}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
       </div>
     </div>
   );
+}
+
+function AccessTextField({
+  label,
+  onChange,
+  placeholder,
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  value: string;
+}) {
+  return (
+    <label className="block">
+      <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+        {label}
+      </span>
+      <Input
+        className="mt-2"
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        value={value}
+      />
+    </label>
+  );
+}
+
+function joinListInput(value: string[] | undefined): string {
+  return (value ?? []).join(", ");
+}
+
+function splitListInput(value: string): string[] {
+  return value
+    .replace(/;/g, ",")
+    .replace(/\|/g, ",")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function PipelineLogList({ logs }: { logs: DocumentDetailResponse["pipeline_logs"] }) {
@@ -1845,10 +2258,6 @@ function SettingsPanel({
   memorySettings,
   memoryTopK,
   runtimeConfig,
-  profilesConfig,
-  onProfilesConfigChange,
-  profile,
-  setProfile,
   setMemoryTopK,
   setStreamingEnabled,
   setTypewriterEnabled,
@@ -1870,10 +2279,6 @@ function SettingsPanel({
   memorySettings: MemorySettings | null;
   memoryTopK: number;
   runtimeConfig: RuntimeConfigResponse | null;
-  profilesConfig: ProfilesResponse | null;
-  onProfilesConfigChange: (value: ProfilesResponse) => void;
-  profile: string;
-  setProfile: (value: string) => void;
   setMemoryTopK: (value: number) => void;
   setStreamingEnabled: (value: boolean) => void;
   setTypewriterEnabled: (value: boolean) => void;
@@ -1895,13 +2300,6 @@ function SettingsPanel({
   const memoryEnabled = memorySettings?.memory_enabled ?? false;
   const mem0Available = memorySettings?.mem0_enabled ?? false;
   const streamingSupported = runtimeConfig?.streaming_supported ?? true;
-  const profileOptions = useMemo(() => {
-    const dynamicProfiles = profilesConfig?.profiles ?? [];
-    return [
-      "auto",
-      ...dynamicProfiles.filter((value) => value && value !== "auto"),
-    ];
-  }, [profilesConfig]);
   const modelRows = runtimeConfig
     ? [
         ["Embedding model", runtimeConfig.embedding_model ?? "Not set"],
@@ -1911,74 +2309,6 @@ function SettingsPanel({
       ]
     : [];
 
-  const activeProfileConfig = profilesConfig?.configs?.[profile] ?? null;
-  const [profileConfigDraft, setProfileConfigDraft] = useState("");
-  const [profileConfigMessage, setProfileConfigMessage] = useState<string | null>(null);
-  const [headingRuleSample, setHeadingRuleSample] = useState(
-    "CHƯƠNG I QUY ĐỊNH CHUNG\nĐiều 1. Phạm vi điều chỉnh",
-  );
-  const [headingRuleMatches, setHeadingRuleMatches] = useState<HeadingRuleTestMatch[]>([]);
-  const [profileConfigBusy, setProfileConfigBusy] = useState(false);
-
-  useEffect(() => {
-    if (!activeProfileConfig) {
-      setProfileConfigDraft("");
-      return;
-    }
-    setProfileConfigDraft(JSON.stringify(activeProfileConfig, null, 2));
-    setProfileConfigMessage(null);
-    setHeadingRuleMatches([]);
-  }, [activeProfileConfig, profile]);
-
-  const parseProfileConfigDraft = (): ProfileConfig | null => {
-    try {
-      return JSON.parse(profileConfigDraft) as ProfileConfig;
-    } catch (error) {
-      setProfileConfigMessage(getErrorMessage(error));
-      return null;
-    }
-  };
-
-  const handleSaveProfileConfig = async () => {
-    const parsed = parseProfileConfigDraft();
-    if (!parsed) {
-      return;
-    }
-    setProfileConfigBusy(true);
-    setProfileConfigMessage(null);
-    try {
-      const next = await updateProfileConfig(profile, parsed);
-      onProfilesConfigChange(next);
-      setProfileConfigMessage("Saved ingestion profile config.");
-    } catch (error) {
-      setProfileConfigMessage(getErrorMessage(error));
-    } finally {
-      setProfileConfigBusy(false);
-    }
-  };
-
-  const handleTestHeadingRules = async () => {
-    const parsed = parseProfileConfigDraft();
-    if (!parsed) {
-      return;
-    }
-    setProfileConfigBusy(true);
-    setProfileConfigMessage(null);
-    try {
-      const result = await testHeadingRules({
-        profile,
-        sample_text: headingRuleSample,
-        config: parsed,
-      });
-      setHeadingRuleMatches(result.matches);
-      setProfileConfigMessage(`Matched ${result.matches.length} heading(s).`);
-    } catch (error) {
-      setProfileConfigMessage(getErrorMessage(error));
-    } finally {
-      setProfileConfigBusy(false);
-    }
-  };
-
   return (
     <Card className="bg-white shadow-sm">
       <CardHeader className="pb-3">
@@ -1987,118 +2317,14 @@ function SettingsPanel({
           RAG Settings
         </CardTitle>
         <CardDescription>
-          Retrieval, answer style, and context limits are resolved automatically by the backend. Chunking is controlled by ingestion profile config.
+          Retrieval, answer style, context limits, and ingestion profiles are resolved automatically by the backend.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="rounded-xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-cyan-900">
-          RAG runtime is automatic: backend resolves document profile, answer style,
-          retrieval window and context length from the selected document/profile.
-        </div>
-
-        <div className="space-y-4 rounded-xl border border-slate-200 p-4">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Ingestion profile config
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Configure ingestion rules here. Runtime retrieval and answer settings are selected automatically from the resolved document profile.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Profile
-                <select
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium normal-case text-slate-700 shadow-sm"
-                  disabled={profileConfigBusy || profileOptions.length === 0}
-                  onChange={(event) => setProfile(event.target.value)}
-                  value={profile}
-                >
-                  {profileOptions.map((value) => (
-                    <option key={value} value={value}>
-                      {value === "auto" ? "Auto" : value}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <Button
-                disabled={profile === "auto" || profileConfigBusy || !activeProfileConfig}
-                onClick={handleTestHeadingRules}
-                type="button"
-                variant="outline"
-              >
-                Test rules
-              </Button>
-              <Button
-                disabled={profile === "auto" || profileConfigBusy || !activeProfileConfig}
-                onClick={handleSaveProfileConfig}
-                type="button"
-              >
-                Save profile
-              </Button>
-            </div>
-          </div>
-
-          {profile === "auto" ? (
-            <div className="space-y-3 rounded-lg bg-slate-50 px-3 py-3 text-sm text-slate-500">
-              <p>Select a concrete profile such as legal_admin or catalog_table to edit ingestion rules.</p>
-              <div className="flex flex-wrap gap-2">
-                {profileOptions
-                  .filter((value) => value !== "auto")
-                  .map((value) => (
-                    <button
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                      key={value}
-                      onClick={() => setProfile(value)}
-                      type="button"
-                    >
-                      Edit {value}
-                    </button>
-                  ))}
-              </div>
-            </div>
-          ) : (
-            <>
-              <Textarea
-                className="min-h-[260px] font-mono text-xs"
-                onChange={(event) => setProfileConfigDraft(event.target.value)}
-                value={profileConfigDraft}
-              />
-              <div className="grid gap-3 lg:grid-cols-2">
-                <label className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Test sample
-                  </span>
-                  <Textarea
-                    className="min-h-[120px] font-mono text-xs"
-                    onChange={(event) => setHeadingRuleSample(event.target.value)}
-                    value={headingRuleSample}
-                  />
-                </label>
-                <div className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Matches
-                  </span>
-                  <div className="max-h-[160px] overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
-                    {headingRuleMatches.length ? (
-                      headingRuleMatches.map((match, index) => (
-                        <div className="mb-2 last:mb-0" key={`${match.start}-${index}`}>
-                          <span className="font-semibold">L{match.level}</span> {match.name}: {match.display_text}
-                          {match.boundary ? " · boundary" : ""}
-                        </div>
-                      ))
-                    ) : (
-                      <span className="text-slate-500">No test results yet.</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              {profileConfigMessage ? (
-                <p className="text-xs text-slate-500">{profileConfigMessage}</p>
-              ) : null}
-            </>
-          )}
+          Backend auto-detects a concrete ingestion profile during parsing, stores
+          the resolved profile with detection evidence, then reuses it for
+          retrieval and answer formatting.
         </div>
 
         <label
@@ -2799,6 +3025,12 @@ function compactId(id: string): string {
 
 function formatPerson(person: DocumentListItem["uploaded_by"]): string {
   return person?.full_name ?? person?.username ?? "Unknown";
+}
+
+function compactUploadAccess(access: UploadAccessForm): UploadAccessOptions {
+  return Object.fromEntries(
+    Object.entries(access).filter(([, value]) => value.trim() !== ""),
+  ) as UploadAccessOptions;
 }
 
 function formatKnowledgeBase(document: DocumentListItem): string {

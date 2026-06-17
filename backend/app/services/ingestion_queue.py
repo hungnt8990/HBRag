@@ -16,7 +16,7 @@ from app.db.session import AsyncSessionLocal
 from app.repositories.documents import DocumentRepository
 from app.services.chunking_service import ChunkingService
 from app.services.document_parser_service import DocumentParserService
-from app.services.document_profiles import profile_config, resolve_profile
+from app.services.document_profiles import profile_config, resolve_profile_with_evidence
 from app.services.document_service import DocumentService
 from app.services.embeddings.factory import get_embedding_provider
 from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
@@ -75,7 +75,9 @@ class QueuedUpload:
     filename: str
     content_type: str | None
     content: bytes
+    organization_id: UUID | None = None
     ingestion_profile: str = "auto"
+    access: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -97,7 +99,9 @@ class IngestionQueue:
         filename: str,
         content_type: str | None,
         content: bytes,
+        organization_id: UUID | None = None,
         ingestion_profile: str = "auto",
+        access: dict[str, Any] | None = None,
     ) -> IngestionJob:
         now = datetime.now(UTC)
         job = IngestionJob(
@@ -114,7 +118,9 @@ class IngestionQueue:
             filename=filename,
             content_type=content_type,
             content=content,
+            organization_id=organization_id,
             ingestion_profile=job.ingestion_profile,
+            access=dict(access or {}),
         )
         self._log(
             job,
@@ -201,7 +207,11 @@ class IngestionQueue:
                         lambda: DocumentService(
                             repository=DocumentRepository(session),
                             storage=storage,
-                        ).upload_document(self._to_upload_file(payload)),
+                        ).upload_document(
+                            self._to_upload_file(payload),
+                            organization_id=payload.organization_id,
+                            access=payload.access,
+                        ),
                         lambda response: {
                             "document_id": str(response.document_id),
                             "filename": response.filename,
@@ -388,17 +398,21 @@ class IngestionQueue:
         document = await repository.get_document(document_id)
         if document is None:
             raise ValueError("Document not found for profile resolution.")
-        resolved = resolve_profile(
+        detection = resolve_profile_with_evidence(
             requested_profile,
             text=document.parsed_text,
             filename=filename or document.title,
             content_type=content_type,
         )
+        resolved = detection["profile"]
         resolved_config = profile_config(resolved)
         job_metadata = {
             "ingestion_profile": requested_profile,
             "resolved_ingestion_profile": resolved,
             "profile_detection_mode": "auto" if requested_profile == "auto" else "explicit",
+            "profile_detection_score": detection["score"],
+            "profile_detection_evidence": detection["evidence"],
+            "profile_detection_candidates": detection["candidates"],
             "ingestion_profile_snapshot": resolved_config,
         }
         await repository.update_document_metadata(document, job_metadata)

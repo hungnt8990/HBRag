@@ -6,7 +6,15 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.document_log import DocumentAccessLog, DocumentPipelineLog
+from app.models.document_log import ACCESS_ACTIONS, DocumentAccessLog, DocumentPipelineLog
+
+ACCESS_ACTION_ALIASES = {
+    "open_document": "view",
+    "view_citation": "view",
+    "denied_access": "view",
+    "manage_acl": "view",
+    "read_answer": "chat",
+}
 
 
 class DocumentLogRepository:
@@ -46,12 +54,18 @@ class DocumentLogRepository:
         action: str,
         metadata: dict[str, Any] | None = None,
     ) -> DocumentAccessLog:
+        canonical_action = ACCESS_ACTION_ALIASES.get(action, action)
+        if canonical_action not in ACCESS_ACTIONS:
+            canonical_action = "view"
+        log_metadata = dict(metadata or {})
+        if canonical_action != action:
+            log_metadata.setdefault("original_action", action)
         log = DocumentAccessLog(
             document_id=document_id,
             user_id=user_id,
             organization_id=organization_id,
-            action=action,
-            log_metadata=metadata,
+            action=canonical_action,
+            log_metadata=log_metadata or None,
         )
         self._session.add(log)
         await self._session.flush()

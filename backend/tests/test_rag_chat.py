@@ -7,7 +7,12 @@ from fastapi.testclient import TestClient
 from app.api.routes.chat import get_rag_answer_service
 from app.main import app
 from app.repositories.chat import CitationCreate
-from app.schemas.chat import RagChatResponse, RagCitationResponse
+from app.schemas.chat import (
+    RagChatResponse,
+    RagCitationResponse,
+    RagRecentMessage,
+    RagSessionContext,
+)
 from app.schemas.documents import RerankSearchResponse, RerankSearchResult
 from app.services.llms.fake_llm import FakeLLM
 from app.services.rag_answer_service import RagAnswerService
@@ -170,6 +175,25 @@ class FakeRerankingService:
         )
 
 
+class RewriteThenFakeLLM(FakeLLM):
+    def __init__(self, rewritten_query: str) -> None:
+        self.rewritten_query = rewritten_query
+        self.rewrite_prompts: list[str] = []
+        self.answer_prompts: list[str] = []
+
+    async def generate(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+    ) -> str:
+        if "STANDALONE QUESTION:" in user_prompt:
+            self.rewrite_prompts.append(user_prompt)
+            return self.rewritten_query
+        self.answer_prompts.append(user_prompt)
+        return await super().generate(system_prompt=system_prompt, user_prompt=user_prompt)
+
+
 class FakeRagAnswerService:
     def __init__(self) -> None:
         self.calls: list[dict[str, object]] = []
@@ -239,12 +263,7 @@ def test_fake_llm_returns_deterministic_answer() -> None:
     async def run_test() -> None:
         llm = FakeLLM()
         system_prompt = "system"
-        user_prompt = (
-            "Question:\nWhat is RAG?\n\n"
-            "Context:\n"
-            "[1] RAG uses context.\n"
-            "[2] Citations point to chunks."
-        )
+        user_prompt = "Question:\nWhat is RAG?\n\nContext:\n[1] RAG uses context.\n[2] Citations point to chunks."
 
         first = await llm.generate(system_prompt=system_prompt, user_prompt=user_prompt)
         second = await llm.generate(system_prompt=system_prompt, user_prompt=user_prompt)
@@ -286,9 +305,7 @@ def test_rag_service_creates_session_messages_and_citations() -> None:
         assert len(repository.citations) == 2
         assert repository.citations[0].chunk_id == CHUNK_ID_1
         assert repository.citations[0].document_id == DOCUMENT_ID
-        assert repository.citations[0].quote == (
-            "Python RAG systems use retrieved context for grounded answers."
-        )
+        assert repository.citations[0].quote == ("Python RAG systems use retrieved context for grounded answers.")
         assert repository.citations[1].page_number == 2
         assert response.citations[0].citation_index == 1
         assert response.citations[0].document_title == "Labor Policy Handbook"
@@ -311,6 +328,78 @@ def test_rag_service_creates_session_messages_and_citations() -> None:
         ]
         assert repository.committed is True
         assert repository.rolled_back is False
+
+    asyncio.run(run_test())
+
+
+def test_rag_service_rewrites_followup_query_for_retrieval() -> None:
+    async def run_test() -> None:
+        repository = FakeChatRepository()
+        reranking_service = FakeRerankingService()
+        llm = RewriteThenFakeLLM("How should RAG cite chunks?")
+        service = RagAnswerService(
+            chat_repository=repository,  # type: ignore[arg-type]
+            reranking_service=reranking_service,  # type: ignore[arg-type]
+            llm_provider=llm,
+        )
+
+        response = await service.answer(
+            query="Còn cái này thì sao?",
+            session_id=None,
+            top_k=2,
+            candidate_k=10,
+            session_context=RagSessionContext(
+                last_topic="RAG citation behavior",
+                recent_messages=[
+                    RagRecentMessage(
+                        role="user",
+                        content="How should RAG cite chunks?",
+                    ),
+                    RagRecentMessage(
+                        role="assistant",
+                        content="Citations should point back to source chunks.",
+                    ),
+                ],
+            ),
+        )
+
+        assert reranking_service.calls[0]["query"] == "How should RAG cite chunks?"
+        assert llm.rewrite_prompts
+        assert llm.answer_prompts
+        assert "Standalone retrieval question" in llm.answer_prompts[0]
+        assert "How should RAG cite chunks?" in llm.answer_prompts[0]
+        assert "Question:\nCòn cái này thì sao?" in llm.answer_prompts[0]
+        assert "Generated from provided context" in response.answer
+
+    asyncio.run(run_test())
+
+
+def test_person_area_query_does_not_answer_from_unrelated_context() -> None:
+    async def run_test() -> None:
+        repository = FakeChatRepository()
+        repository.chunks[CHUNK_ID_1].content = "CHƯƠNG II\nVIỆC LÀM VÀ ĐẢM BẢO VIỆC LÀM\nĐiều 7. Công tác đào tạo.\nEVNCPC coi trọng công tác đào tạo và đào tạo lại để nâng cao trình độ quản lý, chuyên môn nghiệp vụ."
+        repository.chunks[CHUNK_ID_1].chunk_metadata = {
+            "chunk_type": "docling_hybrid_repaired",
+            "start_char": 0,
+            "end_char": 180,
+        }
+        reranking_service = FakeRerankingService()
+        service = RagAnswerService(
+            chat_repository=repository,  # type: ignore[arg-type]
+            reranking_service=reranking_service,  # type: ignore[arg-type]
+            llm_provider=FakeLLM(),
+        )
+
+        response = await service.answer(
+            query="Phước Lâm tham gia vào mảng công nghệ nào",
+            session_id=None,
+            top_k=1,
+            candidate_k=10,
+        )
+
+        assert response.answer.startswith("Không đủ căn cứ trực tiếp")
+        assert "CHƯƠNG II" not in response.answer
+        assert "Công tác đào tạo" not in response.answer
 
     asyncio.run(run_test())
 
@@ -468,7 +557,8 @@ def test_build_system_prompt_includes_policy_explainer_instructions() -> None:
     assert "related cases" in prompt.lower()
     assert "table rows" in prompt.lower()
     assert "exact numbers" in prompt.lower()
-    assert "Vietnamese administrative" in prompt
+    assert "same language as the user's question" in prompt
+    assert "Do not create a separate Sources" in prompt
 
     concise = build_system_prompt(answer_mode="hybrid", answer_style="concise")
     assert "1-2 sentences" in concise
@@ -763,6 +853,8 @@ def test_deduplicated_prompt_has_no_repeated_lines() -> None:
     )
     prompt = service._build_user_prompt(query="q", context_chunks=deduped)
     assert prompt.count(same) == 1
+    assert "source/download list separately" in prompt
+    assert "Do not create a Sources" in prompt
 
 
 def test_table_neighbor_expansion_prefers_matching_rows_and_headers() -> None:
@@ -775,10 +867,7 @@ def test_table_neighbor_expansion_prefers_matching_rows_and_headers() -> None:
         id=uuid4(),
         document_id=document_id,
         chunk_index=3,
-        content=(
-            "TABLE_ROW table_id=pdf_p1_1 page=1 row=1 | Name: Nguyen Quang Lam | "
-            "Area: Infrastructure"
-        ),
+        content=("TABLE_ROW table_id=pdf_p1_1 page=1 row=1 | Name: Nguyen Quang Lam | Area: Infrastructure"),
         chunk_metadata={"table_id": "pdf_p1_1", "chunk_type": "table_row"},
     )
     header = SimpleNamespace(
@@ -792,10 +881,7 @@ def test_table_neighbor_expansion_prefers_matching_rows_and_headers() -> None:
         id=uuid4(),
         document_id=document_id,
         chunk_index=4,
-        content=(
-            "TABLE_ROW table_id=pdf_p1_1 page=1 row=2 | Name: Nguyen Quang Lam | "
-            "Area: Data"
-        ),
+        content=("TABLE_ROW table_id=pdf_p1_1 page=1 row=2 | Name: Nguyen Quang Lam | Area: Data"),
         chunk_metadata={"table_id": "pdf_p1_1", "chunk_type": "table_row"},
     )
     unrelated = SimpleNamespace(
@@ -850,10 +936,7 @@ def test_entity_summary_expansion_uses_table_ids_metadata() -> None:
         id=uuid4(),
         document_id=document_id,
         chunk_index=11,
-        content=(
-            "TABLE_ROW table_id=pdf_p1_1 page=1 row=6 | Name: Nguyen Quang Lam | "
-            "Area: Platform AI"
-        ),
+        content=("TABLE_ROW table_id=pdf_p1_1 page=1 row=6 | Name: Nguyen Quang Lam | Area: Platform AI"),
         chunk_metadata={"table_id": "pdf_p1_1", "chunk_type": "table_row"},
     )
     table_b_header = SimpleNamespace(
@@ -867,10 +950,7 @@ def test_entity_summary_expansion_uses_table_ids_metadata() -> None:
         id=uuid4(),
         document_id=document_id,
         chunk_index=13,
-        content=(
-            "TABLE_ROW table_id=pdf_p1_2 page=1 row=2 | Name: Nguyen Quang Lam | "
-            "Area: OCR"
-        ),
+        content=("TABLE_ROW table_id=pdf_p1_2 page=1 row=2 | Name: Nguyen Quang Lam | Area: OCR"),
         chunk_metadata={"table_id": "pdf_p1_2", "chunk_type": "table_row"},
     )
 
@@ -925,23 +1005,10 @@ def test_entity_coverage_lookup_adds_all_matching_table_rows_only() -> None:
         )
         for index, row_content in enumerate(
             [
-                (
-                    "TABLE_ROW table_id=tbl_1 row=3 | Nhom nhiem vu: Xay dung nen tang "
-                    "RAG tren du lieu noi bo | Danh sach: Tong Phuoc Lam; Nguyen Quang Lam"
-                ),
-                (
-                    "TABLE_ROW table_id=tbl_1 row=4 | Nhom nhiem vu: Xay dung dich vu OCR "
-                    "dung chung | Danh sach: Trinh Thanh Tinh; Nguyen Quang Lam"
-                ),
-                (
-                    "TABLE_ROW table_id=tbl_1 row=5 | Nhom nhiem vu: Kho du lieu AI dung "
-                    "chung | Danh sach: Nguyen Quang Lam; Nguyen Trong Hung"
-                ),
-                (
-                    "TABLE_ROW table_id=tbl_1 row=6 | Nhom nhiem vu: Platform AI | Danh "
-                    "sach: Cac nhan su trong ke hoach PoC ThinkLabs; Nguyen Quang Lam; "
-                    "Vo Van Phuc"
-                ),
+                ("TABLE_ROW table_id=tbl_1 row=3 | Nhom nhiem vu: Xay dung nen tang RAG tren du lieu noi bo | Danh sach: Tong Phuoc Lam; Nguyen Quang Lam"),
+                ("TABLE_ROW table_id=tbl_1 row=4 | Nhom nhiem vu: Xay dung dich vu OCR dung chung | Danh sach: Trinh Thanh Tinh; Nguyen Quang Lam"),
+                ("TABLE_ROW table_id=tbl_1 row=5 | Nhom nhiem vu: Kho du lieu AI dung chung | Danh sach: Nguyen Quang Lam; Nguyen Trong Hung"),
+                ("TABLE_ROW table_id=tbl_1 row=6 | Nhom nhiem vu: Platform AI | Danh sach: Cac nhan su trong ke hoach PoC ThinkLabs; Nguyen Quang Lam; Vo Van Phuc"),
             ],
             start=1,
         )
@@ -950,10 +1017,7 @@ def test_entity_coverage_lookup_adds_all_matching_table_rows_only() -> None:
         id=uuid4(),
         document_id=document_id,
         chunk_index=99,
-        content=(
-            "TABLE_ROW table_id=tbl_1 row=7 | Nhom nhiem vu: Xay dung nang luc mo hinh "
-            "ngon ngu noi bo | Danh sach: Tran Van An"
-        ),
+        content=("TABLE_ROW table_id=tbl_1 row=7 | Nhom nhiem vu: Xay dung nang luc mo hinh ngon ngu noi bo | Danh sach: Tran Van An"),
         chunk_metadata={"chunk_type": "table_row", "table_id": "tbl_1"},
     )
 
@@ -1089,9 +1153,8 @@ def test_user_prompt_separates_entity_matched_rows_from_table_support() -> None:
     assert "Xay dung nang luc mo hinh ngon ngu noi bo" not in entity_section
     assert "TABLE_SUPPORT:" in prompt
     assert "TABLE_HEADER table_id=tbl_1" in prompt
-    assert "must have N bullet" in RagAnswerService._build_user_prompt.__globals__[
-        "TABLE_QA_STYLE"
-    ]
+    assert "must have N bullet" in RagAnswerService._build_user_prompt.__globals__["TABLE_QA_STYLE"]
+
 
 def test_user_prompt_splits_inline_table_rows_before_matching_entity() -> None:
     from uuid import uuid4
@@ -1129,7 +1192,7 @@ def test_user_prompt_splits_inline_table_rows_before_matching_entity() -> None:
     assert "Xay dung nen tang RAG tren du lieu noi bo" not in entity_section
 
 
-def test_deterministic_legal_leave_prefers_specific_child_marriage_row() -> None:
+def test_structured_rows_are_passed_to_dynamic_prompt() -> None:
     from uuid import uuid4
 
     from app.services.rag_answer_service import ContextChunk, RagAnswerService
@@ -1158,10 +1221,7 @@ def test_deterministic_legal_leave_prefers_specific_child_marriage_row() -> None
             id=uuid4(),
             document_id=document_id,
             chunk_index=13,
-            content=(
-                "Trường hợp: Con đẻ, con nuôi kết hôn; Nghỉ 02 ngày hưởng "
-                "nguyên lương (01 ngày theo BLLĐ + 01 ngày hưởng thêm theo TƯLĐTT này)"
-            ),
+            content=("Trường hợp: Con đẻ, con nuôi kết hôn; Nghỉ 02 ngày hưởng nguyên lương (01 ngày theo BLLĐ + 01 ngày hưởng thêm theo TƯLĐTT này)"),
             chunk_metadata={
                 "chunk_type": "legal_table_row",
                 "relationship_type": "legal_leave_benefit",
@@ -1190,176 +1250,61 @@ def test_deterministic_legal_leave_prefers_specific_child_marriage_row() -> None
                 "chunk_type": "legal_table_row",
                 "relationship_type": "legal_leave_benefit",
                 "case_code": "f",
-                "case_name": (
-                    "Cha hoặc mẹ của NLĐ hoặc của vợ (chồng) NLĐ kết hôn "
-                    "(kể cả bố, mẹ nuôi được pháp luật công nhận); Anh, chị, "
-                    "em ruột của NLĐ hoặc của vợ (chồng) NLĐ kết hôn."
-                ),
+                "case_name": ("Cha hoặc mẹ của NLĐ hoặc của vợ (chồng) NLĐ kết hôn (kể cả bố, mẹ nuôi được pháp luật công nhận); Anh, chị, em ruột của NLĐ hoặc của vợ (chồng) NLĐ kết hôn."),
                 "total_leave_days": 1,
                 "total_leave_benefit": "Nghỉ 01 ngày hưởng nguyên lương",
-                "collective_agreement_benefit": (
-                    "Nghỉ 01 ngày hưởng nguyên lương và phải thông báo với NSDLĐ"
-                ),
+                "collective_agreement_benefit": ("Nghỉ 01 ngày hưởng nguyên lương và phải thông báo với NSDLĐ"),
                 "table_name": "Điều 10. Nghỉ việc riêng có hưởng lương",
                 "source_label": "Quy chế nghỉ hưởng lương mẫu",
                 "source_file": "TULDTT CPC 2024 KY KET 11.10.2024.docx",
             },
         ),
     ]
-    context_chunks = [
-        ContextChunk(citation_index=index, chunk=chunk)
-        for index, chunk in enumerate(rows, start=1)
-    ]
+    context_chunks = [ContextChunk(citation_index=index, chunk=chunk) for index, chunk in enumerate(rows, start=1)]
 
-    child_answer = RagAnswerService._deterministic_legal_leave_answer(
+    prompt = RagAnswerService._build_user_prompt(
         query="Con đẻ kết hôn được nghỉ bao nhiêu ngày?",
         context_chunks=context_chunks,
     )
-    adopted_child_answer = RagAnswerService._deterministic_legal_leave_answer(
-        query="Trường hợp con nuôi kết hôn có được hưởng quyền lợi này không?",
-        context_chunks=context_chunks,
-    )
-    self_answer = RagAnswerService._deterministic_legal_leave_answer(
-        query="Khi kết hôn, NLĐ được nghỉ việc riêng có hưởng lương bao nhiêu ngày?",
-        context_chunks=context_chunks,
-    )
 
-    assert child_answer is not None
-    assert "02 ngày" in child_answer
-    assert "con đẻ" in child_answer
-    assert adopted_child_answer is not None
-    assert "02 ngày" in adopted_child_answer
-    assert "con nuôi" in adopted_child_answer
-    assert "Ngoài trường hợp" not in adopted_child_answer
-    assert "Cha hoặc mẹ" not in adopted_child_answer
-    assert "Người lao động có vợ sinh con" not in adopted_child_answer
-    assert self_answer is not None
-    assert self_answer.startswith("Theo Quy chế nghỉ hưởng lương mẫu")
-    assert "03 ngày" in self_answer
-    assert "Ngoài trường hợp bản thân" not in self_answer
-    assert "Thỏa ước còn quy định" not in self_answer
-    assert "Ngoài trường hợp" in self_answer
-    assert "trường hợp liên quan" in self_answer
-    assert "có chứa" not in self_answer
-    assert "Con đẻ, con nuôi kết hôn" in self_answer
-    assert "02 ngày" in self_answer
-    assert "Cha hoặc mẹ" in self_answer
-    assert "Anh, chị, em ruột" in self_answer
-    assert "01 ngày" in self_answer
-    assert "phải thông báo với người sử dụng lao động" in self_answer
+    assert "Retrieved Document Context:" in prompt
+    assert "Con đẻ, con nuôi kết hôn" in prompt
+    assert "Nghỉ 02 ngày hưởng nguyên lương" in prompt
+    assert "Kết hôn" in prompt
+    assert "Dynamic answer requirements:" in prompt
+    assert "For count questions, state the count first" in prompt
 
 
-def test_deterministic_person_area_answer_reads_canonical_table_block_without_metadata() -> None:
+def test_direct_entity_guard_requires_context_that_mentions_entity() -> None:
     from uuid import uuid4
 
     from app.services.rag_answer_service import ContextChunk, RagAnswerService
 
-    document_id = uuid4()
-    table_block = SimpleNamespace(
-        id=uuid4(),
-        document_id=document_id,
-        chunk_index=10,
-        content=(
-            "STT: 3\n"
-            "Mảng công nghệ: Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
-            "Phòng chủ trì: PTUD\n"
-            "Nhân sự đề xuất: 1. Tống Phước Lâm 2. Nguyễn\nQuang Lâm\n\n"
-            "STT: 4\n"
-            "Mảng công nghệ: Xây dựng dịch vụ OCR dùng chung\n"
-            "Phòng chủ trì: PM\n"
-            "Nhân sự đề xuất: 1. Trịnh Thanh Tịnh 2. Nguyễn Quang Lâm\n"
-        ),
-        chunk_metadata={"chunk_type": "table_block"},
-    )
-
-    answer = RagAnswerService._deterministic_person_area_answer(
-        query="Nguyễn Quang Lâm tham gia vào mảng công nghệ nào?",
-        context_chunks=[ContextChunk(citation_index=1, chunk=table_block)],
-    )
-
-    assert answer is not None
-    assert "được đề xuất tham gia 02 mảng công nghệ" in answer
-    assert "Xây dựng nền tảng RAG trên dữ liệu nội bộ" in answer
-    assert "Phòng chủ trì: PTUD" in answer
-    assert "Xây dựng dịch vụ OCR dùng chung" in answer
-    assert "Phòng chủ trì: PM" in answer
-
-
-def test_deterministic_person_area_answer_handles_membership_question() -> None:
-    from uuid import uuid4
-
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
-
-    document_id = uuid4()
-    table_row = SimpleNamespace(
-        id=uuid4(),
-        document_id=document_id,
-        chunk_index=19,
-        content=(
-            "STT: 3\n"
-            "Mảng công nghệ: Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
-            "Phòng chủ trì: PTUD\n"
-            "Nhân sự đề xuất: Tống Phước Lâm; Nguyễn Quang Lâm; "
-            "Nguyễn Trọng Hùng; Võ Văn Hòa; Đoàn Gia Hy (kiểm thử)"
-        ),
-        chunk_metadata={"chunk_type": "table_row"},
-    )
-    profile = SimpleNamespace(
-        id=uuid4(),
-        document_id=document_id,
-        chunk_index=32,
-        content=(
-            "Nhân sự: Nguyễn Trọng Hùng.\n"
-            "Nguyễn Trọng Hùng được đề xuất tham gia các mảng công nghệ:\n"
-            "- Xây dựng nền tảng RAG trên dữ liệu nội bộ; phòng chủ trì: PTUD.\n"
-            "- Kho dữ liệu AI dùng chung; phòng chủ trì: VH.\n"
-            "- Platform AI; phòng chủ trì: PTUD."
-        ),
-        chunk_metadata={"chunk_type": "entity_profile"},
-    )
-
-    answer = RagAnswerService._deterministic_person_area_answer(
-        query="Nguyễn Trọng Hùng tham gia Xây dựng nền tảng RAG trên dữ liệu nội bộ đúng không?",
-        context_chunks=[
-            ContextChunk(citation_index=1, chunk=table_row),
-            ContextChunk(citation_index=2, chunk=profile),
-        ],
-    )
-
-    assert answer is not None
-    assert answer.startswith("Đúng, Nguyễn Trọng Hùng được đề xuất tham gia")
-    assert "Xây dựng nền tảng RAG trên dữ liệu nội bộ" in answer
-    assert "Kho dữ liệu AI dùng chung" in answer
-    assert "Platform AI" in answer
-
-
-def test_deterministic_person_area_answer_matches_short_person_name_alias() -> None:
-    from uuid import uuid4
-
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
-
-    profile = SimpleNamespace(
+    unrelated_chunk = SimpleNamespace(
         id=uuid4(),
         document_id=uuid4(),
-        chunk_index=38,
-        content=(
-            "Nhân sự: Tống Phước Lâm.\n"
-            "Tống Phước Lâm được đề xuất tham gia các mảng công nghệ:\n"
-            "- Xây dựng nền tảng RAG trên dữ liệu nội bộ; phòng chủ trì: PTUD.\n"
-            "- Platform AI; phòng chủ trì: PTUD."
-        ),
-        chunk_metadata={"chunk_type": "entity_profile"},
+        chunk_index=1,
+        content="This section is about training plans only.",
+        chunk_metadata={"chunk_type": "docling_hybrid_repaired"},
+    )
+    matching_chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=uuid4(),
+        chunk_index=2,
+        content="Tống Phước Lâm is listed in the retrieved table row.",
+        chunk_metadata={"chunk_type": "table_row"},
     )
 
-    answer = RagAnswerService._deterministic_person_area_answer(
-        query="Phước Lâm tham gia vào mảng công nghệ nào?",
-        context_chunks=[ContextChunk(citation_index=1, chunk=profile)],
-    )
+    query = "Phước Lâm tham gia vào mảng công nghệ nào?"
 
-    assert answer is not None
-    assert "Phước Lâm được đề xuất tham gia 02 mảng công nghệ" in answer
-    assert "Xây dựng nền tảng RAG trên dữ liệu nội bộ" in answer
-    assert "Platform AI" in answer
+    assert RagAnswerService._query_requires_direct_entity_evidence(
+        query=query,
+        context_chunks=[ContextChunk(citation_index=1, chunk=unrelated_chunk)],
+    )
+    assert not RagAnswerService._query_requires_direct_entity_evidence(
+        query=query,
+        context_chunks=[ContextChunk(citation_index=1, chunk=matching_chunk)],
+    )
 
 
 def test_entity_coverage_repository_adds_token_fallback_for_split_person_names() -> None:
@@ -1427,12 +1372,7 @@ def test_user_prompt_keeps_narrative_context_when_table_rows_match() -> None:
         id=uuid4(),
         document_id=document_id,
         chunk_index=19,
-        content=(
-            "STT: 3\n"
-            "Mảng công nghệ: Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
-            "Phòng chủ trì: PTUD\n"
-            "Nhân sự đề xuất: Tống Phước Lâm; Nguyễn Quang Lâm"
-        ),
+        content=("STT: 3\nMảng công nghệ: Xây dựng nền tảng RAG trên dữ liệu nội bộ\nPhòng chủ trì: PTUD\nNhân sự đề xuất: Tống Phước Lâm; Nguyễn Quang Lâm"),
         chunk_metadata={"chunk_type": "table_row"},
     )
 
@@ -1452,7 +1392,7 @@ def test_user_prompt_keeps_narrative_context_when_table_rows_match() -> None:
     assert "summary followed by list items" in prompt
 
 
-def test_deterministic_narrative_section_answer_preserves_section_bullets() -> None:
+def test_dynamic_prompt_preserves_narrative_section_bullets() -> None:
     from uuid import uuid4
 
     from app.services.rag_answer_service import ContextChunk, RagAnswerService
@@ -1477,15 +1417,11 @@ def test_deterministic_narrative_section_answer_preserves_section_bullets() -> N
         id=uuid4(),
         document_id=document_id,
         chunk_index=19,
-        content=(
-            "STT: 3\n"
-            "Mảng công nghệ: Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
-            "Phòng chủ trì: PTUD"
-        ),
+        content=("STT: 3\nMảng công nghệ: Xây dựng nền tảng RAG trên dữ liệu nội bộ\nPhòng chủ trì: PTUD"),
         chunk_metadata={"chunk_type": "table_row"},
     )
 
-    answer = RagAnswerService._deterministic_narrative_section_answer(
+    prompt = RagAnswerService._build_user_prompt(
         query="Mảng công nghệ RAG trên dữ liệu nội bộ có mục tiêu gì?",
         context_chunks=[
             ContextChunk(citation_index=1, chunk=table_row),
@@ -1493,26 +1429,59 @@ def test_deterministic_narrative_section_answer_preserves_section_bullets() -> N
         ],
     )
 
-    assert answer is not None
-    assert "Khai thác tri thức nội bộ" in answer
-    assert "Khảo sát, đánh giá" in answer
-    assert "Chuẩn hóa quy trình" in answer
-    assert "Kết hợp tìm kiếm từ khóa" in answer
-    assert "pipeline RAG dùng chung" in answer
-    assert "Phòng chủ trì" not in answer
+    assert "Retrieved Document Context:" in prompt
+    assert "Khai thác tri thức nội bộ" in prompt
+    assert "Khảo sát, đánh giá" in prompt
+    assert "Chuẩn hóa quy trình" in prompt
+    assert "Kết hợp tìm kiếm từ khóa" in prompt
+    assert "pipeline RAG dùng chung" in prompt
+    assert "For narrative evidence, preserve the relevant section heading" in prompt
+
+
+def test_schema_count_query_uses_dynamic_count_prompt() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    narrative_chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=uuid4(),
+        chunk_index=7,
+        content=("CÁC LỚP DỮ LIỆU\nLuồng dữ liệu: CMIS/TTHT → Lưu trữ & Tổng hợp → GIS Hạ thế.\n- Thông tin Trạm, Sổ.\n- Thông tin khách hàng.\n- Lớp điểm đo."),
+        chunk_metadata={"chunk_type": "docling_hybrid_repaired"},
+    )
+
+    prompt = RagAnswerService._build_user_prompt(
+        query="Khung CSDL gis hạ thế có mấy lớp thuộc tính",
+        context_chunks=[ContextChunk(citation_index=2, chunk=narrative_chunk)],
+    )
+
+    assert "Retrieved Document Context:" in prompt
+    assert "CÁC LỚP DỮ LIỆU" in prompt
+    assert "For count questions, state the count first" in prompt
+    assert "If retrieved evidence is insufficient or conflicting" in prompt
+
+
+def test_schema_count_search_terms_are_query_derived() -> None:
+    from app.services.rag_answer_service import RagAnswerService
+
+    query_terms = ["Khung CSDL gis hạ thế có mấy lớp thuộc tính"]
+
+    terms = RagAnswerService._schema_count_search_terms(query_terms)
+    normalized = [RagAnswerService._strip_vietnamese_accents(term).casefold() for term in terms]
+
+    assert RagAnswerService._is_schema_count_query(query_terms[0])
+    assert any("csdl" in term for term in normalized)
+    assert all("hinhanh" not in term for term in normalized)
+    assert all("cotdien_ht" not in term for term in normalized)
 
 
 def test_query_terms_extract_generic_keyphrases_for_section_recovery() -> None:
     from app.services.rag_answer_service import RagAnswerService
 
-    terms = RagAnswerService._query_terms(
-        "Mảng công nghệ RAG trên dữ liệu nội bộ có mục tiêu gì?"
-    )
+    terms = RagAnswerService._query_terms("Mảng công nghệ RAG trên dữ liệu nội bộ có mục tiêu gì?")
 
-    normalized_terms = [
-        RagAnswerService._strip_vietnamese_accents(term).casefold()
-        for term in terms
-    ]
+    normalized_terms = [RagAnswerService._strip_vietnamese_accents(term).casefold() for term in terms]
     assert "rag" in normalized_terms
     assert any("rag tren du lieu noi bo" in term for term in normalized_terms)
     assert any("muc tieu" in term for term in normalized_terms)
@@ -1536,10 +1505,7 @@ def test_high_signal_coverage_chunk_can_override_context_budget() -> None:
         id=uuid4(),
         document_id=document_id,
         chunk_index=5,
-        content=(
-            "3. Xây dựng nền tảng RAG trên dữ liệu nội bộ. "
-            "Mục tiêu: Khai thác tri thức nội bộ qua hỏi đáp có dẫn nguồn."
-        ),
+        content=("3. Xây dựng nền tảng RAG trên dữ liệu nội bộ. Mục tiêu: Khai thác tri thức nội bộ qua hỏi đáp có dẫn nguồn."),
         chunk_metadata={"chunk_type": "docling_hybrid_repaired"},
     )
 
