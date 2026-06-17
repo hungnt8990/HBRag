@@ -569,6 +569,7 @@ export type ChunkMode =
   | "legal_article"
   | "table_aware"
   | "hybrid_structured"
+  | "docling_router"
   | "docling_v6"
   | "slide_page"
   | "heading_aware";

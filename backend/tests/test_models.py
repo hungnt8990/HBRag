@@ -12,6 +12,7 @@ from app.models import (
     DocumentPipelineLog,
     GraphDocumentStatus,
     GraphExtractionLog,
+    IngestionProfileConfig,
     KnowledgeBase,
     KnowledgeBaseMember,
     Organization,
@@ -36,6 +37,7 @@ def test_database_models_are_importable() -> None:
         GraphDocumentStatus,
         KnowledgeBase,
         KnowledgeBaseMember,
+        IngestionProfileConfig,
         Chunk,
         ChatSession,
         ChatMessage,
@@ -55,6 +57,7 @@ def test_database_models_are_importable() -> None:
         "graph_document_status",
         "knowledge_bases",
         "knowledge_base_members",
+        "ingestion_profile_configs",
         "chunks",
         "chat_sessions",
         "chat_messages",
@@ -82,6 +85,7 @@ def test_model_metadata_contains_initial_tables() -> None:
         "graph_document_status",
         "knowledge_bases",
         "knowledge_base_members",
+        "ingestion_profile_configs",
         "user_memories",
         "session_summaries",
     }
@@ -91,6 +95,8 @@ def test_chunk_model_contains_keyword_search_vector() -> None:
     columns = Chunk.__table__.columns
     index_names = {index.name for index in Chunk.__table__.indexes}
 
+    assert "enriched_content" in columns
+    assert columns["enriched_content"].nullable is True
     assert "search_vector" in columns
     assert columns["search_vector"].nullable is True
     assert "ix_chunks_search_vector" in index_names

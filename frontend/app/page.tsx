@@ -57,6 +57,7 @@ import {
   enqueueIngestionJob,
   getDocumentAccess,
   getDocumentDetail,
+  getProfiles,
   getCurrentUser,
   getErrorMessage,
   getMemorySettings,
@@ -66,9 +67,12 @@ import {
   listIngestionJobs,
   reingestDocument,
   listMemories,
+  testHeadingRules,
+  updateProfileConfig,
   type DocumentDetailResponse,
   type DocumentAccessPolicy,
   type DocumentListItem,
+  type HeadingRuleTestMatch,
   type IngestionJob,
   type IngestionLog,
   type IngestionStep,
@@ -76,6 +80,7 @@ import {
   type MemorySettings,
   type MemoryType,
   type RagCitation,
+  type ProfileConfig,
   type RuntimeConfigResponse,
   type AuthUser,
   type UploadAccessOptions,
@@ -192,6 +197,30 @@ const pipelineDefinitions: Array<{
   { key: "chunk", label: "Chunk", icon: Layers3 },
   { key: "index", label: "Embed + Index", icon: Database },
   { key: "graph", label: "Graph Index", icon: GitBranch },
+];
+
+const chunkModeOptions: ProfileConfig["chunk_mode"][] = [
+  "recursive",
+  "legal_article",
+  "table_aware",
+  "hybrid_structured",
+  "docling_router",
+  "slide_page",
+  "heading_aware",
+  "docling_v6",
+];
+
+const answerModeOptions: ProfileConfig["answer_mode"][] = [
+  "generative",
+  "extractive",
+  "hybrid",
+];
+
+const answerStyleOptions: ProfileConfig["answer_style"][] = [
+  "concise",
+  "detailed",
+  "policy_explainer",
+  "table_qa",
 ];
 
 const SELECTED_DOCUMENT_STORAGE_KEY = "hbrag_selected_document_id";
@@ -2254,6 +2283,337 @@ function MemoryView({
   );
 }
 
+function stringifyProfileConfig(config: Record<string, unknown> | null | undefined) {
+  return JSON.stringify(config ?? {}, null, 2);
+}
+
+function parseProfileDraft(draft: string): ProfileConfig {
+  const parsed = JSON.parse(draft) as unknown;
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Profile config must be a JSON object.");
+  }
+  return parsed as ProfileConfig;
+}
+
+function parseProfileDraftSafe(draft: string): ProfileConfig | null {
+  try {
+    return parseProfileDraft(draft);
+  } catch {
+    return null;
+  }
+}
+
+function ProfileConfigPanel() {
+  const [profiles, setProfiles] = useState<string[]>([]);
+  const [configs, setConfigs] = useState<Record<string, ProfileConfig>>({});
+  const [selectedProfile, setSelectedProfile] = useState("");
+  const [profileDraft, setProfileDraft] = useState("");
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileTesting, setProfileTesting] = useState(false);
+  const [profileMessage, setProfileMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+  const [headingSample, setHeadingSample] = useState("");
+  const [headingMatches, setHeadingMatches] = useState<HeadingRuleTestMatch[]>([]);
+
+  const loadProfiles = useCallback(async () => {
+    setProfileLoading(true);
+    setProfileMessage(null);
+    try {
+      const response = await getProfiles();
+      const concreteProfiles = response.profiles.filter((profile) => profile !== "auto");
+      const nextProfile = concreteProfiles.includes(selectedProfile)
+        ? selectedProfile
+        : concreteProfiles[0] ?? "";
+      setProfiles(concreteProfiles);
+      setConfigs(response.configs);
+      setSelectedProfile(nextProfile);
+      setProfileDraft(stringifyProfileConfig(response.configs[nextProfile]));
+    } catch (error) {
+      setProfileMessage({ type: "error", text: getErrorMessage(error) });
+    } finally {
+      setProfileLoading(false);
+    }
+  }, [selectedProfile]);
+
+  useEffect(() => {
+    void loadProfiles();
+  }, [loadProfiles]);
+
+  const draftConfig = parseProfileDraftSafe(profileDraft) ?? configs[selectedProfile];
+
+  const handleProfileSelect = (profile: string) => {
+    setSelectedProfile(profile);
+    setProfileDraft(stringifyProfileConfig(configs[profile]));
+    setHeadingMatches([]);
+    setProfileMessage(null);
+  };
+
+  const updateDraftField = (key: keyof ProfileConfig, value: unknown) => {
+    const current = parseProfileDraftSafe(profileDraft) ?? configs[selectedProfile] ?? {};
+    setProfileDraft(stringifyProfileConfig({ ...current, [key]: value }));
+    setProfileMessage(null);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!selectedProfile) {
+      return;
+    }
+    setProfileSaving(true);
+    setProfileMessage(null);
+    try {
+      const parsed = parseProfileDraft(profileDraft);
+      const response = await updateProfileConfig(selectedProfile, parsed);
+      setConfigs(response.configs);
+      setProfileDraft(stringifyProfileConfig(response.configs[selectedProfile]));
+      setProfileMessage({
+        type: "success",
+        text: `Saved ${selectedProfile} to Postgres.`,
+      });
+    } catch (error) {
+      setProfileMessage({ type: "error", text: getErrorMessage(error) });
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const handleTestHeadingRules = async () => {
+    if (!selectedProfile) {
+      return;
+    }
+    setProfileTesting(true);
+    setProfileMessage(null);
+    try {
+      const parsed = parseProfileDraft(profileDraft);
+      const response = await testHeadingRules({
+        profile: selectedProfile,
+        sample_text: headingSample,
+        config: parsed,
+      });
+      setHeadingMatches(response.matches);
+    } catch (error) {
+      setProfileMessage({ type: "error", text: getErrorMessage(error) });
+    } finally {
+      setProfileTesting(false);
+    }
+  };
+
+  const numberFields: Array<{ key: keyof ProfileConfig; label: string }> = [
+    { key: "chunk_size", label: "chunk_size" },
+    { key: "chunk_overlap", label: "chunk_overlap" },
+    { key: "top_k", label: "top_k" },
+    { key: "candidate_k", label: "candidate_k" },
+    { key: "max_context_chars", label: "max_context_chars" },
+  ];
+
+  return (
+    <div className="space-y-4 rounded-xl border border-slate-200 p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Ingestion profiles
+            </p>
+            <span className="rounded bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+              Postgres
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            className="h-10 cursor-pointer rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            disabled={profileLoading || profiles.length === 0}
+            onChange={(event) => handleProfileSelect(event.target.value)}
+            value={selectedProfile}
+          >
+            {profiles.map((profile) => (
+              <option key={profile} value={profile}>
+                {profile}
+              </option>
+            ))}
+          </select>
+          <Button
+            className="cursor-pointer border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+            disabled={profileLoading}
+            onClick={() => void loadProfiles()}
+            type="button"
+            variant="outline"
+          >
+            <RefreshCw className={cn("h-4 w-4", profileLoading && "animate-spin")} />
+            Reload
+          </Button>
+          <Button
+            className="cursor-pointer bg-cyan-700 text-white hover:bg-cyan-800"
+            disabled={!selectedProfile || profileSaving}
+            onClick={() => void handleSaveProfile()}
+            type="button"
+          >
+            {profileSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4" />
+            )}
+            Save
+          </Button>
+        </div>
+      </div>
+
+      {profileMessage ? (
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-3 py-2 text-sm",
+            profileMessage.type === "success"
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-rose-50 text-rose-700",
+          )}
+        >
+          {profileMessage.type === "success" ? (
+            <CheckCircle2 className="h-4 w-4" />
+          ) : (
+            <AlertCircle className="h-4 w-4" />
+          )}
+          {profileMessage.text}
+        </div>
+      ) : null}
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <label className="space-y-1.5 text-sm font-medium text-slate-700">
+          <span>chunk_mode</span>
+          <select
+            className="h-10 w-full cursor-pointer rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            onChange={(event) =>
+              updateDraftField("chunk_mode", event.target.value as ProfileConfig["chunk_mode"])
+            }
+            value={draftConfig?.chunk_mode ?? "recursive"}
+          >
+            {chunkModeOptions.map((mode) => (
+              <option key={mode} value={mode}>
+                {mode}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="space-y-1.5 text-sm font-medium text-slate-700">
+          <span>answer_mode</span>
+          <select
+            className="h-10 w-full cursor-pointer rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            onChange={(event) =>
+              updateDraftField("answer_mode", event.target.value as ProfileConfig["answer_mode"])
+            }
+            value={draftConfig?.answer_mode ?? "hybrid"}
+          >
+            {answerModeOptions.map((mode) => (
+              <option key={mode} value={mode}>
+                {mode}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="space-y-1.5 text-sm font-medium text-slate-700">
+          <span>answer_style</span>
+          <select
+            className="h-10 w-full cursor-pointer rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            onChange={(event) =>
+              updateDraftField("answer_style", event.target.value as ProfileConfig["answer_style"])
+            }
+            value={draftConfig?.answer_style ?? "detailed"}
+          >
+            {answerStyleOptions.map((style) => (
+              <option key={style} value={style}>
+                {style}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {numberFields.map((field) => (
+          <label
+            className="space-y-1.5 text-sm font-medium text-slate-700"
+            key={field.key}
+          >
+            <span>{field.label}</span>
+            <Input
+              min={0}
+              onChange={(event) =>
+                updateDraftField(field.key, Number(event.target.value || 0))
+              }
+              type="number"
+              value={Number(draftConfig?.[field.key] ?? 0)}
+            />
+          </label>
+        ))}
+      </div>
+
+      <label className="block space-y-2 text-sm font-medium text-slate-700">
+        <span className="inline-flex items-center gap-2">
+          <TerminalSquare className="h-4 w-4 text-slate-500" />
+          Profile JSON
+        </span>
+        <Textarea
+          className="min-h-[260px] font-mono text-xs leading-5"
+          onChange={(event) => {
+            setProfileDraft(event.target.value);
+            setProfileMessage(null);
+          }}
+          spellCheck={false}
+          value={profileDraft}
+        />
+      </label>
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.7fr)]">
+        <label className="block space-y-2 text-sm font-medium text-slate-700">
+          <span>Heading rule sample</span>
+          <Textarea
+            className="min-h-[130px]"
+            onChange={(event) => setHeadingSample(event.target.value)}
+            value={headingSample}
+          />
+        </label>
+        <div className="space-y-3 rounded-lg bg-slate-50 p-3">
+          <Button
+            className="w-full cursor-pointer border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+            disabled={!selectedProfile || profileTesting}
+            onClick={() => void handleTestHeadingRules()}
+            type="button"
+            variant="outline"
+          >
+            {profileTesting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
+            Test rules
+          </Button>
+          {headingMatches.length === 0 ? (
+            <EmptyState message="No heading matches yet." />
+          ) : (
+            <div className="max-h-44 space-y-2 overflow-auto pr-1">
+              {headingMatches.map((match, index) => (
+                <div
+                  className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600"
+                  key={`${match.start}-${match.end}-${index}`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-slate-800">{match.name}</span>
+                    <span className="rounded bg-cyan-50 px-2 py-0.5 text-cyan-700">
+                      level {match.level}
+                    </span>
+                  </div>
+                  <p className="mt-1 truncate">{match.display_text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SettingsPanel({
   memorySettings,
   memoryTopK,
@@ -2326,6 +2686,8 @@ function SettingsPanel({
           the resolved profile with detection evidence, then reuses it for
           retrieval and answer formatting.
         </div>
+
+        <ProfileConfigPanel />
 
         <label
           className={cn(

@@ -32,6 +32,7 @@ class Chunk(Base, CreatedAtMixin):
     )
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    enriched_content: Mapped[str | None] = mapped_column(Text, nullable=True)
     token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     chunk_metadata: Mapped[dict[str, Any]] = mapped_column(
         "metadata",

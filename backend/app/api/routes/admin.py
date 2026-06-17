@@ -19,14 +19,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.repositories.documents import DocumentRepository
+from app.repositories.ingestion_profiles import IngestionProfileRepository
 from app.services.document_profiles import DEFAULT_PROFILE
 from app.services.document_service import DocumentService
 from app.services.graph import Neo4jClient, get_neo4j_client
 from app.services.heading_rule_engine import detect_headings, heading_rules_from_config
 from app.services.ingestion_profiles import (
-    get_profile_configs,
     get_profile_names,
-    save_profile_config,
+    load_profile_configs,
+    save_profile_config_to_database,
 )
 from app.services.ingestion_queue import IngestionJob, IngestionQueue, get_ingestion_queue
 from app.services.vector_store import QdrantVectorStore, get_vector_store
@@ -122,6 +123,11 @@ def get_document_repository(
 ) -> DocumentRepository:
     return DocumentRepository(session)
 
+def get_ingestion_profile_repository(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> IngestionProfileRepository:
+    return IngestionProfileRepository(session)
+
 
 class ProfilesResponse(BaseModel):
     default_profile: str
@@ -156,8 +162,14 @@ class ProfileUpdateRequest(BaseModel):
 
 
 @router.get("/profiles", response_model=ProfilesResponse)
-async def list_profiles() -> ProfilesResponse:
-    configs = get_profile_configs()
+async def list_profiles(
+    repository: Annotated[
+        IngestionProfileRepository,
+        Depends(get_ingestion_profile_repository),
+    ],
+) -> ProfilesResponse:
+    configs = await load_profile_configs(repository)
+    await repository.commit()
     return ProfilesResponse(
         default_profile=DEFAULT_PROFILE,
         profiles=list(get_profile_names()),
@@ -169,15 +181,22 @@ async def list_profiles() -> ProfilesResponse:
 async def update_profile_config(
     profile_name: str,
     payload: ProfileUpdateRequest,
+    repository: Annotated[
+        IngestionProfileRepository,
+        Depends(get_ingestion_profile_repository),
+    ],
 ) -> ProfilesResponse:
     try:
-        save_profile_config(profile_name, payload.config)
+        await save_profile_config_to_database(repository, profile_name, payload.config)
+        await repository.commit()
     except ValueError as exc:
+        await repository.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
         ) from exc
-    configs = get_profile_configs()
+    configs = await load_profile_configs(repository)
+    await repository.commit()
     return ProfilesResponse(
         default_profile=DEFAULT_PROFILE,
         profiles=list(get_profile_names()),
@@ -186,8 +205,16 @@ async def update_profile_config(
 
 
 @router.post("/profiles/test-heading-rules", response_model=HeadingRuleTestResponse)
-async def test_heading_rules(payload: HeadingRuleTestRequest) -> HeadingRuleTestResponse:
-    config = payload.config or get_profile_configs().get(payload.profile) or {}
+async def test_heading_rules(
+    payload: HeadingRuleTestRequest,
+    repository: Annotated[
+        IngestionProfileRepository,
+        Depends(get_ingestion_profile_repository),
+    ],
+) -> HeadingRuleTestResponse:
+    configs = await load_profile_configs(repository)
+    await repository.commit()
+    config = payload.config or configs.get(payload.profile) or {}
     rules = heading_rules_from_config(config)
     matches = detect_headings(payload.sample_text or "", rules)
     return HeadingRuleTestResponse(

@@ -1,9 +1,11 @@
 import asyncio
+import copy
 from types import SimpleNamespace
 from uuid import UUID
 
 from fastapi.testclient import TestClient
 
+from app.api.routes import admin as admin_routes
 from app.api.routes.chat import _resolve_profile_settings
 from app.api.routes.documents import get_document_repository
 from app.main import app
@@ -96,6 +98,36 @@ class FakeDocumentRepository:
     async def rollback(self) -> None:
         return None
 
+class FakeIngestionProfileRepository:
+    def __init__(self) -> None:
+        self.configs: dict[str, dict[str, object]] = {}
+        self.committed = False
+        self.rolled_back = False
+
+    async def list_profile_configs(self) -> dict[str, dict[str, object]]:
+        return copy.deepcopy(self.configs)
+
+    async def seed_missing_profile_configs(
+        self,
+        configs: dict[str, dict[str, object]],
+    ) -> None:
+        for name, config in configs.items():
+            self.configs.setdefault(name, copy.deepcopy(config))
+
+    async def upsert_profile_config(
+        self,
+        profile_name: str,
+        config: dict[str, object],
+    ):
+        self.configs[profile_name] = copy.deepcopy(config)
+        return SimpleNamespace(profile_name=profile_name, config=config)
+
+    async def commit(self) -> None:
+        self.committed = True
+
+    async def rollback(self) -> None:
+        self.rolled_back = True
+
 
 def test_detect_profile_legal_admin() -> None:
     assert detect_profile(LEGAL_TEXT) == "legal_admin"
@@ -187,8 +219,15 @@ def test_explicit_profile_overrides_detection() -> None:
 
 
 def test_admin_profiles_endpoint_returns_configs() -> None:
+    repository = FakeIngestionProfileRepository()
+    app.dependency_overrides[admin_routes.get_ingestion_profile_repository] = (
+        lambda: repository
+    )
     client = TestClient(app)
-    response = client.get("/api/admin/profiles")
+    try:
+        response = client.get("/api/admin/profiles")
+    finally:
+        app.dependency_overrides.clear()
 
     assert response.status_code == 200
     payload = response.json()
@@ -204,6 +243,34 @@ def test_admin_profiles_endpoint_returns_configs() -> None:
     assert payload["configs"]["general"]["answer_style"] == "detailed"
     assert payload["configs"]["spreadsheet"]["chunk_mode"] == "table_aware"
     assert payload["configs"]["spreadsheet"]["answer_style"] == "table_qa"
+    assert repository.committed is True
+
+def test_admin_profile_update_persists_to_repository() -> None:
+    repository = FakeIngestionProfileRepository()
+    app.dependency_overrides[admin_routes.get_ingestion_profile_repository] = (
+        lambda: repository
+    )
+    client = TestClient(app)
+    updated_config = {
+        **PROFILE_CONFIGS["general"],
+        "chunk_size": 1400,
+        "answer_style": "table_qa",
+    }
+
+    try:
+        response = client.put(
+            "/api/admin/profiles/general",
+            json={"config": updated_config},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["configs"]["general"]["chunk_size"] == 1400
+    assert repository.configs["general"]["chunk_size"] == 1400
+    assert repository.configs["general"]["answer_style"] == "table_qa"
+    assert repository.committed is True
 
 
 def test_chat_auto_runtime_uses_saved_document_profile() -> None:

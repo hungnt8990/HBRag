@@ -24,6 +24,8 @@ from app.schemas.documents import (
     DocumentBatchUploadItem,
     DocumentBatchUploadResponse,
     DocumentChunkDetailResponse,
+    DocumentChunkEnrichmentRequest,
+    DocumentChunkEnrichmentResponse,
     DocumentChunkRequest,
     DocumentChunkResponse,
     DocumentDeleteResponse,
@@ -46,6 +48,13 @@ from app.services.access_control import (
     build_subject_context,
     can_access_resource,
     normalize_document_access_metadata,
+)
+from app.services.chunk_enrichment_service import (
+    ChunkEnrichmentChunksNotFoundError,
+    ChunkEnrichmentDocumentNotFoundError,
+    ChunkEnrichmentError,
+    ChunkEnrichmentService,
+    ChunkEnrichmentStatusError,
 )
 from app.services.chunking_service import (
     ChunkingService,
@@ -156,6 +165,13 @@ def get_chunking_service(
     storage: Annotated[StorageClient, Depends(get_storage_client)],
 ) -> ChunkingService:
     return ChunkingService(repository=repository, storage=storage)
+
+
+def get_chunk_enrichment_service(
+    repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+    llm_provider: Annotated[LLMProvider, Depends(get_llm_provider)],
+) -> ChunkEnrichmentService:
+    return ChunkEnrichmentService(repository=repository, llm_provider=llm_provider)
 
 
 def get_vector_indexing_service(
@@ -641,6 +657,82 @@ async def chunk_document(
             user=current_user,
             organization_id=getattr(document, "organization_id", None),
             action="chunk",
+            message=str(exc),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+
+@router.post(
+    "/{document_id}/enrich",
+    response_model=DocumentChunkEnrichmentResponse,
+)
+async def enrich_document_chunks(
+    document_id: UUID,
+    repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+    auth_repository: Annotated[AuthRepository, Depends(get_auth_repository)],
+    log_repository: Annotated[DocumentLogRepository, Depends(get_document_log_repository)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[ChunkEnrichmentService, Depends(get_chunk_enrichment_service)],
+    request: Annotated[DocumentChunkEnrichmentRequest | None, Body()] = None,
+) -> DocumentChunkEnrichmentResponse:
+    document = await _require_manageable_document(
+        document_id=document_id,
+        repository=repository,
+        auth_repository=auth_repository,
+        current_user=current_user,
+    )
+    enrichment_request = request or DocumentChunkEnrichmentRequest()
+    try:
+        response = await service.enrich_document(
+            document_id,
+            force=enrichment_request.force,
+        )
+        log_status = "success"
+        if response.failed_count and response.enriched_count:
+            log_status = "partial_success"
+        elif response.failed_count:
+            log_status = "failed"
+        await log_repository.create_pipeline_log(
+            document_id=document_id,
+            user_id=current_user.id,
+            organization_id=getattr(document, "organization_id", None),
+            action="enrich",
+            status=log_status,
+            message=(
+                f"Enriched {response.enriched_count} chunks; "
+                f"failed {response.failed_count}; skipped {response.skipped_count}."
+            ),
+            metadata={
+                "enriched_count": response.enriched_count,
+                "failed_count": response.failed_count,
+                "skipped_count": response.skipped_count,
+                "status": response.status,
+            },
+        )
+        await log_repository.commit()
+        return response
+    except ChunkEnrichmentDocumentNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except (ChunkEnrichmentStatusError, ChunkEnrichmentChunksNotFoundError) as exc:
+        await _log_pipeline_failure(
+            log_repository=log_repository,
+            document_id=document_id,
+            user=current_user,
+            organization_id=getattr(document, "organization_id", None),
+            action="enrich",
+            message=str(exc),
+        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except ChunkEnrichmentError as exc:
+        await _log_pipeline_failure(
+            log_repository=log_repository,
+            document_id=document_id,
+            user=current_user,
+            organization_id=getattr(document, "organization_id", None),
+            action="enrich",
             message=str(exc),
         )
         raise HTTPException(

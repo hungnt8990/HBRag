@@ -76,6 +76,28 @@ class DocumentChunkResponse(BaseModel):
     preview: list[ChunkPreview]
 
 
+class DocumentChunkEnrichmentRequest(BaseModel):
+    force: bool = False
+
+
+class ChunkEnrichmentPreview(BaseModel):
+    chunk_index: int
+    status: str
+    summary: str | None = None
+    keywords: list[str] = Field(default_factory=list)
+    enriched_content_preview: str | None = None
+    error: str | None = None
+
+
+class DocumentChunkEnrichmentResponse(BaseModel):
+    document_id: UUID
+    status: str
+    enriched_count: int
+    failed_count: int
+    skipped_count: int
+    preview: list[ChunkEnrichmentPreview]
+
+
 class DocumentVectorIndexResponse(BaseModel):
     document_id: UUID
     status: str

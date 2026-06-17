@@ -83,6 +83,11 @@ class Settings(BaseSettings):
     llm_api_key: str | None = None
     llm_model: str | None = None
 
+    chunk_enrichment_enabled: bool = False
+    chunk_enrichment_model: str | None = None
+    chunk_enrichment_max_chars: int = 6000
+    chunk_enrichment_version: str = "v1"
+
     graph_enabled: bool = False
     graph_provider: str = "neo4j"
     neo4j_uri: str = "bolt://localhost:7687"

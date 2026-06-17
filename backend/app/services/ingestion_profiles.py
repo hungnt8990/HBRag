@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 import copy
-import json
-from pathlib import Path
 from typing import Any
 
-PROFILE_CONFIG_PATH = Path("data/ingestion_profiles.json")
+from app.repositories.ingestion_profiles import IngestionProfileRepository
+
 DEFAULT_PROFILE = "auto"
 
-# These values are bootstrap defaults only. At runtime the admin UI can persist
-# profile config to data/ingestion_profiles.json, and chunking code reads the
-# saved config instead of embedding document-language rules in chunkers.
+# These values are seed defaults only. Runtime edits are stored in Postgres and
+# cached in-process so sync chunkers can keep their existing call contract.
 BOOTSTRAP_PROFILE_CONFIGS: dict[str, dict[str, Any]] = {
     "legal_admin": {
         "chunk_mode": "legal_article",
@@ -169,32 +167,61 @@ FALLBACK_CONFIG: dict[str, Any] = {
 }
 
 
-def _load_file_configs() -> dict[str, dict[str, Any]] | None:
-    if not PROFILE_CONFIG_PATH.exists():
-        return None
-    try:
-        data = json.loads(PROFILE_CONFIG_PATH.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-    profiles = data.get("profiles") if isinstance(data, dict) else None
-    if not isinstance(profiles, dict):
-        return None
-    configs: dict[str, dict[str, Any]] = {}
-    for name, config in profiles.items():
-        if isinstance(name, str) and isinstance(config, dict):
-            configs[name] = config
-    return configs or None
+_PROFILE_CONFIG_CACHE: dict[str, dict[str, Any]] | None = None
+
+
+def _normalize_profile_name(profile: str | None) -> str:
+    return str(profile or "").strip().lower()
+
+
+def _merge_profile_configs(
+    configs: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    for name, config in configs.items():
+        if not isinstance(name, str) or not isinstance(config, dict):
+            continue
+        normalized = _normalize_profile_name(name)
+        if not normalized or normalized == DEFAULT_PROFILE:
+            continue
+        merged[normalized] = {**FALLBACK_CONFIG, **copy.deepcopy(config)}
+    return merged
+
+
+def set_profile_configs(configs: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    global _PROFILE_CONFIG_CACHE
+    _PROFILE_CONFIG_CACHE = _merge_profile_configs(configs)
+    return get_profile_configs()
+
+
+async def load_profile_configs(
+    repository: IngestionProfileRepository,
+) -> dict[str, dict[str, Any]]:
+    await repository.seed_missing_profile_configs(BOOTSTRAP_PROFILE_CONFIGS)
+    configs = await repository.list_profile_configs()
+    return set_profile_configs(configs)
+
+
+async def save_profile_config_to_database(
+    repository: IngestionProfileRepository,
+    profile: str,
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    normalized = _normalize_profile_name(profile)
+    if not normalized or normalized == DEFAULT_PROFILE:
+        raise ValueError("profile must be a concrete profile name")
+    merged = {**FALLBACK_CONFIG, **copy.deepcopy(config)}
+    await repository.seed_missing_profile_configs(BOOTSTRAP_PROFILE_CONFIGS)
+    await repository.upsert_profile_config(normalized, merged)
+    configs = await repository.list_profile_configs()
+    set_profile_configs(configs)
+    return copy.deepcopy(get_profile_config(normalized))
 
 
 def get_profile_configs() -> dict[str, dict[str, Any]]:
-    file_configs = _load_file_configs()
-    configs = copy.deepcopy(BOOTSTRAP_PROFILE_CONFIGS)
-    if file_configs is not None:
-        configs.update(file_configs)
-    merged: dict[str, dict[str, Any]] = {}
-    for name, config in configs.items():
-        merged[name] = {**FALLBACK_CONFIG, **copy.deepcopy(config)}
-    return merged
+    if _PROFILE_CONFIG_CACHE is not None:
+        return copy.deepcopy(_PROFILE_CONFIG_CACHE)
+    return _merge_profile_configs(copy.deepcopy(BOOTSTRAP_PROFILE_CONFIGS))
 
 
 def get_profile_names() -> tuple[str, ...]:
@@ -209,14 +236,10 @@ def get_profile_config(profile: str | None) -> dict[str, Any]:
 
 
 def save_profile_config(profile: str, config: dict[str, Any]) -> dict[str, Any]:
-    normalized = profile.strip().lower()
-    if not normalized or normalized == "auto":
+    normalized = _normalize_profile_name(profile)
+    if not normalized or normalized == DEFAULT_PROFILE:
         raise ValueError("profile must be a concrete profile name")
     configs = get_profile_configs()
     configs[normalized] = {**FALLBACK_CONFIG, **copy.deepcopy(config)}
-    PROFILE_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    PROFILE_CONFIG_PATH.write_text(
-        json.dumps({"default_profile": DEFAULT_PROFILE, "profiles": configs}, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    set_profile_configs(configs)
     return copy.deepcopy(configs[normalized])

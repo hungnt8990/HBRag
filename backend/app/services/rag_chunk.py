@@ -163,6 +163,13 @@ class RagChunk(BaseModel):
     change_topic: str | None = None
     screen_names: list[str] = Field(default_factory=list)
     embedding_text: str | None = None
+    enriched: bool = False
+    enrichment_summary: str | None = None
+    enrichment_keywords: list[str] = Field(default_factory=list)
+    document_code: str | None = None
+    issued_date: str | None = None
+    document_type: str | None = None
+    structure_path: str | None = None
 
 
 def sha256_text(text: str) -> str:
@@ -754,6 +761,13 @@ def rag_chunk_from_record(
             if record.get("embedding_text") is not None
             else None
         ),
+        enriched=bool(record.get("enriched")),
+        enrichment_summary=str(record.get("enrichment_summary") or "").strip() or None,
+        enrichment_keywords=_as_string_list(record.get("enrichment_keywords")),
+        document_code=str(record.get("document_code") or "").strip() or None,
+        issued_date=str(record.get("issued_date") or "").strip() or None,
+        document_type=str(record.get("document_type") or "").strip() or None,
+        structure_path=str(record.get("structure_path") or "").strip() or None,
         parser=parser,
         parser_version=parser_version,
         chunker=chunker,
@@ -778,12 +792,23 @@ def rag_chunk_from_database(
     source_uri: str | None,
 ) -> RagChunk:
     metadata = dict(getattr(chunk, "chunk_metadata", None) or {})
+    enrichment = dict(metadata.get("enrichment") or {})
+    enriched_content = str(getattr(chunk, "enriched_content", "") or "").strip()
     record = {
         **metadata,
         "chunk_id": metadata.get("chunk_id") or f"chunk_{chunk.chunk_index:04d}",
         "text": str(getattr(chunk, "content", "")),
         "token_count": getattr(chunk, "token_count", None),
+        "enriched": bool(enriched_content),
+        "enrichment_summary": enrichment.get("summary"),
+        "enrichment_keywords": enrichment.get("keywords"),
+        "document_code": enrichment.get("document_code"),
+        "issued_date": enrichment.get("issued_date"),
+        "document_type": enrichment.get("document_type"),
+        "structure_path": enrichment.get("structure_path"),
     }
+    if enriched_content:
+        record["embedding_text"] = enriched_content
     document_metadata = dict(getattr(document, "document_metadata", None) or {})
     parsed_metadata = dict(document_metadata.get("parsed_metadata") or {})
     if not record.get("issuer") and document_metadata.get("issuer"):
@@ -839,7 +864,7 @@ def rag_chunk_from_database(
 def qdrant_payload(chunk: RagChunk, *, store_raw_text: bool = False) -> dict[str, Any]:
     payload = chunk.model_dump(
         mode="json",
-        exclude={"raw_text", "source_raw_text", "normalized_text"},
+        exclude={"raw_text", "source_raw_text", "normalized_text", "embedding_text"},
         exclude_none=True,
     )
     if store_raw_text and chunk.raw_text is not None:

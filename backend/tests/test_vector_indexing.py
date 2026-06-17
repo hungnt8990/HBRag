@@ -185,6 +185,53 @@ def test_vector_index_endpoint_stores_one_chunk_per_qdrant_point() -> None:
     assert repository.document.document_metadata["chunk_count_indexed"] == 1
 
 
+def test_vector_index_uses_enriched_content_for_embedding_payload_keeps_original() -> None:
+    chunk = FakeDocumentRepository._chunk()
+    chunk.enriched_content = (
+        f"{chunk.content}\n\n"
+        "LLM enrichment:\n"
+        "Tóm tắt: Chunk nói về hiệu chỉnh PMISToGIS.\n"
+        "Từ khóa: PMISToGIS; GIS"
+    )
+    chunk.chunk_metadata = {
+        **chunk.chunk_metadata,
+        "enrichment": {
+            "status": "success",
+            "summary": "Chunk nói về hiệu chỉnh PMISToGIS.",
+            "keywords": ["PMISToGIS", "GIS"],
+            "document_code": "123/QĐ-CPCIT",
+            "issued_date": "01/02/2024",
+            "document_type": "quyết định",
+            "structure_path": "1. CPCIT > 1.1. GIS",
+        },
+    }
+    repository = FakeDocumentRepository(chunks=[chunk])
+    vector_store = FakeVectorStore()
+    provider = RecordingEmbeddingProvider()
+    app.dependency_overrides[get_document_repository] = lambda: repository
+    app.dependency_overrides[get_embedding_provider] = lambda: provider
+    app.dependency_overrides[get_vector_store] = lambda: vector_store
+
+    try:
+        response = TestClient(app).post(f"/api/documents/{DOCUMENT_ID}/index-vector")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert "LLM enrichment" in provider.embedded_texts[0]
+    assert "Tóm tắt: Chunk nói về hiệu chỉnh PMISToGIS" in provider.embedded_texts[0]
+    point = vector_store.upserted_points[0]
+    assert point.payload["text"] == chunk.content
+    assert point.payload["enriched"] is True
+    assert point.payload["enrichment_summary"] == "Chunk nói về hiệu chỉnh PMISToGIS."
+    assert point.payload["enrichment_keywords"] == ["PMISToGIS", "GIS"]
+    assert point.payload["document_code"] == "123/QĐ-CPCIT"
+    assert point.payload["issued_date"] == "01/02/2024"
+    assert point.payload["document_type"] == "quyết định"
+    assert point.payload["structure_path"] == "1. CPCIT > 1.1. GIS"
+    assert "embedding_text" not in point.payload
+
+
 def test_vector_index_filters_administrative_footer() -> None:
     footer = SimpleNamespace(
         id=FOOTER_ID,

@@ -14,7 +14,10 @@ from app.api.routes.knowledge_bases import router as knowledge_bases_router
 from app.api.routes.memory import router as memory_router
 from app.api.routes.search import router as search_router
 from app.core.config import settings
+from app.db.session import AsyncSessionLocal
+from app.repositories.ingestion_profiles import IngestionProfileRepository
 from app.services.graph import get_neo4j_client
+from app.services.ingestion_profiles import load_profile_configs
 from app.services.vector_store import get_vector_store
 
 logger = logging.getLogger(__name__)
@@ -22,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    await _load_ingestion_profiles_on_startup()
     await _validate_vector_store_on_startup()
     await _validate_graph_store_on_startup()
     try:
@@ -31,6 +35,15 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             await get_neo4j_client().close()
         except Exception:
             logger.exception("Failed to close Neo4j driver on shutdown.")
+
+async def _load_ingestion_profiles_on_startup() -> None:
+    try:
+        async with AsyncSessionLocal() as session:
+            repository = IngestionProfileRepository(session)
+            await load_profile_configs(repository)
+            await repository.commit()
+    except Exception:
+        logger.exception("Failed to load ingestion profile configs from Postgres.")
 
 
 async def _validate_vector_store_on_startup() -> None:

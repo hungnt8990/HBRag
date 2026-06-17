@@ -232,6 +232,24 @@ class DocumentRepository:
         result = await self._session.execute(statement)
         return list(result.scalars().all())
 
+    async def update_chunk_enrichment(
+        self,
+        chunk: Chunk,
+        *,
+        enrichment_metadata: dict[str, Any],
+        enriched_content: str | None,
+    ) -> Chunk:
+        current_metadata = dict(getattr(chunk, "chunk_metadata", None) or {})
+        current_enrichment = dict(current_metadata.get("enrichment") or {})
+        current_metadata["enrichment"] = {
+            **current_enrichment,
+            **enrichment_metadata,
+        }
+        chunk.chunk_metadata = current_metadata
+        chunk.enriched_content = enriched_content
+        await self._session.flush()
+        return chunk
+
     async def get_chunks_by_ids(self, chunk_ids: Sequence[UUID]) -> list[Chunk]:
         if not chunk_ids:
             return []
