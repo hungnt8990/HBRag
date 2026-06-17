@@ -155,7 +155,7 @@ class ChunkEnrichmentService:
                     chunk=chunk,
                 )
                 await self._repository.update_chunk_enrichment(
-                    chunk,
+                    chunk.id,
                     enrichment_metadata=enrichment_metadata,
                     enriched_content=enriched_content,
                 )
@@ -213,6 +213,7 @@ class ChunkEnrichmentService:
                 "version": self._version,
                 "model": self._model,
                 "status": "failed",
+                **self._normalize_payload({}),
                 "error": self._short_error(exc),
             }
             return metadata, getattr(chunk, "enriched_content", None)

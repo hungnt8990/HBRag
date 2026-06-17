@@ -234,11 +234,16 @@ class DocumentRepository:
 
     async def update_chunk_enrichment(
         self,
-        chunk: Chunk,
+        chunk_id: UUID,
         *,
         enrichment_metadata: dict[str, Any],
         enriched_content: str | None,
     ) -> Chunk:
+        result = await self._session.execute(select(Chunk).where(Chunk.id == chunk_id))
+        chunk = result.scalar_one_or_none()
+        if chunk is None:
+            raise ValueError("Chunk not found.")
+
         current_metadata = dict(getattr(chunk, "chunk_metadata", None) or {})
         current_enrichment = dict(current_metadata.get("enrichment") or {})
         current_metadata["enrichment"] = {

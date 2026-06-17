@@ -45,11 +45,12 @@ class FakeDocumentRepository:
 
     async def update_chunk_enrichment(
         self,
-        chunk,
+        chunk_id: UUID,
         *,
         enrichment_metadata: dict,
         enriched_content: str | None,
     ):
+        chunk = next(item for item in self.chunks if item.id == chunk_id)
         metadata = dict(chunk.chunk_metadata or {})
         metadata["enrichment"] = {
             **dict(metadata.get("enrichment") or {}),
@@ -74,6 +75,11 @@ class QueueLLM:
     async def generate(self, *, system_prompt: str, user_prompt: str) -> str:
         self.calls.append({"system": system_prompt, "user": user_prompt})
         return self.responses.pop(0)
+
+
+class FailingLLM:
+    async def generate(self, *, system_prompt: str, user_prompt: str) -> str:
+        raise RuntimeError("LLM provider unavailable")
 
 
 def _valid_enrichment_json() -> str:
@@ -146,6 +152,29 @@ def test_chunk_enrichment_service_marks_invalid_json_failed_without_crashing() -
     assert response.failed_count == 1
     assert enrichment["status"] == "failed"
     assert "valid JSON" in enrichment["error"]
+    assert repository.chunks[0].enriched_content is None
+    assert repository.committed is True
+    assert repository.rolled_back is False
+
+
+def test_chunk_enrichment_service_marks_llm_error_failed_without_crashing() -> None:
+    repository = FakeDocumentRepository()
+    service = ChunkEnrichmentService(
+        repository=repository,
+        llm_provider=FailingLLM(),
+        enabled=True,
+    )
+
+    response = asyncio.run(service.enrich_document(DOCUMENT_ID, force=True))
+
+    enrichment = repository.chunks[0].chunk_metadata["enrichment"]
+    assert response.status == "failed"
+    assert response.enriched_count == 0
+    assert response.failed_count == 1
+    assert enrichment["status"] == "failed"
+    assert enrichment["summary"] is None
+    assert enrichment["keywords"] == []
+    assert "LLM provider unavailable" in enrichment["error"]
     assert repository.chunks[0].enriched_content is None
     assert repository.committed is True
     assert repository.rolled_back is False
