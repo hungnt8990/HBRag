@@ -180,6 +180,28 @@ def test_chunk_enrichment_service_marks_llm_error_failed_without_crashing() -> N
     assert repository.rolled_back is False
 
 
+def test_chunk_enrichment_service_skips_when_disabled_without_force() -> None:
+    repository = FakeDocumentRepository()
+    llm = QueueLLM(_valid_enrichment_json())
+    service = ChunkEnrichmentService(
+        repository=repository,
+        llm_provider=llm,
+        enabled=False,
+    )
+
+    response = asyncio.run(service.enrich_document(DOCUMENT_ID))
+
+    assert response.status == "skipped"
+    assert response.enriched_count == 0
+    assert response.failed_count == 0
+    assert response.skipped_count == 1
+    assert llm.calls == []
+    assert "enrichment" not in repository.chunks[0].chunk_metadata
+    assert repository.chunks[0].enriched_content is None
+    assert repository.committed is False
+    assert repository.rolled_back is False
+
+
 def test_enrich_endpoint_runs_service_and_returns_counts() -> None:
     repository = FakeDocumentRepository()
     llm = QueueLLM(_valid_enrichment_json())

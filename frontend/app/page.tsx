@@ -90,7 +90,7 @@ import { cn } from "@/lib/utils";
 
 type ActiveView = "auto" | "chat" | "settings" | "memory";
 type TypewriterSpeed = "slow" | "normal" | "fast";
-type PipelineStepKey = "upload" | "parse" | "chunk" | "index" | "graph";
+type PipelineStepKey = "upload" | "parse" | "chunk" | "enrich" | "index" | "graph";
 type RunState = "idle" | "running" | "succeeded" | "failed";
 type LogSource = "auto" | "debug" | "chat" | "system";
 
@@ -195,6 +195,7 @@ const pipelineDefinitions: Array<{
   { key: "upload", label: "Upload", icon: Upload },
   { key: "parse", label: "Parse", icon: FileSearch },
   { key: "chunk", label: "Chunk", icon: Layers3 },
+  { key: "enrich", label: "Enrich", icon: Brain },
   { key: "index", label: "Embed + Index", icon: Database },
   { key: "graph", label: "Graph Index", icon: GitBranch },
 ];
@@ -3280,6 +3281,7 @@ function findJobStep(
     upload: ["upload"],
     parse: ["parse"],
     chunk: ["chunk"],
+    enrich: ["enrich", "chunk-enrich", "chunk_enrich", "enrichment"],
     index: ["index", "embed", "embed_index", "index-vector", "index_vector"],
     graph: ["graph", "index-graph", "graph_index"],
   };

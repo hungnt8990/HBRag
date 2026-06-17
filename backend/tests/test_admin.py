@@ -183,6 +183,13 @@ def test_admin_enqueue_ingestion_job_returns_queued_job() -> None:
     assert payload["filename"] == "sample.pdf"
     assert payload["content_type"] == "application/pdf"
     assert payload["status"] == "queued"
+    assert [step["name"] for step in payload["steps"]] == [
+        "upload",
+        "parse",
+        "chunk",
+        "enrich",
+        "index",
+    ]
     assert payload["steps"][0]["name"] == "upload"
     assert payload["logs"] == []
     assert queue.run_calls == [queue.job.job_id]

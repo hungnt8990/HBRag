@@ -14,12 +14,14 @@ from starlette.datastructures import Headers
 
 from app.db.session import AsyncSessionLocal
 from app.repositories.documents import DocumentRepository
+from app.services.chunk_enrichment_service import ChunkEnrichmentService
 from app.services.chunking_service import ChunkingService
 from app.services.document_parser_service import DocumentParserService
 from app.services.document_profiles import profile_config, resolve_profile_with_evidence
 from app.services.document_service import DocumentService
 from app.services.embeddings.factory import get_embedding_provider
 from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
+from app.services.llms.factory import get_llm_provider
 from app.services.storage import get_storage_client
 from app.services.vector_indexing_service import VectorIndexingService
 from app.services.vector_store import get_vector_store
@@ -28,7 +30,7 @@ JobStatus = Literal["queued", "running", "succeeded", "failed"]
 StepState = Literal["idle", "running", "succeeded", "failed"]
 LogLevel = Literal["info", "success", "error"]
 
-PIPELINE_STEPS = ("upload", "parse", "chunk", "index")
+PIPELINE_STEPS = ("upload", "parse", "chunk", "enrich", "index")
 logger = logging.getLogger(__name__)
 
 
@@ -286,6 +288,25 @@ class IngestionQueue:
                 )
 
             async with AsyncSessionLocal() as session:
+                enrich_response = await self._run_step(
+                    job,
+                    "enrich",
+                    lambda: ChunkEnrichmentService(
+                        repository=DocumentRepository(session),
+                        llm_provider=get_llm_provider(),
+                    ).enrich_document(document_id),
+                    lambda response: {
+                        "document_id": str(response.document_id),
+                        "status": response.status,
+                        "enriched_count": response.enriched_count,
+                        "failed_count": response.failed_count,
+                        "skipped_count": response.skipped_count,
+                        "preview": [item.model_dump(mode="json") for item in response.preview],
+                    },
+                )
+                self._log_enrichment_summary(job, enrich_response)
+
+            async with AsyncSessionLocal() as session:
                 await self._run_step(
                     job,
                     "index",
@@ -366,6 +387,28 @@ class IngestionQueue:
             duration_ms=duration_ms,
         )
         return response
+
+    def _log_enrichment_summary(self, job: IngestionJob, response: Any) -> None:
+        failed_count = int(getattr(response, "failed_count", 0) or 0)
+        skipped_count = int(getattr(response, "skipped_count", 0) or 0)
+        enriched_count = int(getattr(response, "enriched_count", 0) or 0)
+        status = str(getattr(response, "status", "unknown") or "unknown")
+        if failed_count and not enriched_count:
+            level: LogLevel = "error"
+        elif failed_count or skipped_count:
+            level = "info"
+        else:
+            level = "success"
+        self._log(
+            job,
+            step="enrich",
+            level=level,
+            message=(
+                "enrich summary: "
+                f"status={status}, enriched_count={enriched_count}, "
+                f"failed_count={failed_count}, skipped_count={skipped_count}."
+            ),
+        )
 
     async def _reuse_existing_document(
         self,
