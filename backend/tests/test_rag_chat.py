@@ -1458,10 +1458,14 @@ def test_schema_count_query_uses_dynamic_count_prompt() -> None:
 
     assert "Retrieved Document Context:" in prompt
     assert "CÁC LỚP DỮ LIỆU" in prompt
+    assert "Query strategy / evidence plan" in prompt
+    assert "overview_summary" in prompt
+    assert "count_list" in prompt
+    assert "multi_hop" in prompt
     assert "For count questions, state the count first" in prompt
     assert "If retrieved evidence is insufficient or conflicting" in prompt
 
-def test_gis_attribute_layer_count_prompt_separates_attribute_tables_and_layers() -> None:
+def test_count_prompt_separates_evidence_categories_without_domain_template() -> None:
     from uuid import uuid4
 
     from app.services.rag_answer_service import ContextChunk, RagAnswerService
@@ -1486,8 +1490,151 @@ def test_gis_attribute_layer_count_prompt_separates_attribute_tables_and_layers(
 
     assert "03 bảng dữ liệu thuộc tính" in prompt
     assert "11 lớp dữ liệu GIS" in prompt
-    assert "keep those categories separate" in prompt
-    assert "Do not merge conversion-priority counts" in prompt
+    assert "different groups, tables, layers, sections" in prompt
+    assert "Do not merge partial, priority, phase, or subtype counts" in prompt
+    assert "GIS/spatial" not in prompt
+
+
+def test_overview_prompt_omits_field_level_schema_when_structural_context_exists() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    document_id = uuid4()
+    structural_chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=1,
+        content=(
+            "Khung CSDL tổng thể có 11 lớp dữ liệu và 03 bảng dữ liệu thuộc tính: "
+            "HinhAnhCotDien, HinhAnhKhachHang, HinhAnhHoSoKhachHang."
+        ),
+        chunk_metadata={"chunk_type": "attribute_table_schema"},
+    )
+    structural_table_chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=2,
+        content=(
+            "3. Khởi tạo bổ sung 03 bảng dữ liệu thuộc tính. "
+            "Tên bảng dữ liệu: HinhAnhCotDien, HinhAnhKhachHang, HinhAnhHoSoKhachHang."
+        ),
+        chunk_metadata={
+            "chunk_type": "table_complete",
+            "field_names": ["IDHinhAnh", "DuongDan"],
+            "retrieval_roles": ["structural_schema_overview"],
+            "schema_overview": True,
+            "schema_coverage_priority": 0,
+        },
+    )
+    field_chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=3,
+        content="F08_CotDien_HT có trường Trị số tiếp địa và Chiều cao cột.",
+        chunk_metadata={"chunk_type": "schema_field_row", "field_name": "TriSoTiepDia"},
+    )
+
+    prompt = RagAnswerService._build_user_prompt(
+        query="Khung CSDL gis hạ thế có mấy lớp thuộc tính",
+        context_chunks=[
+            ContextChunk(citation_index=1, chunk=structural_chunk),
+            ContextChunk(citation_index=2, chunk=structural_table_chunk),
+            ContextChunk(citation_index=3, chunk=field_chunk),
+        ],
+    )
+
+    assert "HinhAnhCotDien" in prompt
+    assert "03 bảng dữ liệu thuộc tính" in prompt
+    assert "SCHEMA_OVERVIEW_EVIDENCE" in prompt
+    assert "Trị số tiếp địa" not in prompt
+    assert "Do not switch to field-level schemas" in prompt
+
+
+def test_field_detail_prompt_uses_profile_query_intent_rules() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    document_id = uuid4()
+    structural_chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=1,
+        content="Khung CSDL tổng thể có 11 lớp dữ liệu.",
+        chunk_metadata={"chunk_type": "attribute_table_schema"},
+    )
+    field_chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=2,
+        content="F08_CotDien_HT có trường Trị số tiếp địa và Chiều cao cột.",
+        chunk_metadata={"chunk_type": "schema_field_row", "field_name": "TriSoTiepDia"},
+    )
+
+    prompt = RagAnswerService._build_user_prompt(
+        query="schema-field khung CSDL gis hạ thế có mấy lớp thuộc tính",
+        context_chunks=[
+            ContextChunk(citation_index=1, chunk=structural_chunk),
+            ContextChunk(citation_index=2, chunk=field_chunk),
+        ],
+        query_intent_rules={
+            "field_detail_schema": {
+                "direct_terms": ["schema-field"],
+                "required_any_terms": [],
+                "specific_item_patterns": [],
+                "phrases": [],
+            }
+        },
+    )
+
+    assert "Khung CSDL tổng thể" in prompt
+    assert "Trị số tiếp địa" in prompt
+
+
+def test_prompt_lists_structured_relationship_evidence_when_available() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    document_id = uuid4()
+    summary_chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=8,
+        content="Khởi tạo bổ sung 03 mối quan hệ giữa lớp dữ liệu và bảng thuộc tính.",
+        chunk_metadata={"chunk_type": "docling_hybrid_repaired"},
+    )
+    relationship_chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=9,
+        content="Tên mối quan hệ: PXXXXX_CotDien_HT_HinhAnhCotDien",
+        chunk_metadata={
+            "chunk_type": "relationship_definition",
+            "relationship_name": "PXXXXX_CotDien_HT_HinhAnhCotDien",
+            "source_layer": "F08_CotDien_HT",
+            "source_key": "ID",
+            "target_table": "HinhAnhCotDien",
+            "target_key": "IDCotDien",
+            "cardinality": "1-M",
+        },
+    )
+
+    prompt = RagAnswerService._build_user_prompt(
+        query="Khung CSDL gis hạ thế có mấy lớp thuộc tính",
+        context_chunks=[
+            ContextChunk(citation_index=1, chunk=summary_chunk),
+            ContextChunk(citation_index=2, chunk=relationship_chunk),
+        ],
+    )
+
+    assert "STRUCTURED_RELATIONSHIP_EVIDENCE" in prompt
+    assert "PXXXXX_CotDien_HT_HinhAnhCotDien" in prompt
+    assert "F08_CotDien_HT -> HinhAnhCotDien" in prompt
+    assert "ID -> IDCotDien" in prompt
+    assert "1-M" in prompt
+    assert "include those item names or relationship endpoints" in prompt
 
 
 def test_schema_count_search_terms_are_query_derived() -> None:
@@ -1501,9 +1648,25 @@ def test_schema_count_search_terms_are_query_derived() -> None:
     assert RagAnswerService._is_schema_count_query(query_terms[0])
     assert any("csdl" in term for term in normalized)
     assert any("bang du lieu thuoc tinh" in term for term in normalized)
-    assert any("lop du lieu gis" in term for term in normalized)
+    assert any("gis" in term for term in normalized)
+    assert all(term != "lop du lieu gis" for term in normalized)
     assert all("hinhanh" not in term for term in normalized)
     assert all("cotdien_ht" not in term for term in normalized)
+
+def test_strategy_enriched_query_adds_search_terms_not_answer_facts() -> None:
+    from app.services.query_strategy import classify_query_strategy
+    from app.services.rag_answer_service import RagAnswerService
+
+    query = "Khung CSDL gis hạ thế có mấy lớp thuộc tính"
+    enriched = RagAnswerService._strategy_enriched_query(
+        query,
+        query_strategy=classify_query_strategy(query),
+    )
+
+    assert "Retrieval expansion terms derived from query strategy" in enriched
+    assert "document summary" in enriched
+    assert "heading outline" in enriched
+    assert "not as answer facts" in enriched
 
 
 def test_query_terms_extract_generic_keyphrases_for_section_recovery() -> None:
@@ -1559,3 +1722,76 @@ def test_high_signal_coverage_chunk_can_override_context_budget() -> None:
     )
 
     assert any("Mục tiêu: Khai thác tri thức nội bộ" in item.chunk.content for item in expanded)
+
+def test_schema_count_expansion_prioritizes_structural_schema_chunks() -> None:
+    import asyncio
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    document_id = uuid4()
+    primary = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=11,
+        content="1. Mục tiêu - Khởi tạo khung CSDL GIS hạ thế bao gồm 10 đối tượng." + (" X" * 10000),
+        chunk_metadata={"chunk_type": "docling_hybrid_repaired"},
+    )
+    field_row = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=14,
+        content="F08_CotDien_HT có các trường thuộc tính: ID, MaTramBienAp, ViTriCotHaThe.",
+        chunk_metadata={"chunk_type": "schema_field_row", "field_name": "MaTramBienAp"},
+    )
+    structural_table = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=30,
+        content=(
+            "3. Khởi tạo bổ sung 03 bảng dữ liệu thuộc tính. "
+            "Tên bảng dữ liệu: HinhAnhCotDien; HinhAnhKhachHang; HinhAnhHoSoKhachHang."
+        ),
+        chunk_metadata={
+            "chunk_type": "table_complete",
+            "field_names": ["IDHinhAnh"],
+            "retrieval_roles": ["structural_schema_overview"],
+            "schema_overview": True,
+            "schema_coverage_priority": 0,
+        },
+    )
+    relationship = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=31,
+        content="4. Khởi tạo bổ sung 03 mối quan hệ giữa lớp dữ liệu GIS với bảng dữ liệu 1-M.",
+        chunk_metadata={"chunk_type": "relationship_definition", "relationship_name": "R1"},
+    )
+
+    class FakeCoverageRepo:
+        async def get_entity_coverage_chunks(self, *, document_id, search_terms, exclude_ids):
+            assert any("bảng dữ liệu thuộc tính" in term for term in search_terms)
+            return [field_row, structural_table, relationship]
+
+    service = RagAnswerService(
+        chat_repository=FakeCoverageRepo(),  # type: ignore[arg-type]
+        reranking_service=SimpleNamespace(),  # type: ignore[arg-type]
+        llm_provider=SimpleNamespace(),  # type: ignore[arg-type]
+    )
+
+    expanded = asyncio.run(
+        service._expand_with_neighbors(
+            query="Khung CSDL gis hạ thế có mấy lớp thuộc tính",
+            context_chunks=[ContextChunk(citation_index=1, chunk=primary)],
+            max_context_chars=200,
+        )
+    )
+
+    expanded_contents = [item.chunk.content for item in expanded]
+    assert any("03 bảng dữ liệu thuộc tính" in content for content in expanded_contents)
+    assert any("03 mối quan hệ" in content for content in expanded_contents)
+    structural_index = next(
+        index for index, content in enumerate(expanded_contents) if "03 bảng dữ liệu thuộc tính" in content
+    )
+    field_index = next(index for index, content in enumerate(expanded_contents) if "MaTramBienAp" in content)
+    assert structural_index < field_index

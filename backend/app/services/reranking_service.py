@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import logging
+from typing import Any
 from uuid import UUID
 
 from app.repositories.documents import DocumentRepository
@@ -63,11 +64,17 @@ class RerankingService:
         access_filter: AccessFilter | None = None,
         subject_context: SubjectContext | None = None,
         retrieval_enrichment_enabled: bool = False,
+        query_intent_rules: dict[str, Any] | None = None,
     ) -> RerankSearchResponse:
         try:
             enrichment_kwargs = (
                 {"retrieval_enrichment_enabled": True}
                 if retrieval_enrichment_enabled
+                else {}
+            )
+            intent_kwargs = (
+                {"query_intent_rules": query_intent_rules}
+                if query_intent_rules is not None
                 else {}
             )
             if document_ids is None:
@@ -79,6 +86,7 @@ class RerankingService:
                     save_log=False,
                     access_filter=access_filter,
                     **enrichment_kwargs,
+                    **intent_kwargs,
                 )
             else:
                 hybrid_run = await self._run_hybrid_search(
@@ -90,6 +98,7 @@ class RerankingService:
                     document_ids=document_ids,
                     access_filter=access_filter,
                     **enrichment_kwargs,
+                    **intent_kwargs,
                 )
             hybrid_results = list(hybrid_run.hybrid_response.results)
             if use_graph and self._graph_retrieval_service is not None:

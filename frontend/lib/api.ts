@@ -310,6 +310,16 @@ export type HeadingRuleConfig = {
   enabled?: boolean;
 };
 
+export type QueryIntentRuleConfig = {
+  direct_terms?: string[];
+  required_any_terms?: string[];
+  specific_item_patterns?: string[];
+  phrases?: string[];
+  [key: string]: unknown;
+};
+
+export type QueryIntentRulesConfig = Record<string, QueryIntentRuleConfig>;
+
 export type ProfileConfig = {
   chunk_mode: ChunkMode;
   chunk_size: number;
@@ -320,6 +330,7 @@ export type ProfileConfig = {
   answer_style: AnswerStyle;
   max_context_chars: number;
   heading_rules?: HeadingRuleConfig[];
+  query_intent_rules?: QueryIntentRulesConfig;
   [key: string]: unknown;
 };
 

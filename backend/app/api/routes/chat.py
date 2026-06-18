@@ -194,6 +194,7 @@ async def rag_chat(
             access_filter=build_access_filter(subject_context),
             subject_context=subject_context,
             retrieval_enrichment_enabled=resolved["retrieval_enrichment_enabled"],
+            query_intent_rules=resolved["query_intent_rules"],
         )
         await _auto_save(
             memory_repository=memory_repository,
@@ -310,6 +311,7 @@ async def _resolve_profile_settings(
             if retrieval_enrichment_enabled is not None
             else bool(settings.retrieval_enrichment_enabled)
         ),
+        "query_intent_rules": config.get("query_intent_rules") or {},
     }
 
 
@@ -467,6 +469,7 @@ async def rag_chat_stream(
                 access_filter=build_access_filter(subject_context),
                 subject_context=subject_context,
                 retrieval_enrichment_enabled=resolved["retrieval_enrichment_enabled"],
+                query_intent_rules=resolved["query_intent_rules"],
             ):
                 yield _format_sse_event(event)
         except ChatSessionNotFoundError:

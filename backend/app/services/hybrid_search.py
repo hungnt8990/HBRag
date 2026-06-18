@@ -5,7 +5,7 @@ import logging
 import re
 import unicodedata
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from app.repositories.retrieval_logs import RetrievalLogRepository
@@ -19,6 +19,7 @@ from app.schemas.documents import (
 )
 from app.services.access_control import AccessFilter
 from app.services.keyword_search import KeywordSearchService
+from app.services.query_intent_rules import is_field_detail_schema_query
 from app.services.table_relationships import (
     analyze_person_area_membership_query,
     score_person_area_membership_match,
@@ -204,7 +205,11 @@ def structured_row_metadata_boost(
 def legal_leave_metadata_boost(query: str, content: str, metadata: dict[str, object]) -> float:
     return structured_row_metadata_boost(query, content, metadata)
 
-def schema_or_procedure_metadata_boost(query: str, metadata: dict[str, object]) -> float:
+def schema_or_procedure_metadata_boost(
+    query: str,
+    metadata: dict[str, object],
+    query_intent_rules: dict[str, Any] | None = None,
+) -> float:
     """Boost structured schema/procedure metadata without document-specific rules."""
 
     normalized_query = _normalize_metadata_value(query)
@@ -247,19 +252,29 @@ def schema_or_procedure_metadata_boost(query: str, metadata: dict[str, object]) 
         term in normalized_query
         for term in ("how many", "number of", "count", "may", "bao nhieu", "so luong")
     )
+    field_detail_schema_query = _is_field_detail_schema_query(
+        normalized_query,
+        query_intent_rules,
+    )
     if schema_count_query:
-        if chunk_type in {"table_parent", "table_complete", "table_rows"} and table_name:
-            boost += 18.0
-        if metadata.get("field_names"):
+        if chunk_type == "attribute_table_schema":
+            boost += 24.0
+        elif chunk_type == "gis_relationship_schema":
+            boost += 20.0
+        elif chunk_type == "schema_object_summary":
+            boost += 16.0
+        elif chunk_type in {"table_parent", "table_complete", "table_rows"} and table_name:
+            boost += 18.0 if field_detail_schema_query else 8.0
+        if metadata.get("field_names") and field_detail_schema_query:
             boost += 4.0
         if metadata.get("relationship_name") or metadata.get("target_table"):
-            boost += 6.0
+            boost += 6.0 if field_detail_schema_query else 16.0
     appendix_id = str(metadata.get("appendix_id") or "")
     if appendix_id:
         appendix_number = re.escape(appendix_id.lstrip("0") or appendix_id)
         if re.search(rf"phu luc\s*0?{appendix_number}\b", normalized_query):
             boost += 4.0
-    if chunk_type == "schema_field_row":
+    if chunk_type == "schema_field_row" and field_detail_schema_query:
         boost += 4.0
     elif chunk_type == "schema_object_summary":
         boost += 3.0
@@ -276,8 +291,15 @@ def schema_or_procedure_metadata_boost(query: str, metadata: dict[str, object]) 
     elif chunk_type == "gis_relationship_schema":
         boost += 5.0
     elif chunk_type == "attribute_table_schema":
-        boost += 2.0
+        boost += 6.0 if schema_count_query else 2.0
     return boost
+
+
+def _is_field_detail_schema_query(
+    normalized_query: str,
+    query_intent_rules: dict[str, Any] | None = None,
+) -> bool:
+    return is_field_detail_schema_query(normalized_query, query_intent_rules)
 
 
 IDENTIFIER_EXACT_BOOST = 50.0
@@ -428,6 +450,7 @@ class HybridSearchService:
         document_ids: set[UUID] | None = None,
         access_filter: AccessFilter | None = None,
         retrieval_enrichment_enabled: bool = False,
+        query_intent_rules: dict[str, Any] | None = None,
     ) -> HybridSearchResponse:
         run = await self.run_search(
             query=query,
@@ -438,6 +461,7 @@ class HybridSearchService:
             document_ids=document_ids,
             access_filter=access_filter,
             retrieval_enrichment_enabled=retrieval_enrichment_enabled,
+            query_intent_rules=query_intent_rules,
         )
         return run.hybrid_response
 
@@ -452,6 +476,7 @@ class HybridSearchService:
         document_ids: set[UUID] | None = None,
         access_filter: AccessFilter | None = None,
         retrieval_enrichment_enabled: bool = False,
+        query_intent_rules: dict[str, Any] | None = None,
     ) -> HybridSearchRun:
         depth = top_k * HYBRID_DEPTH_MULTIPLIER
 
@@ -508,6 +533,7 @@ class HybridSearchService:
                 keyword_weight=keyword_weight,
                 rrf_k=self._rrf_k,
                 retrieval_enrichment_enabled=retrieval_enrichment_enabled,
+                query_intent_rules=query_intent_rules,
             )
             response = HybridSearchResponse(
                 query=query,
@@ -563,6 +589,7 @@ class HybridSearchService:
         keyword_weight: float = 1.0,
         rrf_k: int = DEFAULT_RRF_K,
         retrieval_enrichment_enabled: bool = False,
+        query_intent_rules: dict[str, Any] | None = None,
     ) -> list[HybridSearchResult]:
         fused: dict[str, _FusedResult] = {}
 
@@ -609,7 +636,11 @@ class HybridSearchService:
         membership_query = analyze_person_area_membership_query(query or "")
         for item in fused.values():
             normalized_query = query or ""
-            metadata_boost = schema_or_procedure_metadata_boost(normalized_query, item.metadata)
+            metadata_boost = schema_or_procedure_metadata_boost(
+                normalized_query,
+                item.metadata,
+                query_intent_rules=query_intent_rules,
+            )
             if metadata_boost > 0:
                 item.fused_score += metadata_boost
                 item.metadata = {**item.metadata, "metadata_exact_boost": metadata_boost}

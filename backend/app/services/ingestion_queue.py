@@ -305,7 +305,16 @@ class IngestionQueue:
                 await load_profile_configs(profile_repository)
                 await profile_repository.commit()
 
-            embedding_enrichment_enabled = bool(settings.chunk_enrichment_enabled)
+            offline_enrichment_enabled = bool(
+                getattr(settings, "enable_offline_enrichment", True)
+            )
+            chunk_enrichment_enabled = bool(
+                offline_enrichment_enabled and settings.chunk_enrichment_enabled
+            )
+            use_enriched_content_for_embedding = bool(
+                getattr(settings, "use_enriched_content_for_embedding", True)
+                and chunk_enrichment_enabled
+            )
             retrieval_enrichment_enabled = bool(settings.retrieval_enrichment_enabled)
             enrichment_force_on_reingest = bool(settings.enrichment_force_on_reingest)
             enrichment_update_keyword_search_vector = bool(
@@ -321,7 +330,10 @@ class IngestionQueue:
                     "RAG profile config loaded: "
                     f"profile={resolved_profile}, config_source=backend/.env, "
                     "enrichment_runtime_config_source=backend/.env, "
-                    f"embedding_enrichment_enabled={embedding_enrichment_enabled}, "
+                    f"enable_offline_enrichment={offline_enrichment_enabled}, "
+                    f"chunk_enrichment_enabled={chunk_enrichment_enabled}, "
+                    "use_enriched_content_for_embedding="
+                    f"{use_enriched_content_for_embedding}, "
                     f"retrieval_enrichment_enabled={retrieval_enrichment_enabled}, "
                     f"enrichment_force_on_reingest={enrichment_force_on_reingest}, "
                     "enrichment_update_keyword_search_vector="
@@ -347,7 +359,7 @@ class IngestionQueue:
                             base_url=enrichment_runtime.base_url,
                             model=enrichment_runtime.model,
                         ),
-                        enabled=embedding_enrichment_enabled,
+                        enabled=chunk_enrichment_enabled,
                         provider=enrichment_runtime.provider,
                         model=enrichment_runtime.model,
                         max_chars=enrichment_runtime.max_chars,
@@ -367,7 +379,12 @@ class IngestionQueue:
                         "profile": resolved_profile,
                         "config_source": "backend/.env",
                         "enrichment_runtime_config_source": "backend/.env",
-                        "embedding_enrichment_enabled": embedding_enrichment_enabled,
+                        "enable_offline_enrichment": offline_enrichment_enabled,
+                        "chunk_enrichment_enabled": chunk_enrichment_enabled,
+                        "embedding_enrichment_enabled": chunk_enrichment_enabled,
+                        "use_enriched_content_for_embedding": (
+                            use_enriched_content_for_embedding
+                        ),
                         "retrieval_enrichment_enabled": retrieval_enrichment_enabled,
                         "enrichment_force_on_reingest": enrichment_force_on_reingest,
                         "enrichment_update_keyword_search_vector": (
@@ -399,14 +416,16 @@ class IngestionQueue:
                         sparse_embedding_provider=get_sparse_embedding_provider(),
                     ).index_document(
                         document_id,
-                        use_enriched_content_for_embedding=embedding_enrichment_enabled,
+                        use_enriched_content_for_embedding=use_enriched_content_for_embedding,
                     ),
                     lambda response: {
                         "document_id": str(response.document_id),
                         "status": response.status,
                         "indexed_chunk_count": response.indexed_chunk_count,
                         "profile": resolved_profile,
-                        "use_enriched_content_for_embedding": embedding_enrichment_enabled,
+                        "use_enriched_content_for_embedding": (
+                            use_enriched_content_for_embedding
+                        ),
                     },
                 )
         except Exception as exc:

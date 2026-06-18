@@ -252,7 +252,93 @@ def test_schema_count_query_boosts_schema_chunks_over_flow_summary() -> None:
     )
 
     assert results[0].chunk_id == schema_chunk_id
-    assert results[0].metadata["metadata_exact_boost"] >= 20
+    assert results[0].metadata["metadata_exact_boost"] >= 8
+
+
+def test_schema_count_query_prefers_structural_overview_over_field_rows() -> None:
+    attribute_chunk_id = UUID("11111111-1111-1111-1111-111111111111")
+    relationship_chunk_id = UUID("22222222-2222-2222-2222-222222222222")
+    summary_chunk_id = UUID("33333333-3333-3333-3333-333333333333")
+    field_chunk_id = UUID("44444444-4444-4444-4444-444444444444")
+
+    results = HybridSearchService.fuse_results(
+        query="Khung CSDL gis hạ thế có mấy lớp thuộc tính",
+        vector_results=[
+            VectorSearchResult(
+                chunk_id=field_chunk_id,
+                document_id=DOCUMENT_ID,
+                score=0.99,
+                content_preview="F08_CotDien_HT có trường Trị số tiếp địa",
+                metadata={"chunk_type": "schema_field_row", "field_name": "TriSoTiepDia"},
+            ),
+            VectorSearchResult(
+                chunk_id=attribute_chunk_id,
+                document_id=DOCUMENT_ID,
+                score=0.70,
+                content_preview="03 bảng dữ liệu thuộc tính",
+                metadata={"chunk_type": "attribute_table_schema", "table_name": "HinhAnhCotDien"},
+            ),
+            VectorSearchResult(
+                chunk_id=relationship_chunk_id,
+                document_id=DOCUMENT_ID,
+                score=0.69,
+                content_preview="03 mối quan hệ 1-M",
+                metadata={
+                    "chunk_type": "gis_relationship_schema",
+                    "relationship_name": "PXXXXX_CotDien_HT_HinhAnhCotDien",
+                    "target_table": "HinhAnhCotDien",
+                },
+            ),
+            VectorSearchResult(
+                chunk_id=summary_chunk_id,
+                document_id=DOCUMENT_ID,
+                score=0.68,
+                content_preview="Khung CSDL tổng thể có 11 lớp dữ liệu",
+                metadata={"chunk_type": "schema_object_summary"},
+            ),
+        ],
+        keyword_results=[],
+        top_k=4,
+    )
+
+    ranked_ids = [result.chunk_id for result in results]
+    assert ranked_ids.index(field_chunk_id) > ranked_ids.index(attribute_chunk_id)
+    assert ranked_ids.index(field_chunk_id) > ranked_ids.index(relationship_chunk_id)
+    assert ranked_ids.index(field_chunk_id) > ranked_ids.index(summary_chunk_id)
+
+def test_schema_field_boost_uses_profile_query_intent_rules() -> None:
+    field_chunk_id = UUID("44444444-4444-4444-4444-444444444444")
+    vector_result = VectorSearchResult(
+        chunk_id=field_chunk_id,
+        document_id=DOCUMENT_ID,
+        score=0.99,
+        content_preview="F08_CotDien_HT có trường Trị số tiếp địa",
+        metadata={"chunk_type": "schema_field_row"},
+    )
+
+    default_results = HybridSearchService.fuse_results(
+        query="schema-cell detail",
+        vector_results=[vector_result],
+        keyword_results=[],
+        top_k=1,
+    )
+    custom_results = HybridSearchService.fuse_results(
+        query="schema-cell detail",
+        vector_results=[vector_result],
+        keyword_results=[],
+        top_k=1,
+        query_intent_rules={
+            "field_detail_schema": {
+                "direct_terms": ["schema-cell"],
+                "required_any_terms": [],
+                "specific_item_patterns": [],
+                "phrases": [],
+            }
+        },
+    )
+
+    assert "metadata_exact_boost" not in default_results[0].metadata
+    assert custom_results[0].metadata["metadata_exact_boost"] == 4.0
 
 def test_enrichment_metadata_boost_is_gated() -> None:
     enriched_chunk_id = UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")

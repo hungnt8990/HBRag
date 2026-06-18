@@ -63,6 +63,17 @@ class RuntimeConfigResponse(BaseModel):
     reingest_enrichment_model: str | None
     reingest_enrichment_max_chars: int
     reingest_enrichment_version: str
+    enable_offline_enrichment: bool
+    enable_query_enrichment: bool
+    enable_context_expansion: bool
+    enable_completeness_check: bool
+    enable_second_retrieval: bool
+    max_second_retrieval_rounds: int
+    overview_top_k: int
+    raw_top_k: int
+    summary_top_k: int
+    table_top_k: int
+    max_context_chars: int
     chunk_enrichment_enablement_source: str
     vector_collection_name: str
     auto_recreate_collection: bool
@@ -288,6 +299,17 @@ async def runtime_config() -> RuntimeConfigResponse:
         reingest_enrichment_model=settings.reingest_enrichment_model,
         reingest_enrichment_max_chars=settings.reingest_enrichment_max_chars,
         reingest_enrichment_version=settings.reingest_enrichment_version,
+        enable_offline_enrichment=settings.enable_offline_enrichment,
+        enable_query_enrichment=settings.enable_query_enrichment,
+        enable_context_expansion=settings.enable_context_expansion,
+        enable_completeness_check=settings.enable_completeness_check,
+        enable_second_retrieval=settings.enable_second_retrieval,
+        max_second_retrieval_rounds=settings.max_second_retrieval_rounds,
+        overview_top_k=settings.overview_top_k,
+        raw_top_k=settings.raw_top_k,
+        summary_top_k=settings.summary_top_k,
+        table_top_k=settings.table_top_k,
+        max_context_chars=settings.max_context_chars,
         chunk_enrichment_enablement_source="backend/.env",
         vector_collection_name=settings.qdrant_collection_name,
         auto_recreate_collection=settings.auto_recreate_collection,

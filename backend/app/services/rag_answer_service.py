@@ -29,8 +29,10 @@ from app.services.access_control import (
 from app.services.hybrid_search import is_identifier_lookup_query
 from app.services.llms import LLMProvider
 from app.services.memory.base import MemoryResult
+from app.services.query_intent_rules import is_field_detail_schema_query
 from app.services.query_rewrite_service import QueryRewriteResult, QueryRewriteService
 from app.services.query_scope_router import classify_query_scope, scoped_direct_answer
+from app.services.query_strategy import QueryStrategy, classify_query_strategy
 from app.services.reranking_service import RerankingService
 from app.services.table_aware_chunking import extract_entities_from_text
 from app.services.table_relationships import (
@@ -278,6 +280,7 @@ class RagAnswerService:
         access_filter: AccessFilter | None = None,
         subject_context: SubjectContext | None = None,
         retrieval_enrichment_enabled: bool = False,
+        query_intent_rules: dict[str, Any] | None = None,
     ) -> RagChatResponse:
         if current_user is not None and document_ids is None:
             raise RagAnswerError("Scoped document ids are required for authenticated RAG.")
@@ -317,6 +320,20 @@ class RagAnswerService:
                 query=query,
                 rewrite_result=rewrite_result,
             )
+            query_strategy = classify_query_strategy(evidence_query)
+            retrieval_query = self._strategy_enriched_query(
+                retrieval_query,
+                query_strategy=query_strategy,
+            )
+            effective_top_k, effective_candidate_k = self._adaptive_retrieval_window(
+                top_k=top_k,
+                candidate_k=candidate_k,
+                query_strategy=query_strategy,
+            )
+            effective_max_context_chars = self._adaptive_context_char_limit(
+                max_context_chars=max_context_chars,
+                query_strategy=query_strategy,
+            )
             if current_user is not None and subject_context is None:
                 subject_context = build_subject_context(current_user)
             if subject_context is not None and access_filter is None:
@@ -325,8 +342,8 @@ class RagAnswerService:
             if document_ids is None:
                 rerank_response = await self._run_reranking_search(
                     query=retrieval_query,
-                    top_k=top_k,
-                    candidate_k=candidate_k,
+                    top_k=effective_top_k,
+                    candidate_k=effective_candidate_k,
                     session_id=chat_session.id,
                     use_graph=use_graph,
                     graph_expansion_depth=graph_expansion_depth,
@@ -334,12 +351,13 @@ class RagAnswerService:
                     access_filter=access_filter,
                     subject_context=subject_context,
                     retrieval_enrichment_enabled=retrieval_enrichment_enabled,
+                    query_intent_rules=query_intent_rules,
                 )
             else:
                 rerank_response = await self._run_reranking_search(
                     query=retrieval_query,
-                    top_k=top_k,
-                    candidate_k=candidate_k,
+                    top_k=effective_top_k,
+                    candidate_k=effective_candidate_k,
                     session_id=chat_session.id,
                     document_ids=document_ids,
                     use_graph=use_graph,
@@ -348,6 +366,7 @@ class RagAnswerService:
                     access_filter=access_filter,
                     subject_context=subject_context,
                     retrieval_enrichment_enabled=retrieval_enrichment_enabled,
+                    query_intent_rules=query_intent_rules,
                 )
             context_chunks = await self._load_context_chunks(
                 rerank_results=rerank_response.results,
@@ -356,11 +375,13 @@ class RagAnswerService:
                 context_chunks,
                 subject_context=subject_context,
             )
-            context_chunks = await self._expand_with_neighbors(
-                query=evidence_query,
-                context_chunks=context_chunks,
-                max_context_chars=max_context_chars,
-            )
+            if getattr(settings, "enable_context_expansion", True):
+                context_chunks = await self._expand_with_neighbors(
+                    query=evidence_query,
+                    context_chunks=context_chunks,
+                    max_context_chars=effective_max_context_chars,
+                    query_strategy=query_strategy,
+                )
             context_chunks = self._filter_accessible_context_chunks(
                 context_chunks,
                 subject_context=subject_context,
@@ -401,9 +422,11 @@ class RagAnswerService:
                     query=query,
                     standalone_query=evidence_query,
                     context_chunks=context_chunks,
+                    query_strategy=query_strategy,
                     memory_context=memory_context,
                     session_summary=session_summary,
                     session_context=session_context,
+                    query_intent_rules=query_intent_rules,
                 )
                 answer = await self._llm_provider.generate(
                     system_prompt=build_system_prompt(
@@ -444,6 +467,7 @@ class RagAnswerService:
                             "query": query,
                             "retrieval_query": retrieval_query,
                             "evidence_query": evidence_query,
+                            "query_strategy": list(query_strategy.strategies),
                             "rewrite_used": rewrite_result.rewritten,
                             "rewrite_reason": rewrite_result.reason,
                         },
@@ -485,6 +509,7 @@ class RagAnswerService:
         access_filter: AccessFilter | None = None,
         subject_context: SubjectContext | None = None,
         retrieval_enrichment_enabled: bool = False,
+        query_intent_rules: dict[str, Any] | None = None,
     ) -> AsyncIterator[RagStreamEvent]:
         if current_user is not None and document_ids is None:
             yield RagStreamEvent(
@@ -541,6 +566,20 @@ class RagAnswerService:
                 query=query,
                 rewrite_result=rewrite_result,
             )
+            query_strategy = classify_query_strategy(evidence_query)
+            retrieval_query = self._strategy_enriched_query(
+                retrieval_query,
+                query_strategy=query_strategy,
+            )
+            effective_top_k, effective_candidate_k = self._adaptive_retrieval_window(
+                top_k=top_k,
+                candidate_k=candidate_k,
+                query_strategy=query_strategy,
+            )
+            effective_max_context_chars = self._adaptive_context_char_limit(
+                max_context_chars=max_context_chars,
+                query_strategy=query_strategy,
+            )
             if current_user is not None and subject_context is None:
                 subject_context = build_subject_context(current_user)
             if subject_context is not None and access_filter is None:
@@ -549,8 +588,8 @@ class RagAnswerService:
             if document_ids is None:
                 rerank_response = await self._run_reranking_search(
                     query=retrieval_query,
-                    top_k=top_k,
-                    candidate_k=candidate_k,
+                    top_k=effective_top_k,
+                    candidate_k=effective_candidate_k,
                     session_id=chat_session.id,
                     use_graph=use_graph,
                     graph_expansion_depth=graph_expansion_depth,
@@ -558,12 +597,13 @@ class RagAnswerService:
                     access_filter=access_filter,
                     subject_context=subject_context,
                     retrieval_enrichment_enabled=retrieval_enrichment_enabled,
+                    query_intent_rules=query_intent_rules,
                 )
             else:
                 rerank_response = await self._run_reranking_search(
                     query=retrieval_query,
-                    top_k=top_k,
-                    candidate_k=candidate_k,
+                    top_k=effective_top_k,
+                    candidate_k=effective_candidate_k,
                     session_id=chat_session.id,
                     document_ids=document_ids,
                     use_graph=use_graph,
@@ -572,6 +612,7 @@ class RagAnswerService:
                     access_filter=access_filter,
                     subject_context=subject_context,
                     retrieval_enrichment_enabled=retrieval_enrichment_enabled,
+                    query_intent_rules=query_intent_rules,
                 )
             context_chunks = await self._load_context_chunks(
                 rerank_results=rerank_response.results,
@@ -580,11 +621,13 @@ class RagAnswerService:
                 context_chunks,
                 subject_context=subject_context,
             )
-            context_chunks = await self._expand_with_neighbors(
-                query=evidence_query,
-                context_chunks=context_chunks,
-                max_context_chars=max_context_chars,
-            )
+            if getattr(settings, "enable_context_expansion", True):
+                context_chunks = await self._expand_with_neighbors(
+                    query=evidence_query,
+                    context_chunks=context_chunks,
+                    max_context_chars=effective_max_context_chars,
+                    query_strategy=query_strategy,
+                )
             context_chunks = self._filter_accessible_context_chunks(
                 context_chunks,
                 subject_context=subject_context,
@@ -623,6 +666,7 @@ class RagAnswerService:
                     "user_message_id": str(user_message.id),
                     "retrieval_query": retrieval_query,
                     "evidence_query": evidence_query,
+                    "query_strategy": list(query_strategy.strategies),
                     "rewrite_used": rewrite_result.rewritten,
                     "rewrite_reason": rewrite_result.reason,
                 },
@@ -639,9 +683,11 @@ class RagAnswerService:
                     query=query,
                     standalone_query=evidence_query,
                     context_chunks=context_chunks,
+                    query_strategy=query_strategy,
                     memory_context=memory_context,
                     session_summary=session_summary,
                     session_context=session_context,
+                    query_intent_rules=query_intent_rules,
                 )
                 answer_parts: list[str] = []
                 async for delta in self._llm_provider.stream_generate(
@@ -689,6 +735,7 @@ class RagAnswerService:
                             "query": query,
                             "retrieval_query": retrieval_query,
                             "evidence_query": evidence_query,
+                            "query_strategy": list(query_strategy.strategies),
                             "rewrite_used": rewrite_result.rewritten,
                             "rewrite_reason": rewrite_result.reason,
                         },
@@ -785,6 +832,101 @@ class RagAnswerService:
             return query
         return rewrite_result.retrieval_query or query
 
+    @staticmethod
+    def _strategy_enriched_query(
+        query: str,
+        *,
+        query_strategy: QueryStrategy,
+    ) -> str:
+        if not getattr(settings, "enable_query_enrichment", True):
+            return query
+        if not (
+            query_strategy.requires_overview_context
+            or "table_detail" in query_strategy.strategies
+            or "comparison" in query_strategy.strategies
+        ):
+            return query
+
+        base_query = " ".join((query or "").split()).strip()
+        existing = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(base_query))
+        terms = RagAnswerService._dedupe_text_values(
+            [
+                *query_strategy.search_terms,
+                *RagAnswerService._query_content_phrases(base_query),
+            ],
+            limit=16,
+        )
+        expansion_terms: list[str] = []
+        for term in terms:
+            key = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(term))
+            if not key or key in existing:
+                continue
+            expansion_terms.append(term)
+            if len(expansion_terms) >= 10:
+                break
+
+        if not expansion_terms:
+            return query
+
+        expansion = "\n".join(f"- {term}" for term in expansion_terms)
+        return (
+            f"{base_query}\n\n"
+            "Retrieval expansion terms derived from query strategy; "
+            "use only for search, not as answer facts:\n"
+            f"{expansion}"
+        )
+
+    @staticmethod
+    def _adaptive_retrieval_window(
+        *,
+        top_k: int,
+        candidate_k: int,
+        query_strategy: QueryStrategy,
+    ) -> tuple[int, int]:
+        effective_top_k = max(1, int(top_k or 1))
+        strategy_names = set(query_strategy.strategies)
+        configured_windows: list[int] = []
+        if query_strategy.requires_overview_context:
+            configured_windows.extend(
+                [
+                    getattr(settings, "overview_top_k", 0),
+                    getattr(settings, "summary_top_k", 0),
+                ]
+            )
+        if "table_detail" in strategy_names:
+            configured_windows.append(getattr(settings, "table_top_k", 0))
+        if strategy_names == {"semantic_search"}:
+            configured_windows.append(getattr(settings, "raw_top_k", 0))
+
+        for value in configured_windows:
+            try:
+                configured = int(value or 0)
+            except (TypeError, ValueError):
+                configured = 0
+            if configured > 0:
+                effective_top_k = max(effective_top_k, configured)
+
+        effective_candidate_k = max(int(candidate_k or effective_top_k), effective_top_k)
+        return effective_top_k, effective_candidate_k
+
+    @staticmethod
+    def _adaptive_context_char_limit(
+        *,
+        max_context_chars: int,
+        query_strategy: QueryStrategy,
+    ) -> int:
+        effective_limit = max(1, int(max_context_chars or 1))
+        if not (
+            query_strategy.requires_overview_context
+            or "table_detail" in query_strategy.strategies
+        ):
+            return effective_limit
+        try:
+            configured_limit = int(getattr(settings, "max_context_chars", 0) or 0)
+        except (TypeError, ValueError):
+            configured_limit = 0
+        return max(effective_limit, configured_limit) if configured_limit > 0 else effective_limit
+
     async def _load_context_chunks(
         self,
         *,
@@ -835,6 +977,7 @@ class RagAnswerService:
         query: str,
         context_chunks: list[ContextChunk],
         max_context_chars: int,
+        query_strategy: QueryStrategy | None = None,
     ) -> list[ContextChunk]:
         if not context_chunks:
             return context_chunks
@@ -854,12 +997,19 @@ class RagAnswerService:
         seen_documents: set[UUID] = set()
         seen_tables: set[tuple[UUID, str]] = set()
         total_chars = sum(len(item.chunk.content) for item in context_chunks)
+        query_strategy = query_strategy or classify_query_strategy(query)
         query_terms = self._query_terms(query)
+        coverage_search_terms = self._dedupe_text_values(
+            [*query_terms, *query_strategy.search_terms],
+            limit=64,
+        )
         if self._is_schema_count_query(query):
             query_terms = self._schema_count_search_terms(query_terms)
+            coverage_search_terms = query_terms
         wants_full_table = self._is_table_enumeration_query(query)
         wants_schema_context = self._is_schema_count_query(query)
-        context_char_limit = max(max_context_chars, TABLE_ENUMERATION_CONTEXT_CHAR_LIMIT) if wants_full_table or wants_schema_context else max_context_chars
+        wants_overview_context = query_strategy.requires_overview_context
+        context_char_limit = max(max_context_chars, TABLE_ENUMERATION_CONTEXT_CHAR_LIMIT) if wants_full_table or wants_schema_context or wants_overview_context else max_context_chars
 
         expanded = list(context_chunks)
         next_index = max((item.citation_index for item in context_chunks), default=0) + 1
@@ -867,12 +1017,12 @@ class RagAnswerService:
         for context_chunk in context_chunks:
             metadata = context_chunk.chunk.chunk_metadata or {}
             document_id = context_chunk.chunk.document_id
-            if query_terms and get_entity_coverage_chunks is not None and document_id not in seen_documents:
+            if coverage_search_terms and get_entity_coverage_chunks is not None and document_id not in seen_documents:
                 seen_documents.add(document_id)
                 try:
                     coverage_chunks = await get_entity_coverage_chunks(
                         document_id=document_id,
-                        search_terms=query_terms,
+                        search_terms=coverage_search_terms,
                         exclude_ids=tuple(existing_ids),
                     )
                 except Exception:
@@ -882,12 +1032,14 @@ class RagAnswerService:
                 for coverage_chunk in self._prioritize_entity_coverage_chunks(
                     chunks=coverage_chunks,
                     query_terms=query_terms,
+                    prefer_structural_schema=wants_schema_context,
                 ):
                     if coverage_chunk.id in existing_ids:
                         continue
                     coverage_len = len(coverage_chunk.content or "")
                     over_context_limit = total_chars + coverage_len > context_char_limit
-                    allow_budget_override = coverage_added < 2 and RagAnswerService._is_high_signal_context_chunk(
+                    budget_override_limit = 6 if wants_schema_context else 2
+                    allow_budget_override = coverage_added < budget_override_limit and RagAnswerService._is_high_signal_context_chunk(
                         chunk=coverage_chunk,
                         query_terms=query_terms,
                     )
@@ -1631,26 +1783,97 @@ class RagAnswerService:
         *,
         chunks: list[Chunk],
         query_terms: list[str],
+        prefer_structural_schema: bool = False,
     ) -> list[Chunk]:
         matches: list[Chunk] = []
         supporting: list[Chunk] = []
         for chunk in chunks:
             metadata = chunk.chunk_metadata or {}
             chunk_type = str(metadata.get("chunk_type") or "")
-            content = chunk.content.casefold()
-            if any(term.casefold() in content for term in query_terms):
+            content = normalize_metadata_value(
+                RagAnswerService._strip_vietnamese_accents(chunk.content or "")
+            )
+            if any(
+                normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(term))
+                and normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(term)) in content
+                for term in query_terms
+            ):
                 matches.append(chunk)
-            elif chunk_type in {"entity_summary", "table_block"}:
+            elif chunk_type in {
+                "document_summary",
+                "heading_outline",
+                "section_summary",
+                "table_summary",
+                "entity_catalog",
+                "entity_summary",
+                "table_block",
+            }:
                 supporting.append(chunk)
 
         ordered: list[Chunk] = []
         seen_ids: set[UUID] = set()
+        if prefer_structural_schema:
+            matches.sort(key=RagAnswerService._schema_coverage_priority)
+            supporting.sort(key=RagAnswerService._schema_coverage_priority)
         for chunk in [*matches, *supporting]:
             if chunk.id in seen_ids:
                 continue
             seen_ids.add(chunk.id)
             ordered.append(chunk)
         return ordered or chunks
+
+    @staticmethod
+    def _schema_coverage_priority(chunk: Chunk) -> tuple[int, int]:
+        metadata = chunk.chunk_metadata or {}
+        chunk_type = str(metadata.get("chunk_type") or "")
+        configured_priority = RagAnswerService._optional_int(
+            metadata.get("schema_coverage_priority")
+        )
+        if configured_priority is not None:
+            priority = configured_priority
+        elif RagAnswerService._is_schema_overview_metadata(metadata):
+            priority = 0
+        elif chunk_type == "relationship_definition" or metadata.get("relationship_name"):
+            priority = 1
+        elif chunk_type in {"attribute_table_schema", "gis_relationship_schema"}:
+            priority = 2
+        elif chunk_type in {"schema_object_summary", "document_summary", "heading_outline", "section_summary"}:
+            priority = 3
+        elif chunk_type in {"table_parent", "table_complete", "table_rows"}:
+            priority = 7
+        elif chunk_type in {"schema_field_row", "table_row", "legal_table_row", "structured_fact_row"}:
+            priority = 9
+        else:
+            priority = 8
+        return (priority, int(getattr(chunk, "chunk_index", 0) or 0))
+
+    @staticmethod
+    def _is_schema_overview_metadata(metadata: dict[str, Any]) -> bool:
+        roles = RagAnswerService._metadata_roles(metadata)
+        return bool(
+            metadata.get("schema_overview")
+            or "structural_schema_overview" in roles
+        )
+
+    @staticmethod
+    def _metadata_roles(metadata: dict[str, Any]) -> set[str]:
+        raw_roles = metadata.get("retrieval_roles")
+        if isinstance(raw_roles, str):
+            values = [raw_roles]
+        elif isinstance(raw_roles, (list, tuple, set)):
+            values = [str(value) for value in raw_roles]
+        else:
+            values = []
+        return {value.strip() for value in values if value.strip()}
+
+    @staticmethod
+    def _optional_int(value: Any) -> int | None:
+        if value in (None, ""):
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
 
     @staticmethod
     def _filter_identifier_context(
@@ -1845,18 +2068,118 @@ class RagAnswerService:
         return values[:20]
 
     @staticmethod
+    def _query_strategy_section(query_strategy: QueryStrategy) -> str | None:
+        if not query_strategy.strategies:
+            return None
+
+        strategy_names = ", ".join(query_strategy.strategies)
+        lines = [
+            "Query strategy / evidence plan (not a cited source):",
+            f"- Strategies: {strategy_names}.",
+        ]
+        if query_strategy.requires_overview_context:
+            lines.extend(
+                [
+                    "- This question may require document, section, heading, table, or summary-level evidence, not only the most similar raw chunk.",
+                    "- Group the retrieved evidence by heading, section, table, object type, or row type when those boundaries are visible.",
+                    "- Prefer coverage across relevant sections over repeating many chunks from one section.",
+                ]
+            )
+        if "table_detail" in query_strategy.strategies:
+            lines.append(
+                "- If table evidence is present, use table title/header/summary with the row or field evidence."
+            )
+        if query_strategy.may_need_second_retrieval:
+            lines.append(
+                "- Before finalizing, check whether retrieved evidence omits a visible related group or count; if it does, state the missing evidence instead of guessing."
+            )
+        return "\n".join(lines)
+
+    @staticmethod
+    def _prefer_structural_overview_context_chunks(
+        context_chunks: list[ContextChunk],
+    ) -> list[ContextChunk]:
+        has_structural_context = any(
+            RagAnswerService._is_structural_overview_context_chunk(context_chunk)
+            for context_chunk in context_chunks
+        )
+        if not has_structural_context:
+            return context_chunks
+
+        filtered = [
+            context_chunk
+            for context_chunk in context_chunks
+            if not RagAnswerService._is_field_level_schema_context_chunk(context_chunk)
+        ]
+        result = filtered or context_chunks
+        return sorted(
+            result,
+            key=lambda context_chunk: RagAnswerService._schema_coverage_priority(
+                context_chunk.chunk
+            ),
+        )
+
+    @staticmethod
+    def _is_structural_overview_context_chunk(context_chunk: ContextChunk) -> bool:
+        metadata = getattr(context_chunk.chunk, "chunk_metadata", None) or {}
+        chunk_type = str(metadata.get("chunk_type") or "")
+        return RagAnswerService._is_schema_overview_metadata(metadata) or chunk_type in {
+            "attribute_table_schema",
+            "gis_relationship_schema",
+            "relationship_definition",
+            "schema_object_summary",
+            "document_summary",
+            "heading_outline",
+            "section_summary",
+            "table_summary",
+            "docling_section",
+            "docling_hybrid_repaired",
+        }
+
+    @staticmethod
+    def _is_field_level_schema_context_chunk(context_chunk: ContextChunk) -> bool:
+        metadata = getattr(context_chunk.chunk, "chunk_metadata", None) or {}
+        chunk_type = str(metadata.get("chunk_type") or "")
+        if RagAnswerService._is_schema_overview_metadata(metadata):
+            return False
+        if metadata.get("field_level_schema"):
+            return True
+        if "field_level_schema" in RagAnswerService._metadata_roles(metadata):
+            return True
+        if chunk_type == "schema_field_row":
+            return True
+        if metadata.get("field_name"):
+            return True
+        return bool(
+            metadata.get("field_names")
+            and chunk_type in {"table_parent", "table_complete", "table_rows"}
+            and not metadata.get("relationship_name")
+            and not metadata.get("target_table")
+        )
+
+    @staticmethod
+    def _is_field_detail_schema_query(
+        query: str,
+        query_intent_rules: dict[str, Any] | None = None,
+    ) -> bool:
+        return is_field_detail_schema_query(query, query_intent_rules)
+
+    @staticmethod
     def _build_user_prompt(
         *,
         query: str,
         standalone_query: str | None = None,
         context_chunks: list[ContextChunk],
+        query_strategy: QueryStrategy | None = None,
         memory_context: list[MemoryResult] | None = None,
         session_summary: str | None = None,
         session_context: RagSessionContext | None = None,
+        query_intent_rules: dict[str, Any] | None = None,
     ) -> str:
         sections: list[str] = []
         retrieval_query = " ".join((standalone_query or query or "").split())
         has_standalone_query = bool(retrieval_query and normalize_metadata_value(retrieval_query) != normalize_metadata_value(query or ""))
+        evidence_query = retrieval_query or query
 
         language_instruction = RagAnswerService._answer_language_instruction(query)
         if language_instruction:
@@ -1864,6 +2187,11 @@ class RagAnswerService:
 
         if has_standalone_query:
             sections.append(f"Standalone retrieval question (for resolving conversational references; answer the user's original question, and do not cite this as evidence):\n{retrieval_query}")
+
+        query_strategy = query_strategy or classify_query_strategy(evidence_query)
+        strategy_section = RagAnswerService._query_strategy_section(query_strategy)
+        if strategy_section:
+            sections.append(strategy_section)
 
         session_context_section = RagAnswerService._short_term_context_section(session_context=session_context)
         if session_context_section:
@@ -1876,7 +2204,6 @@ class RagAnswerService:
         if session_summary:
             sections.append(f"Session Summary:\n{session_summary}")
 
-        evidence_query = retrieval_query or query
         query_terms = RagAnswerService._query_terms(evidence_query)
         identifier_lookup = is_identifier_lookup_query(evidence_query)
         if identifier_lookup:
@@ -1918,6 +2245,19 @@ class RagAnswerService:
             if table_support:
                 sections.append("TABLE_SUPPORT:\n" + "\n".join(table_support))
 
+        relationship_evidence = RagAnswerService._structured_relationship_evidence_section(
+            context_chunks=context_chunks,
+        )
+        if relationship_evidence:
+            sections.append(relationship_evidence)
+
+        if RagAnswerService._is_schema_count_query(evidence_query):
+            schema_overview_evidence = RagAnswerService._schema_overview_evidence_section(
+                context_chunks=context_chunks,
+            )
+            if schema_overview_evidence:
+                sections.append(schema_overview_evidence)
+
         count_evidence = RagAnswerService._count_evidence_section(
             query=query,
             context_chunks=context_chunks,
@@ -1925,11 +2265,20 @@ class RagAnswerService:
         if count_evidence:
             sections.append(count_evidence)
 
-        document_context_chunks = context_chunks
+        prompt_context_chunks = context_chunks
+        if query_strategy.requires_overview_context and not RagAnswerService._is_field_detail_schema_query(
+            evidence_query,
+            query_intent_rules,
+        ):
+            prompt_context_chunks = RagAnswerService._prefer_structural_overview_context_chunks(
+                context_chunks
+            )
+
+        document_context_chunks = prompt_context_chunks
         if matched_rows:
             document_context_chunks = [
                 context_chunk
-                for context_chunk in context_chunks
+                for context_chunk in prompt_context_chunks
                 if not RagAnswerService._is_structured_result_context_chunk(
                     context_chunk,
                     query_terms=query_terms,
@@ -1966,10 +2315,21 @@ class RagAnswerService:
             "- For count questions about attributes, tables, columns, fields, layers, or "
             "objects, do not substitute a broader category total when COUNT_EVIDENCE "
             "contains a candidate that explicitly matches the narrower counted entity.\n"
-            "- When the evidence distinguishes attribute tables from GIS/spatial data "
-            "layers, keep those categories separate. Do not merge conversion-priority "
-            "counts such as N initial layers plus M later layers into a single answer "
+            "- When the evidence distinguishes different groups, tables, layers, sections, "
+            "object types, phases, or relationship types, keep those categories separate. "
+            "Do not merge partial, priority, phase, or subtype counts into one answer "
             "unless the same evidence explicitly labels that sum as the requested count.\n"
+            "- When SCHEMA_OVERVIEW_EVIDENCE exists, cover each directly evidenced "
+            "structural group it lists, such as attribute/data tables, GIS layers or "
+            "objects, and relationships. Do not invent names for remaining groups that "
+            "the evidence does not list.\n"
+            "- For overview, structure, count, or list questions, answer at the "
+            "category, section, table, layer, object, or relationship level. Do not "
+            "switch to field-level schemas unless the user explicitly asks for "
+            "fields, columns, or attributes of one specific item.\n"
+            "- If the answer mentions a counted group and the evidence lists explicit "
+            "items for that group, include those item names or relationship endpoints "
+            "instead of stopping at the count.\n"
             "- Prefer the smallest evidence span that directly answers the question, then add only details that explain that answer.\n"
             "- Do not expand into field-level schemas, unrelated rows, or long background details unless the question asks for those details.\n"
             "- For table-like evidence, use the row fields and original labels shown in ENTITY_MATCHED_ROWS or context; do not assume fixed column names.\n"
@@ -2053,6 +2413,130 @@ class RagAnswerService:
         for score, citation, number, text in candidates[:8]:
             lines.append(f"- score={score:.2f}; citation=[{citation}]; count={number}; text={text}")
         return "\n".join(lines)
+
+    @staticmethod
+    def _structured_relationship_evidence_section(
+        *,
+        context_chunks: list[ContextChunk],
+    ) -> str | None:
+        rows: list[str] = []
+        seen: set[str] = set()
+        for context_chunk in context_chunks:
+            metadata = getattr(context_chunk.chunk, "chunk_metadata", None) or {}
+            relationship_name = RagAnswerService._metadata_text(
+                metadata.get("relationship_name")
+                or getattr(context_chunk.chunk, "relationship_name", None)
+            )
+            source = RagAnswerService._metadata_text(
+                metadata.get("source_layer")
+                or metadata.get("source_table")
+                or metadata.get("source_entity")
+            )
+            target = RagAnswerService._metadata_text(
+                metadata.get("target_table")
+                or metadata.get("target_layer")
+                or metadata.get("target_entity")
+            )
+            cardinality = RagAnswerService._metadata_text(
+                metadata.get("cardinality") or metadata.get("relationship_cardinality")
+            )
+            source_key = RagAnswerService._metadata_text(metadata.get("source_key"))
+            target_key = RagAnswerService._metadata_text(metadata.get("target_key"))
+            chunk_type = str(metadata.get("chunk_type") or "")
+
+            if not any([relationship_name, source, target, cardinality]):
+                continue
+            if "relationship" not in chunk_type and not relationship_name:
+                continue
+
+            parts = [f"citation=[{context_chunk.citation_index}]"]
+            if relationship_name:
+                parts.append(f"name={relationship_name}")
+            if source or target:
+                endpoints = f"{source or '?'} -> {target or '?'}"
+                parts.append(f"endpoints={endpoints}")
+            if source_key or target_key:
+                parts.append(f"keys={source_key or '?'} -> {target_key or '?'}")
+            if cardinality:
+                parts.append(f"cardinality={cardinality}")
+
+            line = "- " + "; ".join(parts)
+            key = normalize_metadata_value(line)
+            if key in seen:
+                continue
+            seen.add(key)
+            rows.append(line)
+            if len(rows) >= 12:
+                break
+
+        if not rows:
+            return None
+        return (
+            "STRUCTURED_RELATIONSHIP_EVIDENCE:\n"
+            "Use these relationship records only when the cited context supports them.\n"
+            + "\n".join(rows)
+        )
+
+    @staticmethod
+    def _schema_overview_evidence_section(
+        *,
+        context_chunks: list[ContextChunk],
+    ) -> str | None:
+        rows: list[str] = []
+        seen: set[str] = set()
+        for context_chunk in sorted(
+            context_chunks,
+            key=lambda item: RagAnswerService._schema_coverage_priority(item.chunk),
+        ):
+            content = context_chunk.chunk.content or ""
+            metadata = getattr(context_chunk.chunk, "chunk_metadata", None) or {}
+            chunk_type = str(metadata.get("chunk_type") or "")
+            if not (
+                RagAnswerService._is_schema_overview_metadata(metadata)
+                or chunk_type
+                in {
+                    "attribute_table_schema",
+                    "gis_relationship_schema",
+                    "relationship_definition",
+                    "schema_object_summary",
+                }
+                or metadata.get("relationship_name")
+            ):
+                continue
+
+            candidate_lines = RagAnswerService._count_candidate_lines(content)
+            if not candidate_lines:
+                candidate_lines = [line for line in content.splitlines() if line.strip()]
+            for line in candidate_lines[:3]:
+                rendered = f"- [{context_chunk.citation_index}] {line}"
+                key = normalize_metadata_value(rendered)
+                if key in seen:
+                    continue
+                seen.add(key)
+                rows.append(rendered)
+                if len(rows) >= 10:
+                    break
+            if len(rows) >= 10:
+                break
+
+        if not rows:
+            return None
+        return (
+            "SCHEMA_OVERVIEW_EVIDENCE:\n"
+            "Separate table, layer/object, and relationship counts. Include each structural "
+            "group that is directly evidenced; do not invent unnamed remaining layers or fields.\n"
+            + "\n".join(rows)
+        )
+
+    @staticmethod
+    def _metadata_text(value: object) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, (list, tuple, set)):
+            text = ", ".join(str(item).strip() for item in value if str(item).strip())
+        else:
+            text = str(value).strip()
+        return text or None
 
     @staticmethod
     def _is_count_query(query: str) -> bool:
@@ -2345,9 +2829,6 @@ class RagAnswerService:
             "bảng dữ liệu thuộc tính",
             "thuộc tính",
             "lớp dữ liệu",
-            "lớp dữ liệu GIS",
-            "lớp dữ liệu không gian",
-            "khởi tạo bổ sung",
         ]
         for term in existing_terms:
             terms.extend(RagAnswerService._query_surface_phrases(term))

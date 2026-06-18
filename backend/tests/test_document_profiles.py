@@ -241,6 +241,9 @@ def test_admin_profiles_endpoint_returns_configs() -> None:
     assert payload["configs"]["staff_technology_matrix"]["answer_style"] == "table_qa"
     assert payload["configs"]["general"]["chunk_mode"] == "recursive"
     assert payload["configs"]["general"]["answer_style"] == "detailed"
+    assert payload["configs"]["general"]["query_intent_rules"]["field_detail_schema"][
+        "direct_terms"
+    ]
     assert "embedding_enrichment_enabled" not in payload["configs"]["general"]
     assert "retrieval_enrichment_enabled" not in payload["configs"]["general"]
     assert "enrichment_force_on_reingest" not in payload["configs"]["general"]
@@ -278,6 +281,14 @@ def test_admin_profile_update_persists_to_repository() -> None:
         "reingest_enrichment_model": "gpt-reingest",
         "reingest_enrichment_max_chars": 9000,
         "reingest_enrichment_version": "v3",
+        "query_intent_rules": {
+            "field_detail_schema": {
+                "direct_terms": ["schema-field"],
+                "required_any_terms": [],
+                "specific_item_patterns": [],
+                "phrases": [],
+            }
+        },
     }
 
     try:
@@ -303,6 +314,9 @@ def test_admin_profile_update_persists_to_repository() -> None:
     assert "embedding_enrichment_model" not in repository.configs["general"]
     assert "reingest_enrichment_provider" not in repository.configs["general"]
     assert "reingest_enrichment_model" not in repository.configs["general"]
+    assert repository.configs["general"]["query_intent_rules"]["field_detail_schema"][
+        "direct_terms"
+    ] == ["schema-field"]
     assert repository.committed is True
 
 def test_admin_profiles_merges_enrichment_defaults_for_old_config() -> None:
@@ -383,6 +397,7 @@ def test_chat_auto_runtime_uses_saved_document_profile() -> None:
     assert resolved["top_k"] == 12
     assert resolved["candidate_k"] == 60
     assert resolved["max_context_chars"] == 10000
+    assert "field_detail_schema" in resolved["query_intent_rules"]
 
 
 def test_chat_auto_runtime_detects_profile_when_saved_profile_is_auto() -> None:

@@ -238,6 +238,7 @@ class DocumentRepository:
         *,
         enrichment_metadata: dict[str, Any],
         enriched_content: str | None,
+        rule_enrichment: dict[str, Any] | None = None,
         update_search_vector: bool = True,
     ) -> Chunk:
         result = await self._session.execute(select(Chunk).where(Chunk.id == chunk_id))
@@ -252,6 +253,11 @@ class DocumentRepository:
             **enrichment_metadata,
         }
         current_metadata["enrichment"] = merged_enrichment
+        if rule_enrichment is not None:
+            current_metadata["rule_enrichment"] = {
+                **dict(current_metadata.get("rule_enrichment") or {}),
+                **rule_enrichment,
+            }
         chunk.chunk_metadata = current_metadata
         chunk.enriched_content = enriched_content
         if update_search_vector and enrichment_metadata.get("status") == "success":

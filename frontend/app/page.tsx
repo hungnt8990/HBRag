@@ -2528,11 +2528,24 @@ function parseProfileDraftSafe(draft: string): ProfileConfig | null {
   }
 }
 
+function profileRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+  return value as Record<string, unknown>;
+}
+
+function stringifyQueryIntentRules(config: ProfileConfig | null | undefined) {
+  return stringifyProfileConfig(profileRecord(config?.query_intent_rules));
+}
+
 function ProfileConfigPanel() {
   const [profiles, setProfiles] = useState<string[]>([]);
   const [configs, setConfigs] = useState<Record<string, ProfileConfig>>({});
   const [selectedProfile, setSelectedProfile] = useState("");
   const [profileDraft, setProfileDraft] = useState("");
+  const [queryIntentRulesDraft, setQueryIntentRulesDraft] = useState("");
+  const [queryIntentRulesError, setQueryIntentRulesError] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileTesting, setProfileTesting] = useState(false);
@@ -2556,6 +2569,8 @@ function ProfileConfigPanel() {
       setConfigs(response.configs);
       setSelectedProfile(nextProfile);
       setProfileDraft(stringifyProfileConfig(response.configs[nextProfile]));
+      setQueryIntentRulesDraft(stringifyQueryIntentRules(response.configs[nextProfile]));
+      setQueryIntentRulesError(null);
     } catch (error) {
       setProfileMessage({ type: "error", text: getErrorMessage(error) });
     } finally {
@@ -2572,18 +2587,55 @@ function ProfileConfigPanel() {
   const handleProfileSelect = (profile: string) => {
     setSelectedProfile(profile);
     setProfileDraft(stringifyProfileConfig(configs[profile]));
+    setQueryIntentRulesDraft(stringifyQueryIntentRules(configs[profile]));
+    setQueryIntentRulesError(null);
     setHeadingMatches([]);
     setProfileMessage(null);
   };
 
   const updateDraftField = (key: keyof ProfileConfig, value: unknown) => {
     const current = parseProfileDraftSafe(profileDraft) ?? configs[selectedProfile] ?? {};
-    setProfileDraft(stringifyProfileConfig({ ...current, [key]: value }));
+    const nextConfig = { ...current, [key]: value };
+    setProfileDraft(stringifyProfileConfig(nextConfig));
+    if (key === "query_intent_rules") {
+      setQueryIntentRulesDraft(stringifyProfileConfig(profileRecord(value)));
+      setQueryIntentRulesError(null);
+    }
     setProfileMessage(null);
+  };
+
+  const handleProfileDraftChange = (value: string) => {
+    setProfileDraft(value);
+    setProfileMessage(null);
+    const parsed = parseProfileDraftSafe(value);
+    if (parsed) {
+      setQueryIntentRulesDraft(stringifyQueryIntentRules(parsed));
+      setQueryIntentRulesError(null);
+    }
+  };
+
+  const handleQueryIntentRulesDraftChange = (value: string) => {
+    setQueryIntentRulesDraft(value);
+    setProfileMessage(null);
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("query_intent_rules must be a JSON object.");
+      }
+      const current = parseProfileDraftSafe(profileDraft) ?? configs[selectedProfile] ?? {};
+      setProfileDraft(stringifyProfileConfig({ ...current, query_intent_rules: parsed }));
+      setQueryIntentRulesError(null);
+    } catch {
+      setQueryIntentRulesError("query_intent_rules must be a JSON object.");
+    }
   };
 
   const handleSaveProfile = async () => {
     if (!selectedProfile) {
+      return;
+    }
+    if (queryIntentRulesError) {
+      setProfileMessage({ type: "error", text: queryIntentRulesError });
       return;
     }
     setProfileSaving(true);
@@ -2593,6 +2645,8 @@ function ProfileConfigPanel() {
       const response = await updateProfileConfig(selectedProfile, parsed);
       setConfigs(response.configs);
       setProfileDraft(stringifyProfileConfig(response.configs[selectedProfile]));
+      setQueryIntentRulesDraft(stringifyQueryIntentRules(response.configs[selectedProfile]));
+      setQueryIntentRulesError(null);
       setProfileMessage({
         type: "success",
         text: `Saved ${selectedProfile} to Postgres.`,
@@ -2671,7 +2725,7 @@ function ProfileConfigPanel() {
           </Button>
           <Button
             className="cursor-pointer bg-cyan-700 text-white hover:bg-cyan-800"
-            disabled={!selectedProfile || profileSaving}
+            disabled={!selectedProfile || profileSaving || Boolean(queryIntentRulesError)}
             onClick={() => void handleSaveProfile()}
             type="button"
           >
@@ -2773,21 +2827,36 @@ function ProfileConfigPanel() {
         ))}
       </div>
 
-      <label className="block space-y-2 text-sm font-medium text-slate-700">
-        <span className="inline-flex items-center gap-2">
-          <TerminalSquare className="h-4 w-4 text-slate-500" />
-          Profile JSON
-        </span>
-        <Textarea
-          className="min-h-[260px] font-mono text-xs leading-5"
-          onChange={(event) => {
-            setProfileDraft(event.target.value);
-            setProfileMessage(null);
-          }}
-          spellCheck={false}
-          value={profileDraft}
-        />
-      </label>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <label className="block space-y-2 text-sm font-medium text-slate-700">
+          <span className="inline-flex items-center gap-2">
+            <TerminalSquare className="h-4 w-4 text-slate-500" />
+            query_intent_rules
+          </span>
+          <Textarea
+            className="min-h-[220px] font-mono text-xs leading-5"
+            onChange={(event) => handleQueryIntentRulesDraftChange(event.target.value)}
+            spellCheck={false}
+            value={queryIntentRulesDraft}
+          />
+          {queryIntentRulesError ? (
+            <p className="text-xs font-medium text-rose-600">{queryIntentRulesError}</p>
+          ) : null}
+        </label>
+
+        <label className="block space-y-2 text-sm font-medium text-slate-700">
+          <span className="inline-flex items-center gap-2">
+            <TerminalSquare className="h-4 w-4 text-slate-500" />
+            Profile JSON
+          </span>
+          <Textarea
+            className="min-h-[220px] font-mono text-xs leading-5"
+            onChange={(event) => handleProfileDraftChange(event.target.value)}
+            spellCheck={false}
+            value={profileDraft}
+          />
+        </label>
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.7fr)]">
         <label className="block space-y-2 text-sm font-medium text-slate-700">

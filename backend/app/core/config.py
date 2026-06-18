@@ -87,8 +87,14 @@ class Settings(BaseSettings):
     llm_model: str | None = None
 
     chunk_enrichment_enabled: bool = False
+    chunk_enrichment_mode: str = "selective"
+    chunk_enrichment_min_chars: int = 300
+    chunk_enrichment_max_llm_chunks_per_document: int | None = None
+    chunk_enrichment_concurrency: int = 2
+    chunk_enrichment_prompt_version: str = "v2"
+    use_enriched_content_for_embedding: bool = True
     retrieval_enrichment_enabled: bool = False
-    enrichment_force_on_reingest: bool = True
+    enrichment_force_on_reingest: bool = False
     enrichment_update_keyword_search_vector: bool = True
     chunk_enrichment_provider: str | None = None
     chunk_enrichment_base_url: str | None = None
@@ -105,6 +111,18 @@ class Settings(BaseSettings):
     reingest_enrichment_model: str | None = None
     reingest_enrichment_max_chars: int = 6000
     reingest_enrichment_version: str = "v1"
+
+    enable_offline_enrichment: bool = True
+    enable_query_enrichment: bool = True
+    enable_context_expansion: bool = True
+    enable_completeness_check: bool = False
+    enable_second_retrieval: bool = False
+    max_second_retrieval_rounds: int = 1
+    overview_top_k: int = 12
+    raw_top_k: int = 0
+    summary_top_k: int = 6
+    table_top_k: int = 10
+    max_context_chars: int = 20_000
 
     graph_enabled: bool = False
     graph_provider: str = "neo4j"

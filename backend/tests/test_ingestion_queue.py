@@ -136,6 +136,25 @@ def test_ingestion_run_skips_enrichment_and_indexes_original_content(monkeypatch
     assert index_calls == [False]
     assert job.steps["enrich"].output["status"] == "skipped"
 
+
+def test_ingestion_run_honors_offline_enrichment_gate(monkeypatch) -> None:
+    job, enrich_calls, index_calls = _run_reingest_job_with_config(
+        monkeypatch,
+        {},
+        runtime_settings={
+            "enable_offline_enrichment": False,
+            "chunk_enrichment_enabled": True,
+            "retrieval_enrichment_enabled": True,
+            "enrichment_force_on_reingest": False,
+        },
+    )
+
+    assert job.status == "succeeded"
+    assert enrich_calls[0]["enabled"] is False
+    assert index_calls == [False]
+    assert job.steps["enrich"].output["enable_offline_enrichment"] is False
+    assert job.steps["enrich"].output["chunk_enrichment_enabled"] is False
+
 def _run_reingest_job_with_config(
     monkeypatch,
     config: dict[str, object],
@@ -273,6 +292,7 @@ def _run_reingest_job_with_config(
         "chunk_enrichment_model": None,
         "chunk_enrichment_max_chars": 6000,
         "chunk_enrichment_version": "v1",
+        "enable_offline_enrichment": True,
         "chunk_enrichment_enabled": False,
         "retrieval_enrichment_enabled": False,
         "enrichment_force_on_reingest": True,

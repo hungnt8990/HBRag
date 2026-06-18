@@ -170,6 +170,7 @@ class RagChunk(BaseModel):
     issued_date: str | None = None
     document_type: str | None = None
     structure_path: str | None = None
+    rule_enrichment: dict[str, Any] = Field(default_factory=dict)
 
 
 def sha256_text(text: str) -> str:
@@ -517,6 +518,25 @@ def build_embedding_text(chunk: RagChunk) -> str:
         if rendered.casefold() not in {line.casefold() for line in context_lines}:
             context_lines.append(rendered)
 
+    rule = chunk.rule_enrichment if isinstance(chunk.rule_enrichment, dict) else {}
+    add_context("Tài liệu", _first_rule_value(rule, "document_title"))
+    add_context("Cơ quan", _first_rule_value(rule, "issuer", "issuing_org"))
+    add_context("Số hiệu/mã", _join_search_values(_as_string_list(rule.get("document_code"))))
+    add_context("Ngày", _join_search_values(_as_string_list(rule.get("issued_date"))))
+    add_context("Mục", _first_rule_value(rule, "section_path", "structure_path"))
+    add_context("Điều", _first_rule_value(rule, "article_number"))
+    add_context("Khoản", _first_rule_value(rule, "clause_number"))
+    add_context("Điểm", _first_rule_value(rule, "point_number"))
+    add_context("Phụ lục", _first_rule_value(rule, "appendix"))
+    add_context("Bảng", _first_rule_value(rule, "table_name"))
+    add_context("Cột bảng", _join_search_values(_as_string_list(rule.get("table_columns"))))
+    add_context("Phạm vi hàng", _first_rule_value(rule, "row_range"))
+    add_context("Nhân sự", _join_search_values(_as_string_list(rule.get("staff_names"))))
+    add_context("Mảng công nghệ", _first_rule_value(rule, "area"))
+    add_context("Phòng chủ trì", _first_rule_value(rule, "lead_department"))
+    add_context("Số hiệu/mã", _join_search_values(_as_string_list(rule.get("identifiers"))))
+    add_context("Tham chiếu đã giải quyết", _first_rule_value(rule, "resolved_reference_text"))
+
     add_context("Tài liệu", chunk.document_title)
     add_context("Cơ quan", chunk.issuer)
     add_context("Đơn vị", chunk.unit)
@@ -565,11 +585,41 @@ def build_embedding_text(chunk: RagChunk) -> str:
         end = chunk.row_end if chunk.row_end is not None else start
         add_context("Phạm vi hàng", f"{start}-{end}")
 
-    embedding_text = chunk.embedding_text.strip() if chunk.embedding_text else None
-    body = embedding_text or chunk.text.strip()
-    if not context_lines:
-        return body
-    return "\n".join([*context_lines, "", body])
+    body = chunk.text.strip()
+    llm_enrichment = _llm_enrichment_text(
+        chunk.embedding_text.strip() if chunk.embedding_text else None,
+        body,
+    )
+    parts = [*context_lines]
+    if body:
+        if parts:
+            parts.append("")
+        parts.append(body)
+    if llm_enrichment:
+        if parts:
+            parts.append("")
+        parts.append(llm_enrichment)
+    return "\n".join(parts)
+
+def _first_rule_value(rule: dict[str, Any], *keys: str) -> str | None:
+    for key in keys:
+        value = rule.get(key)
+        if isinstance(value, list | tuple | set):
+            rendered = _join_search_values([str(item) for item in value])
+        else:
+            rendered = " ".join(str(value or "").split()).strip()
+        if rendered:
+            return rendered
+    return None
+
+def _llm_enrichment_text(value: str | None, original_text: str) -> str | None:
+    clean = "\n".join(line.rstrip() for line in str(value or "").splitlines()).strip()
+    if not clean:
+        return None
+    original = original_text.strip()
+    if original and clean.startswith(original):
+        clean = clean[len(original):].strip()
+    return clean or None
 
 
 def stable_point_id(chunk: RagChunk) -> str:
@@ -768,6 +818,7 @@ def rag_chunk_from_record(
         issued_date=str(record.get("issued_date") or "").strip() or None,
         document_type=str(record.get("document_type") or "").strip() or None,
         structure_path=str(record.get("structure_path") or "").strip() or None,
+        rule_enrichment=dict(record.get("rule_enrichment") or {}),
         parser=parser,
         parser_version=parser_version,
         chunker=chunker,
@@ -794,9 +845,11 @@ def rag_chunk_from_database(
 ) -> RagChunk:
     metadata = dict(getattr(chunk, "chunk_metadata", None) or {})
     enrichment = dict(metadata.get("enrichment") or {})
+    rule_enrichment = dict(metadata.get("rule_enrichment") or {})
     enriched_content = str(getattr(chunk, "enriched_content", "") or "").strip()
     record = {
         **metadata,
+        **{key: value for key, value in rule_enrichment.items() if value not in (None, "", [])},
         "chunk_id": metadata.get("chunk_id") or f"chunk_{chunk.chunk_index:04d}",
         "text": str(getattr(chunk, "content", "")),
         "token_count": getattr(chunk, "token_count", None),
@@ -807,6 +860,7 @@ def rag_chunk_from_database(
         "issued_date": enrichment.get("issued_date"),
         "document_type": enrichment.get("document_type"),
         "structure_path": enrichment.get("structure_path"),
+        "rule_enrichment": rule_enrichment,
     }
     if enriched_content and use_enriched_content_for_embedding:
         record["embedding_text"] = enriched_content

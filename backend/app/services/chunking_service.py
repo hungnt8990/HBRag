@@ -558,6 +558,8 @@ class ChunkingService:
         }
         chunk_records: list[ChunkCreate] = []
         preview_chunks: list[TextChunk] = []
+        from app.services.ingestion_profiles import apply_chunk_metadata_rules
+
         for index, raw_chunk in enumerate(raw_chunks):
             content = str(raw_chunk.get("content") or "")
             metadata = dict(raw_chunk.get("metadata") or {})
@@ -567,18 +569,24 @@ class ChunkingService:
                 end_char=int(metadata.get("end_char") or len(content)),
                 metadata=metadata,
             )
+            chunk_metadata = self._build_metadata(
+                chunk_size=resolved_size,
+                chunk_overlap=resolved_overlap,
+                chunk_mode=mode,
+                profile=effective_profile,
+                text_chunk=text_chunk,
+                extra_metadata=compatibility_metadata,
+            )
+            chunk_metadata = apply_chunk_metadata_rules(
+                chunk_metadata,
+                content=content,
+                config=config,
+            )
             chunk_records.append(
                 ChunkCreate(
                     chunk_index=index,
                     content=content,
-                    metadata=self._build_metadata(
-                        chunk_size=resolved_size,
-                        chunk_overlap=resolved_overlap,
-                        chunk_mode=mode,
-                        profile=effective_profile,
-                        text_chunk=text_chunk,
-                        extra_metadata=compatibility_metadata,
-                    ),
+                    metadata=chunk_metadata,
                 )
             )
             if len(preview_chunks) < CHUNK_PREVIEW_LIMIT:
@@ -688,8 +696,27 @@ class ChunkingService:
             max_tokens=max_tokens,
             parsed_text=str(getattr(document, "parsed_text", "") or ""),
         )
+        from app.services.ingestion_profiles import (
+            apply_chunk_metadata_rules,
+            get_profile_config,
+        )
+
+        route_config = get_profile_config(route.document_profile)
+        routed_records = [
+            apply_chunk_metadata_rules(
+                record,
+                content=str(
+                    record.get("contextualized_text")
+                    or record.get("text")
+                    or record.get("content")
+                    or ""
+                ),
+                config=route_config,
+            )
+            for record in route.records
+        ]
         result = DoclingV6ChunkingResult(
-            records=route.records,
+            records=routed_records,
             quality=result.quality,
             coverage=result.coverage,
             document_context=result.document_context,

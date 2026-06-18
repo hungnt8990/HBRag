@@ -88,7 +88,7 @@ class VectorIndexingService:
                 "Only chunked or indexed documents can be vector indexed."
             )
         use_enriched_embedding = (
-            True
+            bool(settings.use_enriched_content_for_embedding)
             if use_enriched_content_for_embedding is None
             else bool(use_enriched_content_for_embedding)
         )

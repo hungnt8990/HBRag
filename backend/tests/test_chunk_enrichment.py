@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from app.api.routes import documents as documents_routes
 from app.api.routes.documents import get_document_repository
 from app.main import app
-from app.services.chunk_enrichment_service import ChunkEnrichmentService
+from app.services.chunk_enrichment_service import ChunkEnrichmentService, should_llm_enrich
 
 DOCUMENT_ID = UUID("dddddddd-4444-4444-4444-dddddddddddd")
 CHUNK_ID = UUID("eeeeeeee-5555-5555-5555-eeeeeeeeeeee")
@@ -51,6 +51,7 @@ class FakeDocumentRepository:
         *,
         enrichment_metadata: dict,
         enriched_content: str | None,
+        rule_enrichment: dict | None = None,
         update_search_vector: bool = True,
     ):
         self.update_search_vector_calls.append(update_search_vector)
@@ -60,6 +61,11 @@ class FakeDocumentRepository:
             **dict(metadata.get("enrichment") or {}),
             **enrichment_metadata,
         }
+        if rule_enrichment is not None:
+            metadata["rule_enrichment"] = {
+                **dict(metadata.get("rule_enrichment") or {}),
+                **rule_enrichment,
+            }
         chunk.chunk_metadata = metadata
         chunk.enriched_content = enriched_content
         return chunk
@@ -84,6 +90,30 @@ class QueueLLM:
 class FailingLLM:
     async def generate(self, *, system_prompt: str, user_prompt: str) -> str:
         raise RuntimeError("LLM provider unavailable")
+
+class OrderedSlowLLM:
+    def __init__(self) -> None:
+        self.calls: list[int] = []
+
+    async def generate(self, *, system_prompt: str, user_prompt: str) -> str:
+        marker = '"chunk_index": '
+        index = int(user_prompt.split(marker, 1)[1].split(",", 1)[0])
+        self.calls.append(index)
+        await asyncio.sleep(0.01 * (3 - index))
+        return json.dumps(
+            {
+                "summary": f"Chunk {index}",
+                "keywords": [f"kw-{index}"],
+                "entities": [],
+                "aliases": [],
+                "answerable_facts": [],
+                "possible_queries": [],
+                "table_context": f"row {index}",
+                "legal_context": None,
+                "confidence": 0.9,
+            },
+            ensure_ascii=False,
+        )
 
 
 def _valid_enrichment_json() -> str:
@@ -161,12 +191,124 @@ def test_chunk_enrichment_service_updates_metadata_and_enriched_content() -> Non
     assert enrichment["is_table_row"] is False
     assert enrichment["answerable_facts"] == ["Quyết định có số 123/QĐ-CPCIT."]
     assert chunk.chunk_metadata["keep"] == "original"
-    assert chunk.enriched_content.startswith(chunk.content)
+    assert chunk.enriched_content is not None
+    assert not chunk.enriched_content.startswith(chunk.content)
     assert "Tóm tắt: Chunk nêu số hiệu" in chunk.enriched_content
     assert "Fact trả lời trực tiếp: Quyết định có số 123/QĐ-CPCIT." in chunk.enriched_content
+    assert chunk.chunk_metadata["rule_enrichment"]["document_code"] == "123/QĐ-CPCIT"
     assert repository.update_search_vector_calls == [True]
     assert repository.committed is True
     assert repository.rolled_back is False
+
+def test_clear_prose_with_section_path_uses_rule_enrichment_without_llm() -> None:
+    repository = FakeDocumentRepository()
+    repository.chunks[0].content = (
+        "Quy trình vận hành hệ thống được thực hiện theo các bước kiểm tra, "
+        "phê duyệt và ghi nhận kết quả trên phần mềm nội bộ. Nội dung này đã "
+        "nêu rõ phạm vi áp dụng, đơn vị phối hợp và trách nhiệm chung của các "
+        "bộ phận liên quan trong quá trình xử lý công việc hằng ngày. "
+        "Các bước được mô tả đầy đủ, có ngữ cảnh mục rõ ràng và không chứa "
+        "dòng bảng, số hiệu văn bản, ngày tháng hoặc mã định danh cần suy diễn."
+    )
+    repository.chunks[0].chunk_metadata = {
+        "chunk_id": "chunk_000",
+        "section_path": ["Quy trình", "Vận hành"],
+    }
+    llm = QueueLLM(_valid_enrichment_json())
+    service = ChunkEnrichmentService(repository=repository, llm_provider=llm, enabled=True)
+
+    response = asyncio.run(service.enrich_document(DOCUMENT_ID))
+
+    assert response.status == "skipped"
+    assert response.skipped_count == 1
+    assert llm.calls == []
+    enrichment = repository.chunks[0].chunk_metadata["enrichment"]
+    assert enrichment["status"] == "skipped"
+    assert enrichment["last_skip_reason"]["skip"] == "clear_prose_with_section_path"
+    assert repository.chunks[0].chunk_metadata["rule_enrichment"]["section_path"] == "Quy trình > Vận hành"
+
+def test_table_row_calls_llm() -> None:
+    repository = FakeDocumentRepository()
+    repository.chunks[0].chunk_metadata = {
+        "chunk_id": "chunk_000",
+        "chunk_type": "table_row",
+        "table_name": "BangPhanCong",
+        "table_columns": ["STT", "Nhân sự", "Mảng công nghệ"],
+    }
+    llm = QueueLLM(_valid_enrichment_json())
+    service = ChunkEnrichmentService(repository=repository, llm_provider=llm, enabled=True)
+
+    response = asyncio.run(service.enrich_document(DOCUMENT_ID))
+
+    assert response.status == "enriched"
+    assert len(llm.calls) == 1
+    assert repository.chunks[0].chunk_metadata["enrichment"]["llm_reason"]["trigger"] == "structured_chunk_type"
+
+def test_short_chunk_with_document_code_calls_llm() -> None:
+    repository = FakeDocumentRepository()
+    llm = QueueLLM(_valid_enrichment_json())
+    service = ChunkEnrichmentService(repository=repository, llm_provider=llm, enabled=True)
+
+    response = asyncio.run(service.enrich_document(DOCUMENT_ID))
+
+    assert response.status == "enriched"
+    assert len(llm.calls) == 1
+    assert repository.chunks[0].chunk_metadata["enrichment"]["llm_reason"]["trigger"] == "short_with_codes"
+
+def test_existing_enrichment_with_matching_input_hash_skips_llm() -> None:
+    repository = FakeDocumentRepository()
+    first = ChunkEnrichmentService(
+        repository=repository,
+        llm_provider=QueueLLM(_valid_enrichment_json()),
+        enabled=True,
+        model="cache-model",
+        version="cache-v1",
+    )
+    asyncio.run(first.enrich_document(DOCUMENT_ID))
+    input_hash = repository.chunks[0].chunk_metadata["enrichment"]["input_hash"]
+    llm = QueueLLM(_valid_enrichment_json())
+    second = ChunkEnrichmentService(
+        repository=repository,
+        llm_provider=llm,
+        enabled=True,
+        model="cache-model",
+        version="cache-v1",
+    )
+
+    response = asyncio.run(second.enrich_document(DOCUMENT_ID))
+
+    assert response.status == "skipped"
+    assert response.skipped_count == 1
+    assert llm.calls == []
+    assert repository.chunks[0].chunk_metadata["enrichment"]["input_hash"] == input_hash
+    assert repository.chunks[0].chunk_metadata["enrichment"]["last_skip_reason"]["skip"] == "cache_hit"
+
+def test_content_change_invalidates_hash_and_enriches_again() -> None:
+    repository = FakeDocumentRepository()
+    first = ChunkEnrichmentService(
+        repository=repository,
+        llm_provider=QueueLLM(_valid_enrichment_json()),
+        enabled=True,
+        model="cache-model",
+        version="cache-v1",
+    )
+    asyncio.run(first.enrich_document(DOCUMENT_ID))
+    input_hash = repository.chunks[0].chunk_metadata["enrichment"]["input_hash"]
+    repository.chunks[0].content = "Số 999/QĐ-CPCIT ngày 02/03/2024 về quy trình mới."
+    llm = QueueLLM(_valid_enrichment_json())
+    second = ChunkEnrichmentService(
+        repository=repository,
+        llm_provider=llm,
+        enabled=True,
+        model="cache-model",
+        version="cache-v1",
+    )
+
+    response = asyncio.run(second.enrich_document(DOCUMENT_ID))
+
+    assert response.status == "enriched"
+    assert len(llm.calls) == 1
+    assert repository.chunks[0].chunk_metadata["enrichment"]["input_hash"] != input_hash
 
 
 def test_chunk_enrichment_service_marks_invalid_json_failed_without_crashing() -> None:
@@ -211,6 +353,88 @@ def test_chunk_enrichment_service_marks_llm_error_failed_without_crashing() -> N
     assert repository.chunks[0].enriched_content is None
     assert repository.committed is True
     assert repository.rolled_back is False
+
+def test_one_chunk_failure_does_not_fail_entire_document() -> None:
+    repository = FakeDocumentRepository()
+    repository.chunks = [
+        SimpleNamespace(
+            id=UUID("eeeeeeee-5555-5555-5555-eeeeeeeeeee1"),
+            document_id=DOCUMENT_ID,
+            chunk_index=0,
+            content="STT: 1\nNhân sự: A\nMảng công nghệ: GIS",
+            token_count=12,
+            chunk_metadata={"chunk_id": "chunk_000", "chunk_type": "table_row"},
+            enriched_content=None,
+        ),
+        SimpleNamespace(
+            id=UUID("eeeeeeee-5555-5555-5555-eeeeeeeeeee2"),
+            document_id=DOCUMENT_ID,
+            chunk_index=1,
+            content="STT: 2\nNhân sự: B\nMảng công nghệ: DMS",
+            token_count=12,
+            chunk_metadata={"chunk_id": "chunk_001", "chunk_type": "table_row"},
+            enriched_content=None,
+        ),
+    ]
+    service = ChunkEnrichmentService(
+        repository=repository,
+        llm_provider=QueueLLM(_valid_enrichment_json(), "not-json"),
+        enabled=True,
+    )
+
+    response = asyncio.run(service.enrich_document(DOCUMENT_ID))
+
+    assert response.status == "partial"
+    assert response.enriched_count == 1
+    assert response.failed_count == 1
+    assert repository.committed is True
+    assert repository.rolled_back is False
+    assert repository.chunks[0].chunk_metadata["enrichment"]["status"] == "success"
+    assert repository.chunks[1].chunk_metadata["enrichment"]["status"] == "failed"
+
+def test_concurrent_enrichment_preserves_preview_order_and_counts(monkeypatch) -> None:
+    repository = FakeDocumentRepository()
+    repository.chunks = [
+        SimpleNamespace(
+            id=UUID(f"eeeeeeee-5555-5555-5555-eeeeeeeeeee{index}"),
+            document_id=DOCUMENT_ID,
+            chunk_index=index,
+            content=f"STT: {index}\nNhân sự: Người {index}\nMảng công nghệ: GIS",
+            token_count=12,
+            chunk_metadata={"chunk_id": f"chunk_00{index}", "chunk_type": "table_row"},
+            enriched_content=None,
+        )
+        for index in range(3)
+    ]
+    monkeypatch.setattr(
+        "app.services.chunk_enrichment_service.settings.chunk_enrichment_concurrency",
+        3,
+    )
+    llm = OrderedSlowLLM()
+    service = ChunkEnrichmentService(repository=repository, llm_provider=llm, enabled=True)
+
+    response = asyncio.run(service.enrich_document(DOCUMENT_ID))
+
+    assert response.status == "enriched"
+    assert response.enriched_count == 3
+    assert [item.chunk_index for item in response.preview] == [0, 1, 2]
+    assert [chunk.chunk_metadata["enrichment"]["summary"] for chunk in repository.chunks] == [
+        "Chunk 0",
+        "Chunk 1",
+        "Chunk 2",
+    ]
+
+def test_should_llm_enrich_skips_footer() -> None:
+    document = SimpleNamespace(title="Doc", document_metadata={})
+    chunk = SimpleNamespace(
+        content="Nơi nhận: Như trên; Lưu VT.",
+        chunk_metadata={"chunk_type": "administrative_footer"},
+    )
+
+    should_call, reason = should_llm_enrich(chunk, document, {"chunk_enrichment_mode": "selective"})
+
+    assert should_call is False
+    assert reason["skip"] == "footer_or_non_indexable"
 
 def test_force_enrich_failure_preserves_existing_success_metadata() -> None:
     repository = FakeDocumentRepository()

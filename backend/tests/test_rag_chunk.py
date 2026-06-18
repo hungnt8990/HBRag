@@ -61,6 +61,27 @@ def test_build_embedding_text_does_not_repeat_document_title_already_in_text() -
 
     assert text.count(title) == 1
 
+def test_build_embedding_text_orders_rule_context_original_and_llm_enrichment() -> None:
+    chunk = _chunk(
+        text="Nội dung gốc để citation.",
+        embedding_text="LLM enrichment:\nTóm tắt: Bản làm giàu ngắn.",
+        enriched=True,
+        rule_enrichment={
+            "document_title": "Quyết định vận hành",
+            "document_code": "123/QĐ-CPCIT",
+            "section_path": "Chương I > Điều 1",
+        },
+    )
+
+    text = build_embedding_text(chunk)
+
+    assert "Tài liệu: Quyết định vận hành" in text
+    assert "Số hiệu/mã: 123/QĐ-CPCIT" in text
+    assert "Nội dung gốc để citation." in text
+    assert "LLM enrichment:" in text
+    assert text.index("Tài liệu: Quyết định vận hành") < text.index("Nội dung gốc")
+    assert text.index("Nội dung gốc") < text.index("LLM enrichment:")
+
 
 def test_footer_and_disabled_chunks_are_not_indexable() -> None:
     assert should_index_chunk(_chunk(chunk_type="administrative_footer")) is False
