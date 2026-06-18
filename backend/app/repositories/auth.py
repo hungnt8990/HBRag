@@ -51,3 +51,10 @@ class AuthRepository:
 
     async def list_roles(self) -> list[Role]:
         return list((await self._session.execute(select(Role))).scalars().all())
+
+    async def list_organizations(self) -> list[Organization]:
+        statement = select(Organization).order_by(
+            Organization.dvi_level.asc(),
+            Organization.ma_dviqly.asc(),
+        )
+        return list((await self._session.execute(statement)).scalars().all())

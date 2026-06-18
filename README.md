@@ -22,16 +22,16 @@ scripts/   Local development helper scripts
 
 ## Environment
 
-Create a local environment file from the example:
+Create a backend environment file from the example:
 
 ```powershell
-Copy-Item .env.example .env
+Copy-Item backend/.env.example backend/.env
 ```
 
 On macOS or Linux:
 
 ```bash
-cp .env.example .env
+cp backend/.env.example backend/.env
 ```
 
 ## Start Local Infrastructure
@@ -50,7 +50,7 @@ Services:
 
 The MinIO bootstrap service creates the default bucket from `MINIO_BUCKET`.
 If port `9000` is already used locally, set `MINIO_API_PORT` and
-`MINIO_ENDPOINT` in `.env` to another port, for example
+`MINIO_ENDPOINT` in `backend/.env` to another port, for example
 `MINIO_API_PORT=9100` and `MINIO_ENDPOINT=localhost:9100`.
 
 ## Backend
@@ -128,6 +128,28 @@ Invoke-RestMethod `
 
 Chunking currently uses a simple character-based recursive splitter with default
 `chunk_size = 1000` and `chunk_overlap = 150`.
+
+Enrich chunks with LLM metadata before vector indexing:
+
+```powershell
+Invoke-RestMethod `
+  -Uri http://localhost:8000/api/documents/<document-id>/enrich `
+  -Method Post `
+  -ContentType "application/json" `
+  -Body '{"profile":"legal_admin","force":true}'
+```
+
+All chunk enrichment settings are runtime settings in `backend/.env`, not RAG
+profile/Postgres config. `CHUNK_ENRICHMENT_ENABLED` controls whether ingestion
+runs enrich after chunking; `RETRIEVAL_ENRICHMENT_ENABLED` controls whether
+search/chat uses saved enrichment metadata; `ENRICHMENT_FORCE_ON_REINGEST`
+controls refresh/reingest behavior; and
+`ENRICHMENT_UPDATE_KEYWORD_SEARCH_VECTOR` controls whether keyword search text is
+updated after enrich. Normal ingest uses `EMBEDDING_ENRICHMENT_*` when set, then
+falls back to `CHUNK_ENRICHMENT_*`, then `LLM_*`. Refresh/reingest can override
+with `REINGEST_ENRICHMENT_*`. Each enrichment group has its own `*_BASE_URL`, so
+chunk, normal embedding enrich, and reingest enrich can call different
+OpenAI-compatible endpoints.
 
 Index chunk vectors:
 
@@ -250,7 +272,7 @@ npm run lint
 
 - The Docker Compose file is scoped to local infrastructure.
 - Backend and frontend application containers can be added later when deployment targets are defined.
-- Keep credentials in `.env`; do not commit real secrets.
+- Keep credentials in `backend/.env`; do not commit real secrets.
 
 ## Check Backend
 

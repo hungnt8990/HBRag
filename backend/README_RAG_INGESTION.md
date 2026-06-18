@@ -175,7 +175,7 @@ Trước mỗi re-index, backend xóa toàn bộ point có cùng `document_id` v
 
 ## 9. Cấu hình
 
-Xem `.env.example`. Khuyến nghị:
+Xem `backend/.env.example`. Khuyến nghị:
 
 ```env
 ENABLE_DOCLING=true

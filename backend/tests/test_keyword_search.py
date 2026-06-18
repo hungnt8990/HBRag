@@ -109,3 +109,25 @@ def test_keyword_search_statement_includes_exact_match_clause() -> None:
     sql = str(compiled)
 
     assert "ILIKE" in sql
+
+def test_keyword_search_disables_enrichment_matching_by_default() -> None:
+    statement = KeywordSearchService.build_statement(query="123/QĐ-CPCIT", top_k=5)
+    compiled = statement.compile(dialect=postgresql.dialect())
+    sql = str(compiled)
+
+    assert "to_tsvector('simple', chunks.content)" in sql
+    assert "chunks.enriched_content ILIKE" not in sql
+
+def test_keyword_search_can_match_enrichment_metadata_when_enabled() -> None:
+    statement = KeywordSearchService.build_statement(
+        query="123/QĐ-CPCIT",
+        top_k=5,
+        retrieval_enrichment_enabled=True,
+    )
+    compiled = statement.compile(dialect=postgresql.dialect())
+    sql = str(compiled)
+
+    assert "chunks.search_vector @@" in sql
+    assert "chunks.enriched_content ILIKE" in sql
+    assert compiled.params["metadata_1"] == "enrichment"
+    assert "document_code" in compiled.params.values()

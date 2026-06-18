@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from uuid import UUID
 
 from fastapi.testclient import TestClient
 
@@ -27,6 +28,60 @@ class FakeAuthRepository:
                 parent_id=None,
             ),
         )
+
+    async def get_descendant_organization_ids(self, organization_id: UUID) -> set[UUID]:
+        return {organization_id, UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")}
+
+    async def list_organizations(self):
+        return [
+            SimpleNamespace(
+                id=TEST_ORGANIZATION_ID,
+                ma_dviqly="CPC",
+                ma_dviqly_cha=None,
+                ten_dviqly="EVNCPC",
+                dvi_level=1,
+                parent_id=None,
+            ),
+            SimpleNamespace(
+                id=UUID("dddddddd-dddd-dddd-dddd-dddddddddddd"),
+                ma_dviqly="PCDN",
+                ma_dviqly_cha="CPC",
+                ten_dviqly="PC Da Nang",
+                dvi_level=2,
+                parent_id=TEST_ORGANIZATION_ID,
+            ),
+        ]
+
+    async def list_roles(self):
+        return [
+            SimpleNamespace(
+                id=UUID("11111111-aaaa-aaaa-aaaa-111111111111"),
+                name="COMPANY_ADMIN",
+                description="Company administrator",
+            ),
+            SimpleNamespace(
+                id=UUID("22222222-aaaa-aaaa-aaaa-222222222222"),
+                name="UNIT_USER",
+                description=None,
+            ),
+        ]
+
+class FakeAccessCatalogDocumentRepository:
+    async def list_documents_for_permission_check(self, *, knowledge_base_ids=None):
+        return [
+            SimpleNamespace(
+                id=UUID("33333333-aaaa-aaaa-aaaa-333333333333"),
+                organization_id=TEST_ORGANIZATION_ID,
+                uploaded_by_user_id=None,
+                visibility="global",
+                document_metadata={
+                    "access": {
+                        "allowed_group_codes": ["ai-team", "legal-team"],
+                        "denied_group_codes": "external|contractor",
+                    },
+                },
+            )
+        ]
 
 
 def test_login_returns_jwt_access_token() -> None:
@@ -70,3 +125,27 @@ def test_me_does_not_expose_password_hash() -> None:
     payload = response.json()
     assert payload["username"] == "test-admin"
     assert "hashed_password" not in payload
+
+def test_access_catalog_lists_organizations_roles_and_known_groups() -> None:
+    app.dependency_overrides[auth.get_auth_repository] = lambda: FakeAuthRepository()
+    app.dependency_overrides[auth.get_document_repository] = (
+        lambda: FakeAccessCatalogDocumentRepository()
+    )
+
+    try:
+        client = TestClient(app)
+        response = client.get("/api/auth/access-catalog")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert [organization["ma_dviqly"] for organization in payload["organizations"]] == [
+        "CPC",
+        "PCDN",
+    ]
+    assert [role["name"] for role in payload["roles"]] == [
+        "COMPANY_ADMIN",
+        "UNIT_USER",
+    ]
+    assert payload["groups"] == ["ai-team", "contractor", "external", "legal-team"]

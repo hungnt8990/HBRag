@@ -238,6 +238,7 @@ class DocumentRepository:
         *,
         enrichment_metadata: dict[str, Any],
         enriched_content: str | None,
+        update_search_vector: bool = True,
     ) -> Chunk:
         result = await self._session.execute(select(Chunk).where(Chunk.id == chunk_id))
         chunk = result.scalar_one_or_none()
@@ -246,14 +247,64 @@ class DocumentRepository:
 
         current_metadata = dict(getattr(chunk, "chunk_metadata", None) or {})
         current_enrichment = dict(current_metadata.get("enrichment") or {})
-        current_metadata["enrichment"] = {
+        merged_enrichment = {
             **current_enrichment,
             **enrichment_metadata,
         }
+        current_metadata["enrichment"] = merged_enrichment
         chunk.chunk_metadata = current_metadata
         chunk.enriched_content = enriched_content
+        if update_search_vector and enrichment_metadata.get("status") == "success":
+            search_text = self._chunk_enrichment_search_text(
+                content=chunk.content,
+                enriched_content=enriched_content,
+                enrichment=merged_enrichment,
+            )
+            await self._session.execute(
+                update(Chunk)
+                .where(Chunk.id == chunk_id)
+                .values(
+                    search_vector=func.to_tsvector(
+                        literal_column("'simple'"),
+                        search_text,
+                    )
+                )
+            )
         await self._session.flush()
         return chunk
+
+    @staticmethod
+    def _chunk_enrichment_search_text(
+        *,
+        content: str | None,
+        enriched_content: str | None,
+        enrichment: dict[str, Any],
+    ) -> str:
+        parts: list[str] = [str(content or "")]
+        if enriched_content:
+            parts.append(str(enriched_content))
+        for key in (
+            "keywords",
+            "aliases",
+            "document_code",
+            "issued_date",
+            "legal_refs",
+            "structure_path",
+            "article_number",
+            "responsible_unit",
+            "deadline",
+            "answerable_facts",
+        ):
+            value = enrichment.get(key)
+            if value is None or value == "":
+                continue
+            if isinstance(value, list | tuple | set):
+                parts.extend(str(item) for item in value if item not in (None, ""))
+            elif isinstance(value, dict):
+                parts.append(" ".join(str(item) for item in value.values()))
+            else:
+                parts.append(str(value))
+        return "\n".join(part for part in parts if part.strip())
 
     async def get_chunks_by_ids(self, chunk_ids: Sequence[UUID]) -> list[Chunk]:
         if not chunk_ids:

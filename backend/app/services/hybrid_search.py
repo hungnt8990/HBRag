@@ -87,6 +87,61 @@ def _metadata_text(metadata: dict[str, object]) -> str:
             parts.append(str(value))
     return " ".join(parts)
 
+ENRICHMENT_BOOST_FIELDS = (
+    "enrichment_summary",
+    "enrichment_keywords",
+    "document_code",
+    "issued_date",
+    "document_type",
+    "structure_path",
+    "keywords",
+    "aliases",
+    "legal_refs",
+    "article_number",
+    "responsible_unit",
+    "deadline",
+    "answerable_facts",
+)
+
+def _append_metadata_value(parts: list[str], value: object) -> None:
+    if value is None:
+        return
+    if isinstance(value, dict):
+        for nested in value.values():
+            _append_metadata_value(parts, nested)
+        return
+    if isinstance(value, list | tuple | set):
+        for item in value:
+            _append_metadata_value(parts, item)
+        return
+    clean = str(value).strip()
+    if clean:
+        parts.append(clean)
+
+def _enrichment_metadata_text(metadata: dict[str, object]) -> str:
+    parts: list[str] = []
+    nested = metadata.get("enrichment")
+    if isinstance(nested, dict):
+        for key in ENRICHMENT_BOOST_FIELDS:
+            _append_metadata_value(parts, nested.get(key))
+    for key in ENRICHMENT_BOOST_FIELDS:
+        _append_metadata_value(parts, metadata.get(key))
+    return " ".join(parts)
+
+def enrichment_metadata_boost(query: str, metadata: dict[str, object]) -> float:
+    query_tokens = _query_content_tokens(query)
+    if not query_tokens:
+        return 0.0
+    enrichment_text = _normalize_metadata_value(_enrichment_metadata_text(metadata))
+    if not enrichment_text:
+        return 0.0
+    candidate_tokens = set(re.findall(r"[a-z0-9]+", enrichment_text))
+    overlap = query_tokens & candidate_tokens
+    if not overlap:
+        return 0.0
+    coverage = len(overlap) / max(len(query_tokens), 1)
+    return 3.0 + coverage * 8.0
+
 
 def structured_row_metadata_boost(
     query: str,
@@ -372,6 +427,7 @@ class HybridSearchService:
         save_log: bool = True,
         document_ids: set[UUID] | None = None,
         access_filter: AccessFilter | None = None,
+        retrieval_enrichment_enabled: bool = False,
     ) -> HybridSearchResponse:
         run = await self.run_search(
             query=query,
@@ -381,6 +437,7 @@ class HybridSearchService:
             save_log=save_log,
             document_ids=document_ids,
             access_filter=access_filter,
+            retrieval_enrichment_enabled=retrieval_enrichment_enabled,
         )
         return run.hybrid_response
 
@@ -394,6 +451,7 @@ class HybridSearchService:
         save_log: bool = True,
         document_ids: set[UUID] | None = None,
         access_filter: AccessFilter | None = None,
+        retrieval_enrichment_enabled: bool = False,
     ) -> HybridSearchRun:
         depth = top_k * HYBRID_DEPTH_MULTIPLIER
 
@@ -430,6 +488,7 @@ class HybridSearchService:
                     query=query,
                     top_k=depth,
                     access_filter=access_filter,
+                    retrieval_enrichment_enabled=retrieval_enrichment_enabled,
                 )
             else:
                 keyword_response = await self._call_search_service(
@@ -438,6 +497,7 @@ class HybridSearchService:
                     top_k=depth,
                     document_ids=document_ids,
                     access_filter=access_filter,
+                    retrieval_enrichment_enabled=retrieval_enrichment_enabled,
                 )
             hybrid_results = self.fuse_results(
                 query=query,
@@ -447,6 +507,7 @@ class HybridSearchService:
                 vector_weight=vector_weight,
                 keyword_weight=keyword_weight,
                 rrf_k=self._rrf_k,
+                retrieval_enrichment_enabled=retrieval_enrichment_enabled,
             )
             response = HybridSearchResponse(
                 query=query,
@@ -501,6 +562,7 @@ class HybridSearchService:
         vector_weight: float = 1.0,
         keyword_weight: float = 1.0,
         rrf_k: int = DEFAULT_RRF_K,
+        retrieval_enrichment_enabled: bool = False,
     ) -> list[HybridSearchResult]:
         fused: dict[str, _FusedResult] = {}
 
@@ -577,6 +639,16 @@ class HybridSearchService:
                     "structured_row_boost": structured_row_boost,
                 }
                 HybridSearchService._append_source_flag(item, "lexical_exact")
+
+            if retrieval_enrichment_enabled:
+                enrichment_boost = enrichment_metadata_boost(normalized_query, item.metadata)
+                if enrichment_boost > 0:
+                    item.fused_score += enrichment_boost
+                    item.metadata = {
+                        **item.metadata,
+                        "enrichment_boost": enrichment_boost,
+                    }
+                    HybridSearchService._append_source_flag(item, "lexical_exact")
 
             if membership_query is not None:
                 boost = score_person_area_membership_match(

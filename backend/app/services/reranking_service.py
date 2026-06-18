@@ -62,8 +62,14 @@ class RerankingService:
         graph_expansion_limit: int = 20,
         access_filter: AccessFilter | None = None,
         subject_context: SubjectContext | None = None,
+        retrieval_enrichment_enabled: bool = False,
     ) -> RerankSearchResponse:
         try:
+            enrichment_kwargs = (
+                {"retrieval_enrichment_enabled": True}
+                if retrieval_enrichment_enabled
+                else {}
+            )
             if document_ids is None:
                 hybrid_run = await self._run_hybrid_search(
                     query=query,
@@ -72,6 +78,7 @@ class RerankingService:
                     keyword_weight=DEFAULT_KEYWORD_WEIGHT,
                     save_log=False,
                     access_filter=access_filter,
+                    **enrichment_kwargs,
                 )
             else:
                 hybrid_run = await self._run_hybrid_search(
@@ -82,6 +89,7 @@ class RerankingService:
                     save_log=False,
                     document_ids=document_ids,
                     access_filter=access_filter,
+                    **enrichment_kwargs,
                 )
             hybrid_results = list(hybrid_run.hybrid_response.results)
             if use_graph and self._graph_retrieval_service is not None:

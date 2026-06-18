@@ -7,6 +7,20 @@ from app.repositories.ingestion_profiles import IngestionProfileRepository
 
 DEFAULT_PROFILE = "auto"
 
+ENRICHMENT_RUNTIME_CONFIG_KEYS: tuple[str, ...] = tuple(
+    f"{prefix}_enrichment_{suffix}"
+    for prefix in ("chunk", "embedding", "reingest")
+    for suffix in ("provider", "base_url", "model", "max_chars", "version")
+)
+
+ENRICHMENT_CONFIG_KEYS: tuple[str, ...] = ENRICHMENT_RUNTIME_CONFIG_KEYS + (
+    "chunk_enrichment_enabled",
+    "embedding_enrichment_enabled",
+    "retrieval_enrichment_enabled",
+    "enrichment_force_on_reingest",
+    "enrichment_update_keyword_search_vector",
+)
+
 # These values are seed defaults only. Runtime edits are stored in Postgres and
 # cached in-process so sync chunkers can keep their existing call contract.
 BOOTSTRAP_PROFILE_CONFIGS: dict[str, dict[str, Any]] = {
@@ -173,6 +187,13 @@ _PROFILE_CONFIG_CACHE: dict[str, dict[str, Any]] | None = None
 def _normalize_profile_name(profile: str | None) -> str:
     return str(profile or "").strip().lower()
 
+def _normalize_config(config: dict[str, Any]) -> dict[str, Any]:
+    raw_config = copy.deepcopy(config)
+    normalized = {**FALLBACK_CONFIG, **raw_config}
+    for key in ENRICHMENT_CONFIG_KEYS:
+        normalized.pop(key, None)
+    return normalized
+
 
 def _merge_profile_configs(
     configs: dict[str, dict[str, Any]],
@@ -184,7 +205,7 @@ def _merge_profile_configs(
         normalized = _normalize_profile_name(name)
         if not normalized or normalized == DEFAULT_PROFILE:
             continue
-        merged[normalized] = {**FALLBACK_CONFIG, **copy.deepcopy(config)}
+        merged[normalized] = _normalize_config(config)
     return merged
 
 
@@ -210,7 +231,7 @@ async def save_profile_config_to_database(
     normalized = _normalize_profile_name(profile)
     if not normalized or normalized == DEFAULT_PROFILE:
         raise ValueError("profile must be a concrete profile name")
-    merged = {**FALLBACK_CONFIG, **copy.deepcopy(config)}
+    merged = _normalize_config(config)
     await repository.seed_missing_profile_configs(BOOTSTRAP_PROFILE_CONFIGS)
     await repository.upsert_profile_config(normalized, merged)
     configs = await repository.list_profile_configs()
@@ -240,6 +261,6 @@ def save_profile_config(profile: str, config: dict[str, Any]) -> dict[str, Any]:
     if not normalized or normalized == DEFAULT_PROFILE:
         raise ValueError("profile must be a concrete profile name")
     configs = get_profile_configs()
-    configs[normalized] = {**FALLBACK_CONFIG, **copy.deepcopy(config)}
+    configs[normalized] = _normalize_config(config)
     set_profile_configs(configs)
     return copy.deepcopy(configs[normalized])

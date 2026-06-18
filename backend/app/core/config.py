@@ -1,13 +1,16 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+BACKEND_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=("../.env", ".env", "backend/.env"),
+        env_file=BACKEND_ENV_FILE,
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -84,9 +87,24 @@ class Settings(BaseSettings):
     llm_model: str | None = None
 
     chunk_enrichment_enabled: bool = False
+    retrieval_enrichment_enabled: bool = False
+    enrichment_force_on_reingest: bool = True
+    enrichment_update_keyword_search_vector: bool = True
+    chunk_enrichment_provider: str | None = None
+    chunk_enrichment_base_url: str | None = None
     chunk_enrichment_model: str | None = None
     chunk_enrichment_max_chars: int = 6000
     chunk_enrichment_version: str = "v1"
+    embedding_enrichment_provider: str | None = None
+    embedding_enrichment_base_url: str | None = None
+    embedding_enrichment_model: str | None = None
+    embedding_enrichment_max_chars: int = 6000
+    embedding_enrichment_version: str = "v1"
+    reingest_enrichment_provider: str | None = None
+    reingest_enrichment_base_url: str | None = None
+    reingest_enrichment_model: str | None = None
+    reingest_enrichment_max_chars: int = 6000
+    reingest_enrichment_version: str = "v1"
 
     graph_enabled: bool = False
     graph_provider: str = "neo4j"

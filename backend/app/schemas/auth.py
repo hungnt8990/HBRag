@@ -30,3 +30,13 @@ class UserResponse(BaseModel):
     organization: OrganizationResponse
     roles: list[str]
     is_active: bool
+
+class RoleResponse(BaseModel):
+    id: UUID
+    name: str
+    description: str | None
+
+class AccessCatalogResponse(BaseModel):
+    organizations: list[OrganizationResponse]
+    roles: list[RoleResponse]
+    groups: list[str]

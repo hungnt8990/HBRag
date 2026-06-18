@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies.auth import get_current_user
+from app.core.config import settings
 from app.db.session import get_db_session
 from app.models.knowledge_base import KnowledgeBase
 from app.models.user import User
@@ -36,6 +37,7 @@ from app.schemas.documents import (
     DocumentParseResponse,
     DocumentPipelineLogResponse,
     DocumentUploadResponse,
+    DocumentVectorIndexRequest,
     DocumentVectorIndexResponse,
     GraphDocumentStatusResponse,
     GraphExtractionLogResponse,
@@ -73,6 +75,7 @@ from app.services.document_parser_service import (
     DocumentParsingError,
     UnsupportedDocumentParserError,
 )
+from app.services.document_profiles import resolve_profile
 from app.services.document_service import (
     DocumentService,
     DocumentUploadError,
@@ -94,7 +97,7 @@ from app.services.graph import (
 )
 from app.services.graph.extractors.factory import build_graph_extractor
 from app.services.llms import LLMProvider
-from app.services.llms.factory import get_llm_provider
+from app.services.llms.factory import build_llm_provider_or_error, get_llm_provider
 from app.services.permissions import (
     can_assign_upload_organization,
     can_manage_document,
@@ -675,7 +678,6 @@ async def enrich_document_chunks(
     auth_repository: Annotated[AuthRepository, Depends(get_auth_repository)],
     log_repository: Annotated[DocumentLogRepository, Depends(get_document_log_repository)],
     current_user: Annotated[User, Depends(get_current_user)],
-    service: Annotated[ChunkEnrichmentService, Depends(get_chunk_enrichment_service)],
     request: Annotated[DocumentChunkEnrichmentRequest | None, Body()] = None,
 ) -> DocumentChunkEnrichmentResponse:
     document = await _require_manageable_document(
@@ -685,10 +687,74 @@ async def enrich_document_chunks(
         current_user=current_user,
     )
     enrichment_request = request or DocumentChunkEnrichmentRequest()
+    resolved_profile = _resolve_document_rag_profile(
+        document,
+        requested_profile=enrichment_request.profile,
+    )
+    enrichment_enabled = (
+        enrichment_request.enabled
+        if enrichment_request.enabled is not None
+        else bool(settings.chunk_enrichment_enabled)
+    )
+    update_keyword_search_vector = (
+        enrichment_request.update_keyword_search_vector
+        if enrichment_request.update_keyword_search_vector is not None
+        else bool(settings.enrichment_update_keyword_search_vector)
+    )
+    base_enrichment_provider = _optional_config_string(settings.chunk_enrichment_provider)
+    base_enrichment_base_url = _optional_config_string(settings.chunk_enrichment_base_url)
+    base_enrichment_model = _optional_config_string(settings.chunk_enrichment_model)
+    base_enrichment_max_chars = _positive_int(
+        settings.chunk_enrichment_max_chars,
+        default=6000,
+    )
+    base_enrichment_version = _optional_config_string(settings.chunk_enrichment_version) or "v1"
+    embedding_enrichment_provider = _optional_config_string(settings.embedding_enrichment_provider)
+    embedding_enrichment_base_url = _optional_config_string(settings.embedding_enrichment_base_url)
+    embedding_enrichment_model = _optional_config_string(settings.embedding_enrichment_model)
+    embedding_enrichment_has_override = bool(
+        embedding_enrichment_provider or embedding_enrichment_base_url or embedding_enrichment_model
+    )
+    chunk_enrichment_provider = embedding_enrichment_provider or base_enrichment_provider
+    chunk_enrichment_base_url = embedding_enrichment_base_url or base_enrichment_base_url
+    chunk_enrichment_model = embedding_enrichment_model or base_enrichment_model
+    chunk_enrichment_max_chars = (
+        _positive_int(settings.embedding_enrichment_max_chars, default=base_enrichment_max_chars)
+        if embedding_enrichment_has_override
+        else base_enrichment_max_chars
+    )
+    chunk_enrichment_version = (
+        _optional_config_string(settings.embedding_enrichment_version)
+        if embedding_enrichment_has_override
+        else base_enrichment_version
+    ) or base_enrichment_version
+    service = ChunkEnrichmentService(
+        repository=repository,
+        llm_provider=build_llm_provider_or_error(
+            provider=chunk_enrichment_provider,
+            base_url=chunk_enrichment_base_url,
+            model=chunk_enrichment_model,
+        ),
+        enabled=enrichment_enabled,
+        provider=chunk_enrichment_provider,
+        model=chunk_enrichment_model,
+        max_chars=chunk_enrichment_max_chars,
+        version=chunk_enrichment_version,
+    )
     try:
         response = await service.enrich_document(
             document_id,
             force=enrichment_request.force,
+            enabled=enrichment_enabled,
+            update_keyword_search_vector=update_keyword_search_vector,
+            provider=chunk_enrichment_provider,
+            model=chunk_enrichment_model,
+            max_chars=chunk_enrichment_max_chars,
+            version=chunk_enrichment_version,
+        )
+        response.needs_reindex = bool(
+            getattr(document, "status", None) == "indexed"
+            and response.status in {"enriched", "partial"}
         )
         log_status = "success"
         if response.failed_count and response.enriched_count:
@@ -710,6 +776,18 @@ async def enrich_document_chunks(
                 "failed_count": response.failed_count,
                 "skipped_count": response.skipped_count,
                 "status": response.status,
+                "profile": resolved_profile,
+                "enrichment_runtime_config_source": "backend/.env",
+                "embedding_enrichment_enabled": enrichment_enabled,
+                "enrichment_update_keyword_search_vector": update_keyword_search_vector,
+                "chunk_enrichment_provider": chunk_enrichment_provider,
+                "chunk_enrichment_base_url": chunk_enrichment_base_url,
+                "chunk_enrichment_model": chunk_enrichment_model,
+                "chunk_enrichment_max_chars": chunk_enrichment_max_chars,
+                "chunk_enrichment_version": chunk_enrichment_version,
+                "embedding_enrichment_provider": chunk_enrichment_provider,
+                "embedding_enrichment_model": chunk_enrichment_model,
+                "needs_reindex": response.needs_reindex,
             },
         )
         await log_repository.commit()
@@ -752,6 +830,7 @@ async def index_document_vectors(
     log_repository: Annotated[DocumentLogRepository, Depends(get_document_log_repository)],
     current_user: Annotated[User, Depends(get_current_user)],
     service: Annotated[VectorIndexingService, Depends(get_vector_indexing_service)],
+    request: Annotated[DocumentVectorIndexRequest | None, Body()] = None,
 ) -> DocumentVectorIndexResponse:
     document = await _require_manageable_document(
         document_id=document_id,
@@ -759,8 +838,21 @@ async def index_document_vectors(
         auth_repository=auth_repository,
         current_user=current_user,
     )
+    index_request = request or DocumentVectorIndexRequest()
+    resolved_profile = _resolve_document_rag_profile(
+        document,
+        requested_profile=index_request.profile,
+    )
+    use_enriched_content_for_embedding = (
+        index_request.use_enriched_content_for_embedding
+        if index_request.use_enriched_content_for_embedding is not None
+        else bool(settings.chunk_enrichment_enabled)
+    )
     try:
-        response = await service.index_document(document_id)
+        response = await service.index_document(
+            document_id,
+            use_enriched_content_for_embedding=use_enriched_content_for_embedding,
+        )
         await log_repository.create_pipeline_log(
             document_id=document_id,
             user_id=current_user.id,
@@ -768,7 +860,11 @@ async def index_document_vectors(
             action="index_vector",
             status="success",
             message=f"Indexed {response.indexed_chunk_count} chunks.",
-            metadata={"indexed_chunk_count": response.indexed_chunk_count},
+            metadata={
+                "indexed_chunk_count": response.indexed_chunk_count,
+                "profile": resolved_profile,
+                "use_enriched_content_for_embedding": use_enriched_content_for_embedding,
+            },
         )
         await log_repository.commit()
         return response
@@ -1307,6 +1403,37 @@ async def _log_pipeline_failure(
     )
     await log_repository.commit()
 
+
+def _resolve_document_rag_profile(document, *, requested_profile: str | None) -> str:
+    requested = str(
+        requested_profile or getattr(document, "document_profile", None) or "auto"
+    ).strip().lower()
+    return resolve_profile(
+        requested or "auto",
+        text=getattr(document, "parsed_text", None),
+        filename=getattr(document, "title", None),
+        content_type=None,
+    )
+
+def _int_config_value(config: dict[str, object], key: str, *, default: int) -> int:
+    try:
+        parsed = int(config.get(key, default))
+    except (TypeError, ValueError):
+        return default
+    return parsed if parsed > 0 else default
+
+def _positive_int(value: object, *, default: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return parsed if parsed > 0 else default
+
+def _optional_config_string(value: object) -> str | None:
+    if value is None:
+        return None
+    clean = " ".join(str(value).split()).strip()
+    return clean or None
 
 def _to_document_list_item_from_document(
     document, filename: str | None, chunk_count: int

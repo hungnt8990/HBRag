@@ -21,6 +21,18 @@ export type AuthUser = {
   is_active: boolean;
 };
 
+export type AccessCatalogRole = {
+  id: string;
+  name: string;
+  description: string | null;
+};
+
+export type AccessCatalogResponse = {
+  organizations: AuthUser["organization"][];
+  roles: AccessCatalogRole[];
+  groups: string[];
+};
+
 export type LoginResponse = {
   access_token: string;
   token_type: string;
@@ -384,6 +396,26 @@ export type RuntimeConfigResponse = {
   llm_provider: string;
   llm_base_url: string | null;
   llm_model: string | null;
+  chunk_enrichment_enabled: boolean;
+  retrieval_enrichment_enabled: boolean;
+  enrichment_force_on_reingest: boolean;
+  enrichment_update_keyword_search_vector: boolean;
+  chunk_enrichment_provider: string | null;
+  chunk_enrichment_base_url: string | null;
+  chunk_enrichment_model: string | null;
+  chunk_enrichment_max_chars: number;
+  chunk_enrichment_version: string;
+  embedding_enrichment_provider: string | null;
+  embedding_enrichment_base_url: string | null;
+  embedding_enrichment_model: string | null;
+  embedding_enrichment_max_chars: number;
+  embedding_enrichment_version: string;
+  reingest_enrichment_provider: string | null;
+  reingest_enrichment_base_url: string | null;
+  reingest_enrichment_model: string | null;
+  reingest_enrichment_max_chars: number;
+  reingest_enrichment_version: string;
+  chunk_enrichment_enablement_source: string;
   vector_collection_name: string;
   auto_recreate_collection: boolean;
   default_chunk_size: number;
@@ -479,6 +511,12 @@ export async function login(username: string, password: string): Promise<LoginRe
 
 export async function getCurrentUser(): Promise<AuthUser> {
   return requestJson<AuthUser>("/api/auth/me", {
+    method: "GET",
+  });
+}
+
+export async function getAccessCatalog(): Promise<AccessCatalogResponse> {
+  return requestJson<AccessCatalogResponse>("/api/auth/access-catalog", {
     method: "GET",
   });
 }
@@ -606,11 +644,14 @@ export async function chunkDocument(
 
 export async function indexDocumentVector(
   documentId: string,
+  options?: { profile?: string; use_enriched_content_for_embedding?: boolean },
 ): Promise<DocumentVectorIndexResponse> {
   return requestJson<DocumentVectorIndexResponse>(
     `/api/documents/${documentId}/index-vector`,
     {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(options ?? {}),
     },
   );
 }
@@ -780,11 +821,15 @@ export async function enqueueIngestionJob(
   });
 }
 
-export async function reingestDocument(documentId: string): Promise<IngestionJob> {
+export async function reingestDocument(
+  documentId: string,
+  options?: { profile?: string; ingestion_profile?: string },
+): Promise<IngestionJob> {
+  const profile = options?.profile ?? options?.ingestion_profile ?? "auto";
   return requestJson<IngestionJob>(`/api/admin/documents/${documentId}/reingest`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ingestion_profile: "auto" }),
+    body: JSON.stringify({ ingestion_profile: profile, profile }),
   });
 }
 

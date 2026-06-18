@@ -254,6 +254,52 @@ def test_schema_count_query_boosts_schema_chunks_over_flow_summary() -> None:
     assert results[0].chunk_id == schema_chunk_id
     assert results[0].metadata["metadata_exact_boost"] >= 20
 
+def test_enrichment_metadata_boost_is_gated() -> None:
+    enriched_chunk_id = UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
+    plain_chunk_id = UUID("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
+    vector_results = [
+        VectorSearchResult(
+            chunk_id=plain_chunk_id,
+            document_id=DOCUMENT_ID,
+            score=0.99,
+            content_preview="Nội dung chung",
+            metadata={"chunk_id": str(plain_chunk_id)},
+        ),
+        VectorSearchResult(
+            chunk_id=enriched_chunk_id,
+            document_id=DOCUMENT_ID,
+            score=0.5,
+            content_preview="Nội dung gốc không có mã",
+            metadata={
+                "chunk_id": str(enriched_chunk_id),
+                "enrichment": {
+                    "keywords": ["PMISToGIS"],
+                    "document_code": "123/QĐ-CPCIT",
+                },
+            },
+        ),
+    ]
+
+    disabled = HybridSearchService.fuse_results(
+        query="PMISToGIS 123/QĐ-CPCIT",
+        vector_results=vector_results,
+        keyword_results=[],
+        top_k=2,
+        retrieval_enrichment_enabled=False,
+    )
+    enabled = HybridSearchService.fuse_results(
+        query="PMISToGIS 123/QĐ-CPCIT",
+        vector_results=vector_results,
+        keyword_results=[],
+        top_k=2,
+        retrieval_enrichment_enabled=True,
+    )
+
+    disabled_enriched = next(item for item in disabled if item.chunk_id == enriched_chunk_id)
+    enabled_enriched = next(item for item in enabled if item.chunk_id == enriched_chunk_id)
+    assert "enrichment_boost" not in disabled_enriched.metadata
+    assert enabled_enriched.metadata["enrichment_boost"] > 0
+
 
 def test_person_area_membership_boosts_valid_entity_or_table_row() -> None:
     valid_chunk_id = UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")

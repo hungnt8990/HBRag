@@ -165,7 +165,10 @@ def test_vector_index_endpoint_stores_one_chunk_per_qdrant_point() -> None:
     app.dependency_overrides[get_vector_store] = lambda: vector_store
 
     try:
-        response = TestClient(app).post(f"/api/documents/{DOCUMENT_ID}/index-vector")
+        response = TestClient(app).post(
+            f"/api/documents/{DOCUMENT_ID}/index-vector",
+            json={"use_enriched_content_for_embedding": True},
+        )
     finally:
         app.dependency_overrides.clear()
 
@@ -213,7 +216,10 @@ def test_vector_index_uses_enriched_content_for_embedding_payload_keeps_original
     app.dependency_overrides[get_vector_store] = lambda: vector_store
 
     try:
-        response = TestClient(app).post(f"/api/documents/{DOCUMENT_ID}/index-vector")
+        response = TestClient(app).post(
+            f"/api/documents/{DOCUMENT_ID}/index-vector",
+            json={"use_enriched_content_for_embedding": True},
+        )
     finally:
         app.dependency_overrides.clear()
 
@@ -230,6 +236,41 @@ def test_vector_index_uses_enriched_content_for_embedding_payload_keeps_original
     assert point.payload["document_type"] == "quyết định"
     assert point.payload["structure_path"] == "1. CPCIT > 1.1. GIS"
     assert "embedding_text" not in point.payload
+
+def test_vector_index_can_disable_enriched_content_for_embedding() -> None:
+    chunk = FakeDocumentRepository._chunk()
+    chunk.enriched_content = f"{chunk.content}\n\nLLM enrichment:\nTừ khóa: enriched-only"
+    chunk.chunk_metadata = {
+        **chunk.chunk_metadata,
+        "enrichment": {
+            "status": "success",
+            "summary": "Bản làm giàu.",
+            "keywords": ["enriched-only"],
+            "document_code": "123/QĐ-CPCIT",
+        },
+    }
+    repository = FakeDocumentRepository(chunks=[chunk])
+    vector_store = FakeVectorStore()
+    provider = RecordingEmbeddingProvider()
+    app.dependency_overrides[get_document_repository] = lambda: repository
+    app.dependency_overrides[get_embedding_provider] = lambda: provider
+    app.dependency_overrides[get_vector_store] = lambda: vector_store
+
+    try:
+        response = TestClient(app).post(
+            f"/api/documents/{DOCUMENT_ID}/index-vector",
+            json={"use_enriched_content_for_embedding": False},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert "LLM enrichment" not in provider.embedded_texts[0]
+    assert "enriched-only" not in provider.embedded_texts[0]
+    point = vector_store.upserted_points[0]
+    assert point.payload["text"] == chunk.content
+    assert point.payload["enriched"] is True
+    assert point.payload["enrichment_keywords"] == ["enriched-only"]
 
 
 def test_vector_index_filters_administrative_footer() -> None:

@@ -269,7 +269,7 @@ It may return provider names, base URLs, model names, dimensions, collection nam
 
 ## Local Development Notes
 
-Use `backend/.env` for backend runtime configuration. The backend does not read `.evn`.
+Use `backend/.env` for backend runtime configuration, created from `backend/.env.example`. The backend does not read root `.env`, root `.env.example`, or `.evn`.
 
 Use `frontend/.env.local` for the frontend API base URL:
 

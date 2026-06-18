@@ -1461,6 +1461,34 @@ def test_schema_count_query_uses_dynamic_count_prompt() -> None:
     assert "For count questions, state the count first" in prompt
     assert "If retrieved evidence is insufficient or conflicting" in prompt
 
+def test_gis_attribute_layer_count_prompt_separates_attribute_tables_and_layers() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    summary_chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=uuid4(),
+        chunk_index=8,
+        content=(
+            "3. Khởi tạo bổ sung 03 bảng dữ liệu thuộc tính\n"
+            "HinhAnhCotDien; HinhAnhKhachHang; HinhAnhHoSoKhachHang.\n"
+            "Khung CSDL GIS hạ thế tổng thể có 11 lớp dữ liệu GIS; "
+            "07 lớp đối tượng chính được ưu tiên, 04 lớp còn lại thực hiện giai đoạn sau."
+        ),
+        chunk_metadata={"chunk_type": "docling_hybrid_repaired"},
+    )
+
+    prompt = RagAnswerService._build_user_prompt(
+        query="Khung CSDL gis hạ thế có mấy lớp thuộc tính",
+        context_chunks=[ContextChunk(citation_index=1, chunk=summary_chunk)],
+    )
+
+    assert "03 bảng dữ liệu thuộc tính" in prompt
+    assert "11 lớp dữ liệu GIS" in prompt
+    assert "keep those categories separate" in prompt
+    assert "Do not merge conversion-priority counts" in prompt
+
 
 def test_schema_count_search_terms_are_query_derived() -> None:
     from app.services.rag_answer_service import RagAnswerService
@@ -1472,6 +1500,8 @@ def test_schema_count_search_terms_are_query_derived() -> None:
 
     assert RagAnswerService._is_schema_count_query(query_terms[0])
     assert any("csdl" in term for term in normalized)
+    assert any("bang du lieu thuoc tinh" in term for term in normalized)
+    assert any("lop du lieu gis" in term for term in normalized)
     assert all("hinhanh" not in term for term in normalized)
     assert all("cotdien_ht" not in term for term in normalized)
 

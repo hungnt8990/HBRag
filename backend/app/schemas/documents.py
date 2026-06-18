@@ -5,6 +5,15 @@ from uuid import UUID
 from pydantic import BaseModel, Field, StringConstraints, model_validator
 
 SearchQuery = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+ProfileName = Literal[
+    "auto",
+    "legal_admin",
+    "catalog_table",
+    "staff_technology_matrix",
+    "general",
+    "spreadsheet",
+    "slide",
+]
 
 
 class DocumentUploadResponse(BaseModel):
@@ -54,9 +63,7 @@ class DocumentChunkRequest(BaseModel):
         "slide_page",
         "heading_aware",
     ] | None = None
-    profile: Literal[
-        "auto", "legal_admin", "catalog_table", "general", "spreadsheet", "slide"
-    ] | None = None
+    profile: ProfileName | None = None
 
     @model_validator(mode="after")
     def validate_overlap(self) -> "DocumentChunkRequest":
@@ -78,6 +85,9 @@ class DocumentChunkResponse(BaseModel):
 
 class DocumentChunkEnrichmentRequest(BaseModel):
     force: bool = False
+    profile: ProfileName | None = None
+    enabled: bool | None = None
+    update_keyword_search_vector: bool | None = None
 
 
 class ChunkEnrichmentPreview(BaseModel):
@@ -95,7 +105,12 @@ class DocumentChunkEnrichmentResponse(BaseModel):
     enriched_count: int
     failed_count: int
     skipped_count: int
+    needs_reindex: bool = False
     preview: list[ChunkEnrichmentPreview]
+
+class DocumentVectorIndexRequest(BaseModel):
+    profile: ProfileName | None = None
+    use_enriched_content_for_embedding: bool | None = None
 
 
 class DocumentVectorIndexResponse(BaseModel):
@@ -291,6 +306,8 @@ class KeywordSearchRequest(BaseModel):
     query: SearchQuery
     top_k: int = Field(default=5, ge=1, le=50)
     knowledge_base_ids: list[UUID] | None = None
+    profile: ProfileName | None = None
+    retrieval_enrichment_enabled: bool | None = None
 
 
 class KeywordSearchResult(BaseModel):
@@ -313,6 +330,8 @@ class HybridSearchRequest(BaseModel):
     vector_weight: float = Field(default=1.0, ge=0.0)
     keyword_weight: float = Field(default=1.0, ge=0.0)
     knowledge_base_ids: list[UUID] | None = None
+    profile: ProfileName | None = None
+    retrieval_enrichment_enabled: bool | None = None
 
 
 class HybridSearchResult(BaseModel):
@@ -339,6 +358,8 @@ class RerankSearchRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=50)
     candidate_k: int = Field(default=20, ge=1, le=200)
     knowledge_base_ids: list[UUID] | None = None
+    profile: ProfileName | None = None
+    retrieval_enrichment_enabled: bool | None = None
 
     @model_validator(mode="after")
     def validate_candidate_window(self) -> "RerankSearchRequest":

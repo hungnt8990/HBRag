@@ -8,6 +8,7 @@ from uuid import UUID
 from sqlalchemy import (
     Float,
     Select,
+    String,
     bindparam,
     case,
     cast,
@@ -102,6 +103,7 @@ class KeywordSearchService:
         top_k: int,
         document_ids: set[UUID] | None = None,
         access_filter: AccessFilter | None = None,
+        retrieval_enrichment_enabled: bool = False,
     ) -> KeywordSearchResponse:
         exact_terms = self._extract_exact_terms(query)
         try:
@@ -112,6 +114,7 @@ class KeywordSearchService:
                 top_k=top_k,
                 document_ids=document_ids,
                 access_filter=access_filter,
+                retrieval_enrichment_enabled=retrieval_enrichment_enabled,
             )
             result = await self._session.execute(statement)
             rows = result.mappings().all()
@@ -130,6 +133,11 @@ class KeywordSearchService:
                     metadata=self._metadata(
                         row["metadata"],
                         content=row["content"],
+                        enrichment_text=(
+                            row.get("enriched_content")
+                            if retrieval_enrichment_enabled
+                            else None
+                        ),
                         exact_terms=exact_terms,
                     ),
                 )
@@ -144,10 +152,16 @@ class KeywordSearchService:
         top_k: int,
         document_ids: set[UUID] | None = None,
         access_filter: AccessFilter | None = None,
+        retrieval_enrichment_enabled: bool = False,
     ) -> Select[tuple[Any, ...]]:
         query_param = bindparam(KEYWORD_QUERY_PARAM, value=query)
         ts_query = func.plainto_tsquery(TS_CONFIG, query_param)
-        rank = func.ts_rank_cd(Chunk.search_vector, ts_query).label("score")
+        search_vector = (
+            Chunk.search_vector
+            if retrieval_enrichment_enabled
+            else func.to_tsvector(TS_CONFIG, Chunk.content)
+        )
+        rank = func.ts_rank_cd(search_vector, ts_query).label("score")
         exact_terms = KeywordSearchService._extract_exact_terms(query)
 
         exact_clauses = []
@@ -155,7 +169,12 @@ class KeywordSearchService:
         for index, term in enumerate(exact_terms):
             param_name = f"keyword_exact_{index}"
             exact_param = bindparam(param_name, value=f"%{term}%")
-            clause = Chunk.content.ilike(exact_param)
+            term_clauses = [Chunk.content.ilike(exact_param)]
+            if retrieval_enrichment_enabled:
+                term_clauses.extend(
+                    KeywordSearchService._enrichment_exact_clauses(exact_param)
+                )
+            clause = or_(*term_clauses)
             exact_clauses.append(clause)
             exact_score = exact_score + case((clause, EXACT_MATCH_BOOST), else_=0.0)
         exact_score = exact_score.label("exact_score")
@@ -167,11 +186,12 @@ class KeywordSearchService:
                 Chunk.document_id.label("document_id"),
                 combined_score.label("score"),
                 Chunk.content.label("content"),
+                Chunk.enriched_content.label("enriched_content"),
                 Chunk.chunk_metadata.label("metadata"),
             )
             .where(
                 or_(
-                    Chunk.search_vector.is_not(None) & Chunk.search_vector.op("@@")(ts_query),
+                    search_vector.op("@@")(ts_query),
                     *exact_clauses,
                 ),
                 or_(
@@ -202,6 +222,25 @@ class KeywordSearchService:
         if access_filter is not None:
             statement = statement.where(*KeywordSearchService._access_clauses(access_filter))
         return statement
+
+    @staticmethod
+    def _enrichment_exact_clauses(exact_param) -> list[Any]:
+        enrichment = Chunk.chunk_metadata["enrichment"]
+        clauses: list[Any] = [Chunk.enriched_content.ilike(exact_param)]
+        for key in (
+            "keywords",
+            "aliases",
+            "document_code",
+            "issued_date",
+            "legal_refs",
+            "structure_path",
+            "article_number",
+            "responsible_unit",
+            "deadline",
+            "answerable_facts",
+        ):
+            clauses.append(cast(enrichment[key], String).ilike(exact_param))
+        return clauses
 
     @staticmethod
     def _access_clauses(access_filter: AccessFilter) -> list[Any]:
@@ -265,11 +304,15 @@ class KeywordSearchService:
         metadata: dict[str, Any] | None,
         *,
         content: str,
+        enrichment_text: str | None = None,
         exact_terms: list[str],
     ) -> dict[str, object]:
         payload = dict(metadata or {})
+        searchable_text = " ".join(
+            part for part in (content or "", enrichment_text or "") if part
+        )
         matched_terms = [
-            term for term in exact_terms if term.casefold() in (content or "").casefold()
+            term for term in exact_terms if term.casefold() in searchable_text.casefold()
         ]
         if matched_terms:
             payload["exact_match_terms"] = matched_terms

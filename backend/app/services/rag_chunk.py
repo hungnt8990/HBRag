@@ -790,6 +790,7 @@ def rag_chunk_from_database(
     document: Any,
     source_file: str,
     source_uri: str | None,
+    use_enriched_content_for_embedding: bool = True,
 ) -> RagChunk:
     metadata = dict(getattr(chunk, "chunk_metadata", None) or {})
     enrichment = dict(metadata.get("enrichment") or {})
@@ -807,7 +808,7 @@ def rag_chunk_from_database(
         "document_type": enrichment.get("document_type"),
         "structure_path": enrichment.get("structure_path"),
     }
-    if enriched_content:
+    if enriched_content and use_enriched_content_for_embedding:
         record["embedding_text"] = enriched_content
     document_metadata = dict(getattr(document, "document_metadata", None) or {})
     parsed_metadata = dict(document_metadata.get("parsed_metadata") or {})

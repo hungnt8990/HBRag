@@ -184,15 +184,13 @@ Fake providers are useful for deterministic tests and development without extern
 
 ## Configuration
 
-Backend settings are defined in `backend/app/core/config.py` with `pydantic-settings`. The backend reads environment files in this order from its process working directory:
+Backend settings are defined in `backend/app/core/config.py` with `pydantic-settings`. The backend reads only the backend-local environment file:
 
 ```text
-../.env
-.env
 backend/.env
 ```
 
-Use `backend/.env` when running the backend from the `backend` directory. The application does not read misspelled files such as `.evn`.
+Create it from `backend/.env.example`. The application does not read root `.env`, root `.env.example`, or misspelled files such as `.evn`.
 
 ### Application and API
 

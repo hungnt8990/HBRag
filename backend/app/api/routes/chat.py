@@ -172,6 +172,7 @@ async def rag_chat(
             answer_mode=request.answer_mode,
             answer_style=request.answer_style,
             max_context_chars=request.max_context_chars,
+            retrieval_enrichment_enabled=request.retrieval_enrichment_enabled,
         )
         response = await _call_answer_service(
             service,
@@ -192,6 +193,7 @@ async def rag_chat(
             graph_expansion_limit=request.graph_expansion_limit,
             access_filter=build_access_filter(subject_context),
             subject_context=subject_context,
+            retrieval_enrichment_enabled=resolved["retrieval_enrichment_enabled"],
         )
         await _auto_save(
             memory_repository=memory_repository,
@@ -224,6 +226,7 @@ async def _resolve_profile_settings(
     answer_mode: str | None,
     answer_style: str | None,
     max_context_chars: int | None,
+    retrieval_enrichment_enabled: bool | None = None,
 ) -> dict:
     """Resolve runtime RAG settings automatically from the document profile.
 
@@ -301,6 +304,11 @@ async def _resolve_profile_settings(
             max_context_chars
             if max_context_chars is not None
             else int(config["max_context_chars"])
+        ),
+        "retrieval_enrichment_enabled": (
+            bool(retrieval_enrichment_enabled)
+            if retrieval_enrichment_enabled is not None
+            else bool(settings.retrieval_enrichment_enabled)
         ),
     }
 
@@ -434,6 +442,7 @@ async def rag_chat_stream(
         answer_mode=request.answer_mode,
         answer_style=request.answer_style,
         max_context_chars=request.max_context_chars,
+        retrieval_enrichment_enabled=request.retrieval_enrichment_enabled,
     )
 
     async def event_stream():
@@ -457,6 +466,7 @@ async def rag_chat_stream(
                 graph_expansion_limit=request.graph_expansion_limit,
                 access_filter=build_access_filter(subject_context),
                 subject_context=subject_context,
+                retrieval_enrichment_enabled=resolved["retrieval_enrichment_enabled"],
             ):
                 yield _format_sse_event(event)
         except ChatSessionNotFoundError:

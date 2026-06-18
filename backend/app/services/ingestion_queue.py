@@ -12,8 +12,10 @@ from uuid import UUID, uuid4
 from fastapi import UploadFile
 from starlette.datastructures import Headers
 
+from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 from app.repositories.documents import DocumentRepository
+from app.repositories.ingestion_profiles import IngestionProfileRepository
 from app.services.chunk_enrichment_service import ChunkEnrichmentService
 from app.services.chunking_service import ChunkingService
 from app.services.document_parser_service import DocumentParserService
@@ -21,7 +23,8 @@ from app.services.document_profiles import profile_config, resolve_profile_with_
 from app.services.document_service import DocumentService
 from app.services.embeddings.factory import get_embedding_provider
 from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
-from app.services.llms.factory import get_llm_provider
+from app.services.ingestion_profiles import load_profile_configs
+from app.services.llms.factory import build_llm_provider_or_error
 from app.services.storage import get_storage_client
 from app.services.vector_indexing_service import VectorIndexingService
 from app.services.vector_store import get_vector_store
@@ -88,6 +91,16 @@ class QueuedDocumentReingestion:
     filename: str
     content_type: str | None = None
     ingestion_profile: str = "auto"
+
+
+@dataclass(frozen=True)
+class EnrichmentRuntimeConfig:
+    step: str
+    provider: str | None
+    base_url: str | None
+    model: str | None
+    max_chars: int
+    version: str
 
 
 class IngestionQueue:
@@ -288,16 +301,85 @@ class IngestionQueue:
                 )
 
             async with AsyncSessionLocal() as session:
+                profile_repository = IngestionProfileRepository(session)
+                await load_profile_configs(profile_repository)
+                await profile_repository.commit()
+
+            embedding_enrichment_enabled = bool(settings.chunk_enrichment_enabled)
+            retrieval_enrichment_enabled = bool(settings.retrieval_enrichment_enabled)
+            enrichment_force_on_reingest = bool(settings.enrichment_force_on_reingest)
+            enrichment_update_keyword_search_vector = bool(
+                settings.enrichment_update_keyword_search_vector
+            )
+            force_enrichment = bool(is_reingestion and enrichment_force_on_reingest)
+            enrichment_runtime = self._enrichment_runtime_config(force_enrichment=force_enrichment)
+            self._log(
+                job,
+                step="profile",
+                level="info",
+                message=(
+                    "RAG profile config loaded: "
+                    f"profile={resolved_profile}, config_source=backend/.env, "
+                    "enrichment_runtime_config_source=backend/.env, "
+                    f"embedding_enrichment_enabled={embedding_enrichment_enabled}, "
+                    f"retrieval_enrichment_enabled={retrieval_enrichment_enabled}, "
+                    f"enrichment_force_on_reingest={enrichment_force_on_reingest}, "
+                    "enrichment_update_keyword_search_vector="
+                    f"{enrichment_update_keyword_search_vector}, "
+                    f"enrichment_step={enrichment_runtime.step}, "
+                    "enrichment_provider="
+                    f"{enrichment_runtime.provider or 'runtime_default'}, "
+                    f"enrichment_base_url={enrichment_runtime.base_url or 'runtime_default'}, "
+                    f"enrichment_model={enrichment_runtime.model or 'runtime_default'}, "
+                    f"enrichment_max_chars={enrichment_runtime.max_chars}, "
+                    f"enrichment_version={enrichment_runtime.version}."
+                ),
+            )
+
+            async with AsyncSessionLocal() as session:
                 enrich_response = await self._run_step(
                     job,
                     "enrich",
                     lambda: ChunkEnrichmentService(
                         repository=DocumentRepository(session),
-                        llm_provider=get_llm_provider(),
-                    ).enrich_document(document_id),
+                        llm_provider=build_llm_provider_or_error(
+                            provider=enrichment_runtime.provider,
+                            base_url=enrichment_runtime.base_url,
+                            model=enrichment_runtime.model,
+                        ),
+                        enabled=embedding_enrichment_enabled,
+                        provider=enrichment_runtime.provider,
+                        model=enrichment_runtime.model,
+                        max_chars=enrichment_runtime.max_chars,
+                        version=enrichment_runtime.version,
+                    ).enrich_document(
+                        document_id,
+                        force=force_enrichment,
+                        update_keyword_search_vector=enrichment_update_keyword_search_vector,
+                        provider=enrichment_runtime.provider,
+                        model=enrichment_runtime.model,
+                        max_chars=enrichment_runtime.max_chars,
+                        version=enrichment_runtime.version,
+                    ),
                     lambda response: {
                         "document_id": str(response.document_id),
                         "status": response.status,
+                        "profile": resolved_profile,
+                        "config_source": "backend/.env",
+                        "enrichment_runtime_config_source": "backend/.env",
+                        "embedding_enrichment_enabled": embedding_enrichment_enabled,
+                        "retrieval_enrichment_enabled": retrieval_enrichment_enabled,
+                        "enrichment_force_on_reingest": enrichment_force_on_reingest,
+                        "enrichment_update_keyword_search_vector": (
+                            enrichment_update_keyword_search_vector
+                        ),
+                        "enrichment_step": enrichment_runtime.step,
+                        "chunk_enrichment_provider": enrichment_runtime.provider,
+                        "chunk_enrichment_base_url": enrichment_runtime.base_url,
+                        "chunk_enrichment_model": enrichment_runtime.model,
+                        "chunk_enrichment_max_chars": enrichment_runtime.max_chars,
+                        "chunk_enrichment_version": enrichment_runtime.version,
+                        "force": force_enrichment,
                         "enriched_count": response.enriched_count,
                         "failed_count": response.failed_count,
                         "skipped_count": response.skipped_count,
@@ -315,11 +397,16 @@ class IngestionQueue:
                         embedding_provider=get_embedding_provider(),
                         vector_store=get_vector_store(),
                         sparse_embedding_provider=get_sparse_embedding_provider(),
-                    ).index_document(document_id),
+                    ).index_document(
+                        document_id,
+                        use_enriched_content_for_embedding=embedding_enrichment_enabled,
+                    ),
                     lambda response: {
                         "document_id": str(response.document_id),
                         "status": response.status,
                         "indexed_chunk_count": response.indexed_chunk_count,
+                        "profile": resolved_profile,
+                        "use_enriched_content_for_embedding": embedding_enrichment_enabled,
                     },
                 )
         except Exception as exc:
@@ -466,6 +553,81 @@ class IngestionQueue:
     def _normalize_profile(profile: str | None) -> str:
         normalized = str(profile or "auto").strip().lower() or "auto"
         return normalized
+
+    def _enrichment_runtime_config(
+        self,
+        *,
+        force_enrichment: bool,
+    ) -> EnrichmentRuntimeConfig:
+        chunk_provider = self._optional_config_string(settings.chunk_enrichment_provider)
+        chunk_base_url = self._optional_config_string(settings.chunk_enrichment_base_url)
+        chunk_model = self._optional_config_string(settings.chunk_enrichment_model)
+        chunk_max_chars = self._positive_int(settings.chunk_enrichment_max_chars, default=6000)
+        chunk_version = self._optional_config_string(settings.chunk_enrichment_version) or "v1"
+
+        embedding_provider = self._optional_config_string(settings.embedding_enrichment_provider)
+        embedding_base_url = self._optional_config_string(settings.embedding_enrichment_base_url)
+        embedding_model = self._optional_config_string(settings.embedding_enrichment_model)
+        embedding_has_override = bool(embedding_provider or embedding_base_url or embedding_model)
+        embedding_max_chars = (
+            self._positive_int(settings.embedding_enrichment_max_chars, default=chunk_max_chars)
+            if embedding_has_override
+            else chunk_max_chars
+        )
+        embedding_version = (
+            self._optional_config_string(settings.embedding_enrichment_version)
+            if embedding_has_override
+            else chunk_version
+        ) or chunk_version
+
+        if force_enrichment:
+            reingest_provider = self._optional_config_string(settings.reingest_enrichment_provider)
+            reingest_base_url = self._optional_config_string(settings.reingest_enrichment_base_url)
+            reingest_model = self._optional_config_string(settings.reingest_enrichment_model)
+            reingest_has_override = bool(reingest_provider or reingest_base_url or reingest_model)
+            return EnrichmentRuntimeConfig(
+                step="reingest",
+                provider=reingest_provider or embedding_provider or chunk_provider,
+                base_url=reingest_base_url or embedding_base_url or chunk_base_url,
+                model=reingest_model or embedding_model or chunk_model,
+                max_chars=(
+                    self._positive_int(
+                        settings.reingest_enrichment_max_chars,
+                        default=embedding_max_chars,
+                    )
+                    if reingest_has_override
+                    else embedding_max_chars
+                ),
+                version=(
+                    self._optional_config_string(settings.reingest_enrichment_version)
+                    if reingest_has_override
+                    else embedding_version
+                ) or embedding_version,
+            )
+
+        return EnrichmentRuntimeConfig(
+            step="embedding",
+            provider=embedding_provider or chunk_provider,
+            base_url=embedding_base_url or chunk_base_url,
+            model=embedding_model or chunk_model,
+            max_chars=embedding_max_chars,
+            version=embedding_version,
+        )
+
+    @staticmethod
+    def _positive_int(value: Any, *, default: int) -> int:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return default
+        return parsed if parsed > 0 else default
+
+    @staticmethod
+    def _optional_config_string(value: Any) -> str | None:
+        if value is None:
+            return None
+        clean = " ".join(str(value).split()).strip()
+        return clean or None
 
     @staticmethod
     def _to_upload_file(payload: QueuedUpload) -> UploadFile:

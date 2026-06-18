@@ -55,6 +55,7 @@ import {
   deleteMemory,
   downloadDocumentFile,
   enqueueIngestionJob,
+  getAccessCatalog,
   getDocumentAccess,
   getDocumentDetail,
   getProfiles,
@@ -83,6 +84,7 @@ import {
   type ProfileConfig,
   type RuntimeConfigResponse,
   type AuthUser,
+  type AccessCatalogResponse,
   type UploadAccessOptions,
 } from "@/lib/api";
 import { streamRagChat } from "@/lib/streaming";
@@ -155,6 +157,11 @@ type DocumentAccessListField =
   | "denied_role_names"
   | "denied_group_codes"
   | "denied_user_ids";
+
+type AccessSelectOption = {
+  value: string;
+  label: string;
+};
 
 type DebugStep = {
   key: PipelineStepKey;
@@ -241,6 +248,8 @@ export default function Home() {
   const router = useRouter();
   const [activeView, setActiveView] = useState<ActiveView>("auto");
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [accessCatalog, setAccessCatalog] =
+    useState<AccessCatalogResponse | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [runtimeConfig, setRuntimeConfig] =
     useState<RuntimeConfigResponse | null>(null);
@@ -411,6 +420,14 @@ export default function Home() {
     }
   }, [appendLog]);
 
+  const refreshAccessCatalog = useCallback(async () => {
+    try {
+      setAccessCatalog(await getAccessCatalog());
+    } catch (error) {
+      appendLog("system", "access", "error", getErrorMessage(error));
+    }
+  }, [appendLog]);
+
   const refreshMemorySettings = useCallback(async () => {
     try {
       const config = await getMemorySettings();
@@ -508,12 +525,14 @@ export default function Home() {
       return;
     }
     void refreshDocuments();
+    void refreshAccessCatalog();
     void refreshRuntimeConfig();
     void refreshJobs();
     void refreshMemorySettings();
     void refreshMemoryItems();
   }, [
-      authChecked,
+    authChecked,
+    refreshAccessCatalog,
     refreshDocuments,
     refreshJobs,
     refreshRuntimeConfig,
@@ -959,6 +978,7 @@ export default function Home() {
 
         {activeView === "auto" ? (
           <AutoQueueView
+            accessCatalog={accessCatalog}
             deletingDocumentId={deletingDocumentId}
             detailLoading={documentModalLoading}
             detailOpen={documentModalOpen}
@@ -1057,6 +1077,7 @@ export default function Home() {
 }
 
 function AutoQueueView({
+  accessCatalog,
   deletingDocumentId,
   detailDocument,
   detailLoading,
@@ -1079,6 +1100,7 @@ function AutoQueueView({
   onSubmit,
   rerunningDocumentId,
 }: {
+  accessCatalog: AccessCatalogResponse | null;
   deletingDocumentId: string | null;
   detailDocument: DocumentDetailResponse | null;
   detailLoading: boolean;
@@ -1124,6 +1146,12 @@ function AutoQueueView({
   const setAccessField = (key: keyof UploadAccessForm, value: string) => {
     onUploadAccessChange({ ...uploadAccess, [key]: value });
   };
+  const organizationOptions = buildOrganizationOptions(accessCatalog);
+  const roleOptions = buildRoleOptions(accessCatalog);
+  const groupOptions = buildGroupOptions(accessCatalog);
+  const selectedAllowedOrgIds = splitListInput(uploadAccess.allowed_org_ids);
+  const selectedAllowedRoleNames = splitListInput(uploadAccess.allowed_role_names);
+  const selectedAllowedGroupCodes = splitListInput(uploadAccess.allowed_group_codes);
 
   return (
     <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)_360px]">
@@ -1195,10 +1223,14 @@ function AutoQueueView({
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Owner company ID
               </span>
-              <Input
+              <AccessSelectField
                 className="mt-2"
-                onChange={(event) => setAccessField("organization_id", event.target.value)}
-                placeholder="UUID công ty sở hữu"
+                onChange={(value) => setAccessField("organization_id", value)}
+                options={mergeOptionsWithSelected(
+                  organizationOptions,
+                  uploadAccess.organization_id ? [uploadAccess.organization_id] : [],
+                )}
+                placeholder="Default company"
                 value={uploadAccess.organization_id}
               />
             </label>
@@ -1206,11 +1238,11 @@ function AutoQueueView({
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Allowed company IDs
               </span>
-              <Input
+              <AccessMultiSelectField
                 className="mt-2"
-                onChange={(event) => setAccessField("allowed_org_ids", event.target.value)}
-                placeholder="UUID1, UUID2"
-                value={uploadAccess.allowed_org_ids}
+                onChange={(values) => setAccessField("allowed_org_ids", values.join(", "))}
+                options={mergeOptionsWithSelected(organizationOptions, selectedAllowedOrgIds)}
+                value={selectedAllowedOrgIds}
               />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -1218,23 +1250,32 @@ function AutoQueueView({
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                   Allowed roles
                 </span>
-                <Input
+                <AccessMultiSelectField
                   className="mt-2"
-                  onChange={(event) => setAccessField("allowed_role_names", event.target.value)}
-                  placeholder="COMPANY_ADMIN, UNIT_USER"
-                  value={uploadAccess.allowed_role_names}
+                  onChange={(values) => setAccessField("allowed_role_names", values.join(", "))}
+                  options={mergeOptionsWithSelected(roleOptions, selectedAllowedRoleNames)}
+                  value={selectedAllowedRoleNames}
                 />
               </label>
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                   Allowed groups
                 </span>
-                <Input
-                  className="mt-2"
-                  onChange={(event) => setAccessField("allowed_group_codes", event.target.value)}
-                  placeholder="ai-team, legal-team"
-                  value={uploadAccess.allowed_group_codes}
-                />
+                {groupOptions.length > 0 ? (
+                  <AccessMultiSelectField
+                    className="mt-2"
+                    onChange={(values) => setAccessField("allowed_group_codes", values.join(", "))}
+                    options={mergeOptionsWithSelected(groupOptions, selectedAllowedGroupCodes)}
+                    value={selectedAllowedGroupCodes}
+                  />
+                ) : (
+                  <Input
+                    className="mt-2"
+                    onChange={(event) => setAccessField("allowed_group_codes", event.target.value)}
+                    placeholder="ai-team, legal-team"
+                    value={uploadAccess.allowed_group_codes}
+                  />
+                )}
               </label>
             </div>
           </div>
@@ -1434,6 +1475,7 @@ function AutoQueueView({
       />
 
       <DocumentDetailModal
+        accessCatalog={accessCatalog}
         document={detailDocument}
         loading={detailLoading}
         onClose={onCloseDetail}
@@ -1444,11 +1486,13 @@ function AutoQueueView({
 }
 
 function DocumentDetailModal({
+  accessCatalog,
   document,
   loading,
   onClose,
   open,
 }: {
+  accessCatalog: AccessCatalogResponse | null;
   document: DocumentDetailResponse | null;
   loading: boolean;
   onClose: () => void;
@@ -1546,6 +1590,17 @@ function DocumentDetailModal({
   const handleAccessListChange = (key: DocumentAccessListField, value: string) => {
     setAccessPolicy((current) => ({ ...current, [key]: splitListInput(value) }));
   };
+
+  const handleAccessListSelect = (
+    key: DocumentAccessListField,
+    value: string[],
+  ) => {
+    setAccessPolicy((current) => ({ ...current, [key]: value }));
+  };
+
+  const organizationOptions = buildOrganizationOptions(accessCatalog);
+  const roleOptions = buildRoleOptions(accessCatalog);
+  const groupOptions = buildGroupOptions(accessCatalog);
 
   const handleSaveAccess = async () => {
     if (!document?.document_id) {
@@ -1860,12 +1915,21 @@ function DocumentDetailModal({
                       </div>
 
                       <div className="grid gap-3 md:grid-cols-2">
-                        <AccessTextField
-                          label="Owner company ID"
-                          onChange={(value) => handleAccessScalarChange("owner_org_id", value)}
-                          placeholder="UUID công ty sở hữu"
-                          value={accessPolicy.owner_org_id ?? ""}
-                        />
+                        <label className="block">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Owner company ID
+                          </span>
+                          <AccessSelectField
+                            className="mt-2"
+                            onChange={(value) => handleAccessScalarChange("owner_org_id", value)}
+                            options={mergeOptionsWithSelected(
+                              organizationOptions,
+                              accessPolicy.owner_org_id ? [accessPolicy.owner_org_id] : [],
+                            )}
+                            placeholder="No owner company"
+                            value={accessPolicy.owner_org_id ?? ""}
+                          />
+                        </label>
                         <AccessTextField
                           label="Owner org path"
                           onChange={(value) => handleAccessScalarChange("owner_org_path", value)}
@@ -1875,42 +1939,78 @@ function DocumentDetailModal({
                       </div>
 
                       <div className="grid gap-3 md:grid-cols-2">
-                        <AccessTextField
+                        <AccessMultiSelectBlock
                           label="Allowed company IDs"
-                          onChange={(value) => handleAccessListChange("allowed_org_ids", value)}
-                          placeholder="UUID1, UUID2"
-                          value={joinListInput(accessPolicy.allowed_org_ids)}
+                          onChange={(value) => handleAccessListSelect("allowed_org_ids", value)}
+                          options={mergeOptionsWithSelected(
+                            organizationOptions,
+                            accessPolicy.allowed_org_ids,
+                          )}
+                          value={accessPolicy.allowed_org_ids}
                         />
-                        <AccessTextField
+                        <AccessMultiSelectBlock
                           label="Denied company IDs"
-                          onChange={(value) => handleAccessListChange("denied_org_ids", value)}
-                          placeholder="UUID1, UUID2"
-                          value={joinListInput(accessPolicy.denied_org_ids)}
+                          onChange={(value) => handleAccessListSelect("denied_org_ids", value)}
+                          options={mergeOptionsWithSelected(
+                            organizationOptions,
+                            accessPolicy.denied_org_ids,
+                          )}
+                          value={accessPolicy.denied_org_ids}
                         />
-                        <AccessTextField
+                        <AccessMultiSelectBlock
                           label="Allowed roles"
-                          onChange={(value) => handleAccessListChange("allowed_role_names", value)}
-                          placeholder="COMPANY_ADMIN, UNIT_USER"
-                          value={joinListInput(accessPolicy.allowed_role_names)}
+                          onChange={(value) => handleAccessListSelect("allowed_role_names", value)}
+                          options={mergeOptionsWithSelected(
+                            roleOptions,
+                            accessPolicy.allowed_role_names,
+                          )}
+                          value={accessPolicy.allowed_role_names}
                         />
-                        <AccessTextField
+                        <AccessMultiSelectBlock
                           label="Denied roles"
-                          onChange={(value) => handleAccessListChange("denied_role_names", value)}
-                          placeholder="VIEWER"
-                          value={joinListInput(accessPolicy.denied_role_names)}
+                          onChange={(value) => handleAccessListSelect("denied_role_names", value)}
+                          options={mergeOptionsWithSelected(
+                            roleOptions,
+                            accessPolicy.denied_role_names,
+                          )}
+                          value={accessPolicy.denied_role_names}
                         />
-                        <AccessTextField
-                          label="Allowed groups"
-                          onChange={(value) => handleAccessListChange("allowed_group_codes", value)}
-                          placeholder="ai-team, legal-team"
-                          value={joinListInput(accessPolicy.allowed_group_codes)}
-                        />
-                        <AccessTextField
-                          label="Denied groups"
-                          onChange={(value) => handleAccessListChange("denied_group_codes", value)}
-                          placeholder="external"
-                          value={joinListInput(accessPolicy.denied_group_codes)}
-                        />
+                        {groupOptions.length > 0 ? (
+                          <AccessMultiSelectBlock
+                            label="Allowed groups"
+                            onChange={(value) => handleAccessListSelect("allowed_group_codes", value)}
+                            options={mergeOptionsWithSelected(
+                              groupOptions,
+                              accessPolicy.allowed_group_codes,
+                            )}
+                            value={accessPolicy.allowed_group_codes}
+                          />
+                        ) : (
+                          <AccessTextField
+                            label="Allowed groups"
+                            onChange={(value) => handleAccessListChange("allowed_group_codes", value)}
+                            placeholder="ai-team, legal-team"
+                            value={joinListInput(accessPolicy.allowed_group_codes)}
+                          />
+                        )}
+                        {groupOptions.length > 0 ? (
+                          <AccessMultiSelectBlock
+                            label="Denied groups"
+                            onChange={(value) => handleAccessListSelect("denied_group_codes", value)}
+                            options={mergeOptionsWithSelected(
+                              groupOptions,
+                              accessPolicy.denied_group_codes,
+                            )}
+                            value={accessPolicy.denied_group_codes}
+                          />
+                        ) : (
+                          <AccessTextField
+                            label="Denied groups"
+                            onChange={(value) => handleAccessListChange("denied_group_codes", value)}
+                            placeholder="external"
+                            value={joinListInput(accessPolicy.denied_group_codes)}
+                          />
+                        )}
                         <AccessTextField
                           label="Allowed users"
                           onChange={(value) => handleAccessListChange("allowed_user_ids", value)}
@@ -2002,8 +2102,132 @@ function AccessTextField({
   );
 }
 
+function AccessSelectField({
+  className,
+  onChange,
+  options,
+  placeholder,
+  value,
+}: {
+  className?: string;
+  onChange: (value: string) => void;
+  options: AccessSelectOption[];
+  placeholder: string;
+  value: string;
+}) {
+  return (
+    <select
+      className={cn(
+        "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700",
+        className,
+      )}
+      onChange={(event) => onChange(event.target.value)}
+      value={value}
+    >
+      <option value="">{placeholder}</option>
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function AccessMultiSelectBlock({
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  label: string;
+  onChange: (value: string[]) => void;
+  options: AccessSelectOption[];
+  value: string[];
+}) {
+  return (
+    <label className="block">
+      <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+        {label}
+      </span>
+      <AccessMultiSelectField
+        className="mt-2"
+        onChange={onChange}
+        options={options}
+        value={value}
+      />
+    </label>
+  );
+}
+
+function AccessMultiSelectField({
+  className,
+  onChange,
+  options,
+  value,
+}: {
+  className?: string;
+  onChange: (value: string[]) => void;
+  options: AccessSelectOption[];
+  value: string[];
+}) {
+  return (
+    <select
+      className={cn(
+        "min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700",
+        className,
+      )}
+      multiple
+      onChange={(event) =>
+        onChange(
+          Array.from(event.currentTarget.selectedOptions, (option) => option.value),
+        )
+      }
+      size={Math.min(Math.max(options.length, 3), 6)}
+      value={value}
+    >
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 function joinListInput(value: string[] | undefined): string {
   return (value ?? []).join(", ");
+}
+
+function buildOrganizationOptions(
+  catalog: AccessCatalogResponse | null,
+): AccessSelectOption[] {
+  return (catalog?.organizations ?? []).map((organization) => ({
+    value: organization.id,
+    label: `${organization.ma_dviqly} - ${organization.ten_dviqly}`,
+  }));
+}
+
+function buildRoleOptions(catalog: AccessCatalogResponse | null): AccessSelectOption[] {
+  return (catalog?.roles ?? []).map((role) => ({
+    value: role.name,
+    label: role.description ? `${role.name} - ${role.description}` : role.name,
+  }));
+}
+
+function buildGroupOptions(catalog: AccessCatalogResponse | null): AccessSelectOption[] {
+  return (catalog?.groups ?? []).map((group) => ({ value: group, label: group }));
+}
+
+function mergeOptionsWithSelected(
+  options: AccessSelectOption[],
+  selected: string[] | undefined,
+): AccessSelectOption[] {
+  const seen = new Set(options.map((option) => option.value));
+  const missingOptions = (selected ?? [])
+    .filter((value) => value && !seen.has(value))
+    .map((value) => ({ value, label: value }));
+  return [...options, ...missingOptions];
 }
 
 function splitListInput(value: string): string[] {

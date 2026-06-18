@@ -27,7 +27,7 @@ Khi startup, app kiểm tra cấu hình Qdrant collection qua `get_vector_store(
 
 ## 2. Cấu hình và hạ tầng ngoài
 
-Cấu hình nằm ở `app/core/config.py`, đọc từ `../.env`, `.env`, hoặc `backend/.env` thông qua Pydantic Settings.
+Cấu hình nằm ở `app/core/config.py`, chỉ đọc `backend/.env` thông qua Pydantic Settings.
 
 Các dependency hạ tầng chính:
 
@@ -314,4 +314,3 @@ Các truy vấn GitNexus dùng khi tạo tài liệu:
 - `context RagAnswerService`: class RAG chính, import bởi `chat.py` và tests RAG/memory/table.
 - `context VectorIndexingService`: dùng bởi documents route, search route, ingestion queue, hybrid search và script reindex.
 - `context DocumentRepository`: repository trung tâm cho documents route, search/chat/admin và nhiều service xử lý tài liệu.
-

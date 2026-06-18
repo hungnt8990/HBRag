@@ -57,6 +57,7 @@ class RagChatRequest(BaseModel):
     answer_mode: AnswerMode | None = None
     answer_style: AnswerStyle | None = None
     max_context_chars: int | None = Field(default=None, ge=500, le=20000)
+    retrieval_enrichment_enabled: bool | None = None
     use_graph: bool = False
     graph_expansion_depth: int = Field(default=1, ge=0, le=5)
     graph_expansion_limit: int = Field(default=20, ge=1, le=100)
@@ -94,6 +95,7 @@ class RagChatStreamRequest(BaseModel):
     answer_mode: AnswerMode | None = None
     answer_style: AnswerStyle | None = None
     max_context_chars: int | None = Field(default=None, ge=500, le=20000)
+    retrieval_enrichment_enabled: bool | None = None
     use_graph: bool = False
     graph_expansion_depth: int = Field(default=1, ge=0, le=5)
     graph_expansion_limit: int = Field(default=20, ge=1, le=100)

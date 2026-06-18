@@ -277,6 +277,7 @@ class RagAnswerService:
         graph_expansion_limit: int = 20,
         access_filter: AccessFilter | None = None,
         subject_context: SubjectContext | None = None,
+        retrieval_enrichment_enabled: bool = False,
     ) -> RagChatResponse:
         if current_user is not None and document_ids is None:
             raise RagAnswerError("Scoped document ids are required for authenticated RAG.")
@@ -332,6 +333,7 @@ class RagAnswerService:
                     graph_expansion_limit=graph_expansion_limit,
                     access_filter=access_filter,
                     subject_context=subject_context,
+                    retrieval_enrichment_enabled=retrieval_enrichment_enabled,
                 )
             else:
                 rerank_response = await self._run_reranking_search(
@@ -345,6 +347,7 @@ class RagAnswerService:
                     graph_expansion_limit=graph_expansion_limit,
                     access_filter=access_filter,
                     subject_context=subject_context,
+                    retrieval_enrichment_enabled=retrieval_enrichment_enabled,
                 )
             context_chunks = await self._load_context_chunks(
                 rerank_results=rerank_response.results,
@@ -481,6 +484,7 @@ class RagAnswerService:
         graph_expansion_limit: int = 20,
         access_filter: AccessFilter | None = None,
         subject_context: SubjectContext | None = None,
+        retrieval_enrichment_enabled: bool = False,
     ) -> AsyncIterator[RagStreamEvent]:
         if current_user is not None and document_ids is None:
             yield RagStreamEvent(
@@ -553,6 +557,7 @@ class RagAnswerService:
                     graph_expansion_limit=graph_expansion_limit,
                     access_filter=access_filter,
                     subject_context=subject_context,
+                    retrieval_enrichment_enabled=retrieval_enrichment_enabled,
                 )
             else:
                 rerank_response = await self._run_reranking_search(
@@ -566,6 +571,7 @@ class RagAnswerService:
                     graph_expansion_limit=graph_expansion_limit,
                     access_filter=access_filter,
                     subject_context=subject_context,
+                    retrieval_enrichment_enabled=retrieval_enrichment_enabled,
                 )
             context_chunks = await self._load_context_chunks(
                 rerank_results=rerank_response.results,
@@ -1960,6 +1966,10 @@ class RagAnswerService:
             "- For count questions about attributes, tables, columns, fields, layers, or "
             "objects, do not substitute a broader category total when COUNT_EVIDENCE "
             "contains a candidate that explicitly matches the narrower counted entity.\n"
+            "- When the evidence distinguishes attribute tables from GIS/spatial data "
+            "layers, keep those categories separate. Do not merge conversion-priority "
+            "counts such as N initial layers plus M later layers into a single answer "
+            "unless the same evidence explicitly labels that sum as the requested count.\n"
             "- Prefer the smallest evidence span that directly answers the question, then add only details that explain that answer.\n"
             "- Do not expand into field-level schemas, unrelated rows, or long background details unless the question asks for those details.\n"
             "- For table-like evidence, use the row fields and original labels shown in ENTITY_MATCHED_ROWS or context; do not assume fixed column names.\n"
@@ -2332,8 +2342,12 @@ class RagAnswerService:
             "schema",
             "layer",
             "bảng dữ liệu",
+            "bảng dữ liệu thuộc tính",
             "thuộc tính",
             "lớp dữ liệu",
+            "lớp dữ liệu GIS",
+            "lớp dữ liệu không gian",
+            "khởi tạo bổ sung",
         ]
         for term in existing_terms:
             terms.extend(RagAnswerService._query_surface_phrases(term))

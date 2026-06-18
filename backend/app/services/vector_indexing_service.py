@@ -66,7 +66,12 @@ class VectorIndexingService:
         self._vector_store = vector_store
         self._sparse_embedding_provider = sparse_embedding_provider
 
-    async def index_document(self, document_id: UUID) -> DocumentVectorIndexResponse:
+    async def index_document(
+        self,
+        document_id: UUID,
+        *,
+        use_enriched_content_for_embedding: bool | None = None,
+    ) -> DocumentVectorIndexResponse:
         document = await self._repository.get_document(document_id)
         if document is None:
             raise DocumentNotFoundError("Document not found.")
@@ -82,6 +87,11 @@ class VectorIndexingService:
             raise DocumentVectorIndexStatusError(
                 "Only chunked or indexed documents can be vector indexed."
             )
+        use_enriched_embedding = (
+            True
+            if use_enriched_content_for_embedding is None
+            else bool(use_enriched_content_for_embedding)
+        )
 
         try:
             chunks = await self._repository.list_chunks_for_document(document_id)
@@ -97,6 +107,7 @@ class VectorIndexingService:
                     document=document,
                     source_file=source_file,
                     source_uri=source_uri,
+                    use_enriched_content_for_embedding=use_enriched_embedding,
                 )
                 for chunk in chunks
             ]
@@ -167,6 +178,7 @@ class VectorIndexingService:
                 document,
                 total_chunks=len(rag_chunks),
                 indexed_chunks=len(indexable_chunks),
+                use_enriched_content_for_embedding=use_enriched_embedding,
             )
             await self._repository.update_document_status(document, "indexed")
             await self._repository.commit()
@@ -431,6 +443,7 @@ class VectorIndexingService:
         *,
         total_chunks: int,
         indexed_chunks: int,
+        use_enriched_content_for_embedding: bool,
     ) -> None:
         updater = getattr(self._repository, "update_document_metadata", None)
         if updater is None:
@@ -444,6 +457,7 @@ class VectorIndexingService:
                 "ingestion_status": "indexed",
                 "ingestion_completed_at": datetime.now(UTC).isoformat(),
                 "dense_vector_name": self._vector_store.dense_vector_name,
+                "use_enriched_content_for_embedding": use_enriched_content_for_embedding,
                 "sparse_vector_name": (
                     self._vector_store.sparse_vector_name
                     if self._sparse_embedding_provider is not None

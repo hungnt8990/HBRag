@@ -44,6 +44,26 @@ class RuntimeConfigResponse(BaseModel):
     llm_provider: str
     llm_base_url: str | None
     llm_model: str | None
+    chunk_enrichment_enabled: bool
+    retrieval_enrichment_enabled: bool
+    enrichment_force_on_reingest: bool
+    enrichment_update_keyword_search_vector: bool
+    chunk_enrichment_provider: str | None
+    chunk_enrichment_base_url: str | None
+    chunk_enrichment_model: str | None
+    chunk_enrichment_max_chars: int
+    chunk_enrichment_version: str
+    embedding_enrichment_provider: str | None
+    embedding_enrichment_base_url: str | None
+    embedding_enrichment_model: str | None
+    embedding_enrichment_max_chars: int
+    embedding_enrichment_version: str
+    reingest_enrichment_provider: str | None
+    reingest_enrichment_base_url: str | None
+    reingest_enrichment_model: str | None
+    reingest_enrichment_max_chars: int
+    reingest_enrichment_version: str
+    chunk_enrichment_enablement_source: str
     vector_collection_name: str
     auto_recreate_collection: bool
     default_chunk_size: int
@@ -114,6 +134,7 @@ class IngestionJobDeleteResponse(BaseModel):
 
 class ReingestDocumentRequest(BaseModel):
     ingestion_profile: str = "auto"
+    profile: str | None = None
 
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -248,6 +269,26 @@ async def runtime_config() -> RuntimeConfigResponse:
         llm_provider=settings.llm_provider,
         llm_base_url=settings.llm_base_url,
         llm_model=settings.llm_model,
+        chunk_enrichment_enabled=settings.chunk_enrichment_enabled,
+        retrieval_enrichment_enabled=settings.retrieval_enrichment_enabled,
+        enrichment_force_on_reingest=settings.enrichment_force_on_reingest,
+        enrichment_update_keyword_search_vector=settings.enrichment_update_keyword_search_vector,
+        chunk_enrichment_provider=settings.chunk_enrichment_provider,
+        chunk_enrichment_base_url=settings.chunk_enrichment_base_url,
+        chunk_enrichment_model=settings.chunk_enrichment_model,
+        chunk_enrichment_max_chars=settings.chunk_enrichment_max_chars,
+        chunk_enrichment_version=settings.chunk_enrichment_version,
+        embedding_enrichment_provider=settings.embedding_enrichment_provider,
+        embedding_enrichment_base_url=settings.embedding_enrichment_base_url,
+        embedding_enrichment_model=settings.embedding_enrichment_model,
+        embedding_enrichment_max_chars=settings.embedding_enrichment_max_chars,
+        embedding_enrichment_version=settings.embedding_enrichment_version,
+        reingest_enrichment_provider=settings.reingest_enrichment_provider,
+        reingest_enrichment_base_url=settings.reingest_enrichment_base_url,
+        reingest_enrichment_model=settings.reingest_enrichment_model,
+        reingest_enrichment_max_chars=settings.reingest_enrichment_max_chars,
+        reingest_enrichment_version=settings.reingest_enrichment_version,
+        chunk_enrichment_enablement_source="backend/.env",
         vector_collection_name=settings.qdrant_collection_name,
         auto_recreate_collection=settings.auto_recreate_collection,
         default_chunk_size=settings.default_chunk_size,
@@ -483,7 +524,9 @@ async def reingest_document(
         document_id=document_id,
         filename=filename,
         content_type=getattr(document_file, "mime_type", None),
-        ingestion_profile=(payload.ingestion_profile if payload else "auto"),
+        ingestion_profile=(
+            (payload.profile or payload.ingestion_profile) if payload else "auto"
+        ),
     )
     background_tasks.add_task(queue.run_job, job.job_id)
     return _to_ingestion_job_response(job)

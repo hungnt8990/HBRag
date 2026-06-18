@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies.auth import get_current_user
+from app.core.config import settings
 from app.db.session import get_db_session
 from app.models.user import User
 from app.repositories.auth import AuthRepository
@@ -23,6 +24,7 @@ from app.schemas.documents import (
     VectorSearchResponse,
 )
 from app.services.access_control import build_access_filter, build_subject_context
+from app.services.document_profiles import resolve_profile
 from app.services.embeddings.base import EmbeddingProvider
 from app.services.embeddings.factory import get_embedding_provider
 from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
@@ -208,6 +210,10 @@ async def hybrid_search(
             keyword_weight=request.keyword_weight,
             document_ids=visible_ids,
             access_filter=build_access_filter(subject_context),
+            retrieval_enrichment_enabled=_resolve_retrieval_enrichment_enabled(
+                profile=request.profile,
+                override=request.retrieval_enrichment_enabled,
+            ),
         )
     except HybridSearchError as exc:
         raise HTTPException(
@@ -248,6 +254,10 @@ async def rerank_search(
             document_ids=visible_ids,
             access_filter=build_access_filter(subject_context),
             subject_context=subject_context,
+            retrieval_enrichment_enabled=_resolve_retrieval_enrichment_enabled(
+                profile=request.profile,
+                override=request.retrieval_enrichment_enabled,
+            ),
         )
     except RerankingError as exc:
         raise HTTPException(
@@ -286,6 +296,10 @@ async def keyword_search(
             top_k=request.top_k,
             document_ids=visible_ids,
             access_filter=build_access_filter(subject_context),
+            retrieval_enrichment_enabled=_resolve_retrieval_enrichment_enabled(
+                profile=request.profile,
+                override=request.retrieval_enrichment_enabled,
+            ),
         )
     except KeywordSearchError as exc:
         raise HTTPException(
@@ -356,6 +370,16 @@ async def _subject_context(
         descendant_organization_ids=descendant_ids,
     )
 
+
+def _resolve_retrieval_enrichment_enabled(
+    *,
+    profile: str | None,
+    override: bool | None,
+) -> bool:
+    if override is not None:
+        return bool(override)
+    _ = resolve_profile(profile or "auto")
+    return bool(settings.retrieval_enrichment_enabled)
 
 async def _call_search_service(service, **kwargs):
     parameters = inspect.signature(service.search).parameters

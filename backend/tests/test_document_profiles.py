@@ -241,6 +241,13 @@ def test_admin_profiles_endpoint_returns_configs() -> None:
     assert payload["configs"]["staff_technology_matrix"]["answer_style"] == "table_qa"
     assert payload["configs"]["general"]["chunk_mode"] == "recursive"
     assert payload["configs"]["general"]["answer_style"] == "detailed"
+    assert "embedding_enrichment_enabled" not in payload["configs"]["general"]
+    assert "retrieval_enrichment_enabled" not in payload["configs"]["general"]
+    assert "enrichment_force_on_reingest" not in payload["configs"]["general"]
+    assert "enrichment_update_keyword_search_vector" not in payload["configs"]["general"]
+    assert "chunk_enrichment_model" not in payload["configs"]["general"]
+    assert "embedding_enrichment_model" not in payload["configs"]["general"]
+    assert "reingest_enrichment_model" not in payload["configs"]["general"]
     assert payload["configs"]["spreadsheet"]["chunk_mode"] == "table_aware"
     assert payload["configs"]["spreadsheet"]["answer_style"] == "table_qa"
     assert repository.committed is True
@@ -255,6 +262,22 @@ def test_admin_profile_update_persists_to_repository() -> None:
         **PROFILE_CONFIGS["general"],
         "chunk_size": 1400,
         "answer_style": "table_qa",
+        "embedding_enrichment_enabled": True,
+        "retrieval_enrichment_enabled": True,
+        "enrichment_force_on_reingest": False,
+        "enrichment_update_keyword_search_vector": True,
+        "chunk_enrichment_provider": "openai_compatible",
+        "chunk_enrichment_model": "legacy-enrich",
+        "chunk_enrichment_max_chars": 6000,
+        "chunk_enrichment_version": "legacy-v1",
+        "embedding_enrichment_provider": "openai_compatible",
+        "embedding_enrichment_model": "gpt-enrich",
+        "embedding_enrichment_max_chars": 7000,
+        "embedding_enrichment_version": "v2",
+        "reingest_enrichment_provider": "fake",
+        "reingest_enrichment_model": "gpt-reingest",
+        "reingest_enrichment_max_chars": 9000,
+        "reingest_enrichment_version": "v3",
     }
 
     try:
@@ -270,7 +293,70 @@ def test_admin_profile_update_persists_to_repository() -> None:
     assert payload["configs"]["general"]["chunk_size"] == 1400
     assert repository.configs["general"]["chunk_size"] == 1400
     assert repository.configs["general"]["answer_style"] == "table_qa"
+    assert "embedding_enrichment_enabled" not in repository.configs["general"]
+    assert "retrieval_enrichment_enabled" not in repository.configs["general"]
+    assert "enrichment_force_on_reingest" not in repository.configs["general"]
+    assert "enrichment_update_keyword_search_vector" not in repository.configs["general"]
+    assert "chunk_enrichment_provider" not in repository.configs["general"]
+    assert "chunk_enrichment_model" not in repository.configs["general"]
+    assert "embedding_enrichment_provider" not in repository.configs["general"]
+    assert "embedding_enrichment_model" not in repository.configs["general"]
+    assert "reingest_enrichment_provider" not in repository.configs["general"]
+    assert "reingest_enrichment_model" not in repository.configs["general"]
     assert repository.committed is True
+
+def test_admin_profiles_merges_enrichment_defaults_for_old_config() -> None:
+    repository = FakeIngestionProfileRepository()
+    repository.configs["general"] = {
+        "chunk_mode": "recursive",
+        "chunk_size": 900,
+        "retrieval_enrichment_enabled": "true",
+    }
+    app.dependency_overrides[admin_routes.get_ingestion_profile_repository] = (
+        lambda: repository
+    )
+    client = TestClient(app)
+    try:
+        response = client.get("/api/admin/profiles")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    config = response.json()["configs"]["general"]
+    assert config["chunk_size"] == 900
+    assert "embedding_enrichment_enabled" not in config
+    assert "retrieval_enrichment_enabled" not in config
+    assert "enrichment_force_on_reingest" not in config
+    assert "enrichment_update_keyword_search_vector" not in config
+    assert "chunk_enrichment_model" not in config
+    assert "embedding_enrichment_model" not in config
+    assert "reingest_enrichment_model" not in config
+
+
+def test_admin_profiles_strip_legacy_chunk_enrichment_runtime_keys() -> None:
+    repository = FakeIngestionProfileRepository()
+    repository.configs["general"] = {
+        "chunk_mode": "recursive",
+        "chunk_enrichment_provider": "openai_compatible",
+        "chunk_enrichment_model": "legacy-model",
+        "chunk_enrichment_max_chars": 7777,
+        "chunk_enrichment_version": "legacy-v2",
+    }
+    app.dependency_overrides[admin_routes.get_ingestion_profile_repository] = (
+        lambda: repository
+    )
+    client = TestClient(app)
+    try:
+        response = client.get("/api/admin/profiles")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    config = response.json()["configs"]["general"]
+    assert "chunk_enrichment_provider" not in config
+    assert "chunk_enrichment_model" not in config
+    assert "chunk_enrichment_max_chars" not in config
+    assert "chunk_enrichment_version" not in config
 
 
 def test_chat_auto_runtime_uses_saved_document_profile() -> None:
