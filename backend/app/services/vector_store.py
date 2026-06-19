@@ -71,6 +71,12 @@ class QdrantVectorStore:
         "organization_id",
         "knowledge_base_id",
         "document_id",
+        "artifact_id",
+        "item_type",
+        "artifact_type",
+        "context_type",
+        "status",
+        "source_chunk_ids",
         "document_version",
         "chunk_id",
         "semantic_chunk_id",
@@ -679,6 +685,22 @@ def get_vector_store() -> QdrantVectorStore:
     return QdrantVectorStore(
         client=AsyncQdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key),
         collection_name=settings.qdrant_collection_name,
+        vector_size=settings.embedding_dimension,
+        upsert_batch_size=settings.qdrant_upsert_batch_size,
+        dense_vector_name=settings.dense_vector_name,
+        sparse_vector_name=settings.sparse_vector_name,
+        sparse_enabled=settings.sparse_embedding_enabled,
+        upsert_retry_count=settings.qdrant_upsert_retry_count,
+        hybrid_candidate_multiplier=settings.qdrant_hybrid_candidate_multiplier,
+        auto_recreate_collection=settings.auto_recreate_collection,
+    )
+
+
+@lru_cache
+def get_artifact_vector_store() -> QdrantVectorStore:
+    return QdrantVectorStore(
+        client=AsyncQdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key),
+        collection_name=settings.qdrant_artifact_collection_name,
         vector_size=settings.embedding_dimension,
         upsert_batch_size=settings.qdrant_upsert_batch_size,
         dense_vector_name=settings.dense_vector_name,

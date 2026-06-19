@@ -85,7 +85,9 @@ def test_model_metadata_contains_initial_tables() -> None:
         "graph_document_status",
         "knowledge_bases",
         "knowledge_base_members",
+        "knowledge_artifacts",
         "ingestion_profile_configs",
+        "rag_runtime_configs",
         "user_memories",
         "session_summaries",
     }

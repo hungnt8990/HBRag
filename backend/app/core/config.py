@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: str | None = None
     qdrant_collection_name: str = "hbrag_chunks_v2"
+    qdrant_artifact_collection_name: str = "hbrag_artifacts_v1"
     qdrant_upsert_batch_size: int = 64
     qdrant_upsert_retry_count: int = 2
     qdrant_hybrid_candidate_multiplier: int = 4
@@ -123,6 +124,19 @@ class Settings(BaseSettings):
     summary_top_k: int = 6
     table_top_k: int = 10
     max_context_chars: int = 20_000
+
+    enable_chunk_enrichment_at_ingest: bool = False
+    enable_chunk_enrichment_at_retrieval: bool = False
+    enable_knowledge_artifact_compilation: bool = True
+    enable_llm_artifact_extraction: bool = False
+    enable_artifact_first_retrieval: bool = True
+    enable_chunk_fallback: bool = True
+    enable_neighbor_expansion: bool = True
+    enable_graph_expansion: bool = True
+    artifact_confidence_threshold: float = 0.45
+    retrieval_token_budget: int = 6000
+    max_artifacts: int = 6
+    max_chunks: int = 8
 
     graph_enabled: bool = False
     graph_provider: str = "neo4j"

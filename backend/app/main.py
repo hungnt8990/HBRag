@@ -16,8 +16,10 @@ from app.api.routes.search import router as search_router
 from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 from app.repositories.ingestion_profiles import IngestionProfileRepository
+from app.repositories.rag_runtime_config import RagRuntimeConfigRepository
 from app.services.graph import get_neo4j_client
 from app.services.ingestion_profiles import load_profile_configs
+from app.services.rag_runtime_config import load_rag_runtime_config
 from app.services.vector_store import get_vector_store
 
 logger = logging.getLogger(__name__)
@@ -26,6 +28,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     await _load_ingestion_profiles_on_startup()
+    await _load_rag_runtime_config_on_startup()
     await _validate_vector_store_on_startup()
     await _validate_graph_store_on_startup()
     try:
@@ -44,6 +47,15 @@ async def _load_ingestion_profiles_on_startup() -> None:
             await repository.commit()
     except Exception:
         logger.exception("Failed to load ingestion profile configs from Postgres.")
+
+async def _load_rag_runtime_config_on_startup() -> None:
+    try:
+        async with AsyncSessionLocal() as session:
+            repository = RagRuntimeConfigRepository(session)
+            await load_rag_runtime_config(repository)
+            await repository.commit()
+    except Exception:
+        logger.exception("Failed to load RAG runtime config from Postgres.")
 
 
 async def _validate_vector_store_on_startup() -> None:

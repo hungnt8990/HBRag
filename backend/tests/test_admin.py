@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from uuid import UUID
 
 from fastapi.testclient import TestClient
@@ -74,6 +75,22 @@ class FakeDocumentRepository:
 
     async def find_document_file_by_signature(self, *, filename: str, file_size: int):
         return self.duplicate_file
+
+class FakeRagRuntimeConfigRepository:
+    def __init__(self, config: dict[str, object]) -> None:
+        self.config = config
+
+    async def seed_missing_configs(self, configs) -> None:
+        return None
+
+    async def get_config(self, config_name: str):
+        return SimpleNamespace(config_name=config_name, config=self.config)
+
+    async def commit(self) -> None:
+        return None
+
+    async def rollback(self) -> None:
+        return None
 
 
 def test_admin_recreate_vector_store_endpoint_returns_collection_info() -> None:
@@ -156,6 +173,22 @@ def test_admin_runtime_config_returns_safe_non_secret_settings(monkeypatch) -> N
         graph_expansion_limit=15,
     )
     monkeypatch.setattr(admin_routes, "settings", configured_settings)
+    app.dependency_overrides[admin_routes.get_rag_runtime_config_repository] = lambda: FakeRagRuntimeConfigRepository(
+        {
+            "enable_chunk_enrichment_at_ingest": True,
+            "enable_chunk_enrichment_at_retrieval": True,
+            "enable_knowledge_artifact_compilation": True,
+            "enable_llm_artifact_extraction": False,
+            "enable_artifact_first_retrieval": True,
+            "enable_chunk_fallback": True,
+            "enable_neighbor_expansion": True,
+            "enable_graph_expansion": True,
+            "artifact_confidence_threshold": 0.45,
+            "retrieval_token_budget": 6000,
+            "max_artifacts": 6,
+            "max_chunks": 8,
+        }
+    )
 
     client = TestClient(app)
     response = client.get("/api/admin/runtime-config")
@@ -203,8 +236,22 @@ def test_admin_runtime_config_returns_safe_non_secret_settings(monkeypatch) -> N
         "summary_top_k": 6,
         "table_top_k": 10,
         "max_context_chars": 20000,
-        "chunk_enrichment_enablement_source": "backend/.env",
+        "enable_chunk_enrichment_at_ingest": True,
+        "enable_chunk_enrichment_at_retrieval": True,
+        "enable_knowledge_artifact_compilation": True,
+        "enable_llm_artifact_extraction": False,
+        "enable_artifact_first_retrieval": True,
+        "enable_chunk_fallback": True,
+        "enable_neighbor_expansion": True,
+        "enable_graph_expansion": True,
+        "artifact_confidence_threshold": 0.45,
+        "retrieval_token_budget": 6000,
+        "max_artifacts": 6,
+        "max_chunks": 8,
+        "rag_runtime_config_source": "PostgreSQL",
+        "chunk_enrichment_enablement_source": "PostgreSQL",
         "vector_collection_name": "configured_chunks",
+        "artifact_vector_collection_name": "hbrag_artifacts_v1",
         "auto_recreate_collection": True,
         "default_chunk_size": 1000,
         "default_chunk_overlap": 150,
@@ -248,6 +295,7 @@ def test_admin_enqueue_ingestion_job_returns_queued_job() -> None:
         "upload",
         "parse",
         "chunk",
+        "compile_artifacts",
         "enrich",
         "index",
     ]

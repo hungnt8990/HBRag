@@ -16,23 +16,32 @@ from app.repositories.auth import AuthRepository
 from app.repositories.chat import ChatRepository
 from app.repositories.document_logs import DocumentLogRepository
 from app.repositories.documents import DocumentRepository
+from app.repositories.knowledge_artifacts import KnowledgeArtifactRepository
 from app.repositories.knowledge_bases import KnowledgeBaseRepository
 from app.repositories.memory import MemoryRepository
+from app.repositories.rag_runtime_config import RagRuntimeConfigRepository
 from app.schemas.chat import RagChatRequest, RagChatResponse, RagChatStreamRequest
 from app.services.access_control import build_access_filter, build_subject_context
+from app.services.artifact_first_retrieval import ArtifactFirstRetrievalService
 from app.services.document_profiles import profile_config, resolve_profile
+from app.services.embeddings.factory import get_embedding_provider
+from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
+from app.services.knowledge_artifact_indexing_service import KnowledgeArtifactIndexingService
 from app.services.llms import LLMProvider
 from app.services.llms.factory import get_llm_provider
 from app.services.memory import MemoryResult, build_memory_provider
 from app.services.memory.memory_service import maybe_auto_save_memory
 from app.services.permissions import can_view_document, can_view_knowledge_base
+from app.services.query_contract_service import QueryContractService
 from app.services.rag_answer_service import (
     ChatSessionNotFoundError,
     RagAnswerError,
     RagAnswerService,
     RagStreamEvent,
 )
+from app.services.rag_runtime_config import default_rag_runtime_config, load_rag_runtime_config
 from app.services.reranking_service import RerankingService
+from app.services.vector_store import get_artifact_vector_store
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
@@ -72,7 +81,19 @@ def get_document_log_repository(
     return DocumentLogRepository(session)
 
 
-def get_rag_answer_service(
+def get_knowledge_artifact_repository(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> KnowledgeArtifactRepository:
+    return KnowledgeArtifactRepository(session)
+
+
+def get_rag_runtime_config_repository(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> RagRuntimeConfigRepository:
+    return RagRuntimeConfigRepository(session)
+
+
+async def get_rag_answer_service(
     chat_repository: Annotated[ChatRepository, Depends(get_chat_repository)],
     reranking_service: Annotated[RerankingService, Depends(get_reranking_service)],
     llm_provider: Annotated[LLMProvider, Depends(get_llm_provider)],
@@ -80,12 +101,40 @@ def get_rag_answer_service(
         DocumentLogRepository,
         Depends(get_document_log_repository),
     ],
+    artifact_repository: Annotated[
+        KnowledgeArtifactRepository,
+        Depends(get_knowledge_artifact_repository),
+    ],
+    rag_config_repository: Annotated[
+        RagRuntimeConfigRepository,
+        Depends(get_rag_runtime_config_repository),
+    ],
 ) -> RagAnswerService:
+    try:
+        rag_config = await load_rag_runtime_config(rag_config_repository)
+        await rag_config_repository.commit()
+    except Exception:
+        await rag_config_repository.rollback()
+        rag_config = default_rag_runtime_config()
+    artifact_indexing_service = KnowledgeArtifactIndexingService(
+        repository=artifact_repository,
+        embedding_provider=get_embedding_provider(),
+        vector_store=get_artifact_vector_store(),
+        sparse_embedding_provider=get_sparse_embedding_provider(),
+    )
+    artifact_first_retrieval_service = ArtifactFirstRetrievalService(
+        artifact_repository=artifact_repository,
+        artifact_indexing_service=artifact_indexing_service,
+        reranking_service=reranking_service,
+        query_contract_service=QueryContractService(),
+        rag_config=rag_config,
+    )
     return RagAnswerService(
         chat_repository=chat_repository,
         reranking_service=reranking_service,
         llm_provider=llm_provider,
         document_log_repository=document_log_repository,
+        artifact_first_retrieval_service=artifact_first_retrieval_service,
     )
 
 

@@ -5,9 +5,11 @@ from app.models.document import Document, DocumentFile
 from app.models.document_log import DocumentAccessLog, DocumentPipelineLog
 from app.models.graph import GraphDocumentStatus, GraphExtractionLog
 from app.models.ingestion_profile import IngestionProfileConfig
+from app.models.knowledge_artifact import KnowledgeArtifact
 from app.models.knowledge_base import KnowledgeBase, KnowledgeBaseMember
 from app.models.memory import SessionSummary, UserMemory
 from app.models.organization import Organization
+from app.models.rag_config import RagRuntimeConfig
 from app.models.retrieval import RetrievalLog
 from app.models.user import Role, User
 
@@ -23,9 +25,11 @@ __all__ = [
     "GraphDocumentStatus",
     "GraphExtractionLog",
     "IngestionProfileConfig",
+    "KnowledgeArtifact",
     "KnowledgeBase",
     "KnowledgeBaseMember",
     "Organization",
+    "RagRuntimeConfig",
     "RetrievalLog",
     "Role",
     "SessionSummary",

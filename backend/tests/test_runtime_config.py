@@ -42,6 +42,7 @@ def test_default_providers_are_fake(monkeypatch) -> None:
     assert settings.llm_provider == "fake"
     assert settings.embedding_dimension == 384
     assert settings.auto_recreate_collection is False
+    assert settings.qdrant_artifact_collection_name == "hbrag_artifacts_v1"
     assert settings.graph_enabled is False
     assert settings.graph_provider == "neo4j"
     assert settings.graph_expansion_depth == 1

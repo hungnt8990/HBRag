@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import json
 import logging
 import re
 import unicodedata
@@ -12,6 +13,7 @@ from uuid import UUID
 from app.core.config import settings
 from app.models.chat import ChatSession
 from app.models.chunk import Chunk
+from app.models.knowledge_artifact import KnowledgeArtifact
 from app.models.user import User
 from app.repositories.chat import ChatRepository, CitationCreate
 from app.repositories.document_logs import DocumentLogRepository
@@ -26,9 +28,11 @@ from app.services.access_control import (
     build_subject_context,
     can_access_resource,
 )
+from app.services.artifact_first_retrieval import ArtifactFirstRetrievalResult, ArtifactFirstRetrievalService
 from app.services.hybrid_search import is_identifier_lookup_query
 from app.services.llms import LLMProvider
 from app.services.memory.base import MemoryResult
+from app.services.query_contract_service import QueryContract, QueryContractService
 from app.services.query_intent_rules import is_field_detail_schema_query
 from app.services.query_rewrite_service import QueryRewriteResult, QueryRewriteService
 from app.services.query_scope_router import classify_query_scope, scoped_direct_answer
@@ -165,7 +169,7 @@ ANSWER_STYLE_INSTRUCTIONS = {
     "table_qa": TABLE_QA_STYLE,
 }
 DEFAULT_ANSWER_STYLE = "policy_explainer"
-PUBLIC_SOURCE_FLAGS = {"vector", "keyword", "graph", "neighbor"}
+PUBLIC_SOURCE_FLAGS = {"vector", "keyword", "graph", "neighbor", "artifact"}
 SOURCE_FLAG_ALIASES = {
     "lexical_exact": "keyword",
     "exact": "keyword",
@@ -173,6 +177,7 @@ SOURCE_FLAG_ALIASES = {
     "keyword_exact": "keyword",
     "primary": "vector",
     "semantic": "vector",
+    "knowledge_artifact": "artifact",
 }
 TABLE_ENUMERATION_QUERY_PATTERNS = (
     "danh sách",
@@ -235,6 +240,7 @@ class ContextChunk:
     chunk: Chunk
     source_type: str = "primary"
     source_flags: list[str] | None = None
+    artifact_ids: list[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -252,12 +258,14 @@ class RagAnswerService:
         llm_provider: LLMProvider,
         document_log_repository: DocumentLogRepository | None = None,
         query_rewrite_service: QueryRewriteService | None = None,
+        artifact_first_retrieval_service: ArtifactFirstRetrievalService | None = None,
     ) -> None:
         self._chat_repository = chat_repository
         self._reranking_service = reranking_service
         self._llm_provider = llm_provider
         self._document_log_repository = document_log_repository
         self._query_rewrite_service = query_rewrite_service or QueryRewriteService(llm_provider)
+        self._artifact_first_retrieval_service = artifact_first_retrieval_service
 
     async def answer(
         self,
@@ -339,43 +347,36 @@ class RagAnswerService:
             if subject_context is not None and access_filter is None:
                 access_filter = build_access_filter(subject_context)
 
-            if document_ids is None:
-                rerank_response = await self._run_reranking_search(
-                    query=retrieval_query,
-                    top_k=effective_top_k,
-                    candidate_k=effective_candidate_k,
-                    session_id=chat_session.id,
-                    use_graph=use_graph,
-                    graph_expansion_depth=graph_expansion_depth,
-                    graph_expansion_limit=graph_expansion_limit,
-                    access_filter=access_filter,
-                    subject_context=subject_context,
-                    retrieval_enrichment_enabled=retrieval_enrichment_enabled,
-                    query_intent_rules=query_intent_rules,
-                )
-            else:
-                rerank_response = await self._run_reranking_search(
-                    query=retrieval_query,
-                    top_k=effective_top_k,
-                    candidate_k=effective_candidate_k,
-                    session_id=chat_session.id,
-                    document_ids=document_ids,
-                    use_graph=use_graph,
-                    graph_expansion_depth=graph_expansion_depth,
-                    graph_expansion_limit=graph_expansion_limit,
-                    access_filter=access_filter,
-                    subject_context=subject_context,
-                    retrieval_enrichment_enabled=retrieval_enrichment_enabled,
-                    query_intent_rules=query_intent_rules,
-                )
-            context_chunks = await self._load_context_chunks(
-                rerank_results=rerank_response.results,
+            artifact_result = await self._retrieve_artifact_first_or_rerank(
+                query=retrieval_query,
+                top_k=effective_top_k,
+                candidate_k=effective_candidate_k,
+                session_id=chat_session.id,
+                document_ids=document_ids,
+                use_graph=use_graph,
+                graph_expansion_depth=graph_expansion_depth,
+                graph_expansion_limit=graph_expansion_limit,
+                access_filter=access_filter,
+                subject_context=subject_context,
+                retrieval_enrichment_enabled=retrieval_enrichment_enabled,
+                query_intent_rules=query_intent_rules,
             )
+            rerank_response = artifact_result.chunk_response
+            selected_artifacts = artifact_result.selected_artifacts
+            query_contract = artifact_result.query_contract
+            context_chunks = await self._load_context_chunks(
+                rerank_results=rerank_response.results if rerank_response is not None else [],
+            )
+            artifact_context_chunks = await self._load_artifact_source_context_chunks(
+                selected_artifacts=selected_artifacts,
+                existing_context_chunks=context_chunks,
+            )
+            context_chunks = [*artifact_context_chunks, *context_chunks]
             context_chunks = self._filter_accessible_context_chunks(
                 context_chunks,
                 subject_context=subject_context,
             )
-            if getattr(settings, "enable_context_expansion", True):
+            if getattr(settings, "enable_context_expansion", True) and query_contract.allow_neighbor_expansion:
                 context_chunks = await self._expand_with_neighbors(
                     query=evidence_query,
                     context_chunks=context_chunks,
@@ -413,7 +414,26 @@ class RagAnswerService:
                 query=evidence_query,
                 context_chunks=context_chunks,
             )
-            if not context_chunks:
+            if requires_direct_evidence and self._artifacts_contain_named_entity(
+                query=evidence_query,
+                selected_artifacts=selected_artifacts,
+            ):
+                requires_direct_evidence = False
+            relevance_query = evidence_query if len(self._topical_query_terms(query)) < 2 else query
+            relevance_failed = False
+            if not self._context_is_topically_relevant(
+                query=relevance_query,
+                context_chunks=context_chunks,
+            ) and not self._artifacts_are_topically_relevant(
+                query=relevance_query,
+                selected_artifacts=selected_artifacts,
+            ):
+                relevance_failed = True
+                context_chunks = []
+                selected_artifacts = []
+            if relevance_failed and requires_direct_evidence:
+                answer = self._insufficient_direct_evidence_answer(query)
+            elif not context_chunks and not selected_artifacts:
                 answer = self._missing_accessible_context_answer(query)
             elif requires_direct_evidence:
                 answer = self._insufficient_direct_evidence_answer(query)
@@ -427,6 +447,8 @@ class RagAnswerService:
                     session_summary=session_summary,
                     session_context=session_context,
                     query_intent_rules=query_intent_rules,
+                    selected_artifacts=selected_artifacts,
+                    query_contract=query_contract,
                 )
                 answer = await self._llm_provider.generate(
                     system_prompt=build_system_prompt(
@@ -468,6 +490,9 @@ class RagAnswerService:
                             "retrieval_query": retrieval_query,
                             "evidence_query": evidence_query,
                             "query_strategy": list(query_strategy.strategies),
+                            "query_contract": query_contract.detected_intent,
+                            "selected_artifact_count": len(selected_artifacts),
+                            "used_chunk_fallback": artifact_result.used_chunk_fallback,
                             "rewrite_used": rewrite_result.rewritten,
                             "rewrite_reason": rewrite_result.reason,
                         },
@@ -585,43 +610,36 @@ class RagAnswerService:
             if subject_context is not None and access_filter is None:
                 access_filter = build_access_filter(subject_context)
 
-            if document_ids is None:
-                rerank_response = await self._run_reranking_search(
-                    query=retrieval_query,
-                    top_k=effective_top_k,
-                    candidate_k=effective_candidate_k,
-                    session_id=chat_session.id,
-                    use_graph=use_graph,
-                    graph_expansion_depth=graph_expansion_depth,
-                    graph_expansion_limit=graph_expansion_limit,
-                    access_filter=access_filter,
-                    subject_context=subject_context,
-                    retrieval_enrichment_enabled=retrieval_enrichment_enabled,
-                    query_intent_rules=query_intent_rules,
-                )
-            else:
-                rerank_response = await self._run_reranking_search(
-                    query=retrieval_query,
-                    top_k=effective_top_k,
-                    candidate_k=effective_candidate_k,
-                    session_id=chat_session.id,
-                    document_ids=document_ids,
-                    use_graph=use_graph,
-                    graph_expansion_depth=graph_expansion_depth,
-                    graph_expansion_limit=graph_expansion_limit,
-                    access_filter=access_filter,
-                    subject_context=subject_context,
-                    retrieval_enrichment_enabled=retrieval_enrichment_enabled,
-                    query_intent_rules=query_intent_rules,
-                )
-            context_chunks = await self._load_context_chunks(
-                rerank_results=rerank_response.results,
+            artifact_result = await self._retrieve_artifact_first_or_rerank(
+                query=retrieval_query,
+                top_k=effective_top_k,
+                candidate_k=effective_candidate_k,
+                session_id=chat_session.id,
+                document_ids=document_ids,
+                use_graph=use_graph,
+                graph_expansion_depth=graph_expansion_depth,
+                graph_expansion_limit=graph_expansion_limit,
+                access_filter=access_filter,
+                subject_context=subject_context,
+                retrieval_enrichment_enabled=retrieval_enrichment_enabled,
+                query_intent_rules=query_intent_rules,
             )
+            rerank_response = artifact_result.chunk_response
+            selected_artifacts = artifact_result.selected_artifacts
+            query_contract = artifact_result.query_contract
+            context_chunks = await self._load_context_chunks(
+                rerank_results=rerank_response.results if rerank_response is not None else [],
+            )
+            artifact_context_chunks = await self._load_artifact_source_context_chunks(
+                selected_artifacts=selected_artifacts,
+                existing_context_chunks=context_chunks,
+            )
+            context_chunks = [*artifact_context_chunks, *context_chunks]
             context_chunks = self._filter_accessible_context_chunks(
                 context_chunks,
                 subject_context=subject_context,
             )
-            if getattr(settings, "enable_context_expansion", True):
+            if getattr(settings, "enable_context_expansion", True) and query_contract.allow_neighbor_expansion:
                 context_chunks = await self._expand_with_neighbors(
                     query=evidence_query,
                     context_chunks=context_chunks,
@@ -659,6 +677,23 @@ class RagAnswerService:
                 query=evidence_query,
                 context_chunks=context_chunks,
             )
+            if requires_direct_evidence and self._artifacts_contain_named_entity(
+                query=evidence_query,
+                selected_artifacts=selected_artifacts,
+            ):
+                requires_direct_evidence = False
+            relevance_query = evidence_query if len(self._topical_query_terms(query)) < 2 else query
+            relevance_failed = False
+            if not self._context_is_topically_relevant(
+                query=relevance_query,
+                context_chunks=context_chunks,
+            ) and not self._artifacts_are_topically_relevant(
+                query=relevance_query,
+                selected_artifacts=selected_artifacts,
+            ):
+                relevance_failed = True
+                context_chunks = []
+                selected_artifacts = []
             yield RagStreamEvent(
                 event="metadata",
                 data={
@@ -667,12 +702,18 @@ class RagAnswerService:
                     "retrieval_query": retrieval_query,
                     "evidence_query": evidence_query,
                     "query_strategy": list(query_strategy.strategies),
+                    "query_contract": query_contract.detected_intent,
+                    "selected_artifact_count": len(selected_artifacts),
+                    "used_chunk_fallback": artifact_result.used_chunk_fallback,
                     "rewrite_used": rewrite_result.rewritten,
                     "rewrite_reason": rewrite_result.reason,
                 },
             )
 
-            if not context_chunks:
+            if relevance_failed and requires_direct_evidence:
+                answer = self._insufficient_direct_evidence_answer(query)
+                yield RagStreamEvent(event="token", data={"delta": answer})
+            elif not context_chunks and not selected_artifacts:
                 answer = self._missing_accessible_context_answer(query)
                 yield RagStreamEvent(event="token", data={"delta": answer})
             elif requires_direct_evidence:
@@ -688,6 +729,8 @@ class RagAnswerService:
                     session_summary=session_summary,
                     session_context=session_context,
                     query_intent_rules=query_intent_rules,
+                    selected_artifacts=selected_artifacts,
+                    query_contract=query_contract,
                 )
                 answer_parts: list[str] = []
                 async for delta in self._llm_provider.stream_generate(
@@ -736,6 +779,9 @@ class RagAnswerService:
                             "retrieval_query": retrieval_query,
                             "evidence_query": evidence_query,
                             "query_strategy": list(query_strategy.strategies),
+                            "query_contract": query_contract.detected_intent,
+                            "selected_artifact_count": len(selected_artifacts),
+                            "used_chunk_fallback": artifact_result.used_chunk_fallback,
                             "rewrite_used": rewrite_result.rewritten,
                             "rewrite_reason": rewrite_result.reason,
                         },
@@ -787,6 +833,68 @@ class RagAnswerService:
         accepts_var_kwargs = any(parameter.kind is inspect.Parameter.VAR_KEYWORD for parameter in parameters.values())
         supported = kwargs if accepts_var_kwargs else {key: value for key, value in kwargs.items() if key in parameters}
         return await self._reranking_service.search(**supported)
+
+    async def _retrieve_artifact_first_or_rerank(self, **kwargs) -> ArtifactFirstRetrievalResult:
+        artifact_service = self._artifact_first_retrieval_service
+        if artifact_service is not None:
+            try:
+                return await artifact_service.retrieve(**kwargs)
+            except Exception:
+                logger.exception("Artifact-first retrieval failed; falling back to chunk reranking.")
+
+        rerank_response = await self._run_reranking_search(**kwargs)
+        query_contract = QueryContractService().build_contract(
+            str(kwargs.get("query") or ""),
+            allow_graph_expansion=bool(kwargs.get("use_graph")),
+        )
+        return ArtifactFirstRetrievalResult(
+            query_contract=query_contract,
+            selected_artifacts=[],
+            chunk_response=rerank_response,
+            used_chunk_fallback=True,
+        )
+
+    async def _load_artifact_source_context_chunks(
+        self,
+        *,
+        selected_artifacts: list[KnowledgeArtifact],
+        existing_context_chunks: list[ContextChunk],
+    ) -> list[ContextChunk]:
+        if not selected_artifacts:
+            return []
+        artifact_ids_by_chunk_id: dict[UUID, list[str]] = {}
+        chunk_ids: list[UUID] = []
+        for artifact in selected_artifacts:
+            for raw_chunk_id in artifact.source_chunk_ids or []:
+                try:
+                    chunk_id = UUID(str(raw_chunk_id))
+                except (TypeError, ValueError):
+                    continue
+                if chunk_id not in artifact_ids_by_chunk_id:
+                    chunk_ids.append(chunk_id)
+                    artifact_ids_by_chunk_id[chunk_id] = []
+                artifact_ids_by_chunk_id[chunk_id].append(str(artifact.id))
+        if not chunk_ids:
+            return []
+        chunks = await self._chat_repository.get_chunks_by_ids(chunk_ids)
+        chunk_by_id = {chunk.id: chunk for chunk in chunks}
+        next_index = max((item.citation_index for item in existing_context_chunks), default=0) + 1
+        context_chunks: list[ContextChunk] = []
+        for chunk_id in chunk_ids:
+            chunk = chunk_by_id.get(chunk_id)
+            if chunk is None:
+                continue
+            context_chunks.append(
+                ContextChunk(
+                    citation_index=next_index,
+                    chunk=chunk,
+                    source_type="artifact",
+                    source_flags=["artifact"],
+                    artifact_ids=artifact_ids_by_chunk_id.get(chunk_id, []),
+                )
+            )
+            next_index += 1
+        return context_chunks
 
     async def _rewrite_for_retrieval(
         self,
@@ -1560,6 +1668,168 @@ class RagAnswerService:
         return False
 
     @staticmethod
+    def _artifacts_contain_named_entity(
+        *,
+        query: str,
+        selected_artifacts: list[KnowledgeArtifact],
+    ) -> bool:
+        entities = RagAnswerService._query_named_entities(query)
+        if not entities or not selected_artifacts:
+            return False
+        entity_keys = [normalize_metadata_value(entity) for entity in entities]
+        haystack = RagAnswerService._artifact_haystack(selected_artifacts)
+        return any(key and key in haystack for key in entity_keys)
+
+    @staticmethod
+    def _artifacts_are_topically_relevant(
+        *,
+        query: str,
+        selected_artifacts: list[KnowledgeArtifact],
+    ) -> bool:
+        if not selected_artifacts:
+            return False
+        haystack = RagAnswerService._artifact_haystack(selected_artifacts)
+        if not haystack:
+            return False
+        phrases = RagAnswerService._topical_query_phrases(query)
+        if any(phrase in haystack for phrase in phrases):
+            return True
+        terms = RagAnswerService._topical_query_terms(query)
+        if not terms:
+            return True
+        haystack_tokens = set(re.findall(r"[a-z0-9]+", haystack))
+        matched = {term for term in terms if term in haystack_tokens}
+        required = 1 if len(terms) <= 2 else 2
+        return len(matched) >= required
+
+    @staticmethod
+    def _artifact_haystack(selected_artifacts: list[KnowledgeArtifact]) -> str:
+        text = " ".join(
+            " ".join(
+                [
+                    artifact.title or "",
+                    artifact.canonical_text or "",
+                    RagAnswerService._stringify_metadata_value(artifact.structured_data or {}),
+                    RagAnswerService._stringify_metadata_value(artifact.normalized_identifiers or {}),
+                ]
+            )
+            for artifact in selected_artifacts
+        )
+        return normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(text))
+
+    @staticmethod
+    def _context_is_topically_relevant(
+        *,
+        query: str,
+        context_chunks: list[ContextChunk],
+    ) -> bool:
+        if not context_chunks:
+            return False
+
+        haystack = normalize_metadata_value(
+            RagAnswerService._strip_vietnamese_accents(
+                " ".join(
+                    f"{context_chunk.chunk.content or ''} "
+                    f"{RagAnswerService._stringify_metadata_value(context_chunk.chunk.chunk_metadata or {})}"
+                    for context_chunk in context_chunks
+                )
+            )
+        )
+        if not haystack:
+            return False
+
+        phrases = RagAnswerService._topical_query_phrases(query)
+        if any(phrase in haystack for phrase in phrases):
+            return True
+
+        terms = RagAnswerService._topical_query_terms(query)
+        if not terms:
+            return True
+
+        haystack_tokens = set(re.findall(r"[a-z0-9]+", haystack))
+        matched = {term for term in terms if term in haystack_tokens}
+        if len(phrases) >= 3 and len(terms) >= 5:
+            return len(matched) >= max(6, int(len(terms) * 0.6))
+        required = 1 if len(terms) <= 2 else 2
+        return len(matched) >= required
+
+    @staticmethod
+    def _topical_query_terms(query: str) -> list[str]:
+        normalized = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(query or ""))
+        stopwords = {
+            "about",
+            "bao",
+            "can",
+            "cai",
+            "cho",
+            "co",
+            "con",
+            "cua",
+            "duoc",
+            "evn",
+            "evncpc",
+            "hoi",
+            "how",
+            "khi",
+            "la",
+            "may",
+            "nao",
+            "ngay",
+            "nay",
+            "nhieu",
+            "sao",
+            "so",
+            "tap",
+            "the",
+            "theo",
+            "thi",
+            "ve",
+            "viec",
+            "what",
+        }
+        terms: list[str] = []
+        for token in re.findall(r"[a-z0-9]+", normalized):
+            if len(token) <= 1 or token.isdigit() or token in stopwords:
+                continue
+            terms.append(token)
+        return RagAnswerService._dedupe_text_values(terms, limit=16)
+
+    @staticmethod
+    def _topical_query_phrases(query: str) -> list[str]:
+        normalized = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(query or ""))
+        stopwords = {
+            "bao",
+            "cho",
+            "co",
+            "cua",
+            "duoc",
+            "evn",
+            "evncpc",
+            "hoi",
+            "khi",
+            "la",
+            "may",
+            "nao",
+            "ngay",
+            "nhieu",
+            "so",
+            "theo",
+            "ve",
+        }
+        tokens = [
+            token
+            for token in re.findall(r"[a-z0-9]+", normalized)
+            if len(token) > 1 and not token.isdigit() and token not in stopwords
+        ]
+        phrases: list[str] = []
+        for size in range(min(5, len(tokens)), 1, -1):
+            for index in range(0, len(tokens) - size + 1):
+                phrase = " ".join(tokens[index : index + size])
+                if len(phrase) >= 6:
+                    phrases.append(phrase)
+        return RagAnswerService._dedupe_text_values(phrases, limit=24)
+
+    @staticmethod
     def _stringify_metadata_value(value: Any) -> str:
         if value is None:
             return ""
@@ -1578,14 +1848,12 @@ class RagAnswerService:
 
     @staticmethod
     def _missing_accessible_context_answer(query: str) -> str:
-        if RagAnswerService._looks_vietnamese_query(query):
-            return "Không tìm thấy tài liệu phù hợp trong phạm vi quyền truy cập."
-        return "No relevant document was found within the accessible scope."
+        return "Kh\u00f4ng t\u00ecm th\u1ea5y th\u00f4ng tin ph\u00f9 h\u1ee3p trong c\u00e1c t\u00e0i li\u1ec7u b\u1ea1n c\u00f3 quy\u1ec1n truy c\u1eadp."
 
     @staticmethod
     def _insufficient_direct_evidence_answer(query: str) -> str:
-        if RagAnswerService._looks_vietnamese_query(query):
-            return "Không đủ căn cứ trực tiếp trong các tài liệu đã truy xuất để trả lời câu hỏi này."
+        if RagAnswerService._looks_vietnamese_query(query) or any(ord(char) > 127 for char in query or ""):
+            return "Kh\u00f4ng t\u00ecm th\u1ea5y th\u00f4ng tin ph\u00f9 h\u1ee3p trong c\u00e1c t\u00e0i li\u1ec7u b\u1ea1n c\u00f3 quy\u1ec1n truy c\u1eadp."
         return "There is not enough direct evidence in the retrieved documents to answer this question."
 
     @staticmethod
@@ -2165,6 +2433,61 @@ class RagAnswerService:
         return is_field_detail_schema_query(query, query_intent_rules)
 
     @staticmethod
+    def _query_contract_section(query_contract: QueryContract) -> str:
+        return (
+            "Query Contract:\n"
+            f"- detected_intent: {query_contract.detected_intent}\n"
+            f"- target_contexts: {', '.join(query_contract.target_contexts)}\n"
+            f"- preferred_artifact_types: {', '.join(query_contract.preferred_artifact_types)}\n"
+            f"- output_shape: {query_contract.output_shape}\n"
+            f"- citation_requirement: {query_contract.citation_requirement}\n"
+            f"- allow_chunk_fallback: {query_contract.allow_chunk_fallback}"
+        )
+
+    @staticmethod
+    def _knowledge_artifact_context_section(
+        *,
+        selected_artifacts: list[KnowledgeArtifact],
+        context_chunks: list[ContextChunk],
+    ) -> str | None:
+        if not selected_artifacts:
+            return None
+        citation_indexes_by_chunk_id = {
+            str(context_chunk.chunk.id): context_chunk.citation_index
+            for context_chunk in context_chunks
+        }
+        lines: list[str] = [
+            "Knowledge Artifacts:",
+            "Use these compiled artifacts before raw chunks when they contain the requested field.",
+        ]
+        for index, artifact in enumerate(selected_artifacts, start=1):
+            source_indexes = [
+                citation_indexes_by_chunk_id[str(chunk_id)]
+                for chunk_id in artifact.source_chunk_ids or []
+                if str(chunk_id) in citation_indexes_by_chunk_id
+            ]
+            source_marker = ", ".join(f"[{item}]" for item in source_indexes) or "no source chunk loaded"
+            structured = json.dumps(
+                artifact.structured_data or {},
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+            identifiers = json.dumps(
+                artifact.normalized_identifiers or {},
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+            lines.append(
+                f"[KA{index}] type={artifact.artifact_type}; context={artifact.context_type}; "
+                f"confidence={float(artifact.confidence_score or 0.0):.2f}; source_chunks={source_marker}\n"
+                f"title: {artifact.title or ''}\n"
+                f"canonical_text: {artifact.canonical_text}\n"
+                f"structured_data: {structured}\n"
+                f"normalized_identifiers: {identifiers}"
+            )
+        return "\n".join(lines)
+
+    @staticmethod
     def _build_user_prompt(
         *,
         query: str,
@@ -2175,6 +2498,8 @@ class RagAnswerService:
         session_summary: str | None = None,
         session_context: RagSessionContext | None = None,
         query_intent_rules: dict[str, Any] | None = None,
+        selected_artifacts: list[KnowledgeArtifact] | None = None,
+        query_contract: QueryContract | None = None,
     ) -> str:
         sections: list[str] = []
         retrieval_query = " ".join((standalone_query or query or "").split())
@@ -2192,6 +2517,16 @@ class RagAnswerService:
         strategy_section = RagAnswerService._query_strategy_section(query_strategy)
         if strategy_section:
             sections.append(strategy_section)
+
+        if query_contract is not None:
+            sections.append(RagAnswerService._query_contract_section(query_contract))
+
+        artifact_context_section = RagAnswerService._knowledge_artifact_context_section(
+            selected_artifacts=selected_artifacts or [],
+            context_chunks=context_chunks,
+        )
+        if artifact_context_section:
+            sections.append(artifact_context_section)
 
         session_context_section = RagAnswerService._short_term_context_section(session_context=session_context)
         if session_context_section:
@@ -2306,6 +2641,8 @@ class RagAnswerService:
             "Dynamic answer requirements:\n"
             "- Answer in the same language as the user's question unless the question asks otherwise.\n"
             "- Infer the question type from the wording and the retrieved evidence; do not rely on fixed document names, people, organizations, or domain-specific templates.\n"
+            "- When Knowledge Artifacts are present, treat their structured_data and canonical_text as the primary compiled evidence. Use raw chunks only to verify, cite, or fill fields missing from the artifacts.\n"
+            "- If a required field is absent from both Knowledge Artifacts and retrieved chunks, say the accessible documents do not contain that information instead of guessing.\n"
             "- If a standalone retrieval question is present, use it only to resolve references in the original question; do not treat it as a cited source.\n"
             "- Start with the direct answer. For count questions, state the count first. For yes/no questions, state the decision first. For list questions, list the matching records.\n"
             "- When COUNT_EVIDENCE exists, use it to choose the count whose nearby noun "
@@ -2730,6 +3067,8 @@ class RagAnswerService:
             "source_type": context_chunk.source_type,
             "source_flags": source_flags,
         }
+        if context_chunk.artifact_ids:
+            response_metadata["artifact_ids"] = context_chunk.artifact_ids
         if raw_source_flags != source_flags:
             response_metadata["raw_source_flags"] = raw_source_flags
         if "lexical_exact" in raw_source_flags:

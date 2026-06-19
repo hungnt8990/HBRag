@@ -10,7 +10,7 @@ DOCUMENT_ID = UUID("99999999-9999-9999-9999-999999999999")
 
 
 def test_ingestion_pipeline_has_enrich_between_chunk_and_index() -> None:
-    assert PIPELINE_STEPS == ("upload", "parse", "chunk", "enrich", "index")
+    assert PIPELINE_STEPS == ("upload", "parse", "chunk", "compile_artifacts", "enrich", "index")
 
 
 def test_ingestion_queue_logs_enrichment_failure_counts_without_failing_job() -> None:

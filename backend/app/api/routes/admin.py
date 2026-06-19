@@ -20,6 +20,7 @@ from app.core.config import settings
 from app.db.session import get_db_session
 from app.repositories.documents import DocumentRepository
 from app.repositories.ingestion_profiles import IngestionProfileRepository
+from app.repositories.rag_runtime_config import RagRuntimeConfigRepository
 from app.services.document_profiles import DEFAULT_PROFILE
 from app.services.document_service import DocumentService
 from app.services.graph import Neo4jClient, get_neo4j_client
@@ -30,6 +31,7 @@ from app.services.ingestion_profiles import (
     save_profile_config_to_database,
 )
 from app.services.ingestion_queue import IngestionJob, IngestionQueue, get_ingestion_queue
+from app.services.rag_runtime_config import DEFAULT_RAG_CONFIG_NAME, default_rag_runtime_config, load_rag_runtime_config, save_rag_runtime_config
 from app.services.vector_store import QdrantVectorStore, get_vector_store
 
 
@@ -74,8 +76,22 @@ class RuntimeConfigResponse(BaseModel):
     summary_top_k: int
     table_top_k: int
     max_context_chars: int
+    enable_chunk_enrichment_at_ingest: bool
+    enable_chunk_enrichment_at_retrieval: bool
+    enable_knowledge_artifact_compilation: bool
+    enable_llm_artifact_extraction: bool
+    enable_artifact_first_retrieval: bool
+    enable_chunk_fallback: bool
+    enable_neighbor_expansion: bool
+    enable_graph_expansion: bool
+    artifact_confidence_threshold: float
+    retrieval_token_budget: int
+    max_artifacts: int
+    max_chunks: int
+    rag_runtime_config_source: str
     chunk_enrichment_enablement_source: str
     vector_collection_name: str
+    artifact_vector_collection_name: str
     auto_recreate_collection: bool
     default_chunk_size: int
     default_chunk_overlap: int
@@ -160,6 +176,11 @@ def get_ingestion_profile_repository(
 ) -> IngestionProfileRepository:
     return IngestionProfileRepository(session)
 
+def get_rag_runtime_config_repository(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> RagRuntimeConfigRepository:
+    return RagRuntimeConfigRepository(session)
+
 
 class ProfilesResponse(BaseModel):
     default_profile: str
@@ -190,6 +211,14 @@ class HeadingRuleTestResponse(BaseModel):
 
 
 class ProfileUpdateRequest(BaseModel):
+    config: dict[str, Any]
+
+class RagRuntimeConfigResponse(BaseModel):
+    config_name: str
+    config: dict[str, object]
+    source: str
+
+class RagRuntimeConfigUpdateRequest(BaseModel):
     config: dict[str, Any]
 
 
@@ -267,8 +296,65 @@ async def test_heading_rules(
     )
 
 
+@router.get("/rag-runtime-config", response_model=RagRuntimeConfigResponse)
+async def get_rag_runtime_config(
+    repository: Annotated[
+        RagRuntimeConfigRepository,
+        Depends(get_rag_runtime_config_repository),
+    ],
+) -> RagRuntimeConfigResponse:
+    try:
+        config = await load_rag_runtime_config(repository)
+        await repository.commit()
+        source = "PostgreSQL"
+    except Exception:
+        await repository.rollback()
+        config = default_rag_runtime_config()
+        source = "settings_fallback"
+    return RagRuntimeConfigResponse(
+        config_name=DEFAULT_RAG_CONFIG_NAME,
+        config=config.model_dump(),
+        source=source,
+    )
+
+@router.put("/rag-runtime-config", response_model=RagRuntimeConfigResponse)
+async def update_rag_runtime_config(
+    payload: RagRuntimeConfigUpdateRequest,
+    repository: Annotated[
+        RagRuntimeConfigRepository,
+        Depends(get_rag_runtime_config_repository),
+    ],
+) -> RagRuntimeConfigResponse:
+    try:
+        config = await save_rag_runtime_config(repository, payload.config)
+        await repository.commit()
+    except Exception as exc:
+        await repository.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to save RAG runtime config.",
+        ) from exc
+    return RagRuntimeConfigResponse(
+        config_name=DEFAULT_RAG_CONFIG_NAME,
+        config=config.model_dump(),
+        source="PostgreSQL",
+    )
+
 @router.get("/runtime-config", response_model=RuntimeConfigResponse)
-async def runtime_config() -> RuntimeConfigResponse:
+async def runtime_config(
+    repository: Annotated[
+        RagRuntimeConfigRepository,
+        Depends(get_rag_runtime_config_repository),
+    ],
+) -> RuntimeConfigResponse:
+    rag_config_source = "PostgreSQL"
+    try:
+        rag_config = await load_rag_runtime_config(repository)
+        await repository.commit()
+    except Exception:
+        await repository.rollback()
+        rag_config = default_rag_runtime_config()
+        rag_config_source = "settings_fallback"
     return RuntimeConfigResponse(
         embedding_provider=settings.embedding_provider,
         embedding_base_url=settings.embedding_base_url,
@@ -310,8 +396,22 @@ async def runtime_config() -> RuntimeConfigResponse:
         summary_top_k=settings.summary_top_k,
         table_top_k=settings.table_top_k,
         max_context_chars=settings.max_context_chars,
-        chunk_enrichment_enablement_source="backend/.env",
+        enable_chunk_enrichment_at_ingest=rag_config.enable_chunk_enrichment_at_ingest,
+        enable_chunk_enrichment_at_retrieval=rag_config.enable_chunk_enrichment_at_retrieval,
+        enable_knowledge_artifact_compilation=rag_config.enable_knowledge_artifact_compilation,
+        enable_llm_artifact_extraction=rag_config.enable_llm_artifact_extraction,
+        enable_artifact_first_retrieval=rag_config.enable_artifact_first_retrieval,
+        enable_chunk_fallback=rag_config.enable_chunk_fallback,
+        enable_neighbor_expansion=rag_config.enable_neighbor_expansion,
+        enable_graph_expansion=rag_config.enable_graph_expansion,
+        artifact_confidence_threshold=rag_config.artifact_confidence_threshold,
+        retrieval_token_budget=rag_config.retrieval_token_budget,
+        max_artifacts=rag_config.max_artifacts,
+        max_chunks=rag_config.max_chunks,
+        rag_runtime_config_source=rag_config_source,
+        chunk_enrichment_enablement_source=rag_config_source,
         vector_collection_name=settings.qdrant_collection_name,
+        artifact_vector_collection_name=settings.qdrant_artifact_collection_name,
         auto_recreate_collection=settings.auto_recreate_collection,
         default_chunk_size=settings.default_chunk_size,
         default_chunk_overlap=settings.default_chunk_overlap,

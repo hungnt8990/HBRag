@@ -123,7 +123,7 @@ class RagCitationResponse(BaseModel):
     article_title: str | None = None
     chapter_title: str | None = None
     page_number: int | None = None
-    source_flags: list[Literal["vector", "keyword", "graph", "neighbor"]]
+    source_flags: list[Literal["vector", "keyword", "graph", "neighbor", "artifact"]]
     metadata: dict[str, object]
 
 

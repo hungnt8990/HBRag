@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from app.models.citation import Citation
     from app.models.document_log import DocumentAccessLog, DocumentPipelineLog
     from app.models.graph import GraphDocumentStatus, GraphExtractionLog
+    from app.models.knowledge_artifact import KnowledgeArtifact
     from app.models.knowledge_base import KnowledgeBase
     from app.models.organization import Organization
     from app.models.user import User
@@ -96,6 +97,11 @@ class Document(Base, TimestampMixin):
         passive_deletes=True,
     )
     citations: Mapped[list[Citation]] = relationship(
+        back_populates="document",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    knowledge_artifacts: Mapped[list[KnowledgeArtifact]] = relationship(
         back_populates="document",
         cascade="all, delete-orphan",
         passive_deletes=True,

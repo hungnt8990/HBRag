@@ -207,4 +207,36 @@ python -m ruff check .
 python -m pytest
 ```
 
+## 12. Knowledge Artifacts & Contexts
+
+The backend adds a Nexus-inspired compiled knowledge layer on top of raw chunks:
+
+```text
+Upload/Parse
+-> Docling V6
+-> Chunk repair/table balancing
+-> RagChunk
+-> KnowledgeArtifactCompiler
+-> PostgreSQL knowledge_artifacts + Qdrant hbrag_artifacts_v1
+-> QueryContractService
+-> Artifact-first retrieval
+-> Chunk fallback / neighbor expansion when needed
+-> Answer synthesis with structured artifact context + chunk citations
+```
+
+Artifacts are stored in PostgreSQL table `knowledge_artifacts` and indexed into a separate Qdrant collection, `QDRANT_ARTIFACT_COLLECTION_NAME` (default `hbrag_artifacts_v1`). Keeping artifacts separate avoids changing the existing chunk collection `hbrag_chunks_v2` without an explicit migration plan.
+
+Supported artifact types are `document_profile`, `identifier_lookup`, `procedure_artifact`, `policy_rule_artifact`, `table_row_artifact`, and `person_assignment_artifact`. Each artifact contains `canonical_text` for embedding, `structured_data` for answer synthesis, `normalized_identifiers` for exact lookup, and `citation_map` back to document/chunk/page/table/row metadata when available.
+
+Runtime options live in PostgreSQL table `rag_runtime_configs` and are exposed through `/api/admin/rag-runtime-config`. Environment variables remain fallback defaults only. The main options are `enable_knowledge_artifact_compilation`, `enable_artifact_first_retrieval`, `enable_chunk_fallback`, `enable_neighbor_expansion`, `enable_graph_expansion`, `artifact_confidence_threshold`, `retrieval_token_budget`, `max_artifacts`, and `max_chunks`.
+
+Migration required:
+
+```powershell
+cd backend
+alembic upgrade head
+```
+
+The migration that adds this layer is `0012_knowledge_artifacts`.
+
 Nếu dùng Qdrant integration thật, chạy Qdrant/Postgres/MinIO trước khi chạy nhóm integration test.

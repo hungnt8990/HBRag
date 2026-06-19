@@ -397,9 +397,42 @@ def test_person_area_query_does_not_answer_from_unrelated_context() -> None:
             candidate_k=10,
         )
 
-        assert response.answer.startswith("Không đủ căn cứ trực tiếp")
+        assert response.answer == "Kh\u00f4ng t\u00ecm th\u1ea5y th\u00f4ng tin ph\u00f9 h\u1ee3p trong c\u00e1c t\u00e0i li\u1ec7u b\u1ea1n c\u00f3 quy\u1ec1n truy c\u1eadp."
         assert "CHƯƠNG II" not in response.answer
         assert "Công tác đào tạo" not in response.answer
+
+    asyncio.run(run_test())
+
+
+def test_policy_question_does_not_answer_from_unrelated_customer_app_context() -> None:
+    async def run_test() -> None:
+        repository = FakeChatRepository()
+        repository.chunks[CHUNK_ID_1].content = (
+            "EVNICT thong bao cap nhat phien ban ung dung EVN CSKH. "
+            "Noi dung bao gom cac man hinh thanh toan, hoa don va lien ket khach hang."
+        )
+        repository.chunks[CHUNK_ID_2].content = "Website quan tri noi dung CMS bo sung dashboard va bao cao thong ke."
+        reranking_service = FakeRerankingService()
+        service = RagAnswerService(
+            chat_repository=repository,  # type: ignore[arg-type]
+            reranking_service=reranking_service,  # type: ignore[arg-type]
+            llm_provider=FakeLLM(),
+        )
+
+        query = (
+            "Khi k\u1ebft h\u00f4n, NL\u0110 \u0111\u01b0\u1ee3c ngh\u1ec9 vi\u1ec7c ri\u00eang c\u00f3 h\u01b0\u1edfng "
+            "l\u01b0\u01a1ng bao nhi\u00eau ng\u00e0y theo Th\u1ecfa \u01b0\u1edbc lao \u0111\u1ed9ng t\u1eadp th\u1ec3 EVNCPC?"
+        )
+        response = await service.answer(
+            query=query,
+            session_id=None,
+            top_k=2,
+            candidate_k=10,
+        )
+
+        assert response.answer == "Kh\u00f4ng t\u00ecm th\u1ea5y th\u00f4ng tin ph\u00f9 h\u1ee3p trong c\u00e1c t\u00e0i li\u1ec7u b\u1ea1n c\u00f3 quy\u1ec1n truy c\u1eadp."
+        assert response.citations == []
+        assert repository.citations == []
 
     asyncio.run(run_test())
 

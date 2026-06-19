@@ -16,6 +16,8 @@ from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 from app.repositories.documents import DocumentRepository
 from app.repositories.ingestion_profiles import IngestionProfileRepository
+from app.repositories.knowledge_artifacts import KnowledgeArtifactRepository
+from app.repositories.rag_runtime_config import RagRuntimeConfigRepository
 from app.services.chunk_enrichment_service import ChunkEnrichmentService
 from app.services.chunking_service import ChunkingService
 from app.services.document_parser_service import DocumentParserService
@@ -24,16 +26,19 @@ from app.services.document_service import DocumentService
 from app.services.embeddings.factory import get_embedding_provider
 from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
 from app.services.ingestion_profiles import load_profile_configs
+from app.services.knowledge_artifact_compiler import KnowledgeArtifactCompiler, KnowledgeArtifactCompilerConfig
+from app.services.knowledge_artifact_indexing_service import KnowledgeArtifactIndexingService
 from app.services.llms.factory import build_llm_provider_or_error
+from app.services.rag_runtime_config import RagRuntimeConfigValues, load_rag_runtime_config
 from app.services.storage import get_storage_client
 from app.services.vector_indexing_service import VectorIndexingService
-from app.services.vector_store import get_vector_store
+from app.services.vector_store import get_artifact_vector_store, get_vector_store
 
 JobStatus = Literal["queued", "running", "succeeded", "failed"]
 StepState = Literal["idle", "running", "succeeded", "failed"]
 LogLevel = Literal["info", "success", "error"]
 
-PIPELINE_STEPS = ("upload", "parse", "chunk", "enrich", "index")
+PIPELINE_STEPS = ("upload", "parse", "chunk", "compile_artifacts", "enrich", "index")
 logger = logging.getLogger(__name__)
 
 
@@ -305,17 +310,53 @@ class IngestionQueue:
                 await load_profile_configs(profile_repository)
                 await profile_repository.commit()
 
+            rag_config = await self._load_rag_runtime_config()
+
+            async with AsyncSessionLocal() as session:
+                artifact_compile_response = await self._run_step(
+                    job,
+                    "compile_artifacts",
+                    lambda: self._compile_knowledge_artifacts(
+                        document_id=document_id,
+                        session=session,
+                        rag_config=rag_config,
+                    ),
+                    lambda response: {
+                        "document_id": str(response.document_id),
+                        "status": response.status,
+                        "artifact_count": response.artifact_count,
+                        "failed_count": response.failed_count,
+                        "skipped_count": response.skipped_count,
+                        "config_source": response.config_source,
+                        "enable_knowledge_artifact_compilation": rag_config.enable_knowledge_artifact_compilation,
+                        "enable_llm_artifact_extraction": rag_config.enable_llm_artifact_extraction,
+                        "error": response.error,
+                    },
+                )
+                self._log(
+                    job,
+                    step="compile_artifacts",
+                    level="success" if artifact_compile_response.status in {"compiled", "skipped"} else "error",
+                    message=(
+                        "knowledge artifact compilation summary: "
+                        f"status={artifact_compile_response.status}, "
+                        f"artifact_count={artifact_compile_response.artifact_count}, "
+                        f"failed_count={artifact_compile_response.failed_count}, "
+                        f"skipped_count={artifact_compile_response.skipped_count}."
+                    ),
+                )
+
             offline_enrichment_enabled = bool(
                 getattr(settings, "enable_offline_enrichment", True)
             )
             chunk_enrichment_enabled = bool(
-                offline_enrichment_enabled and settings.chunk_enrichment_enabled
+                offline_enrichment_enabled and rag_config.enable_chunk_enrichment_at_ingest
             )
             use_enriched_content_for_embedding = bool(
                 getattr(settings, "use_enriched_content_for_embedding", True)
                 and chunk_enrichment_enabled
             )
-            retrieval_enrichment_enabled = bool(settings.retrieval_enrichment_enabled)
+            retrieval_enrichment_enabled = bool(rag_config.enable_chunk_enrichment_at_retrieval)
             enrichment_force_on_reingest = bool(settings.enrichment_force_on_reingest)
             enrichment_update_keyword_search_vector = bool(
                 settings.enrichment_update_keyword_search_vector
@@ -328,8 +369,8 @@ class IngestionQueue:
                 level="info",
                 message=(
                     "RAG profile config loaded: "
-                    f"profile={resolved_profile}, config_source=backend/.env, "
-                    "enrichment_runtime_config_source=backend/.env, "
+                    f"profile={resolved_profile}, config_source=PostgreSQL, "
+                    "enrichment_runtime_config_source=PostgreSQL/.env fallback, "
                     f"enable_offline_enrichment={offline_enrichment_enabled}, "
                     f"chunk_enrichment_enabled={chunk_enrichment_enabled}, "
                     "use_enriched_content_for_embedding="
@@ -377,8 +418,8 @@ class IngestionQueue:
                         "document_id": str(response.document_id),
                         "status": response.status,
                         "profile": resolved_profile,
-                        "config_source": "backend/.env",
-                        "enrichment_runtime_config_source": "backend/.env",
+                        "config_source": "PostgreSQL",
+                        "enrichment_runtime_config_source": "PostgreSQL/.env fallback",
                         "enable_offline_enrichment": offline_enrichment_enabled,
                         "chunk_enrichment_enabled": chunk_enrichment_enabled,
                         "embedding_enrichment_enabled": chunk_enrichment_enabled,
@@ -409,19 +450,19 @@ class IngestionQueue:
                 await self._run_step(
                     job,
                     "index",
-                    lambda: VectorIndexingService(
-                        repository=DocumentRepository(session),
-                        embedding_provider=get_embedding_provider(),
-                        vector_store=get_vector_store(),
-                        sparse_embedding_provider=get_sparse_embedding_provider(),
-                    ).index_document(
-                        document_id,
+                    lambda: self._index_document_and_artifacts(
+                        document_id=document_id,
+                        session=session,
+                        rag_config=rag_config,
                         use_enriched_content_for_embedding=use_enriched_content_for_embedding,
                     ),
                     lambda response: {
                         "document_id": str(response.document_id),
                         "status": response.status,
                         "indexed_chunk_count": response.indexed_chunk_count,
+                        "indexed_artifact_count": response.indexed_artifact_count,
+                        "artifact_index_status": response.artifact_index_status,
+                        "artifact_index_error": response.artifact_index_error,
                         "profile": resolved_profile,
                         "use_enriched_content_for_embedding": (
                             use_enriched_content_for_embedding
@@ -514,6 +555,166 @@ class IngestionQueue:
                 f"status={status}, enriched_count={enriched_count}, "
                 f"failed_count={failed_count}, skipped_count={skipped_count}."
             ),
+        )
+
+    async def _load_rag_runtime_config(self) -> RagRuntimeConfigValues:
+        try:
+            async with AsyncSessionLocal() as session:
+                repository = RagRuntimeConfigRepository(session)
+                config = await load_rag_runtime_config(repository)
+                await repository.commit()
+                return config
+        except Exception:
+            logger.exception(
+                "Failed to load RAG runtime config from Postgres; using settings fallback."
+            )
+            return self._settings_rag_runtime_config_fallback()
+
+    @staticmethod
+    def _settings_rag_runtime_config_fallback() -> RagRuntimeConfigValues:
+        return RagRuntimeConfigValues(
+            enable_chunk_enrichment_at_ingest=bool(
+                getattr(settings, "enable_chunk_enrichment_at_ingest", getattr(settings, "chunk_enrichment_enabled", False))
+                or getattr(settings, "chunk_enrichment_enabled", False)
+            ),
+            enable_chunk_enrichment_at_retrieval=bool(
+                getattr(settings, "enable_chunk_enrichment_at_retrieval", getattr(settings, "retrieval_enrichment_enabled", False))
+                or getattr(settings, "retrieval_enrichment_enabled", False)
+            ),
+            enable_knowledge_artifact_compilation=bool(getattr(settings, "enable_knowledge_artifact_compilation", True)),
+            enable_llm_artifact_extraction=bool(getattr(settings, "enable_llm_artifact_extraction", False)),
+            enable_artifact_first_retrieval=bool(getattr(settings, "enable_artifact_first_retrieval", True)),
+            enable_chunk_fallback=bool(getattr(settings, "enable_chunk_fallback", True)),
+            enable_neighbor_expansion=bool(getattr(settings, "enable_neighbor_expansion", getattr(settings, "enable_context_expansion", True))),
+            enable_graph_expansion=bool(getattr(settings, "enable_graph_expansion", getattr(settings, "graph_expansion_enabled", True))),
+            artifact_confidence_threshold=IngestionQueue._float_config_value(
+                getattr(settings, "artifact_confidence_threshold", 0.45),
+                default=0.45,
+            ),
+            retrieval_token_budget=IngestionQueue._positive_int(getattr(settings, "retrieval_token_budget", 6000), default=6000),
+            max_artifacts=IngestionQueue._positive_int(getattr(settings, "max_artifacts", 6), default=6),
+            max_chunks=IngestionQueue._positive_int(getattr(settings, "max_chunks", 8), default=8),
+        )
+
+    async def _compile_knowledge_artifacts(
+        self,
+        *,
+        document_id: UUID,
+        session: Any,
+        rag_config: RagRuntimeConfigValues,
+    ) -> SimpleNamespace:
+        if not rag_config.enable_knowledge_artifact_compilation:
+            return SimpleNamespace(
+                document_id=document_id,
+                status="skipped",
+                artifact_count=0,
+                failed_count=0,
+                skipped_count=1,
+                config_source="PostgreSQL/.env fallback",
+                error=None,
+            )
+
+        document_repository = DocumentRepository(session)
+        artifact_repository = KnowledgeArtifactRepository(session)
+        compiler = KnowledgeArtifactCompiler(
+            config=KnowledgeArtifactCompilerConfig(
+                enable_llm_extraction=rag_config.enable_llm_artifact_extraction,
+            )
+        )
+        try:
+            document = await document_repository.get_document(document_id)
+            if document is None:
+                raise ValueError("Document not found for knowledge artifact compilation.")
+            chunks = await document_repository.list_chunks_for_document(document_id)
+            artifacts = compiler.compile_document(
+                document=document,
+                chunks=chunks,
+                docling_metadata=dict((document.document_metadata or {}).get("parsed_metadata") or {}),
+            )
+            await artifact_repository.replace_for_document(document_id, artifacts)
+            await artifact_repository.commit()
+            return SimpleNamespace(
+                document_id=document_id,
+                status="compiled",
+                artifact_count=len(artifacts),
+                failed_count=sum(1 for artifact in artifacts if artifact.status == "failed"),
+                skipped_count=sum(1 for artifact in artifacts if artifact.status == "skipped"),
+                config_source="PostgreSQL/.env fallback",
+                error=None,
+            )
+        except Exception as exc:
+            logger.exception("Knowledge artifact compilation failed for document=%s", document_id)
+            try:
+                await artifact_repository.rollback()
+            except Exception:
+                pass
+            try:
+                failed_artifact = compiler.failed_artifact(document_id=document_id, error=str(exc))
+                await artifact_repository.replace_for_document(document_id, [failed_artifact])
+                await artifact_repository.commit()
+            except Exception:
+                logger.exception(
+                    "Failed to persist failed knowledge artifact marker for document=%s",
+                    document_id,
+                )
+                try:
+                    await artifact_repository.rollback()
+                except Exception:
+                    pass
+            return SimpleNamespace(
+                document_id=document_id,
+                status="failed",
+                artifact_count=0,
+                failed_count=1,
+                skipped_count=0,
+                config_source="PostgreSQL/.env fallback",
+                error=str(exc),
+            )
+
+    async def _index_document_and_artifacts(
+        self,
+        *,
+        document_id: UUID,
+        session: Any,
+        rag_config: RagRuntimeConfigValues,
+        use_enriched_content_for_embedding: bool,
+    ) -> SimpleNamespace:
+        document_repository = DocumentRepository(session)
+        chunk_response = await VectorIndexingService(
+            repository=document_repository,
+            embedding_provider=get_embedding_provider(),
+            vector_store=get_vector_store(),
+            sparse_embedding_provider=get_sparse_embedding_provider(),
+        ).index_document(
+            document_id,
+            use_enriched_content_for_embedding=use_enriched_content_for_embedding,
+        )
+
+        artifact_index_status = "skipped"
+        artifact_index_error = None
+        indexed_artifact_count = 0
+        if rag_config.enable_knowledge_artifact_compilation:
+            try:
+                artifact_response = await KnowledgeArtifactIndexingService(
+                    repository=KnowledgeArtifactRepository(session),
+                    embedding_provider=get_embedding_provider(),
+                    vector_store=get_artifact_vector_store(),
+                    sparse_embedding_provider=get_sparse_embedding_provider(),
+                ).index_document(document_id)
+                artifact_index_status = artifact_response.status
+                indexed_artifact_count = artifact_response.indexed_artifact_count
+            except Exception as exc:
+                logger.exception("Knowledge artifact indexing failed for document=%s", document_id)
+                artifact_index_status = "failed"
+                artifact_index_error = str(exc)
+
+        return SimpleNamespace(
+            document_id=chunk_response.document_id,
+            status=chunk_response.status,
+            indexed_chunk_count=chunk_response.indexed_chunk_count,
+            indexed_artifact_count=indexed_artifact_count,
+            artifact_index_status=artifact_index_status,
+            artifact_index_error=artifact_index_error,
         )
 
     async def _reuse_existing_document(
@@ -640,6 +841,13 @@ class IngestionQueue:
         except (TypeError, ValueError):
             return default
         return parsed if parsed > 0 else default
+
+    @staticmethod
+    def _float_config_value(value: Any, *, default: float) -> float:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
 
     @staticmethod
     def _optional_config_string(value: Any) -> str | None:
