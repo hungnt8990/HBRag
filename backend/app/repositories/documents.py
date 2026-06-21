@@ -1,16 +1,17 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Integer, cast, delete, func, literal_column, or_, select, update
+from sqlalchemy import Integer, String, cast, delete, func, literal_column, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.chunk import Chunk
 from app.models.document import Document, DocumentFile
 from app.models.document_log import DocumentPipelineLog
+from app.models.doffice import DofficeRawDocument
 from app.models.graph import GraphDocumentStatus
 from app.models.knowledge_base import KnowledgeBase
 from app.services.access_control import access_payload_for_chunk, normalize_access_payload
@@ -135,6 +136,25 @@ class DocumentRepository:
         result = await self._session.execute(statement)
         return result.scalar_one_or_none()
 
+    async def find_document_by_source_metadata(
+        self,
+        *,
+        source_type: str,
+        id_vb: str,
+    ) -> Document | None:
+        statement = (
+            select(Document)
+            .options(selectinload(Document.files))
+            .where(
+                Document.source_type == source_type,
+                cast(Document.document_metadata["id_vb"].astext, String) == str(id_vb),
+            )
+            .order_by(Document.updated_at.desc())
+            .limit(1)
+        )
+        result = await self._session.execute(statement)
+        return result.scalar_one_or_none()
+
     async def update_document_status(self, document: Document, status: str) -> Document:
         document.status = status
         await self._session.flush()
@@ -175,6 +195,67 @@ class DocumentRepository:
         document.document_metadata = current_metadata
         await self._session.flush()
         return document
+
+    async def upsert_doffice_raw_document(
+        self,
+        *,
+        payload: dict[str, Any],
+        content_hash: str,
+        metadata_hash: str,
+        source_type: str = "doffice_elasticsearch",
+    ) -> DofficeRawDocument:
+        id_vb = " ".join(str(payload.get("id_vb") or "").split()).strip()
+        if not id_vb:
+            raise ValueError("DOffice raw payload requires id_vb.")
+
+        result = await self._session.execute(
+            select(DofficeRawDocument).where(
+                DofficeRawDocument.id_vb == id_vb,
+                DofficeRawDocument.content_hash == content_hash,
+            )
+        )
+        raw_document = result.scalar_one_or_none()
+        values = {
+            "id_vb": id_vb,
+            "ky_hieu": _optional_string(payload.get("ky_hieu")),
+            "trich_yeu": _optional_string(payload.get("trich_yeu")),
+            "noi_ban_hanh": _optional_string(payload.get("noi_ban_hanh")),
+            "nguoi_ky": _optional_string(payload.get("nguoi_ky")),
+            "ten_file": _optional_string(payload.get("ten_file")),
+            "duong_dan": _optional_string(payload.get("duong_dan")),
+            "ngay_vb": _optional_string(payload.get("ngay_vb")),
+            "ngay_tao": _optional_string(payload.get("ngay_tao")),
+            "ngay_capnhat": _optional_string(payload.get("ngay_capnhat")),
+            "nam": _optional_int(payload.get("nam")),
+            "thang": _optional_int(payload.get("thang")),
+            "tom_tat": _optional_string(payload.get("tom_tat")),
+            "noi_dung_raw": str(payload.get("noi_dung") or ""),
+            "raw_payload": dict(payload),
+            "source_type": source_type,
+            "content_hash": content_hash,
+            "metadata_hash": metadata_hash,
+            "sync_status": "fetched",
+            "last_synced_at": datetime.now(UTC),
+        }
+        if raw_document is None:
+            raw_document = DofficeRawDocument(**values)
+            self._session.add(raw_document)
+        else:
+            for key, value in values.items():
+                setattr(raw_document, key, value)
+        await self._session.flush()
+        return raw_document
+
+    async def update_doffice_raw_status(
+        self,
+        raw_document: DofficeRawDocument,
+        **statuses: str,
+    ) -> DofficeRawDocument:
+        for key, value in statuses.items():
+            if key in {"sync_status", "parse_status", "clean_status", "chunk_status", "embedding_status"}:
+                setattr(raw_document, key, value)
+        await self._session.flush()
+        return raw_document
 
     async def delete_document(self, document: Document) -> None:
         await self._session.delete(document)
@@ -481,3 +562,17 @@ class DocumentRepository:
 
     async def rollback(self) -> None:
         await self._session.rollback()
+
+
+def _optional_string(value: Any) -> str | None:
+    if value is None:
+        return None
+    clean = " ".join(str(value).split()).strip()
+    return clean or None
+
+
+def _optional_int(value: Any) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None

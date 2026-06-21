@@ -36,6 +36,12 @@ class Neo4jClient:
             "FOR (c:Chunk) REQUIRE c.id IS UNIQUE",
             "CREATE CONSTRAINT entity_key_unique IF NOT EXISTS "
             "FOR (e:Entity) REQUIRE e.entity_key IS UNIQUE",
+            "CREATE INDEX entity_normalized_name IF NOT EXISTS "
+            "FOR (e:Entity) ON (e.normalized_name)",
+            "CREATE INDEX entity_type IF NOT EXISTS "
+            "FOR (e:Entity) ON (e.entity_type)",
+            "CREATE INDEX chunk_document_id IF NOT EXISTS "
+            "FOR (c:Chunk) ON (c.document_id)",
         ]
         async with self._driver.session() as session:
             for statement in statements:
@@ -53,27 +59,22 @@ class Neo4jClient:
             await session.run(query, document_id=document_id)
 
     async def upsert_document(self, payload: dict[str, Any]) -> None:
+        properties = {key: value for key, value in payload.items() if key != "id" and value is not None}
         query = """
         MERGE (d:Document {id: $id})
-        SET d.title = $title,
-            d.organization_id = $organization_id,
-            d.created_at = $created_at
+        SET d += $properties
         """
         async with self._driver.session() as session:
-            await session.run(query, **payload)
+            await session.run(query, id=payload["id"], properties=properties)
 
     async def upsert_chunk(self, payload: dict[str, Any]) -> None:
+        properties = {key: value for key, value in payload.items() if key != "id" and value is not None}
         query = """
         MERGE (c:Chunk {id: $id})
-        SET c.document_id = $document_id,
-            c.chunk_index = $chunk_index,
-            c.content_preview = $content_preview,
-            c.article_number = $article_number,
-            c.article_title = $article_title,
-            c.chapter_title = $chapter_title
+        SET c += $properties
         """
         async with self._driver.session() as session:
-            await session.run(query, **payload)
+            await session.run(query, id=payload["id"], properties=properties)
 
     async def link_document_to_chunk(self, document_id: str, chunk_id: str) -> None:
         query = """
@@ -82,6 +83,33 @@ class Neo4jClient:
         """
         async with self._driver.session() as session:
             await session.run(query, document_id=document_id, chunk_id=chunk_id)
+
+    async def link_document_to_entity(
+        self,
+        *,
+        document_id: str,
+        entity_key: str,
+        relation_type: str = "MENTIONS",
+        weight: float = 1.0,
+        confidence: float = 1.0,
+    ) -> None:
+        # Relationship types cannot be parametrized in Cypher. Keep a small allowlist
+        # and use a generic edge for everything else.
+        safe_relation_type = relation_type if relation_type in {"MENTIONS", "ISSUED_BY", "SIGNED_BY", "HAS_CODE", "HAS_TOPIC"} else "MENTIONS"
+        query = f"""
+        MATCH (d:Document {{id: $document_id}}), (e:Entity {{entity_key: $entity_key}})
+        MERGE (d)-[r:{safe_relation_type}]->(e)
+        SET r.weight = $weight,
+            r.confidence = $confidence
+        """
+        async with self._driver.session() as session:
+            await session.run(
+                query,
+                document_id=document_id,
+                entity_key=entity_key,
+                weight=weight,
+                confidence=confidence,
+            )
 
     async def upsert_entity(self, payload: dict[str, Any]) -> None:
         query = """

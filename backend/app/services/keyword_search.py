@@ -174,6 +174,7 @@ class KeywordSearchService:
                 term_clauses.extend(
                     KeywordSearchService._enrichment_exact_clauses(exact_param)
                 )
+            term_clauses.extend(KeywordSearchService._metadata_exact_clauses(exact_param))
             clause = or_(*term_clauses)
             exact_clauses.append(clause)
             exact_score = exact_score + case((clause, EXACT_MATCH_BOOST), else_=0.0)
@@ -243,6 +244,22 @@ class KeywordSearchService:
         return clauses
 
     @staticmethod
+    def _metadata_exact_clauses(exact_param) -> list[Any]:
+        metadata = Chunk.chunk_metadata
+        return [
+            cast(metadata[key], String).ilike(exact_param)
+            for key in (
+                "identifiers",
+                "doc_codes",
+                "id_vb",
+                "ky_hieu",
+                "doc_code",
+                "source_name",
+                "trich_yeu",
+            )
+        ]
+
+    @staticmethod
     def _access_clauses(access_filter: AccessFilter) -> list[Any]:
         if settings.access_read_all_documents:
             return []
@@ -309,7 +326,7 @@ class KeywordSearchService:
     ) -> dict[str, object]:
         payload = dict(metadata or {})
         searchable_text = " ".join(
-            part for part in (content or "", enrichment_text or "") if part
+            part for part in (content or "", enrichment_text or "", str(payload)) if part
         )
         matched_terms = [
             term for term in exact_terms if term.casefold() in searchable_text.casefold()
@@ -329,7 +346,7 @@ class KeywordSearchService:
         ]
 
         entity_terms = extract_entities_from_text(query)
-        code_terms = re.findall(r"\b[A-Z0-9][A-Z0-9._/-]{1,}\b", query)
+        code_terms = re.findall(r"\b[A-Z0-9][A-Z0-9._/+\-]{1,}\b", query)
         membership_query = analyze_person_area_membership_query(query)
         membership_terms = []
         if membership_query is not None:
@@ -347,11 +364,11 @@ class KeywordSearchService:
 
         for term in [
             *membership_terms,
-            *content_terms,
-            query.strip(),
             *flattened_quotes,
             *entity_terms,
             *code_terms,
+            *content_terms,
+            query.strip(),
         ]:
             normalized = " ".join(term.split()).strip(" ?!.,;:")
             if len(normalized) < 2:

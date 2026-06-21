@@ -366,7 +366,7 @@ def test_rag_service_rewrites_followup_query_for_retrieval() -> None:
         assert reranking_service.calls[0]["query"] == "How should RAG cite chunks?"
         assert llm.rewrite_prompts
         assert llm.answer_prompts
-        assert "Standalone retrieval question" in llm.answer_prompts[0]
+        assert "Conversation reference wording" in llm.answer_prompts[0]
         assert "How should RAG cite chunks?" in llm.answer_prompts[0]
         assert "Question:\nCòn cái này thì sao?" in llm.answer_prompts[0]
         assert "Generated from provided context" in response.answer
@@ -598,6 +598,29 @@ def test_build_system_prompt_includes_policy_explainer_instructions() -> None:
 
     detailed = build_system_prompt(answer_mode="generative", answer_style="detailed")
     assert "thorough" in detailed.lower()
+
+
+def test_numeric_identifier_query_defaults_to_vietnamese_prompt() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=uuid4(),
+        chunk_index=0,
+        content="574/BC-ĐLĐS là báo cáo về xây dựng kế hoạch đào tạo năm 2024.",
+        chunk_metadata={"identifier_exact_boost": "1"},
+    )
+
+    prompt = RagAnswerService._build_user_prompt(
+        query="574",
+        context_chunks=[ContextChunk(citation_index=1, chunk=chunk)],
+    )
+
+    assert "Answer only in Vietnamese" in prompt
+    assert "Numeric or code-only lookups" in prompt
+    assert "Answer in the same language as the user's question" not in prompt
 
 
 def test_citation_response_maps_lexical_exact_to_public_keyword_flag() -> None:
@@ -886,8 +909,61 @@ def test_deduplicated_prompt_has_no_repeated_lines() -> None:
     )
     prompt = service._build_user_prompt(query="q", context_chunks=deduped)
     assert prompt.count(same) == 1
-    assert "source/download list separately" in prompt
+    assert "document sources separately" in prompt
     assert "Do not create a Sources" in prompt
+
+
+def test_prompt_forbids_internal_retrieval_terms_in_final_answer() -> None:
+    from uuid import uuid4
+
+    from app.services.query_contract_service import QueryContract
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=uuid4(),
+        chunk_index=0,
+        content="Số 3113/EVN-KDMBD ngày 02/06/2026 là văn bản căn cứ triển khai EVN CSKH.",
+        chunk_metadata={"identifier_exact_boost": "1"},
+    )
+    query_contract = QueryContract(
+        raw_query="văn bản 3113",
+        detected_intent="identifier_lookup",
+        target_contexts=["document_header", "references"],
+        preferred_artifact_types=["document_profile"],
+        output_shape="short_answer",
+        citation_requirement="source_document",
+        allow_chunk_fallback=True,
+    )
+
+    prompt = RagAnswerService._build_user_prompt(
+        query="văn bản 3113",
+        context_chunks=[ContextChunk(citation_index=1, chunk=chunk)],
+        query_contract=query_contract,
+    )
+
+    assert "target_contexts" not in prompt
+    assert "allow_chunk_fallback" not in prompt
+    assert "Never mention how information was searched" in prompt
+    assert "BM25" not in prompt
+    assert "vector search" not in prompt
+
+
+def test_clean_llm_answer_drops_internal_leak_notes() -> None:
+    from app.services.rag_answer_service import RagAnswerService
+
+    answer = (
+        "Số 3113/EVN-KDMBD được nêu là văn bản căn cứ ngày 02/06/2026 về triển khai EVN CSKH.\n"
+        "Lưu ý: thông tin này không xuất hiện trong target_contexts hoặc các đoạn trích hồi phục.\n"
+        "Nguồn: 907/EVNICT-TTPM"
+    )
+
+    cleaned = RagAnswerService._clean_llm_answer(answer)
+
+    assert "3113/EVN-KDMBD" in cleaned
+    assert "Nguồn: 907/EVNICT-TTPM" in cleaned
+    assert "target_contexts" not in cleaned
+    assert "đoạn trích" not in cleaned
 
 
 def test_table_neighbor_expansion_prefers_matching_rows_and_headers() -> None:
@@ -1300,7 +1376,7 @@ def test_structured_rows_are_passed_to_dynamic_prompt() -> None:
         context_chunks=context_chunks,
     )
 
-    assert "Retrieved Document Context:" in prompt
+    assert "Document Text:" in prompt
     assert "Con đẻ, con nuôi kết hôn" in prompt
     assert "Nghỉ 02 ngày hưởng nguyên lương" in prompt
     assert "Kết hôn" in prompt
@@ -1418,10 +1494,10 @@ def test_user_prompt_keeps_narrative_context_when_table_rows_match() -> None:
     )
 
     assert "ENTITY_MATCHED_ROWS:" in prompt
-    assert "Retrieved Document Context:" in prompt
+    assert "Document Text:" in prompt
     assert "Mục tiêu: Khai thác tri thức nội bộ" in prompt
     assert "Kết hợp tìm kiếm từ khóa" in prompt
-    assert "do not ignore narrative context" in prompt
+    assert "do not ignore narrative text" in prompt
     assert "summary followed by list items" in prompt
 
 
@@ -1462,7 +1538,7 @@ def test_dynamic_prompt_preserves_narrative_section_bullets() -> None:
         ],
     )
 
-    assert "Retrieved Document Context:" in prompt
+    assert "Document Text:" in prompt
     assert "Khai thác tri thức nội bộ" in prompt
     assert "Khảo sát, đánh giá" in prompt
     assert "Chuẩn hóa quy trình" in prompt
@@ -1489,14 +1565,14 @@ def test_schema_count_query_uses_dynamic_count_prompt() -> None:
         context_chunks=[ContextChunk(citation_index=2, chunk=narrative_chunk)],
     )
 
-    assert "Retrieved Document Context:" in prompt
+    assert "Document Text:" in prompt
     assert "CÁC LỚP DỮ LIỆU" in prompt
-    assert "Query strategy / evidence plan" in prompt
+    assert "Reading notes" in prompt
     assert "overview_summary" in prompt
     assert "count_list" in prompt
     assert "multi_hop" in prompt
     assert "For count questions, state the count first" in prompt
-    assert "If retrieved evidence is insufficient or conflicting" in prompt
+    assert "If the document text is insufficient or conflicting" in prompt
 
 def test_count_prompt_separates_evidence_categories_without_domain_template() -> None:
     from uuid import uuid4

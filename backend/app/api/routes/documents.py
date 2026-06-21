@@ -3,7 +3,18 @@ from typing import Annotated
 from urllib.parse import quote
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Body,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -39,6 +50,8 @@ from app.schemas.documents import (
     DocumentUploadResponse,
     DocumentVectorIndexRequest,
     DocumentVectorIndexResponse,
+    DofficeIngestRequest,
+    DofficeIngestResponse,
     GraphDocumentStatusResponse,
     GraphExtractionLogResponse,
     GraphIndexRequest,
@@ -83,6 +96,18 @@ from app.services.document_service import (
     EmptyDocumentUploadError,
     UnsupportedDocumentTypeError,
 )
+from app.services.document_sources import (
+    DofficeDocumentNotFoundError,
+    DofficeElasticsearchSource,
+    DofficeSourceError,
+)
+from app.services.doffice_ingestion_service import (
+    DofficeIngestionError,
+    DofficeIngestionService,
+    DofficeIngestOptions,
+    EmptyDofficeDocumentError,
+)
+from app.services.elasticsearch_keyword_search import get_elasticsearch_keyword_store
 from app.services.embeddings.base import EmbeddingProvider
 from app.services.embeddings.factory import get_embedding_provider
 from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
@@ -96,6 +121,7 @@ from app.services.graph import (
     get_neo4j_client,
 )
 from app.services.graph.extractors.factory import build_graph_extractor
+from app.services.ingestion_queue import IngestionJob, IngestionQueue, get_ingestion_queue
 from app.services.llms import LLMProvider
 from app.services.llms.factory import build_llm_provider_or_error, get_llm_provider
 from app.services.permissions import (
@@ -118,6 +144,7 @@ from app.services.vector_indexing_service import (
 from app.services.vector_store import QdrantVectorStore, get_vector_store
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
+DOCUMENT_DETAIL_PREVIEW_LIMIT = 50_000
 
 
 def get_document_repository(
@@ -187,8 +214,44 @@ def get_vector_indexing_service(
         embedding_provider=embedding_provider,
         vector_store=vector_store,
         sparse_embedding_provider=get_sparse_embedding_provider(),
+        keyword_index_store=(
+            get_elasticsearch_keyword_store()
+            if settings.elasticsearch_enabled
+            else None
+        ),
     )
 
+
+def get_doffice_source() -> DofficeElasticsearchSource:
+    return DofficeElasticsearchSource()
+
+def get_doffice_ingestion_service(
+    repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+    source: Annotated[DofficeElasticsearchSource, Depends(get_doffice_source)],
+    chunking_service: Annotated[ChunkingService, Depends(get_chunking_service)],
+    vector_indexing_service: Annotated[
+        VectorIndexingService,
+        Depends(get_vector_indexing_service),
+    ],
+    vector_store: Annotated[QdrantVectorStore, Depends(get_vector_store)],
+    enrichment_service: Annotated[
+        ChunkEnrichmentService,
+        Depends(get_chunk_enrichment_service),
+    ],
+) -> DofficeIngestionService:
+    return DofficeIngestionService(
+        repository=repository,
+        source=source,
+        chunking_service=chunking_service,
+        vector_indexing_service=vector_indexing_service,
+        vector_store=vector_store,
+        enrichment_service=enrichment_service,
+        keyword_index_store=(
+            get_elasticsearch_keyword_store()
+            if settings.elasticsearch_enabled
+            else None
+        ),
+    )
 
 def get_graph_indexing_service(
     repository: Annotated[DocumentRepository, Depends(get_document_repository)],
@@ -459,6 +522,237 @@ async def upload_documents_batch(
         failed_count=len(results) - success_count,
     )
 
+
+def _to_ingestion_job_payload(job: IngestionJob) -> dict[str, object]:
+    return {
+        "job_id": str(job.job_id),
+        "filename": job.filename,
+        "content_type": job.content_type,
+        "status": job.status,
+        "created_at": job.created_at.isoformat(),
+        "updated_at": job.updated_at.isoformat(),
+        "document_id": str(job.document_id) if job.document_id else None,
+        "error": job.error,
+        "ingestion_profile": job.ingestion_profile,
+        "resolved_ingestion_profile": job.resolved_ingestion_profile,
+        "steps": [
+            {
+                "name": step.name,
+                "state": step.state,
+                "started_at": step.started_at.isoformat() if step.started_at else None,
+                "completed_at": step.completed_at.isoformat() if step.completed_at else None,
+                "duration_ms": step.duration_ms,
+                "output": step.output,
+                "error": step.error,
+            }
+            for step in job.steps.values()
+        ],
+        "logs": [
+            {
+                "timestamp": log.timestamp.isoformat(),
+                "step": log.step,
+                "level": log.level,
+                "message": log.message,
+                "duration_ms": log.duration_ms,
+            }
+            for log in job.logs
+        ],
+    }
+
+
+@router.post("/doffice/ingest-jobs", status_code=status.HTTP_202_ACCEPTED)
+async def enqueue_doffice_ingestion_job(
+    request: DofficeIngestRequest,
+    background_tasks: BackgroundTasks,
+    queue: Annotated[IngestionQueue, Depends(get_ingestion_queue)],
+    auth_repository: Annotated[AuthRepository, Depends(get_auth_repository)],
+    knowledge_base_repository: Annotated[
+        KnowledgeBaseRepository,
+        Depends(get_knowledge_base_repository),
+    ],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> dict[str, object]:
+    if not can_upload_document(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Upload is not allowed.")
+
+    descendant_ids = await auth_repository.get_descendant_organization_ids(
+        current_user.organization_id
+    )
+    knowledge_base, target_organization_id = await _resolve_upload_knowledge_base(
+        knowledge_base_repository=knowledge_base_repository,
+        current_user=current_user,
+        requested_organization_id=None,
+        requested_knowledge_base_id=None,
+        descendant_ids=descendant_ids,
+    )
+    if not can_assign_upload_organization(
+        current_user,
+        target_organization_id,
+        descendant_organization_ids=descendant_ids,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot upload to the selected organization.",
+        )
+
+    access = _upload_access_payload(
+        target_organization_id=target_organization_id,
+        access_scope=settings.access_default_scope,
+        classification=settings.access_default_classification,
+        allowed_org_ids=None,
+        allowed_org_paths=None,
+        allowed_role_names=None,
+        allowed_group_codes=None,
+        allowed_user_ids=None,
+        denied_org_ids=None,
+        denied_org_paths=None,
+        denied_role_names=None,
+        denied_group_codes=None,
+        denied_user_ids=None,
+        inherit_permission=True,
+    )
+    job = queue.enqueue_doffice_ingestion(
+        id_vb=request.id_vb,
+        force_refresh=request.force_refresh,
+        enable_enrichment=request.enable_enrichment,
+        uploaded_by_user_id=current_user.id,
+        organization_id=target_organization_id,
+        knowledge_base_id=knowledge_base.id,
+        access=access,
+    )
+    background_tasks.add_task(queue.run_job, job.job_id)
+    return _to_ingestion_job_payload(job)
+
+
+@router.post("/doffice/ingest", response_model=DofficeIngestResponse)
+async def ingest_doffice_document(
+    request: DofficeIngestRequest,
+    repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+    auth_repository: Annotated[AuthRepository, Depends(get_auth_repository)],
+    knowledge_base_repository: Annotated[
+        KnowledgeBaseRepository,
+        Depends(get_knowledge_base_repository),
+    ],
+    log_repository: Annotated[DocumentLogRepository, Depends(get_document_log_repository)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[DofficeIngestionService, Depends(get_doffice_ingestion_service)],
+    graph_service: Annotated[GraphIndexingService, Depends(get_graph_indexing_service)],
+) -> DofficeIngestResponse:
+    if not can_upload_document(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Upload is not allowed.")
+
+    descendant_ids = await auth_repository.get_descendant_organization_ids(
+        current_user.organization_id
+    )
+    knowledge_base, target_organization_id = await _resolve_upload_knowledge_base(
+        knowledge_base_repository=knowledge_base_repository,
+        current_user=current_user,
+        requested_organization_id=None,
+        requested_knowledge_base_id=None,
+        descendant_ids=descendant_ids,
+    )
+    if not can_assign_upload_organization(
+        current_user,
+        target_organization_id,
+        descendant_organization_ids=descendant_ids,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot upload to the selected organization.",
+        )
+
+    access = _upload_access_payload(
+        target_organization_id=target_organization_id,
+        access_scope=settings.access_default_scope,
+        classification=settings.access_default_classification,
+        allowed_org_ids=None,
+        allowed_org_paths=None,
+        allowed_role_names=None,
+        allowed_group_codes=None,
+        allowed_user_ids=None,
+        denied_org_ids=None,
+        denied_org_paths=None,
+        denied_role_names=None,
+        denied_group_codes=None,
+        denied_user_ids=None,
+        inherit_permission=True,
+    )
+
+    try:
+        response = await service.ingest_doffice_document(
+            request.id_vb,
+            DofficeIngestOptions(
+                force_refresh=request.force_refresh,
+                enable_enrichment=request.enable_enrichment,
+            ),
+            uploaded_by_user_id=current_user.id,
+            organization_id=target_organization_id,
+            knowledge_base_id=knowledge_base.id,
+            access=access,
+        )
+        await log_repository.create_pipeline_log(
+            document_id=response.document_id,
+            user_id=current_user.id,
+            organization_id=target_organization_id,
+            action="parse",
+            status="success",
+            message=response.message,
+            metadata={
+                **response.model_dump(mode="json"),
+                "pipeline_action": "doffice_ingest",
+                "knowledge_base_id": str(knowledge_base.id),
+                "force_refresh": request.force_refresh,
+                "enable_enrichment": request.enable_enrichment,
+            },
+        )
+        if (
+            response.status == "success"
+            and settings.graph_enabled
+            and settings.graph_auto_index_on_ingest
+        ):
+            try:
+                graph_response = await graph_service.index_document(
+                    response.document_id,
+                    GraphIndexRequest(
+                        force_rebuild=True,
+                        extractor_provider=settings.graph_extractor_provider,
+                        max_entities_per_chunk=settings.graph_max_entities_per_chunk,
+                        max_relations_per_chunk=settings.graph_max_relations_per_chunk,
+                    ),
+                )
+                await log_repository.create_pipeline_log(
+                    document_id=response.document_id,
+                    user_id=current_user.id,
+                    organization_id=target_organization_id,
+                    action="index_graph",
+                    status="success",
+                    message="Auto-indexed document graph into Neo4j.",
+                    metadata=graph_response.model_dump(mode="json"),
+                )
+            except Exception as graph_exc:
+                await log_repository.create_pipeline_log(
+                    document_id=response.document_id,
+                    user_id=current_user.id,
+                    organization_id=target_organization_id,
+                    action="index_graph",
+                    status="failed",
+                    message=str(graph_exc),
+                    metadata={"pipeline_action": "doffice_graph_auto_index"},
+                )
+        await log_repository.commit()
+        return response
+    except DofficeDocumentNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except DofficeSourceError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    except EmptyDofficeDocumentError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+    except DofficeIngestionError as exc:
+        await repository.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
 
 def _upload_access_payload(
     *,
@@ -1157,7 +1451,7 @@ async def get_document_detail(
     )
     return DocumentDetailResponse(
         **item.model_dump(),
-        preview_text=(document.parsed_text or "")[:1000] or None,
+        preview_text=(document.parsed_text or "")[:DOCUMENT_DETAIL_PREVIEW_LIMIT] or None,
         files=[
             DocumentFileResponse(
                 id=str(file.id),
@@ -1314,14 +1608,15 @@ async def delete_document(
         else:
             await vector_store.delete_points_for_document(document_id)
         for storage_path in storage_paths:
-            await storage.delete_file(object_name=storage_path)
+            if storage_path:
+                await storage.delete_file(object_name=storage_path)
         await repository.delete_document(document)
         await repository.commit()
     except Exception as exc:
         await repository.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete document data from MinIO, Qdrant, and database.",
+            detail="Failed to delete document data from vector store, storage, and database.",
         ) from exc
 
     return DocumentDeleteResponse(
@@ -1490,6 +1785,7 @@ def _to_document_list_item_from_values(
         document_id=document.id,
         title=document.title,
         status=document.status,
+        source_type=getattr(document, "source_type", None) or "unknown",
         filename=filename,
         organization=(
             {

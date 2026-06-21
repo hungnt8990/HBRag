@@ -70,6 +70,7 @@ def test_model_metadata_contains_initial_tables() -> None:
     assert set(Base.metadata.tables) == {
         "documents",
         "document_files",
+        "doffice_raw_documents",
         "chunks",
         "chat_sessions",
         "chat_messages",

@@ -59,6 +59,24 @@ export type DocumentBatchUploadResponse = {
   failed_count: number;
 };
 
+export type DofficeIngestRequest = {
+  id_vb: string;
+  force_refresh?: boolean;
+  enable_enrichment?: boolean;
+};
+
+export type DofficeIngestResponse = {
+  status: "success" | "skipped";
+  id_vb: string;
+  ky_hieu: string | null;
+  trich_yeu: string | null;
+  noi_ban_hanh: string | null;
+  chunks_created: number;
+  document_id: string;
+  source_type: "doffice_elasticsearch";
+  message: string | null;
+};
+
 export type DocumentAccessPolicy = {
   scope?: string | null;
   classification?: string | null;
@@ -187,6 +205,7 @@ export type DocumentListItem = {
   document_id: string;
   title: string;
   status: string;
+  source_type: string;
   filename: string | null;
   organization: DocumentOrganization | null;
   knowledge_base: DocumentKnowledgeBase | null;
@@ -573,6 +592,26 @@ export async function uploadDocumentBatch(
   return requestJson<DocumentBatchUploadResponse>("/api/documents/upload-batch", {
     method: "POST",
     body: formData,
+  });
+}
+
+export async function ingestDofficeDocument(
+  payload: DofficeIngestRequest,
+): Promise<DofficeIngestResponse> {
+  return requestJson<DofficeIngestResponse>("/api/documents/doffice/ingest", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function enqueueDofficeIngestionJob(
+  payload: DofficeIngestRequest,
+): Promise<IngestionJob> {
+  return requestJson<IngestionJob>("/api/documents/doffice/ingest-jobs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
 }
 

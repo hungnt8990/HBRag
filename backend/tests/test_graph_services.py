@@ -123,6 +123,9 @@ def test_graph_indexing_service_updates_status_and_logs(monkeypatch) -> None:
         async def link_document_to_chunk(self, document_id: str, chunk_id: str):
             return None
 
+        async def link_document_to_entity(self, **kwargs):
+            return None
+
         async def upsert_entity(self, payload):
             return None
 

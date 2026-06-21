@@ -37,6 +37,22 @@ class DocumentBatchUploadResponse(BaseModel):
     failed_count: int
 
 
+class DofficeIngestRequest(BaseModel):
+    id_vb: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+    force_refresh: bool = False
+    enable_enrichment: bool = True
+
+class DofficeIngestResponse(BaseModel):
+    status: Literal["success", "skipped"]
+    id_vb: str
+    ky_hieu: str | None = None
+    trich_yeu: str | None = None
+    noi_ban_hanh: str | None = None
+    chunks_created: int
+    document_id: UUID
+    source_type: Literal["doffice_elasticsearch"]
+    message: str | None = None
+
 class DocumentParseResponse(BaseModel):
     document_id: UUID
     status: str
@@ -203,6 +219,7 @@ class DocumentListItem(BaseModel):
     document_id: UUID
     title: str
     status: str
+    source_type: str
     filename: str | None
     organization: DocumentOrganization | None
     knowledge_base: DocumentKnowledgeBase | None = None

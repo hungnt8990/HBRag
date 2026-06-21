@@ -54,6 +54,7 @@ import {
   deleteDocument,
   deleteMemory,
   downloadDocumentFile,
+  enqueueDofficeIngestionJob,
   enqueueIngestionJob,
   getAccessCatalog,
   getDocumentAccess,
@@ -72,6 +73,7 @@ import {
   updateProfileConfig,
   type DocumentDetailResponse,
   type DocumentAccessPolicy,
+  type DofficeIngestResponse,
   type DocumentListItem,
   type HeadingRuleTestMatch,
   type IngestionJob,
@@ -95,6 +97,8 @@ type TypewriterSpeed = "slow" | "normal" | "fast";
 type PipelineStepKey = "upload" | "parse" | "chunk" | "enrich" | "index" | "graph";
 type RunState = "idle" | "running" | "succeeded" | "failed";
 type LogSource = "auto" | "debug" | "chat" | "system";
+
+const DOFFICE_SOURCE_TYPE = "doffice_elasticsearch";
 
 type UploadAccessForm = Required<
   Pick<
@@ -207,6 +211,14 @@ const pipelineDefinitions: Array<{
   { key: "graph", label: "Graph Index", icon: GitBranch },
 ];
 
+const dofficePipelineDefinitions = pipelineDefinitions
+  .filter((definition) => definition.key !== "upload")
+  .map((definition) =>
+    definition.key === "parse"
+      ? { ...definition, label: "Clean MD -> Text" }
+      : definition,
+  );
+
 const chunkModeOptions: ProfileConfig["chunk_mode"][] = [
   "recursive",
   "legal_article",
@@ -271,6 +283,16 @@ export default function Home() {
   const [autoSubmitting, setAutoSubmitting] = useState(false);
   const [rerunningDocumentId, setRerunningDocumentId] = useState<string | null>(null);
   const [autoUploadMessage, setAutoUploadMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+  const [dofficeIdVb, setDofficeIdVb] = useState("");
+  const [dofficeForceRefresh, setDofficeForceRefresh] = useState(false);
+  const [dofficeEnableEnrichment, setDofficeEnableEnrichment] = useState(true);
+  const [dofficeSubmitting, setDofficeSubmitting] = useState(false);
+  const [dofficeResult, setDofficeResult] =
+    useState<DofficeIngestResponse | null>(null);
+  const [dofficeMessage, setDofficeMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
@@ -631,6 +653,47 @@ export default function Home() {
     }
   };
 
+  const handleDofficeSubmit = async () => {
+    const idVb = dofficeIdVb.trim();
+    if (!idVb || dofficeSubmitting) {
+      return;
+    }
+
+    setDofficeSubmitting(true);
+    setDofficeMessage(null);
+    setDofficeResult(null);
+    const started = performance.now();
+    appendLog("auto", "doffice", "info", `Đưa văn bản DOffice ${idVb} vào hàng đợi.`);
+
+    try {
+      const job = await enqueueDofficeIngestionJob({
+        id_vb: idVb,
+        force_refresh: dofficeForceRefresh,
+        enable_enrichment: dofficeEnableEnrichment,
+      });
+      const durationMs = performance.now() - started;
+      setAutoJobs((current) => [job, ...current.filter((item) => item.job_id !== job.job_id)]);
+      setDofficeMessage({
+        type: "success",
+        text: `Đã đưa văn bản ${idVb} vào hàng đợi. Theo dõi tiến trình ở Operation Logs.`,
+      });
+      appendLog(
+        "auto",
+        "doffice",
+        "success",
+        `Created DOffice ingestion job ${compactId(job.job_id)} for id_vb=${idVb}.`,
+        durationMs,
+      );
+      await refreshJobs();
+    } catch (error) {
+      const message = getErrorMessage(error);
+      appendLog("auto", "doffice", "error", message);
+      setDofficeMessage({ type: "error", text: message });
+    } finally {
+      setDofficeSubmitting(false);
+    }
+  };
+
   const handleReingestDocument = useCallback(
     async (documentId: string) => {
       setRerunningDocumentId(documentId);
@@ -984,6 +1047,12 @@ export default function Home() {
             detailOpen={documentModalOpen}
             detailDocument={selectedDocument}
             documents={documents}
+            dofficeEnableEnrichment={dofficeEnableEnrichment}
+            dofficeForceRefresh={dofficeForceRefresh}
+            dofficeIdVb={dofficeIdVb}
+            dofficeLoading={dofficeSubmitting}
+            dofficeMessage={dofficeMessage}
+            dofficeResult={dofficeResult}
             file={autoFile}
             isLoadingDocuments={isLoadingDocuments}
             jobs={autoJobs}
@@ -994,6 +1063,13 @@ export default function Home() {
             onFileChange={handleAutoFileChange}
             onUploadAccessChange={setUploadAccess}
             onDeletePublishedDocument={handleDeleteDocument}
+            onDofficeEnableEnrichmentChange={setDofficeEnableEnrichment}
+            onDofficeForceRefreshChange={setDofficeForceRefresh}
+            onDofficeIdVbChange={(value) => {
+              setDofficeIdVb(value);
+              setDofficeMessage(null);
+            }}
+            onDofficeSubmit={handleDofficeSubmit}
             onOpenDocument={handleOpenDocumentModal}
             onRefreshDocuments={() => {
               void refreshDocuments(null);
@@ -1083,6 +1159,12 @@ function AutoQueueView({
   detailLoading,
   detailOpen,
   documents,
+  dofficeEnableEnrichment,
+  dofficeForceRefresh,
+  dofficeIdVb,
+  dofficeLoading,
+  dofficeMessage,
+  dofficeResult,
   file,
   isLoadingDocuments,
   jobs,
@@ -1094,6 +1176,10 @@ function AutoQueueView({
   onFileChange,
   onUploadAccessChange,
   onDeletePublishedDocument,
+  onDofficeEnableEnrichmentChange,
+  onDofficeForceRefreshChange,
+  onDofficeIdVbChange,
+  onDofficeSubmit,
   onOpenDocument,
   onRefreshDocuments,
   onReingestDocument,
@@ -1106,6 +1192,12 @@ function AutoQueueView({
   detailLoading: boolean;
   detailOpen: boolean;
   documents: DocumentListItem[];
+  dofficeEnableEnrichment: boolean;
+  dofficeForceRefresh: boolean;
+  dofficeIdVb: string;
+  dofficeLoading: boolean;
+  dofficeMessage: { type: "success" | "error"; text: string } | null;
+  dofficeResult: DofficeIngestResponse | null;
   file: File | null;
   isLoadingDocuments: boolean;
   jobs: IngestionJob[];
@@ -1117,6 +1209,10 @@ function AutoQueueView({
   onFileChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onUploadAccessChange: (value: UploadAccessForm) => void;
   onDeletePublishedDocument: (documentId: string) => void;
+  onDofficeEnableEnrichmentChange: (value: boolean) => void;
+  onDofficeForceRefreshChange: (value: boolean) => void;
+  onDofficeIdVbChange: (value: string) => void;
+  onDofficeSubmit: () => void;
   onOpenDocument: (documentId: string) => void;
   onRefreshDocuments: () => void;
   onReingestDocument: (documentId: string) => void;
@@ -1300,6 +1396,89 @@ function AutoQueueView({
               {message.text}
             </div>
           ) : null}
+          <div className="space-y-3 rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-3">
+            <div className="flex items-center gap-2">
+              <FileSearch className="h-4 w-4 text-emerald-700" />
+              <h3 className="text-sm font-semibold text-emerald-950">
+                Thông tin văn bản DOffice
+              </h3>
+            </div>
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700">
+                id_vb
+              </span>
+              <Input
+                className="mt-2 border-emerald-200 bg-white"
+                onChange={(event) => onDofficeIdVbChange(event.target.value)}
+                placeholder="1068586"
+                value={dofficeIdVb}
+              />
+            </label>
+            <div className="space-y-2">
+              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-emerald-100 bg-white px-3 py-2 text-sm text-slate-700">
+                <span>Force refresh</span>
+                <input
+                  checked={dofficeForceRefresh}
+                  className="h-4 w-4 cursor-pointer accent-emerald-600"
+                  onChange={(event) => onDofficeForceRefreshChange(event.target.checked)}
+                  type="checkbox"
+                />
+              </label>
+              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-emerald-100 bg-white px-3 py-2 text-sm text-slate-700">
+                <span>Enable enrichment</span>
+                <input
+                  checked={dofficeEnableEnrichment}
+                  className="h-4 w-4 cursor-pointer accent-emerald-600"
+                  onChange={(event) => onDofficeEnableEnrichmentChange(event.target.checked)}
+                  type="checkbox"
+                />
+              </label>
+            </div>
+            <Button
+              className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
+              disabled={!dofficeIdVb.trim() || dofficeLoading}
+              onClick={onDofficeSubmit}
+              type="button"
+            >
+              {dofficeLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Database className="h-4 w-4" />
+              )}
+              Lấy văn bản
+            </Button>
+            {dofficeMessage ? (
+              <div
+                className={cn(
+                  "rounded-lg border px-3 py-2 text-sm",
+                  dofficeMessage.type === "error"
+                    ? "border-rose-200 bg-rose-50 text-rose-700"
+                    : "border-emerald-200 bg-white text-emerald-800",
+                )}
+              >
+                {dofficeMessage.text}
+              </div>
+            ) : null}
+            {dofficeResult ? (
+              <dl className="grid gap-2 rounded-lg bg-white px-3 py-3 text-xs text-slate-600">
+                <QueueMetric label="id_vb" value={dofficeResult.id_vb} />
+                <QueueMetric label="ky_hieu" value={dofficeResult.ky_hieu ?? "--"} />
+                <QueueMetric label="noi_ban_hanh" value={dofficeResult.noi_ban_hanh ?? "--"} />
+                <QueueMetric
+                  label="chunks_created"
+                  value={dofficeResult.chunks_created.toLocaleString()}
+                />
+                <div className="rounded-lg bg-white/70 px-3 py-2 ring-1 ring-slate-100">
+                  <dt className="font-semibold uppercase tracking-wider text-slate-400">
+                    trich_yeu
+                  </dt>
+                  <dd className="mt-1 max-h-16 overflow-hidden text-sm font-medium text-slate-800">
+                    {dofficeResult.trich_yeu ?? "--"}
+                  </dd>
+                </div>
+              </dl>
+            ) : null}
+          </div>
           <MetricStrip metrics={metrics} />
         </CardContent>
       </Card>
@@ -1311,7 +1490,7 @@ function AutoQueueView({
               <div>
                 <CardTitle>Published Documents</CardTitle>
                 <CardDescription>
-                  Persistent documents from the database, including uploads from previous backend runs.
+                  Persistent documents from uploads and AI DO sources.
                 </CardDescription>
               </div>
               <Button
@@ -1334,7 +1513,14 @@ function AutoQueueView({
               ) : (
                 documents.map((document) => {
                   const activeJob = activeJobsByDocumentId.get(document.document_id);
-                  const activeJobSteps = buildPipelineStepsFromJob(activeJob ?? null);
+                  const isDofficeDocument = isDofficeSource(document);
+                  const shouldShowActiveJob = Boolean(activeJob && !isDofficeDocument);
+                  const activeJobSteps = buildPipelineStepsFromJob(
+                    activeJob ?? null,
+                    isDofficeDocument ? dofficePipelineDefinitions : pipelineDefinitions,
+                  );
+                  const sourceLabel = formatDocumentSource(document);
+                  const secondaryLabel = formatDocumentSecondaryLabel(document);
 
                   return (
                   <article
@@ -1352,22 +1538,30 @@ function AutoQueueView({
                             {document.title}
                           </p>
                           <StatusBadge state={normalizeState(document.status)} />
-                          {activeJob ? (
+                          {isDofficeDocument ? (
+                            <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sky-700">
+                              AI DO
+                            </span>
+                          ) : null}
+                          {shouldShowActiveJob && activeJob ? (
                             <StatusBadge state={normalizeState(activeJob.status)} compact />
                           ) : null}
                         </div>
                         <p className="mt-1 truncate text-xs text-slate-500">
-                          {document.filename ?? "No file name"} / {compactId(document.document_id)}
+                          {secondaryLabel} / {compactId(document.document_id)}
                         </p>
                         <div className="mt-2 grid gap-1 text-xs text-slate-500 sm:grid-cols-2">
+                          <span className="truncate" title={sourceLabel}>
+                            Source: {sourceLabel}
+                          </span>
                           <span className="truncate" title={formatKnowledgeBase(document)}>
                             Knowledge base: {formatKnowledgeBase(document)}
                           </span>
                           <span className="truncate" title={formatDocumentScope(document)}>
                             Scope: {formatDocumentScope(document)}
                           </span>
-                          <span className="truncate" title={document.document_profile ?? "unknown"}>
-                            Profile: {document.document_profile ?? "unknown"}
+                          <span className="truncate" title={formatDocumentProfile(document)}>
+                            Profile: {formatDocumentProfile(document)}
                           </span>
                           <span className="truncate" title={formatPerson(document.uploaded_by)}>
                             Uploader: {formatPerson(document.uploaded_by)}
@@ -1389,10 +1583,18 @@ function AutoQueueView({
                       <div className="flex flex-wrap gap-2 lg:justify-end">
                         <Button
                           className="border-cyan-200 bg-white text-cyan-800 hover:bg-cyan-50"
-                          disabled={rerunningDocumentId === document.document_id}
+                          disabled={isDofficeDocument || rerunningDocumentId === document.document_id}
                           onClick={() => onReingestDocument(document.document_id)}
-                          aria-label="Run parse, chunk, and vector indexing again for this document"
-                          title="Run parse, chunk, and vector indexing again for this document"
+                          aria-label={
+                            isDofficeDocument
+                              ? "DOffice documents are refreshed from the DOffice form"
+                              : "Run parse, chunk, and vector indexing again for this document"
+                          }
+                          title={
+                            isDofficeDocument
+                              ? "DOffice documents are refreshed from the DOffice form"
+                              : "Run parse, chunk, and vector indexing again for this document"
+                          }
                           type="button"
                           variant="outline"
                         >
@@ -1434,7 +1636,7 @@ function AutoQueueView({
                         }
                       />
                     </dl>
-                    {activeJob ? (
+                    {shouldShowActiveJob && activeJob ? (
                       <div className="mt-4 rounded-xl border border-cyan-100 bg-cyan-50/60 p-3">
                         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                           <span className="text-xs font-semibold uppercase tracking-wider text-cyan-800">
@@ -1626,8 +1828,9 @@ function DocumentDetailModal({
   const vectorLogs = document?.pipeline_logs.filter(
     (log) => log.action === "index_vector",
   ) ?? [];
+  const isDofficeDocument = document ? isDofficeSource(document) : false;
   const tabs = [
-    { key: "parse", label: "Parse", icon: FileSearch },
+    { key: "parse", label: isDofficeDocument ? "Clean text" : "Parse", icon: FileSearch },
     { key: "chunk", label: "Chunk", icon: Rows3 },
     { key: "embed", label: "Embed", icon: Database },
     { key: "access", label: "Access", icon: ShieldCheck },
@@ -1652,9 +1855,14 @@ function DocumentDetailModal({
                 {document?.title ?? "Document detail"}
               </h2>
               {document ? <StatusBadge state={normalizeState(document.status)} /> : null}
+              {isDofficeDocument ? (
+                <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sky-700">
+                  AI DO
+                </span>
+              ) : null}
             </div>
             <p className="mt-1 truncate text-sm text-slate-500">
-              {document?.filename ?? "Loading document data..."}
+              {document ? formatDocumentSecondaryLabel(document) : "Loading document data..."}
             </p>
           </div>
           <Button
@@ -1681,6 +1889,7 @@ function DocumentDetailModal({
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
             <dl className="mb-4 grid gap-3 text-xs text-slate-600 sm:grid-cols-2 lg:grid-cols-4">
               <QueueMetric label="Document id" value={compactId(document.document_id)} />
+              <QueueMetric label="Source" value={formatDocumentSource(document)} />
               <QueueMetric label="Parsed chars" value={document.parsed_character_count.toLocaleString()} />
               <QueueMetric label="Chunks" value={document.chunk_count.toLocaleString()} />
               <QueueMetric
@@ -1707,7 +1916,13 @@ function DocumentDetailModal({
                 </span>
               </div>
               {document.files.length === 0 ? (
-                <EmptyState message="No files are attached to this document." />
+                <EmptyState
+                  message={
+                    isDofficeDocument
+                      ? "AI DO document: no uploaded file is attached. Content was fetched from DOffice and cleaned before chunking."
+                      : "No files are attached to this document."
+                  }
+                />
               ) : (
                 <div className="space-y-3">
                   {document.files.map((file) => {
@@ -1780,11 +1995,11 @@ function DocumentDetailModal({
 
             {activeTab === "parse" ? (
               <div className="space-y-3">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Parsed text preview
+                    {isDofficeDocument ? "Cleaned text" : "Parsed text"}
                   </p>
-                  <pre className="max-h-[52vh] overflow-auto whitespace-pre-wrap rounded-lg bg-slate-950 p-4 text-sm leading-6 text-slate-100">
+                  <pre className="max-h-[68vh] overflow-auto whitespace-pre-wrap break-words rounded-lg border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-800 shadow-inner">
                     {document.preview_text || "No parsed text available."}
                   </pre>
                 </div>
@@ -3552,8 +3767,11 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
-function buildPipelineStepsFromJob(job: IngestionJob | null): DebugStep[] {
-  return pipelineDefinitions.map((definition) => {
+function buildPipelineStepsFromJob(
+  job: IngestionJob | null,
+  definitions = pipelineDefinitions,
+): DebugStep[] {
+  return definitions.map((definition) => {
     const jobStep = findJobStep(job?.steps ?? [], definition.key);
     return {
       key: definition.key,
@@ -3682,6 +3900,31 @@ function compactId(id: string): string {
 
 function formatPerson(person: DocumentListItem["uploaded_by"]): string {
   return person?.full_name ?? person?.username ?? "Unknown";
+}
+
+function isDofficeSource(document: Pick<DocumentListItem, "source_type">): boolean {
+  return document.source_type === DOFFICE_SOURCE_TYPE;
+}
+
+function formatDocumentSource(document: DocumentListItem): string {
+  if (isDofficeSource(document)) {
+    return "AI DO";
+  }
+  return document.source_type ? document.source_type.toUpperCase() : "Upload";
+}
+
+function formatDocumentSecondaryLabel(document: DocumentListItem): string {
+  if (isDofficeSource(document)) {
+    return `AI DO${document.filename ? ` / ${document.filename}` : ""}`;
+  }
+  return document.filename ?? "No file name";
+}
+
+function formatDocumentProfile(document: DocumentListItem): string {
+  if (isDofficeSource(document)) {
+    return "AI DO: clean markdown/html -> text";
+  }
+  return document.document_profile ?? "unknown";
 }
 
 function compactUploadAccess(access: UploadAccessForm): UploadAccessOptions {

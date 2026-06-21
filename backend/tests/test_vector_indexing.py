@@ -99,6 +99,14 @@ class FakeDocumentRepository:
                 "quality_status": "pass",
                 "chunker": "docling_hybrid_v6",
                 "chunker_version": "6",
+                "source_type": "doffice_elasticsearch",
+                "id_vb": "1459570",
+                "document_code": "907/EVNICT-TTPM",
+                "trich_yeu": "Cap nhat ung dung EVN CSKH",
+                "platform": "Website Quan tri noi dung (CMS)",
+                "feature_name": "Dashboard",
+                "change_content": "Y 1 Y 2 Y 3 Y 4",
+                "phase": "Giai doan 2",
             },
         )
 
@@ -184,6 +192,14 @@ def test_vector_index_endpoint_stores_one_chunk_per_qdrant_point() -> None:
     assert point.payload["text"].startswith("1.1. GIS 110kV")
     assert point.payload["unit"] == "CPCIT"
     assert point.payload["pages"] == [1]
+    assert point.payload["source_type"] == "doffice_elasticsearch"
+    assert point.payload["id_vb"] == "1459570"
+    assert point.payload["document_code"] == "907/EVNICT-TTPM"
+    assert point.payload["trich_yeu"] == "Cap nhat ung dung EVN CSKH"
+    assert point.payload["platform"] == "Website Quan tri noi dung (CMS)"
+    assert point.payload["feature_name"] == "Dashboard"
+    assert point.payload["change_content"] == "Y 1 Y 2 Y 3 Y 4"
+    assert point.payload["phase"] == "Giai doan 2"
     assert "Tài liệu: Kế hoạch GIS" in provider.embedded_texts[0]
     assert repository.document.document_metadata["chunk_count_indexed"] == 1
 
@@ -236,6 +252,51 @@ def test_vector_index_uses_enriched_content_for_embedding_payload_keeps_original
     assert point.payload["document_type"] == "quyết định"
     assert point.payload["structure_path"] == "1. CPCIT > 1.1. GIS"
     assert "embedding_text" not in point.payload
+
+
+def test_vector_payload_excludes_heavy_document_and_debug_fields() -> None:
+    chunk = FakeDocumentRepository._chunk()
+    chunk.chunk_metadata = {
+        **chunk.chunk_metadata,
+        "noi_dung_raw": "raw" * 100,
+        "plain_text": "plain" * 100,
+        "markdown_text": "| a | b |",
+        "tom_tat": "summary" * 100,
+        "parsed_elements": [{"text": "debug"}],
+        "raw_source_metadata": {"full": "source"},
+        "raw_payload": {"full": "payload"},
+        "raw_cells": ["a", "b"],
+        "access": {"scope": "corp_wide", "allowed_user_ids": [str(USER_ID)]},
+        "enrichment": {"status": "failed", "raw_response": "not json" * 100},
+    }
+    repository = FakeDocumentRepository(chunks=[chunk])
+    vector_store = FakeVectorStore()
+    app.dependency_overrides[get_document_repository] = lambda: repository
+    app.dependency_overrides[get_embedding_provider] = lambda: FakeEmbeddingProvider()
+    app.dependency_overrides[get_vector_store] = lambda: vector_store
+
+    try:
+        response = TestClient(app).post(f"/api/documents/{DOCUMENT_ID}/index-vector")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = vector_store.upserted_points[0].payload
+    forbidden = {
+        "noi_dung_raw",
+        "plain_text",
+        "markdown_text",
+        "tom_tat",
+        "parsed_elements",
+        "raw_source_metadata",
+        "raw_payload",
+        "raw_cells",
+        "enrichment",
+        "access",
+    }
+    assert forbidden.isdisjoint(payload)
+    assert payload["scope"] == "corp_wide"
+    assert payload["allowed_user_ids"] == [str(USER_ID)]
 
 def test_vector_index_can_disable_enriched_content_for_embedding() -> None:
     chunk = FakeDocumentRepository._chunk()

@@ -68,9 +68,8 @@ export function ChatAnswerPanel({
               <MarkdownAnswer
                 citationMap={citationMap}
                 markdown={normalizeMarkdown(answer)}
-                onCitationClick={onCitationClick}
               />
-              <AnswerSourceList
+              <CompactAnswerSourceList
                 citationDocuments={citationDocuments}
                 citations={citations}
                 onCitationClick={onCitationClick}
@@ -199,6 +198,7 @@ export function ChatAnswerPanel({
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function AnswerSourceList({
   citations,
   citationDocuments,
@@ -276,33 +276,68 @@ function AnswerSourceList({
   );
 }
 
+function CompactAnswerSourceList({
+  citations,
+  citationDocuments,
+  onCitationClick,
+}: {
+  citations: RagCitation[];
+  citationDocuments: Record<string, DocumentDetailResponse>;
+  onCitationClick: (citationIndex: number) => void;
+}) {
+  const sources = uniqueCitationSources(citations, citationDocuments);
+  if (sources.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-5 border-t border-slate-200 pt-3 text-sm text-slate-700">
+      <span className="font-semibold text-slate-900">Nguồn: </span>
+      <span className="inline-flex flex-wrap items-center gap-2">
+        {sources.map((source, index) => (
+          <React.Fragment key={source.key}>
+            {index > 0 ? <span className="text-slate-400">;</span> : null}
+            <button
+              className="inline-flex cursor-pointer items-center gap-1 rounded-full bg-slate-50 px-2.5 py-1 text-xs font-medium text-cyan-700 hover:bg-cyan-50 hover:text-cyan-900"
+              onClick={() => onCitationClick(source.firstCitationIndex)}
+              title={source.title}
+              type="button"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              <span>{source.label}</span>
+            </button>
+          </React.Fragment>
+        ))}
+      </span>
+    </div>
+  );
+}
+
 function MarkdownAnswer({
   markdown,
   citationMap,
-  onCitationClick,
 }: {
   markdown: string;
   citationMap: CitationMap;
-  onCitationClick: (citationIndex: number) => void;
 }) {
   return (
     <div className="prose prose-slate max-w-none text-[15px] leading-7 prose-p:my-3 prose-ul:my-3 prose-ol:my-3 prose-li:my-1 prose-strong:text-slate-900">
       <ReactMarkdown
         components={{
-          p: ({ children }) => <p>{injectCitationBadges(children, citationMap, onCitationClick)}</p>,
-          li: ({ children }) => <li>{injectCitationBadges(children, citationMap, onCitationClick)}</li>,
+          p: ({ children }) => <p>{injectCitationBadges(children, citationMap)}</p>,
+          li: ({ children }) => <li>{injectCitationBadges(children, citationMap)}</li>,
           strong: ({ children }) => (
-            <strong>{injectCitationBadges(children, citationMap, onCitationClick)}</strong>
+            <strong>{injectCitationBadges(children, citationMap)}</strong>
           ),
-          em: ({ children }) => <em>{injectCitationBadges(children, citationMap, onCitationClick)}</em>,
+          em: ({ children }) => <em>{injectCitationBadges(children, citationMap)}</em>,
           blockquote: ({ children }) => (
-            <blockquote>{injectCitationBadges(children, citationMap, onCitationClick)}</blockquote>
+            <blockquote>{injectCitationBadges(children, citationMap)}</blockquote>
           ),
-          h1: ({ children }) => <h1>{injectCitationBadges(children, citationMap, onCitationClick)}</h1>,
-          h2: ({ children }) => <h2>{injectCitationBadges(children, citationMap, onCitationClick)}</h2>,
-          h3: ({ children }) => <h3>{injectCitationBadges(children, citationMap, onCitationClick)}</h3>,
+          h1: ({ children }) => <h1>{injectCitationBadges(children, citationMap)}</h1>,
+          h2: ({ children }) => <h2>{injectCitationBadges(children, citationMap)}</h2>,
+          h3: ({ children }) => <h3>{injectCitationBadges(children, citationMap)}</h3>,
           code: ({ children }) => (
-            <code>{injectCitationBadges(children, citationMap, onCitationClick)}</code>
+            <code>{injectCitationBadges(children, citationMap)}</code>
           ),
         }}
         remarkPlugins={[remarkGfm]}
@@ -316,15 +351,14 @@ function MarkdownAnswer({
 function injectCitationBadges(
   children: ReactNode,
   citationMap: CitationMap,
-  onCitationClick: (citationIndex: number) => void,
 ): ReactNode {
   return React.Children.map(children, (child) => {
     if (typeof child === "string") {
-      return renderCitationText(child, citationMap, onCitationClick);
+      return renderCitationText(child, citationMap);
     }
     if (React.isValidElement<{ children?: ReactNode }>(child) && child.props.children) {
       return React.cloneElement(child, {
-        children: injectCitationBadges(child.props.children, citationMap, onCitationClick),
+        children: injectCitationBadges(child.props.children, citationMap),
       });
     }
     return child;
@@ -334,7 +368,6 @@ function injectCitationBadges(
 function renderCitationText(
   text: string,
   citationMap: CitationMap,
-  onCitationClick: (citationIndex: number) => void,
 ): ReactNode[] {
   const nodes: ReactNode[] = [];
   let lastIndex = 0;
@@ -350,13 +383,7 @@ function renderCitationText(
     }
 
     if (citationMap.has(citationIndex)) {
-      nodes.push(
-        <CitationBadge
-          citationIndex={citationIndex}
-          key={`${citationIndex}-${matchIndex}`}
-          onClick={() => onCitationClick(citationIndex)}
-        />,
-      );
+      // Sources are rendered once at the end of the answer; keep prose uncluttered.
     } else {
       nodes.push(fullMatch);
     }
@@ -371,6 +398,7 @@ function renderCitationText(
   return nodes;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function CitationBadge({
   citationIndex,
   onClick,
@@ -400,6 +428,34 @@ function absoluteDownloadUrl(downloadUrl: string): string {
     return downloadUrl;
   }
   return `${API_BASE_URL}${downloadUrl.startsWith("/") ? "" : "/"}${downloadUrl}`;
+}
+
+function uniqueCitationSources(
+  citations: RagCitation[],
+  citationDocuments: Record<string, DocumentDetailResponse>,
+): Array<{ key: string; label: string; title: string; firstCitationIndex: number }> {
+  const byKey = new Map<string, { key: string; label: string; title: string; firstCitationIndex: number }>();
+  for (const citation of citations) {
+    const document = citationDocuments[citation.document_id];
+    const metadata = citation.metadata ?? {};
+    const label =
+      stringValue(metadata.document_code) ??
+      stringValue(metadata.ky_hieu) ??
+      stringValue(metadata.doc_code) ??
+      citation.document_title ??
+      document?.title ??
+      `Tài liệu ${citation.document_id.slice(0, 8)}`;
+    const key = `${citation.document_id}:${label}`;
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        key,
+        label,
+        title: document?.title ?? citation.document_title ?? label,
+        firstCitationIndex: citation.citation_index,
+      });
+    }
+  }
+  return [...byKey.values()];
 }
 
 function stringValue(value: unknown): string | null {

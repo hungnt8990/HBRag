@@ -56,6 +56,16 @@ class Settings(BaseSettings):
     docling_strict_quality: bool = True
     enable_unstructured: bool = False
 
+    doffice_es_url: str = "http://10.72.2.42:9200/doffice_vanban/_search"
+    doffice_es_timeout_seconds: int = 30
+
+    elasticsearch_enabled: bool = False
+    elasticsearch_url: str = "http://localhost:9200"
+    elasticsearch_index_name: str = "hbrag_chunks_bm25_v1"
+    elasticsearch_timeout_seconds: int = 30
+    elasticsearch_index_batch_size: int = 128
+    elasticsearch_fallback_to_postgres: bool = True
+
     memory_provider: str = "local"
     memory_enabled: bool = True
     mem0_enabled: bool = False
@@ -142,7 +152,7 @@ class Settings(BaseSettings):
     graph_provider: str = "neo4j"
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_username: str = "neo4j"
-    neo4j_password: str = "hbrag_password"
+    neo4j_password: str = "hbrag_neo4j_password"
     graph_entity_extraction_enabled: bool = True
     graph_relation_extraction_enabled: bool = True
     graph_expansion_enabled: bool = True
@@ -155,7 +165,9 @@ class Settings(BaseSettings):
     graph_extractor_provider: str = "llm"
     graph_entity_merge_enabled: bool = True
     graph_relation_merge_enabled: bool = True
+    graph_auto_index_on_ingest: bool = False
 
+    storage_backend: str = "minio"
     minio_endpoint: str = "localhost:9000"
     minio_access_key: str = "minioadmin"
     minio_secret_key: str = "minioadmin123"

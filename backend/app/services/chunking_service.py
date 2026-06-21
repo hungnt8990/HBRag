@@ -435,8 +435,11 @@ class ChunkingService:
         if not document.parsed_text or not document.parsed_text.strip():
             raise EmptyParsedTextError("Document has no parsed text to chunk.")
 
-        document_file = await self._get_primary_document_file(document.id)
         document_metadata = dict(getattr(document, "document_metadata", None) or {})
+        if document_metadata.get("source_type") == "doffice_elasticsearch" and document_metadata.get("normalized_elements"):
+            return await self._chunk_doffice_document(document=document, document_metadata=document_metadata)
+
+        document_file = await self._get_primary_document_file(document.id)
 
         if self._can_use_docling_router(
             document_metadata=document_metadata,
@@ -550,11 +553,18 @@ class ChunkingService:
             chunk_strategy = "recursive"
             mode = "recursive"
 
+        source_file = (
+            getattr(document_file, "filename", None)
+            or document_metadata.get("source_name")
+            or document_metadata.get("ten_file")
+            or getattr(document, "title", None)
+        )
         compatibility_metadata = {
             "chunk_strategy": chunk_strategy,
             "router_reason": "document_profile_default",
             "parser": document_metadata.get("parser"),
-            "source_file": getattr(document_file, "filename", None),
+            "source_file": source_file,
+            **self._document_metadata_for_chunks(document_metadata),
         }
         chunk_records: list[ChunkCreate] = []
         preview_chunks: list[TextChunk] = []
@@ -604,6 +614,93 @@ class ChunkingService:
         except Exception as exc:
             await self._repository.rollback()
             raise DocumentChunkingError("Failed to chunk document.") from exc
+
+        return DocumentChunkResponse(
+            document_id=document.id,
+            status=document.status,
+            chunk_count=len(chunk_records),
+            preview=[
+                ChunkPreview(
+                    chunk_index=index,
+                    content=text_chunk.content,
+                    start_char=text_chunk.start_char,
+                    end_char=text_chunk.end_char,
+                )
+                for index, text_chunk in enumerate(preview_chunks)
+            ],
+        )
+
+    async def _chunk_doffice_document(self, *, document: Any, document_metadata: dict[str, Any]) -> DocumentChunkResponse:
+        from app.services.doffice_chunking import build_doffice_chunks
+        from app.services.doffice_content_normalizer import NormalizedDofficeDocument, NormalizedElement, NormalizedTable, NormalizedTableRow
+
+        elements = [
+            NormalizedElement(
+                element_type=str(item.get("element_type") or item.get("chunk_type") or "paragraph"),
+                text=str(item.get("text") or ""),
+                metadata=dict(item.get("metadata") or {}),
+            )
+            for item in document_metadata.get("normalized_elements", [])
+            if isinstance(item, dict)
+        ]
+        tables = [
+            NormalizedTable(
+                table_index=int(item.get("table_index") or 0),
+                headers=list(item.get("headers") or []),
+                rows=[
+                    NormalizedTableRow(
+                        row_index=int(row.get("row_index") or 0),
+                        values=list(row.get("values") or []),
+                        metadata=dict(row.get("metadata") or {}),
+                    )
+                    for row in item.get("rows", [])
+                    if isinstance(row, dict)
+                ],
+                markdown=str(item.get("markdown") or ""),
+                text=str(item.get("text") or ""),
+                metadata=dict(item.get("metadata") or {}),
+            )
+            for item in document_metadata.get("normalized_tables", [])
+            if isinstance(item, dict)
+        ]
+        normalized = NormalizedDofficeDocument(
+            id_vb=str(document_metadata.get("id_vb") or ""),
+            document_code=document_metadata.get("document_code") or document_metadata.get("ky_hieu"),
+            title=document_metadata.get("trich_yeu"),
+            issued_date=document_metadata.get("issued_date"),
+            issuer=document_metadata.get("issuer") or document_metadata.get("noi_ban_hanh"),
+            signer=document_metadata.get("signer") or document_metadata.get("nguoi_ky"),
+            raw_text=str(document_metadata.get("noi_dung_raw") or ""),
+            clean_text=document.parsed_text or "",
+            markdown_text=str(document_metadata.get("markdown_text") or ""),
+            plain_text=str(document_metadata.get("plain_text") or document.parsed_text or ""),
+            summary_text=document_metadata.get("source_summary"),
+            elements=elements,
+            tables=tables,
+            metadata=document_metadata,
+            content_hash=str(document_metadata.get("content_hash") or ""),
+            metadata_hash=str(document_metadata.get("metadata_hash") or ""),
+        )
+        chunk_records = build_doffice_chunks(normalized)
+        preview_chunks = [
+            TextChunk(
+                content=chunk.content,
+                start_char=0,
+                end_char=len(chunk.content),
+                metadata=chunk.metadata,
+            )
+            for chunk in chunk_records[:CHUNK_PREVIEW_LIMIT]
+        ]
+
+        try:
+            document.document_profile = "doffice_admin"
+            await self._repository.delete_chunks_for_document(document.id)
+            await self._repository.create_chunks(document_id=document.id, chunks=chunk_records)
+            await self._repository.update_document_status(document, "chunked")
+            await self._repository.commit()
+        except Exception as exc:
+            await self._repository.rollback()
+            raise DocumentChunkingError("Failed to chunk DOffice document.") from exc
 
         return DocumentChunkResponse(
             document_id=document.id,
@@ -976,6 +1073,31 @@ class ChunkingService:
             )
             stored[key] = object_name
         return stored
+
+    @staticmethod
+    def _document_metadata_for_chunks(document_metadata: dict[str, Any]) -> dict[str, Any]:
+        propagated: dict[str, Any] = {}
+        for key in (
+            "source_type",
+            "source_name",
+            "id_vb",
+            "ky_hieu",
+            "trich_yeu",
+            "noi_ban_hanh",
+            "nguoi_ky",
+            "ten_file",
+            "duong_dan",
+            "doc_code",
+            "doc_codes",
+            "identifiers",
+            "issuing_org",
+            "issuer",
+            "subject",
+        ):
+            value = document_metadata.get(key)
+            if value not in (None, "", []):
+                propagated[key] = value
+        return propagated
 
     @staticmethod
     def _build_metadata(

@@ -15,6 +15,7 @@ from app.schemas.documents import (
     VectorSearchResult,
 )
 from app.services.access_control import AccessFilter
+from app.services.elasticsearch_keyword_search import ElasticsearchKeywordStore
 from app.services.embeddings import EmbeddingProvider
 from app.services.embeddings.sparse import SparseEmbeddingProvider
 from app.services.rag_chunk import (
@@ -60,11 +61,13 @@ class VectorIndexingService:
         embedding_provider: EmbeddingProvider,
         vector_store: QdrantVectorStore,
         sparse_embedding_provider: SparseEmbeddingProvider | None = None,
+        keyword_index_store: ElasticsearchKeywordStore | None = None,
     ) -> None:
         self._repository = repository
         self._embedding_provider = embedding_provider
         self._vector_store = vector_store
         self._sparse_embedding_provider = sparse_embedding_provider
+        self._keyword_index_store = keyword_index_store
 
     async def index_document(
         self,
@@ -174,6 +177,15 @@ class VectorIndexingService:
                 tenant_id=tenant_id,
             )
             await self._vector_store.upsert_chunks(points)
+            if self._keyword_index_store is not None and settings.elasticsearch_enabled:
+                await self._keyword_index_store.delete_points_for_document(
+                    response_document_id,
+                    tenant_id=tenant_id,
+                )
+                await self._keyword_index_store.upsert_chunks(
+                    chunks=indexable_chunks,
+                    embedding_texts=embedding_texts,
+                )
             await self._update_index_metadata(
                 document,
                 total_chunks=len(rag_chunks),
@@ -341,6 +353,17 @@ class VectorIndexingService:
         if "tenant_id" in parameters:
             kwargs["tenant_id"] = tenant_id
         await delete_method(document_id, **kwargs)
+        if self._keyword_index_store is not None and settings.elasticsearch_enabled:
+            try:
+                await self._keyword_index_store.delete_points_for_document(
+                    document_id,
+                    tenant_id=tenant_id,
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to clean Elasticsearch keyword docs for document=%s",
+                    document_id,
+                )
 
     async def _get_primary_document_file(self, document_id: UUID) -> Any | None:
         getter = getattr(self._repository, "get_primary_document_file", None)
@@ -454,6 +477,12 @@ class VectorIndexingService:
                 "chunk_count_total": total_chunks,
                 "chunk_count_indexed": indexed_chunks,
                 "qdrant_collection": self._vector_store.collection_name,
+                "elasticsearch_index": (
+                    self._keyword_index_store.index_name
+                    if self._keyword_index_store is not None
+                    and settings.elasticsearch_enabled
+                    else None
+                ),
                 "ingestion_status": "indexed",
                 "ingestion_completed_at": datetime.now(UTC).isoformat(),
                 "dense_vector_name": self._vector_store.dense_vector_name,

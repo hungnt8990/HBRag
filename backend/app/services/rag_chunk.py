@@ -22,6 +22,21 @@ NON_INDEXABLE_CHUNK_TYPES = {
     "footer",
 }
 FAILED_QUALITY_STATUSES = {"fail", "failed", "rejected"}
+FORBIDDEN_QDRANT_PAYLOAD_FIELDS = {
+    "noi_dung_raw",
+    "plain_text",
+    "markdown_text",
+    "tom_tat",
+    "parsed_elements",
+    "normalized_elements",
+    "normalized_tables",
+    "normalized_table_rows",
+    "raw_source_metadata",
+    "raw_payload",
+    "raw_cells",
+    "enrichment",
+    "access",
+}
 
 
 class RagChunk(BaseModel):
@@ -156,7 +171,22 @@ class RagChunk(BaseModel):
     identifiers: list[str] = Field(default_factory=list)
     doc_codes: list[str] = Field(default_factory=list)
     dates: list[str] = Field(default_factory=list)
+    source_type: str | None = None
+    source_name: str | None = None
+    id_vb: str | None = None
+    ky_hieu: str | None = None
+    trich_yeu: str | None = None
+    noi_ban_hanh: str | None = None
+    nguoi_ky: str | None = None
+    ten_file: str | None = None
+    duong_dan: str | None = None
+    doc_code: str | None = None
+    issuing_org: str | None = None
+    subject: str | None = None
     platform: str | None = None
+    feature_name: str | None = None
+    screen_name: str | None = None
+    change_content: str | None = None
     phase: str | None = None
     change_type: str | None = None
     content_type: str | None = None
@@ -265,7 +295,7 @@ def infer_table_metadata(
 
 
 DOC_CODE_PATTERN = re.compile(
-    r"\b(?P<number>\d{2,6})\s*/\s*(?P<suffix>[A-ZĐƠƯÂÊÔĂÁÀẢÃẠÉÈẺẼẸÍÌỈĨỊÓÒỎÕỌÚÙỦŨỤÝỲỶỸỴ0-9][A-ZĐƠƯÂÊÔĂÁÀẢÃẠÉÈẺẼẸÍÌỈĨỊÓÒỎÕỌÚÙỦŨỤÝỲỶỸỴ0-9\-_/]{2,})\b",
+    r"\b(?P<number>\d{2,6})\s*/\s*(?P<suffix>[A-ZĐƠƯÂÊÔĂÁÀẢÃẠÉÈẺẼẸÍÌỈĨỊÓÒỎÕỌÚÙỦŨỤÝỲỶỸỴ0-9][A-ZĐƠƯÂÊÔĂÁÀẢÃẠÉÈẺẼẸÍÌỈĨỊÓÒỎÕỌÚÙỦŨỤÝỲỶỸỴ0-9+\-_/]{2,})\b",
     flags=re.IGNORECASE,
 )
 DATE_PATTERN = re.compile(r"\b\d{1,2}/\d{1,2}/\d{4}\b")
@@ -318,7 +348,19 @@ def extract_search_metadata(text: str, record: dict[str, Any]) -> dict[str, list
     combined = "\n".join(combined_parts)
 
     doc_codes = _as_string_list(record.get("doc_codes") or record.get("document_codes"))
+    doc_codes.extend(
+        _as_string_list(
+            record.get("doc_code")
+            or record.get("document_code")
+            or record.get("ky_hieu")
+        )
+    )
     identifiers = _as_string_list(record.get("identifiers") or record.get("identifier"))
+    identifiers.extend(_as_string_list(record.get("id_vb")))
+    identifiers.extend(doc_codes)
+    for doc_code in list(doc_codes):
+        if "/" in doc_code:
+            identifiers.append(doc_code.split("/", 1)[0].strip())
     dates = _as_string_list(record.get("dates") or record.get("document_dates"))
 
     for match in DOC_CODE_PATTERN.finditer(combined):
@@ -541,6 +583,10 @@ def build_embedding_text(chunk: RagChunk) -> str:
     add_context("Cơ quan", chunk.issuer)
     add_context("Đơn vị", chunk.unit)
     add_context("Phạm vi", ", ".join(chunk.scope) if chunk.scope else None)
+    add_context("DOffice id_vb", chunk.id_vb)
+    add_context("Document code", chunk.ky_hieu or chunk.doc_code)
+    add_context("Subject", chunk.subject or chunk.trich_yeu)
+    add_context("Issuing org", chunk.issuing_org or chunk.noi_ban_hanh)
     add_context("Số hiệu/mã", _join_search_values(chunk.identifiers))
     add_context("Văn bản", _join_search_values(chunk.doc_codes))
     add_context("Ngày", _join_search_values(chunk.dates))
@@ -796,11 +842,26 @@ def rag_chunk_from_record(
         source_file=source_file,
         source_uri=source_uri,
         document_title=document_title,
-        issuer=str(record.get("issuer") or "").strip() or None,
+        issuer=str(record.get("issuer") or record.get("issuing_org") or record.get("noi_ban_hanh") or "").strip() or None,
         identifiers=search_metadata["identifiers"],
         doc_codes=search_metadata["doc_codes"],
         dates=search_metadata["dates"],
+        source_type=str(record.get("source_type") or "").strip() or None,
+        source_name=str(record.get("source_name") or "").strip() or None,
+        id_vb=str(record.get("id_vb") or "").strip() or None,
+        ky_hieu=str(record.get("ky_hieu") or "").strip() or None,
+        trich_yeu=str(record.get("trich_yeu") or "").strip() or None,
+        noi_ban_hanh=str(record.get("noi_ban_hanh") or "").strip() or None,
+        nguoi_ky=str(record.get("nguoi_ky") or "").strip() or None,
+        ten_file=str(record.get("ten_file") or "").strip() or None,
+        duong_dan=str(record.get("duong_dan") or "").strip() or None,
+        doc_code=str(record.get("doc_code") or record.get("ky_hieu") or "").strip() or None,
+        issuing_org=str(record.get("issuing_org") or record.get("noi_ban_hanh") or "").strip() or None,
+        subject=str(record.get("subject") or record.get("trich_yeu") or "").strip() or None,
         platform=str(record.get("platform") or "").strip() or None,
+        feature_name=str(record.get("feature_name") or "").strip() or None,
+        screen_name=str(record.get("screen_name") or "").strip() or None,
+        change_content=str(record.get("change_content") or "").strip() or None,
         phase=str(record.get("phase") or "").strip() or None,
         change_type=str(record.get("change_type") or "").strip() or None,
         content_type=str(record.get("content_type") or "").strip() or None,
@@ -856,10 +917,10 @@ def rag_chunk_from_database(
         "enriched": bool(enriched_content),
         "enrichment_summary": enrichment.get("summary"),
         "enrichment_keywords": enrichment.get("keywords"),
-        "document_code": enrichment.get("document_code"),
-        "issued_date": enrichment.get("issued_date"),
-        "document_type": enrichment.get("document_type"),
-        "structure_path": enrichment.get("structure_path"),
+        "document_code": enrichment.get("document_code") or metadata.get("document_code"),
+        "issued_date": enrichment.get("issued_date") or metadata.get("issued_date"),
+        "document_type": enrichment.get("document_type") or metadata.get("document_type"),
+        "structure_path": enrichment.get("structure_path") or metadata.get("structure_path"),
         "rule_enrichment": rule_enrichment,
     }
     if enriched_content and use_enriched_content_for_embedding:
@@ -927,7 +988,8 @@ def qdrant_payload(chunk: RagChunk, *, store_raw_text: bool = False) -> dict[str
     payload["chunk_id"] = chunk.database_chunk_id or chunk.chunk_id
     payload["semantic_chunk_id"] = chunk.chunk_id
     access = normalize_access_payload(payload.get("access") or {})
-    payload["access"] = access
+    for key in FORBIDDEN_QDRANT_PAYLOAD_FIELDS:
+        payload.pop(key, None)
     payload.update(flatten_access_payload(access))
     return payload
 

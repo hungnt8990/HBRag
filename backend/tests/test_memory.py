@@ -180,7 +180,7 @@ def test_memory_injected_into_prompt_when_present() -> None:
     assert "User Memory:" in prompt
     assert "User prefers Vietnamese." in prompt
     assert "Session Summary:" in prompt
-    assert "Retrieved Document Context:" in prompt
+    assert "Document Text:" in prompt
     assert "[1] Document chunk content." in prompt
 
 

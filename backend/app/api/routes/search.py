@@ -25,6 +25,10 @@ from app.schemas.documents import (
 )
 from app.services.access_control import build_access_filter, build_subject_context
 from app.services.document_profiles import resolve_profile
+from app.services.elasticsearch_keyword_search import (
+    ElasticsearchKeywordSearchService,
+    get_elasticsearch_keyword_store,
+)
 from app.services.embeddings.base import EmbeddingProvider
 from app.services.embeddings.factory import get_embedding_provider
 from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
@@ -71,13 +75,24 @@ def get_vector_search_service(
         embedding_provider=embedding_provider,
         vector_store=vector_store,
         sparse_embedding_provider=get_sparse_embedding_provider(),
+        keyword_index_store=(
+            get_elasticsearch_keyword_store()
+            if settings.elasticsearch_enabled
+            else None
+        ),
     )
 
 
 def get_keyword_search_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
-) -> KeywordSearchService:
-    return KeywordSearchService(session)
+) -> KeywordSearchService | ElasticsearchKeywordSearchService:
+    fallback = KeywordSearchService(session)
+    if not settings.elasticsearch_enabled:
+        return fallback
+    return ElasticsearchKeywordSearchService(
+        store=get_elasticsearch_keyword_store(),
+        fallback_service=(fallback if settings.elasticsearch_fallback_to_postgres else None),
+    )
 
 
 def get_retrieval_log_repository(

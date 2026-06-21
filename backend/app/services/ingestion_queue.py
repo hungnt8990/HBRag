@@ -15,20 +15,27 @@ from starlette.datastructures import Headers
 from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 from app.repositories.documents import DocumentRepository
+from app.repositories.graph import GraphRepository
 from app.repositories.ingestion_profiles import IngestionProfileRepository
 from app.repositories.knowledge_artifacts import KnowledgeArtifactRepository
 from app.repositories.rag_runtime_config import RagRuntimeConfigRepository
+from app.schemas.documents import GraphIndexRequest
 from app.services.chunk_enrichment_service import ChunkEnrichmentService
 from app.services.chunking_service import ChunkingService
 from app.services.document_parser_service import DocumentParserService
 from app.services.document_profiles import profile_config, resolve_profile_with_evidence
 from app.services.document_service import DocumentService
+from app.services.document_sources import DofficeElasticsearchSource
+from app.services.doffice_ingestion_service import DofficeIngestionService, DofficeIngestOptions
+from app.services.elasticsearch_keyword_search import get_elasticsearch_keyword_store
 from app.services.embeddings.factory import get_embedding_provider
 from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
+from app.services.graph import GraphIndexingService, GraphMergeService, get_neo4j_client
+from app.services.graph.extractors.factory import build_graph_extractor
 from app.services.ingestion_profiles import load_profile_configs
 from app.services.knowledge_artifact_compiler import KnowledgeArtifactCompiler, KnowledgeArtifactCompilerConfig
 from app.services.knowledge_artifact_indexing_service import KnowledgeArtifactIndexingService
-from app.services.llms.factory import build_llm_provider_or_error
+from app.services.llms.factory import build_llm_provider_or_error, get_llm_provider
 from app.services.rag_runtime_config import RagRuntimeConfigValues, load_rag_runtime_config
 from app.services.storage import get_storage_client
 from app.services.vector_indexing_service import VectorIndexingService
@@ -39,6 +46,7 @@ StepState = Literal["idle", "running", "succeeded", "failed"]
 LogLevel = Literal["info", "success", "error"]
 
 PIPELINE_STEPS = ("upload", "parse", "chunk", "compile_artifacts", "enrich", "index")
+DOFFICE_PIPELINE_STEPS = ("parse", "chunk", "enrich", "index", "graph")
 logger = logging.getLogger(__name__)
 
 
@@ -99,6 +107,17 @@ class QueuedDocumentReingestion:
 
 
 @dataclass(frozen=True)
+class QueuedDofficeIngestion:
+    id_vb: str
+    force_refresh: bool = False
+    enable_enrichment: bool = True
+    uploaded_by_user_id: UUID | None = None
+    organization_id: UUID | None = None
+    knowledge_base_id: UUID | None = None
+    access: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class EnrichmentRuntimeConfig:
     step: str
     provider: str | None
@@ -111,7 +130,7 @@ class EnrichmentRuntimeConfig:
 class IngestionQueue:
     def __init__(self) -> None:
         self._jobs: dict[UUID, IngestionJob] = {}
-        self._payloads: dict[UUID, QueuedUpload | QueuedDocumentReingestion] = {}
+        self._payloads: dict[UUID, QueuedUpload | QueuedDocumentReingestion | QueuedDofficeIngestion] = {}
 
     def enqueue_upload(
         self,
@@ -191,6 +210,52 @@ class IngestionQueue:
         )
         return job
 
+
+    def enqueue_doffice_ingestion(
+        self,
+        *,
+        id_vb: str,
+        force_refresh: bool = False,
+        enable_enrichment: bool = True,
+        uploaded_by_user_id: UUID | None = None,
+        organization_id: UUID | None = None,
+        knowledge_base_id: UUID | None = None,
+        access: dict[str, Any] | None = None,
+    ) -> IngestionJob:
+        clean_id = " ".join(str(id_vb or "").split()).strip()
+        now = datetime.now(UTC)
+        job = IngestionJob(
+            job_id=uuid4(),
+            filename=f"DOffice {clean_id}",
+            content_type="application/json",
+            status="queued",
+            created_at=now,
+            updated_at=now,
+            ingestion_profile="doffice_admin",
+            resolved_ingestion_profile="doffice_admin",
+            steps={step: IngestionStep(name=step) for step in DOFFICE_PIPELINE_STEPS},
+        )
+        self._jobs[job.job_id] = job
+        self._payloads[job.job_id] = QueuedDofficeIngestion(
+            id_vb=clean_id,
+            force_refresh=force_refresh,
+            enable_enrichment=enable_enrichment,
+            uploaded_by_user_id=uploaded_by_user_id,
+            organization_id=organization_id,
+            knowledge_base_id=knowledge_base_id,
+            access=dict(access or {}),
+        )
+        self._log(
+            job,
+            step="queue",
+            level="info",
+            message=(
+                f"DOffice ingestion queued for id_vb={clean_id}; "
+                f"force_refresh={force_refresh}, enable_enrichment={enable_enrichment}."
+            ),
+        )
+        return job
+
     def get_job(self, job_id: UUID) -> IngestionJob | None:
         return self._jobs.get(job_id)
 
@@ -213,262 +278,265 @@ class IngestionQueue:
         is_reingestion = isinstance(payload, QueuedDocumentReingestion)
 
         try:
-            storage = get_storage_client()
-
-            # Each pipeline stage owns a fresh AsyncSession. Reusing one session
-            # across multiple services that commit independently can leave ORM
-            # instances expired/stale and trigger SQLAlchemy MissingGreenlet when
-            # a later stage reads an attribute outside the greenlet bridge.
-            if isinstance(payload, QueuedUpload):
-                async with AsyncSessionLocal() as session:
-                    upload_response = await self._run_step(
-                        job,
-                        "upload",
-                        lambda: DocumentService(
-                            repository=DocumentRepository(session),
-                            storage=storage,
-                        ).upload_document(
-                            self._to_upload_file(payload),
-                            organization_id=payload.organization_id,
-                            access=payload.access,
-                        ),
-                        lambda response: {
-                            "document_id": str(response.document_id),
-                            "filename": response.filename,
-                            "status": response.status,
-                            "storage_path": response.storage_path,
-                            "ingestion_profile": job.ingestion_profile,
-                        },
-                    )
-                document_id = upload_response.document_id
+            if isinstance(payload, QueuedDofficeIngestion):
+                await self._run_doffice_job(job, payload)
             else:
-                document_id = payload.document_id
+                storage = get_storage_client()
+
+                # Each pipeline stage owns a fresh AsyncSession. Reusing one session
+                # across multiple services that commit independently can leave ORM
+                # instances expired/stale and trigger SQLAlchemy MissingGreenlet when
+                # a later stage reads an attribute outside the greenlet bridge.
+                if isinstance(payload, QueuedUpload):
+                    async with AsyncSessionLocal() as session:
+                        upload_response = await self._run_step(
+                            job,
+                            "upload",
+                            lambda: DocumentService(
+                                repository=DocumentRepository(session),
+                                storage=storage,
+                            ).upload_document(
+                                self._to_upload_file(payload),
+                                organization_id=payload.organization_id,
+                                access=payload.access,
+                            ),
+                            lambda response: {
+                                "document_id": str(response.document_id),
+                                "filename": response.filename,
+                                "status": response.status,
+                                "storage_path": response.storage_path,
+                                "ingestion_profile": job.ingestion_profile,
+                            },
+                        )
+                    document_id = upload_response.document_id
+                else:
+                    document_id = payload.document_id
+                    async with AsyncSessionLocal() as session:
+                        await self._run_step(
+                            job,
+                            "upload",
+                            lambda: self._reuse_existing_document(
+                                document_id=document_id,
+                                repository=DocumentRepository(session),
+                            ),
+                            lambda response: {
+                                "document_id": str(response.document_id),
+                                "filename": response.filename,
+                                "status": response.status,
+                                "storage_path": response.storage_path,
+                                "reingest_existing_document": True,
+                                "ingestion_profile": job.ingestion_profile,
+                            },
+                        )
+                job.document_id = document_id
+
                 async with AsyncSessionLocal() as session:
                     await self._run_step(
                         job,
-                        "upload",
-                        lambda: self._reuse_existing_document(
-                            document_id=document_id,
+                        "parse",
+                        lambda: DocumentParserService(
                             repository=DocumentRepository(session),
+                            storage=storage,
+                        ).parse_document(document_id, force_reparse=is_reingestion),
+                        lambda response: {
+                            "document_id": str(response.document_id),
+                            "status": response.status,
+                            "character_count": response.character_count,
+                            "preview": response.preview,
+                        },
+                    )
+
+                async with AsyncSessionLocal() as session:
+                    chunk_repository = DocumentRepository(session)
+                    resolved_profile = await self._resolve_profile_for_document(
+                        document_id=document_id,
+                        repository=chunk_repository,
+                        requested_profile=job.ingestion_profile,
+                        filename=job.filename,
+                        content_type=job.content_type,
+                    )
+                    job.resolved_ingestion_profile = resolved_profile
+                    await self._run_step(
+                        job,
+                        "chunk",
+                        lambda: ChunkingService(
+                            repository=chunk_repository,
+                            storage=storage,
+                        ).chunk_document(document_id, profile=resolved_profile),
+                        lambda response: {
+                            "document_id": str(response.document_id),
+                            "status": response.status,
+                            "chunk_count": response.chunk_count,
+                            "ingestion_profile": job.ingestion_profile,
+                            "resolved_ingestion_profile": resolved_profile,
+                            "preview": [chunk.model_dump(mode="json") for chunk in response.preview],
+                        },
+                    )
+
+                async with AsyncSessionLocal() as session:
+                    profile_repository = IngestionProfileRepository(session)
+                    await load_profile_configs(profile_repository)
+                    await profile_repository.commit()
+
+                rag_config = await self._load_rag_runtime_config()
+
+                async with AsyncSessionLocal() as session:
+                    artifact_compile_response = await self._run_step(
+                        job,
+                        "compile_artifacts",
+                        lambda: self._compile_knowledge_artifacts(
+                            document_id=document_id,
+                            session=session,
+                            rag_config=rag_config,
                         ),
                         lambda response: {
                             "document_id": str(response.document_id),
-                            "filename": response.filename,
                             "status": response.status,
-                            "storage_path": response.storage_path,
-                            "reingest_existing_document": True,
-                            "ingestion_profile": job.ingestion_profile,
+                            "artifact_count": response.artifact_count,
+                            "failed_count": response.failed_count,
+                            "skipped_count": response.skipped_count,
+                            "config_source": response.config_source,
+                            "enable_knowledge_artifact_compilation": rag_config.enable_knowledge_artifact_compilation,
+                            "enable_llm_artifact_extraction": rag_config.enable_llm_artifact_extraction,
+                            "error": response.error,
                         },
                     )
-            job.document_id = document_id
+                    self._log(
+                        job,
+                        step="compile_artifacts",
+                        level="success" if artifact_compile_response.status in {"compiled", "skipped"} else "error",
+                        message=(
+                            "knowledge artifact compilation summary: "
+                            f"status={artifact_compile_response.status}, "
+                            f"artifact_count={artifact_compile_response.artifact_count}, "
+                            f"failed_count={artifact_compile_response.failed_count}, "
+                            f"skipped_count={artifact_compile_response.skipped_count}."
+                        ),
+                    )
 
-            async with AsyncSessionLocal() as session:
-                await self._run_step(
-                    job,
-                    "parse",
-                    lambda: DocumentParserService(
-                        repository=DocumentRepository(session),
-                        storage=storage,
-                    ).parse_document(document_id, force_reparse=is_reingestion),
-                    lambda response: {
-                        "document_id": str(response.document_id),
-                        "status": response.status,
-                        "character_count": response.character_count,
-                        "preview": response.preview,
-                    },
+                offline_enrichment_enabled = bool(
+                    getattr(settings, "enable_offline_enrichment", True)
                 )
-
-            async with AsyncSessionLocal() as session:
-                chunk_repository = DocumentRepository(session)
-                resolved_profile = await self._resolve_profile_for_document(
-                    document_id=document_id,
-                    repository=chunk_repository,
-                    requested_profile=job.ingestion_profile,
-                    filename=job.filename,
-                    content_type=job.content_type,
+                chunk_enrichment_enabled = bool(
+                    offline_enrichment_enabled and rag_config.enable_chunk_enrichment_at_ingest
                 )
-                job.resolved_ingestion_profile = resolved_profile
-                await self._run_step(
-                    job,
-                    "chunk",
-                    lambda: ChunkingService(
-                        repository=chunk_repository,
-                        storage=storage,
-                    ).chunk_document(document_id, profile=resolved_profile),
-                    lambda response: {
-                        "document_id": str(response.document_id),
-                        "status": response.status,
-                        "chunk_count": response.chunk_count,
-                        "ingestion_profile": job.ingestion_profile,
-                        "resolved_ingestion_profile": resolved_profile,
-                        "preview": [chunk.model_dump(mode="json") for chunk in response.preview],
-                    },
+                use_enriched_content_for_embedding = bool(
+                    getattr(settings, "use_enriched_content_for_embedding", True)
+                    and chunk_enrichment_enabled
                 )
-
-            async with AsyncSessionLocal() as session:
-                profile_repository = IngestionProfileRepository(session)
-                await load_profile_configs(profile_repository)
-                await profile_repository.commit()
-
-            rag_config = await self._load_rag_runtime_config()
-
-            async with AsyncSessionLocal() as session:
-                artifact_compile_response = await self._run_step(
-                    job,
-                    "compile_artifacts",
-                    lambda: self._compile_knowledge_artifacts(
-                        document_id=document_id,
-                        session=session,
-                        rag_config=rag_config,
-                    ),
-                    lambda response: {
-                        "document_id": str(response.document_id),
-                        "status": response.status,
-                        "artifact_count": response.artifact_count,
-                        "failed_count": response.failed_count,
-                        "skipped_count": response.skipped_count,
-                        "config_source": response.config_source,
-                        "enable_knowledge_artifact_compilation": rag_config.enable_knowledge_artifact_compilation,
-                        "enable_llm_artifact_extraction": rag_config.enable_llm_artifact_extraction,
-                        "error": response.error,
-                    },
+                retrieval_enrichment_enabled = bool(rag_config.enable_chunk_enrichment_at_retrieval)
+                enrichment_force_on_reingest = bool(settings.enrichment_force_on_reingest)
+                enrichment_update_keyword_search_vector = bool(
+                    settings.enrichment_update_keyword_search_vector
                 )
+                force_enrichment = bool(is_reingestion and enrichment_force_on_reingest)
+                enrichment_runtime = self._enrichment_runtime_config(force_enrichment=force_enrichment)
                 self._log(
                     job,
-                    step="compile_artifacts",
-                    level="success" if artifact_compile_response.status in {"compiled", "skipped"} else "error",
+                    step="profile",
+                    level="info",
                     message=(
-                        "knowledge artifact compilation summary: "
-                        f"status={artifact_compile_response.status}, "
-                        f"artifact_count={artifact_compile_response.artifact_count}, "
-                        f"failed_count={artifact_compile_response.failed_count}, "
-                        f"skipped_count={artifact_compile_response.skipped_count}."
+                        "RAG profile config loaded: "
+                        f"profile={resolved_profile}, config_source=PostgreSQL, "
+                        "enrichment_runtime_config_source=PostgreSQL/.env fallback, "
+                        f"enable_offline_enrichment={offline_enrichment_enabled}, "
+                        f"chunk_enrichment_enabled={chunk_enrichment_enabled}, "
+                        "use_enriched_content_for_embedding="
+                        f"{use_enriched_content_for_embedding}, "
+                        f"retrieval_enrichment_enabled={retrieval_enrichment_enabled}, "
+                        f"enrichment_force_on_reingest={enrichment_force_on_reingest}, "
+                        "enrichment_update_keyword_search_vector="
+                        f"{enrichment_update_keyword_search_vector}, "
+                        f"enrichment_step={enrichment_runtime.step}, "
+                        "enrichment_provider="
+                        f"{enrichment_runtime.provider or 'runtime_default'}, "
+                        f"enrichment_base_url={enrichment_runtime.base_url or 'runtime_default'}, "
+                        f"enrichment_model={enrichment_runtime.model or 'runtime_default'}, "
+                        f"enrichment_max_chars={enrichment_runtime.max_chars}, "
+                        f"enrichment_version={enrichment_runtime.version}."
                     ),
                 )
 
-            offline_enrichment_enabled = bool(
-                getattr(settings, "enable_offline_enrichment", True)
-            )
-            chunk_enrichment_enabled = bool(
-                offline_enrichment_enabled and rag_config.enable_chunk_enrichment_at_ingest
-            )
-            use_enriched_content_for_embedding = bool(
-                getattr(settings, "use_enriched_content_for_embedding", True)
-                and chunk_enrichment_enabled
-            )
-            retrieval_enrichment_enabled = bool(rag_config.enable_chunk_enrichment_at_retrieval)
-            enrichment_force_on_reingest = bool(settings.enrichment_force_on_reingest)
-            enrichment_update_keyword_search_vector = bool(
-                settings.enrichment_update_keyword_search_vector
-            )
-            force_enrichment = bool(is_reingestion and enrichment_force_on_reingest)
-            enrichment_runtime = self._enrichment_runtime_config(force_enrichment=force_enrichment)
-            self._log(
-                job,
-                step="profile",
-                level="info",
-                message=(
-                    "RAG profile config loaded: "
-                    f"profile={resolved_profile}, config_source=PostgreSQL, "
-                    "enrichment_runtime_config_source=PostgreSQL/.env fallback, "
-                    f"enable_offline_enrichment={offline_enrichment_enabled}, "
-                    f"chunk_enrichment_enabled={chunk_enrichment_enabled}, "
-                    "use_enriched_content_for_embedding="
-                    f"{use_enriched_content_for_embedding}, "
-                    f"retrieval_enrichment_enabled={retrieval_enrichment_enabled}, "
-                    f"enrichment_force_on_reingest={enrichment_force_on_reingest}, "
-                    "enrichment_update_keyword_search_vector="
-                    f"{enrichment_update_keyword_search_vector}, "
-                    f"enrichment_step={enrichment_runtime.step}, "
-                    "enrichment_provider="
-                    f"{enrichment_runtime.provider or 'runtime_default'}, "
-                    f"enrichment_base_url={enrichment_runtime.base_url or 'runtime_default'}, "
-                    f"enrichment_model={enrichment_runtime.model or 'runtime_default'}, "
-                    f"enrichment_max_chars={enrichment_runtime.max_chars}, "
-                    f"enrichment_version={enrichment_runtime.version}."
-                ),
-            )
-
-            async with AsyncSessionLocal() as session:
-                enrich_response = await self._run_step(
-                    job,
-                    "enrich",
-                    lambda: ChunkEnrichmentService(
-                        repository=DocumentRepository(session),
-                        llm_provider=build_llm_provider_or_error(
+                async with AsyncSessionLocal() as session:
+                    enrich_response = await self._run_step(
+                        job,
+                        "enrich",
+                        lambda: ChunkEnrichmentService(
+                            repository=DocumentRepository(session),
+                            llm_provider=build_llm_provider_or_error(
+                                provider=enrichment_runtime.provider,
+                                base_url=enrichment_runtime.base_url,
+                                model=enrichment_runtime.model,
+                            ),
+                            enabled=chunk_enrichment_enabled,
                             provider=enrichment_runtime.provider,
-                            base_url=enrichment_runtime.base_url,
                             model=enrichment_runtime.model,
+                            max_chars=enrichment_runtime.max_chars,
+                            version=enrichment_runtime.version,
+                        ).enrich_document(
+                            document_id,
+                            force=force_enrichment,
+                            update_keyword_search_vector=enrichment_update_keyword_search_vector,
+                            provider=enrichment_runtime.provider,
+                            model=enrichment_runtime.model,
+                            max_chars=enrichment_runtime.max_chars,
+                            version=enrichment_runtime.version,
                         ),
-                        enabled=chunk_enrichment_enabled,
-                        provider=enrichment_runtime.provider,
-                        model=enrichment_runtime.model,
-                        max_chars=enrichment_runtime.max_chars,
-                        version=enrichment_runtime.version,
-                    ).enrich_document(
-                        document_id,
-                        force=force_enrichment,
-                        update_keyword_search_vector=enrichment_update_keyword_search_vector,
-                        provider=enrichment_runtime.provider,
-                        model=enrichment_runtime.model,
-                        max_chars=enrichment_runtime.max_chars,
-                        version=enrichment_runtime.version,
-                    ),
-                    lambda response: {
-                        "document_id": str(response.document_id),
-                        "status": response.status,
-                        "profile": resolved_profile,
-                        "config_source": "PostgreSQL",
-                        "enrichment_runtime_config_source": "PostgreSQL/.env fallback",
-                        "enable_offline_enrichment": offline_enrichment_enabled,
-                        "chunk_enrichment_enabled": chunk_enrichment_enabled,
-                        "embedding_enrichment_enabled": chunk_enrichment_enabled,
-                        "use_enriched_content_for_embedding": (
-                            use_enriched_content_for_embedding
-                        ),
-                        "retrieval_enrichment_enabled": retrieval_enrichment_enabled,
-                        "enrichment_force_on_reingest": enrichment_force_on_reingest,
-                        "enrichment_update_keyword_search_vector": (
-                            enrichment_update_keyword_search_vector
-                        ),
-                        "enrichment_step": enrichment_runtime.step,
-                        "chunk_enrichment_provider": enrichment_runtime.provider,
-                        "chunk_enrichment_base_url": enrichment_runtime.base_url,
-                        "chunk_enrichment_model": enrichment_runtime.model,
-                        "chunk_enrichment_max_chars": enrichment_runtime.max_chars,
-                        "chunk_enrichment_version": enrichment_runtime.version,
-                        "force": force_enrichment,
-                        "enriched_count": response.enriched_count,
-                        "failed_count": response.failed_count,
-                        "skipped_count": response.skipped_count,
-                        "preview": [item.model_dump(mode="json") for item in response.preview],
-                    },
-                )
-                self._log_enrichment_summary(job, enrich_response)
+                        lambda response: {
+                            "document_id": str(response.document_id),
+                            "status": response.status,
+                            "profile": resolved_profile,
+                            "config_source": "PostgreSQL",
+                            "enrichment_runtime_config_source": "PostgreSQL/.env fallback",
+                            "enable_offline_enrichment": offline_enrichment_enabled,
+                            "chunk_enrichment_enabled": chunk_enrichment_enabled,
+                            "embedding_enrichment_enabled": chunk_enrichment_enabled,
+                            "use_enriched_content_for_embedding": (
+                                use_enriched_content_for_embedding
+                            ),
+                            "retrieval_enrichment_enabled": retrieval_enrichment_enabled,
+                            "enrichment_force_on_reingest": enrichment_force_on_reingest,
+                            "enrichment_update_keyword_search_vector": (
+                                enrichment_update_keyword_search_vector
+                            ),
+                            "enrichment_step": enrichment_runtime.step,
+                            "chunk_enrichment_provider": enrichment_runtime.provider,
+                            "chunk_enrichment_base_url": enrichment_runtime.base_url,
+                            "chunk_enrichment_model": enrichment_runtime.model,
+                            "chunk_enrichment_max_chars": enrichment_runtime.max_chars,
+                            "chunk_enrichment_version": enrichment_runtime.version,
+                            "force": force_enrichment,
+                            "enriched_count": response.enriched_count,
+                            "failed_count": response.failed_count,
+                            "skipped_count": response.skipped_count,
+                            "preview": [item.model_dump(mode="json") for item in response.preview],
+                        },
+                    )
+                    self._log_enrichment_summary(job, enrich_response)
 
-            async with AsyncSessionLocal() as session:
-                await self._run_step(
-                    job,
-                    "index",
-                    lambda: self._index_document_and_artifacts(
-                        document_id=document_id,
-                        session=session,
-                        rag_config=rag_config,
-                        use_enriched_content_for_embedding=use_enriched_content_for_embedding,
-                    ),
-                    lambda response: {
-                        "document_id": str(response.document_id),
-                        "status": response.status,
-                        "indexed_chunk_count": response.indexed_chunk_count,
-                        "indexed_artifact_count": response.indexed_artifact_count,
-                        "artifact_index_status": response.artifact_index_status,
-                        "artifact_index_error": response.artifact_index_error,
-                        "profile": resolved_profile,
-                        "use_enriched_content_for_embedding": (
-                            use_enriched_content_for_embedding
+                async with AsyncSessionLocal() as session:
+                    await self._run_step(
+                        job,
+                        "index",
+                        lambda: self._index_document_and_artifacts(
+                            document_id=document_id,
+                            session=session,
+                            rag_config=rag_config,
+                            use_enriched_content_for_embedding=use_enriched_content_for_embedding,
                         ),
-                    },
-                )
+                        lambda response: {
+                            "document_id": str(response.document_id),
+                            "status": response.status,
+                            "indexed_chunk_count": response.indexed_chunk_count,
+                            "indexed_artifact_count": response.indexed_artifact_count,
+                            "artifact_index_status": response.artifact_index_status,
+                            "artifact_index_error": response.artifact_index_error,
+                            "profile": resolved_profile,
+                            "use_enriched_content_for_embedding": (
+                                use_enriched_content_for_embedding
+                            ),
+                        },
+                    )
         except Exception as exc:
             logger.exception(
                 "Automatic ingestion failed job=%s document=%s",
@@ -477,6 +545,11 @@ class IngestionQueue:
             )
             job.status = "failed"
             job.error = str(exc)
+            for step in job.steps.values():
+                if step.state == "running":
+                    step.state = "failed"
+                    step.completed_at = datetime.now(UTC)
+                    step.error = str(exc)
             self._touch(job)
             self._log(job, step="queue", level="error", message=str(exc))
             return
@@ -484,6 +557,155 @@ class IngestionQueue:
         job.status = "succeeded"
         self._touch(job)
         self._log(job, step="queue", level="success", message="Automatic ingestion completed.")
+
+
+    async def _run_doffice_job(self, job: IngestionJob, payload: QueuedDofficeIngestion) -> None:
+        def progress(
+            step_name: str,
+            state: str,
+            message: str,
+            output: dict[str, Any] | None = None,
+        ) -> None:
+            self._update_step_from_progress(
+                job,
+                step_name=step_name,
+                state=state,
+                message=message,
+                output=output or {},
+            )
+
+        async with AsyncSessionLocal() as session:
+            repository = DocumentRepository(session)
+            storage = get_storage_client()
+            service = DofficeIngestionService(
+                repository=repository,
+                source=DofficeElasticsearchSource(),
+                chunking_service=ChunkingService(repository=repository, storage=storage),
+                vector_indexing_service=VectorIndexingService(
+                    repository=repository,
+                    embedding_provider=get_embedding_provider(),
+                    vector_store=get_vector_store(),
+                    sparse_embedding_provider=get_sparse_embedding_provider(),
+                    keyword_index_store=(
+                        get_elasticsearch_keyword_store()
+                        if settings.elasticsearch_enabled
+                        else None
+                    ),
+                ),
+                vector_store=get_vector_store(),
+                enrichment_service=ChunkEnrichmentService(
+                    repository=repository,
+                    llm_provider=build_llm_provider_or_error(),
+                ),
+                keyword_index_store=(
+                    get_elasticsearch_keyword_store()
+                    if settings.elasticsearch_enabled
+                    else None
+                ),
+            )
+            response = await service.ingest_doffice_document(
+                payload.id_vb,
+                DofficeIngestOptions(
+                    force_refresh=payload.force_refresh,
+                    enable_enrichment=payload.enable_enrichment,
+                    progress_callback=progress,
+                ),
+                uploaded_by_user_id=payload.uploaded_by_user_id,
+                organization_id=payload.organization_id,
+                knowledge_base_id=payload.knowledge_base_id,
+                access=payload.access,
+            )
+            job.document_id = response.document_id
+            job.resolved_ingestion_profile = "doffice_admin"
+            self._log(
+                job,
+                step="doffice",
+                level="success",
+                message=(
+                    f"DOffice ingest {response.status}: id_vb={response.id_vb}, "
+                    f"chunks={response.chunks_created}."
+                ),
+            )
+
+        if response.status == "success" and settings.graph_enabled and settings.graph_auto_index_on_ingest:
+            async with AsyncSessionLocal() as session:
+                await self._run_step(
+                    job,
+                    "graph",
+                    lambda: GraphIndexingService(
+                        document_repository=DocumentRepository(session),
+                        graph_repository=GraphRepository(session),
+                        neo4j_client=get_neo4j_client(),
+                        extractor=build_graph_extractor(llm_provider=get_llm_provider()),
+                        merge_service=GraphMergeService(),
+                    ).index_document(
+                        response.document_id,
+                        GraphIndexRequest(
+                            force_rebuild=True,
+                            extractor_provider=settings.graph_extractor_provider,
+                            max_entities_per_chunk=settings.graph_max_entities_per_chunk,
+                            max_relations_per_chunk=settings.graph_max_relations_per_chunk,
+                        ),
+                    ),
+                    lambda graph_response: graph_response.model_dump(mode="json"),
+                )
+        else:
+            self._update_step_from_progress(
+                job,
+                step_name="graph",
+                state="succeeded",
+                message="Graph indexing skipped for this DOffice job.",
+                output={
+                    "status": "skipped",
+                    "graph_enabled": settings.graph_enabled,
+                    "graph_auto_index_on_ingest": settings.graph_auto_index_on_ingest,
+                    "doffice_status": response.status,
+                },
+            )
+
+    def _update_step_from_progress(
+        self,
+        job: IngestionJob,
+        *,
+        step_name: str,
+        state: str,
+        message: str,
+        output: dict[str, Any],
+    ) -> None:
+        step = job.steps.get(step_name)
+        if step is None:
+            step = IngestionStep(name=step_name)
+            job.steps[step_name] = step
+
+        normalized_state = "succeeded" if state == "skipped" else state
+        if normalized_state == "running":
+            step.state = "running"
+            step.started_at = step.started_at or datetime.now(UTC)
+            step.completed_at = None
+            step.duration_ms = None
+            step.error = None
+            step.output.update(output)
+            level: LogLevel = "info"
+        elif normalized_state == "succeeded":
+            step.state = "succeeded"
+            step.started_at = step.started_at or datetime.now(UTC)
+            step.completed_at = datetime.now(UTC)
+            step.duration_ms = step.duration_ms
+            step.error = None
+            step.output.update(output)
+            level = "success"
+        elif normalized_state == "failed":
+            step.state = "failed"
+            step.completed_at = datetime.now(UTC)
+            step.error = message
+            step.output.update(output)
+            level = "error"
+        else:
+            level = "info"
+            step.output.update(output)
+
+        self._touch(job)
+        self._log(job, step=step_name, level=level, message=message)
 
     async def _run_step(
         self,

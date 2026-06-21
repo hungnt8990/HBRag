@@ -322,11 +322,11 @@ def _identifier_terms(query: str) -> list[str]:
     # Bare numbers and common official-document codes, e.g. 3113 or 3113/EVN-KDMBD.
     if re.fullmatch(r"[0-9]{2,8}", normalized):
         terms.append(normalized)
-    if re.fullmatch(r"[A-Z0-9][A-Z0-9._/-]{1,40}", normalized, flags=re.IGNORECASE):
+    if re.fullmatch(r"[A-Z0-9][A-Z0-9._/+\-]{1,40}", normalized, flags=re.IGNORECASE):
         terms.append(normalized)
 
     # Also support a natural-language query that contains one strong identifier.
-    for match in re.findall(r"\b[0-9]{3,8}(?:/[A-Z0-9._/-]+)?\b", normalized, flags=re.IGNORECASE):
+    for match in re.findall(r"\b[0-9]{3,8}(?:/[A-Z0-9._/+\-]+)?\b", normalized, flags=re.IGNORECASE):
         terms.append(match)
 
     ordered: list[str] = []
@@ -359,7 +359,7 @@ def identifier_exact_match_boost(query: str, content: str, metadata: dict[str, o
         boost += IDENTIFIER_EXACT_BOOST
 
     identifier_values: list[str] = []
-    for key in ("identifiers", "doc_codes"):
+    for key in ("identifiers", "doc_codes", "id_vb", "ky_hieu", "doc_code", "document_code"):
         value = metadata.get(key)
         if isinstance(value, list):
             identifier_values.extend(str(item) for item in value)
@@ -379,6 +379,10 @@ def identifier_exact_match_boost(query: str, content: str, metadata: dict[str, o
         "document_number",
         "reference_number",
         "so_van_ban",
+        "id_vb",
+        "ky_hieu",
+        "doc_code",
+        "source_name",
         "citation",
     ):
         value = metadata.get(key)

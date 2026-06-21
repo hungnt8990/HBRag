@@ -234,7 +234,7 @@ export function DocumentLibraryPanel({
                 <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
                   Preview
                 </h4>
-                <div className="max-h-48 overflow-auto rounded-xl bg-slate-950 p-4 text-sm leading-6 text-slate-100">
+                <div className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-800 shadow-inner">
                   {selectedDocument.preview_text || "No parsed preview available."}
                 </div>
               </section>

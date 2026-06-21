@@ -45,36 +45,35 @@ from app.services.table_relationships import (
 )
 
 MEMORY_RULES = (
-    "User Memory and Session Summary are background context only: never cite them, and if "
-    "they conflict with the retrieved document context, the document context wins. "
-    "Citations must only refer to the numbered retrieved document chunks."
+    "User Memory and Session Summary are background notes only: never cite them, and if "
+    "they conflict with the provided document text, the document text wins. "
+    "Citations must only refer to the numbered document passages."
 )
 
 LANGUAGE_OUTPUT_RULES = (
     "Answer in the same language as the user's question unless the user asks for a "
     "different language. Preserve proper names, document titles, identifiers, and quoted "
-    "source text exactly as written in the retrieved context. Use only inline numeric "
-    "citation markers like [1]. Do not create a separate Sources, References, or "
-    "Documents section; the application renders the source list separately. Never output "
-    "hidden reasoning, chain-of-thought, scratchpad text, or <think> tags."
+    "source text exactly as written in the document text. Do not create a separate "
+    "Sources, References, or Documents section; the application renders the source list separately. Never output "
+    "hidden reasoning, chain-of-thought, scratchpad text, internal labels, search mechanics, or <think> tags."
 )
 
-SYSTEM_PROMPT = f"You are a grounded RAG assistant. Answer only from the provided document context. If the answer is not in the context, say you do not have enough information. {MEMORY_RULES} {LANGUAGE_OUTPUT_RULES}"
+SYSTEM_PROMPT = f"You are a grounded document assistant. Answer only from the provided document text. If the document text does not contain the answer, say so naturally. {MEMORY_RULES} {LANGUAGE_OUTPUT_RULES}"
 
 GENERATIVE_PROMPT = (
-    f"You are a grounded RAG assistant. Answer naturally and summarize the retrieved document context. If the answer is not in the context, say you do not have enough information. {MEMORY_RULES} {LANGUAGE_OUTPUT_RULES}"
+    f"You are a grounded document assistant. Answer naturally from the provided document text. If the document text does not contain the answer, say so naturally. {MEMORY_RULES} {LANGUAGE_OUTPUT_RULES}"
 )
 
 EXTRACTIVE_PROMPT = (
     "You are a document extraction engine. "
-    "Return only information explicitly present in the retrieved context. "
+    "Return only information explicitly present in the document text. "
     "Do not infer. Do not summarize. Do not rewrite legal wording. "
-    "Prefer direct quotations from the retrieved chunks. "
-    "If the answer is not in the context, say you do not have enough information. "
+    "Prefer direct quotations from the numbered document passages. "
+    "If the answer is not in the document text, say so naturally. "
     f"{MEMORY_RULES} {LANGUAGE_OUTPUT_RULES}"
 )
 
-HYBRID_PROMPT = f"Provide a concise answer grounded in the retrieved context, with supporting details. If the answer is not in the context, say you do not have enough information. {MEMORY_RULES} {LANGUAGE_OUTPUT_RULES}"
+HYBRID_PROMPT = f"Provide a concise answer grounded in the provided document text, with supporting details. If the answer is not in the document text, say so naturally. {MEMORY_RULES} {LANGUAGE_OUTPUT_RULES}"
 
 ANSWER_MODE_PROMPTS = {
     "generative": GENERATIVE_PROMPT,
@@ -84,63 +83,66 @@ ANSWER_MODE_PROMPTS = {
 DEFAULT_ANSWER_MODE = "hybrid"
 
 CONCISE_STYLE = "Answer style: Concise. Reply in 1-2 sentences without filler."
-DETAILED_STYLE = "Answer style: Detailed. Provide a thorough explanation. Preserve exact numbers, dates, money amounts, and legal wording from the context."
+DETAILED_STYLE = "Answer style: Detailed. Provide a thorough explanation. Preserve exact numbers, dates, money amounts, and legal wording from the document text."
 POLICY_EXPLAINER_STYLE = (
     "Answer style: Policy explainer. "
     "1) Answer the direct question first using exact numbers, dates, monetary amounts, "
-    "and wording from the retrieved context. "
-    "2) Then add only details that directly explain the same answer from the retrieved "
-    "chunks; do not list loosely related cases, documents, or systems. "
-    "If a directly relevant chunk contains a summary followed by list items, include "
+    "and wording from the document text. "
+    "2) Then add only details that directly explain the same answer from the document "
+    "passages; do not list loosely related cases, documents, or systems. "
+    "If a directly relevant passage contains a summary followed by list items, include "
     "those list items as concise bullets. "
     "3) Include notes and conditions only if they are present and directly relevant. "
-    "4) If table rows exist in the context and the user asks for a list, convert them "
+    "4) If table rows exist in the document text and the user asks for a list, convert them "
     "into clear bullet points. "
-    "5) Cite source chunks using their numeric markers. "
+    "5) Use the numbered passage markers only for grounding; do not expose them as clutter. "
     "For short identifier/code queries, answer what the identifier refers "
-    "to and the directly attached date/topic only; do not expand into other retrieved "
-    "chunks unless they literally contain the same identifier. "
-    "Do not say 'hôm nay' unless the retrieved context explicitly says today. "
+    "to and the directly attached date/topic only; do not expand into other document "
+    "passages unless they literally contain the same identifier. "
+    "Do not say 'hôm nay' unless the document text explicitly says today. "
     "Do not repeat the same source line or quote more than once. "
     "Do not list duplicate citations. "
     "If only one relevant item is found, give one concise answer and one source. "
-    "Do not invent information."
+    "Do not invent information or mention search mechanics."
 )
 
 IDENTIFIER_LOOKUP_STYLE = (
     "Identifier lookup mode: the user is asking about an exact code, number, "
     "document number, or identifier. Answer only what that identifier refers to in "
-    "the retrieved context. Do not expand to related documents, related systems, "
+    "the document text. Do not expand to related documents, related systems, "
     "similar records, or background information unless the same exact identifier is "
-    "present in those chunks. Copy document codes, identifiers, dates, organization "
-    "names, and proper nouns exactly as they appear in the context; never normalize, "
+    "present in those passages. Copy document codes, identifiers, dates, organization "
+    "names, and proper nouns exactly as they appear in the document text; never normalize, "
     "correct, abbreviate, translate, or rewrite them. If the exact identifier appears "
     "as part of a longer code, preserve the full longer code exactly. If there is any "
-    "uncertainty, quote the exact identifier string from the context instead of "
+    "uncertainty, quote the exact identifier string from the document text instead of "
     "paraphrasing. Do not infer approval, issuer actions, legal effect, signer, or "
-    "recipient unless explicitly stated in the retrieved context. Keep the answer to "
-    "1-3 concise sentences and cite the supporting chunk. "
+    "recipient unless explicitly stated in the document text. For document-number "
+    "lookups, answer as a compact document profile: code, title/subject, issuer/date, "
+    "referenced document basis, and the directly attached implementation or table-summary "
+    "details when those fields are present in the document text. Use bullets when that "
+    "makes the document text easier to read. "
 )
 
 TABLE_QA_STYLE = (
     "Answer style: Table QA. "
-    "You are a document QA assistant. Answer only from the provided context. "
+    "You are a document QA assistant. Answer only from the provided document text. "
     "When the question asks for a list, all rows, who, total, amount, or complete "
-    "table coverage, list every TABLE_ROW present in ENTITY_MATCHED_ROWS or retrieved "
-    "context as separate records. "
+    "table coverage, list every TABLE_ROW present in ENTITY_MATCHED_ROWS or Document Text "
+    "as separate records. "
     "When ENTITY_MATCHED_ROWS exists, treat those rows as structured candidate records, "
-    "but also read Retrieved Document Context for narrative sections, definitions, goals, "
-    "conditions, and explanations. Do not ignore narrative context just because table rows exist. "
+    "but also read Document Text for narrative sections, definitions, goals, "
+    "conditions, and explanations. Do not ignore narrative text just because table rows exist. "
     "TABLE_SUPPORT is title/header/caption support, not a result list. "
     "When ENTITY_MATCHED_ROWS contains N rows, the main answer must have N bullet "
     "points unless rows are exact duplicates. "
-    "If the context contains TABLE_ROW records, treat each TABLE_ROW as one record. "
+    "If the document text contains TABLE_ROW records, treat each TABLE_ROW as one record. "
     "When the question asks about an entity, find every TABLE_ROW containing that entity "
     "and answer from fields in the same row. "
-    "Do not assume fixed column names. Use the original field labels from context. "
+    "Do not assume fixed column names. Use the original field labels from the document text. "
     "Preserve proper names, addresses, dates, and money amounts exactly as written. "
     "If a total row is present, state the total. "
-    "Use TABLE_TITLE and TABLE_HEADER context when available to explain the row. "
+    "Use TABLE_TITLE and TABLE_HEADER text when available to explain the row. "
     "If multiple rows contain the same entity, list all non-duplicate matching rows. "
     "For each row, prefer descriptive fields over ordinal-only fields. "
     "For yes/no questions, start with a clear affirmative or negative in the user's language. "
@@ -148,10 +150,10 @@ TABLE_QA_STYLE = (
     "do not infer ownership, leadership, implementation, or sole responsibility. "
     "For entity-to-topic membership, only use table_row or entity_profile context with "
     "high confidence metadata. "
-    "If context has table_parse_warning or low confidence, say there is not enough direct "
+    "If the document text has table_parse_warning or low confidence, say there is not enough direct "
     "evidence and do not use it to confirm membership. "
     "Apply role_note only to the exact person whose row metadata states that note. "
-    "If context conflicts, prefer chunk_type table_row or entity_profile from staff tables. "
+    "If document text conflicts, prefer table_row or entity_profile entries from staff tables. "
     "If a row has only generic labels such as cell_1 or cell_2, use those labels as-is. "
     "Do not say 'similar rows' instead of listing the matching rows. "
     "Do not use a person's list number as the row's main ordinal field. "
@@ -1847,14 +1849,23 @@ class RagAnswerService:
         return bool(re.search(r"\b(la|co|khong|nhung|cua|trong|theo)\b", normalized))
 
     @staticmethod
+    def _looks_identifier_only_query(query: str) -> bool:
+        clean = " ".join(str(query or "").split()).strip()
+        return bool(clean and re.fullmatch(r"[A-Za-z0-9ÄÄ‘/._+\-]+", clean))
+
+    @staticmethod
     def _missing_accessible_context_answer(query: str) -> str:
         return "Kh\u00f4ng t\u00ecm th\u1ea5y th\u00f4ng tin ph\u00f9 h\u1ee3p trong c\u00e1c t\u00e0i li\u1ec7u b\u1ea1n c\u00f3 quy\u1ec1n truy c\u1eadp."
 
     @staticmethod
     def _insufficient_direct_evidence_answer(query: str) -> str:
-        if RagAnswerService._looks_vietnamese_query(query) or any(ord(char) > 127 for char in query or ""):
+        if (
+            RagAnswerService._looks_vietnamese_query(query)
+            or RagAnswerService._looks_identifier_only_query(query)
+            or any(ord(char) > 127 for char in query or "")
+        ):
             return "Kh\u00f4ng t\u00ecm th\u1ea5y th\u00f4ng tin ph\u00f9 h\u1ee3p trong c\u00e1c t\u00e0i li\u1ec7u b\u1ea1n c\u00f3 quy\u1ec1n truy c\u1eadp."
-        return "There is not enough direct evidence in the retrieved documents to answer this question."
+        return "I could not find that information in the available documents."
 
     @staticmethod
     def _query_terms(query: str) -> list[str]:
@@ -2259,8 +2270,8 @@ class RagAnswerService:
     ) -> str | None:
         """Render chatbot-supplied short-term context for prompting.
 
-        This context can help interpret follow-up questions, but retrieved
-        document chunks remain the only citable source of truth.
+        This context can help interpret follow-up questions, but provided
+        document passages remain the only citable source of truth.
         """
 
         if session_context is None:
@@ -2284,11 +2295,11 @@ class RagAnswerService:
         if not lines:
             return None
 
-        return "Short-term chatbot context (for query understanding only; do not cite it; retrieved document context wins if there is any conflict):\n" + "\n".join(lines[:10])
+        return "Conversation memory (internal; use only to understand references, do not cite it; document text wins if there is any conflict):\n" + "\n".join(lines[:10])
 
     @staticmethod
     def _identifier_values_from_context(context_chunks: list[ContextChunk]) -> list[str]:
-        """Collect exact identifier strings from retrieved chunks for prompt constraints.
+        """Collect exact identifier strings from document passages for prompt constraints.
 
         Keep this helper defensive because older chunks may not have the new metadata
         fields yet. Values are used only to tell the LLM what strings must be copied
@@ -2342,15 +2353,15 @@ class RagAnswerService:
 
         strategy_names = ", ".join(query_strategy.strategies)
         lines = [
-            "Query strategy / evidence plan (not a cited source):",
+            "Reading notes (internal; not a cited source):",
             f"- Strategies: {strategy_names}.",
         ]
         if query_strategy.requires_overview_context:
             lines.extend(
                 [
-                    "- This question may require document, section, heading, table, or summary-level evidence, not only the most similar raw chunk.",
-                    "- Group the retrieved evidence by heading, section, table, object type, or row type when those boundaries are visible.",
-                    "- Prefer coverage across relevant sections over repeating many chunks from one section.",
+                    "- This question may require document, section, heading, table, or summary-level evidence, not only the first matching passage.",
+                    "- Group the document text by heading, section, table, object type, or row type when those boundaries are visible.",
+                    "- Prefer coverage across relevant sections over repeating many passages from one section.",
                 ]
             )
         if "table_detail" in query_strategy.strategies:
@@ -2359,7 +2370,7 @@ class RagAnswerService:
             )
         if query_strategy.may_need_second_retrieval:
             lines.append(
-                "- Before finalizing, check whether retrieved evidence omits a visible related group or count; if it does, state the missing evidence instead of guessing."
+                "- Before finalizing, check whether the document text omits a visible related group or count; if it does, state the missing information instead of guessing."
             )
         return "\n".join(lines)
 
@@ -2435,13 +2446,13 @@ class RagAnswerService:
     @staticmethod
     def _query_contract_section(query_contract: QueryContract) -> str:
         return (
-            "Query Contract:\n"
-            f"- detected_intent: {query_contract.detected_intent}\n"
-            f"- target_contexts: {', '.join(query_contract.target_contexts)}\n"
-            f"- preferred_artifact_types: {', '.join(query_contract.preferred_artifact_types)}\n"
-            f"- output_shape: {query_contract.output_shape}\n"
-            f"- citation_requirement: {query_contract.citation_requirement}\n"
-            f"- allow_chunk_fallback: {query_contract.allow_chunk_fallback}"
+            "Answer planning notes (internal; never mention this section or its labels):\n"
+            f"- User intent hint: {query_contract.detected_intent}\n"
+            f"- Relevant text scopes: {', '.join(query_contract.target_contexts)}\n"
+            f"- Preferred compiled note types: {', '.join(query_contract.preferred_artifact_types)}\n"
+            f"- Expected answer shape: {query_contract.output_shape}\n"
+            f"- Source support style: {query_contract.citation_requirement}\n"
+            f"- May use direct document passages when compiled notes are incomplete: {query_contract.allow_chunk_fallback}"
         )
 
     @staticmethod
@@ -2457,8 +2468,8 @@ class RagAnswerService:
             for context_chunk in context_chunks
         }
         lines: list[str] = [
-            "Knowledge Artifacts:",
-            "Use these compiled artifacts before raw chunks when they contain the requested field.",
+            "Compiled Document Notes (internal; use for facts only, never mention this label):",
+            "Use these compiled notes before direct document passages when they contain the requested field.",
         ]
         for index, artifact in enumerate(selected_artifacts, start=1):
             source_indexes = [
@@ -2466,7 +2477,7 @@ class RagAnswerService:
                 for chunk_id in artifact.source_chunk_ids or []
                 if str(chunk_id) in citation_indexes_by_chunk_id
             ]
-            source_marker = ", ".join(f"[{item}]" for item in source_indexes) or "no source chunk loaded"
+            source_marker = ", ".join(f"[{item}]" for item in source_indexes) or "no source passage loaded"
             structured = json.dumps(
                 artifact.structured_data or {},
                 ensure_ascii=False,
@@ -2479,7 +2490,7 @@ class RagAnswerService:
             )
             lines.append(
                 f"[KA{index}] type={artifact.artifact_type}; context={artifact.context_type}; "
-                f"confidence={float(artifact.confidence_score or 0.0):.2f}; source_chunks={source_marker}\n"
+                f"confidence={float(artifact.confidence_score or 0.0):.2f}; source_passages={source_marker}\n"
                 f"title: {artifact.title or ''}\n"
                 f"canonical_text: {artifact.canonical_text}\n"
                 f"structured_data: {structured}\n"
@@ -2511,7 +2522,7 @@ class RagAnswerService:
             sections.append(language_instruction)
 
         if has_standalone_query:
-            sections.append(f"Standalone retrieval question (for resolving conversational references; answer the user's original question, and do not cite this as evidence):\n{retrieval_query}")
+            sections.append(f"Conversation reference wording (internal; answer the user's original question, and do not cite this as evidence):\n{retrieval_query}")
 
         query_strategy = query_strategy or classify_query_strategy(evidence_query)
         strategy_section = RagAnswerService._query_strategy_section(query_strategy)
@@ -2556,8 +2567,8 @@ class RagAnswerService:
 
                 sections.append(
                     "Exact identifier evidence policy:\n"
-                    f"- Retrieval query is an identifier/code lookup: {evidence_query.strip()}\n"
-                    "- Use the retrieved chunks that contain the exact identifier.\n"
+                    f"- The user is asking about this exact identifier/code: {evidence_query.strip()}\n"
+                    "- Use the document passages that contain the exact identifier.\n"
                     "- Preserve these exact identifier/document-code strings without rewriting them:\n"
                     f"{exact_value_lines}\n"
                     "- Extract any directly attached fields, dates, parties, titles, links, "
@@ -2565,7 +2576,7 @@ class RagAnswerService:
                     "evidence. Do not stop at the first sentence if additional attached details "
                     "answer the question.\n"
                     "- Do not add related records or inferred legal/business effect unless the "
-                    "retrieved evidence explicitly states it.\n"
+                    "document text explicitly states it.\n"
                 )
 
         include_all_table_rows = RagAnswerService._is_table_enumeration_query(query)
@@ -2624,14 +2635,14 @@ class RagAnswerService:
         context = "\n".join(f"[{context_chunk.citation_index}] {context_chunk.chunk.content}" for context_chunk in document_context_chunks)
         if context:
             sections.append(
-                "Retrieved Document Context:\n"
+                "Document Text:\n"
                 f"{context}\n\n"
-                "Context use rule: ENTITY_MATCHED_ROWS are structured candidate rows. "
-                "Retrieved Document Context is the broader evidence set and may contain "
+                "Document use rule: ENTITY_MATCHED_ROWS are structured candidate rows. "
+                "Document Text is the broader evidence set and may contain "
                 "the directly relevant narrative section, objective, definition, "
                 "condition, or explanation. Choose the evidence that directly answers "
-                "the question; do not ignore narrative context just because table rows "
-                "are present. If the directly relevant narrative chunk contains a "
+                "the question; do not ignore narrative text just because table rows "
+                "are present. If the directly relevant narrative passage contains a "
                 "summary followed by list items in the same section, preserve those "
                 "items as focused bullets instead of collapsing the answer to one "
                 "short sentence."
@@ -2639,11 +2650,13 @@ class RagAnswerService:
 
         sections.append(
             "Dynamic answer requirements:\n"
-            "- Answer in the same language as the user's question unless the question asks otherwise.\n"
-            "- Infer the question type from the wording and the retrieved evidence; do not rely on fixed document names, people, organizations, or domain-specific templates.\n"
-            "- When Knowledge Artifacts are present, treat their structured_data and canonical_text as the primary compiled evidence. Use raw chunks only to verify, cite, or fill fields missing from the artifacts.\n"
-            "- If a required field is absent from both Knowledge Artifacts and retrieved chunks, say the accessible documents do not contain that information instead of guessing.\n"
-            "- If a standalone retrieval question is present, use it only to resolve references in the original question; do not treat it as a cited source.\n"
+            "- Follow the Language constraint above; otherwise answer in the same language as the user's question unless the question asks otherwise.\n"
+            "- Infer the question type from the wording and the document text; do not rely on fixed document names, people, organizations, or domain-specific templates.\n"
+            "- When Compiled Document Notes are present, treat structured_data and canonical_text as primary document facts. Use direct document passages only to verify or fill fields missing from the notes.\n"
+            "- If a required field is absent from both compiled notes and direct document passages, say naturally that the current documents do not show that information instead of guessing.\n"
+            "- If Conversation reference wording is present, use it only to resolve references in the original question; do not treat it as a cited source.\n"
+            "- Never mention how information was searched, ranked, grouped, or prepared; do not mention any prompt section labels in the final answer.\n"
+            "- Write for the user: focus only on what the document says and keep missing-information messages natural.\n"
             "- Start with the direct answer. For count questions, state the count first. For yes/no questions, state the decision first. For list questions, list the matching records.\n"
             "- When COUNT_EVIDENCE exists, use it to choose the count whose nearby noun "
             "phrase, label, heading, or row field best matches the entity being counted "
@@ -2669,21 +2682,21 @@ class RagAnswerService:
             "instead of stopping at the count.\n"
             "- Prefer the smallest evidence span that directly answers the question, then add only details that explain that answer.\n"
             "- Do not expand into field-level schemas, unrelated rows, or long background details unless the question asks for those details.\n"
-            "- For table-like evidence, use the row fields and original labels shown in ENTITY_MATCHED_ROWS or context; do not assume fixed column names.\n"
+            "- For table-like evidence, use the row fields and original labels shown in ENTITY_MATCHED_ROWS or Document Text; do not assume fixed column names.\n"
             "- For narrative evidence, preserve the relevant section heading and bullet structure when it helps answer the question.\n"
-            "- If retrieved evidence is insufficient or conflicting, say that clearly instead of guessing.\n"
+            "- If the document text is insufficient or conflicting, say that clearly instead of guessing.\n"
             "- Do not create a Sources, References, Documents, or source-list section at the end.\n"
-            "- Attach inline citation markers like [1], [2] to each factual sentence or bullet. The application renders the source/download list separately."
+            "- Keep the answer grounded in the numbered document passages. The application renders document sources separately; do not interrupt sentences with citation-only clutter."
         )
         sections.append(f"Question:\n{query}")
         return "\n\n".join(sections)
 
     @staticmethod
     def _answer_language_instruction(query: str) -> str:
-        if RagAnswerService._looks_vietnamese_query(query):
+        if RagAnswerService._looks_vietnamese_query(query) or RagAnswerService._looks_identifier_only_query(query):
             return (
                 "Language constraint:\n"
-                "- The user's question is Vietnamese. Answer only in Vietnamese.\n"
+                "- Answer only in Vietnamese. Numeric or code-only lookups in this application should still be answered in Vietnamese.\n"
                 "- Preserve exact source names, identifiers, product names, URLs, and "
                 "technical terms as written in the evidence.\n"
                 "- Do not mix unrelated languages into the answer."
@@ -2703,6 +2716,20 @@ class RagAnswerService:
         cleaned = re.sub(r"(?is)<think>.*$", "", cleaned)
         cleaned = re.sub(r"(?is)^.*?</think>", "", cleaned)
         cleaned = re.sub(r"(?im)^\s*(?:supporting text|sources?|references?)\s*:\s*$", "", cleaned)
+        internal_terms = (
+            r"target_contexts|ENTITY_MATCHED_ROWS|TABLE_SUPPORT|retrieved\s+(?:context|chunks|evidence)|"
+            r"retrieval|BM25|vector\s+search|context\s+window|chunk(?:s)?|"
+            r"ngữ\s*cảnh|ngu\s*canh|đoạn\s+trích|doan\s+trich"
+        )
+        cleaned_lines: list[str] = []
+        for line in cleaned.splitlines():
+            is_note_line = re.match(r"^\s*(?:lưu ý|luu y|ghi chú|ghi chu|note)\s*[:：-]", line, flags=re.IGNORECASE)
+            has_internal_term = re.search(internal_terms, line, flags=re.IGNORECASE)
+            has_prompt_label = re.search(r"\b(?:target_contexts|ENTITY_MATCHED_ROWS|TABLE_SUPPORT)\b", line)
+            if (is_note_line and has_internal_term) or has_prompt_label:
+                continue
+            cleaned_lines.append(line)
+        cleaned = "\n".join(cleaned_lines)
         cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
         return cleaned.strip()
 

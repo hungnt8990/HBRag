@@ -3,6 +3,7 @@ from app.models.chunk import Chunk
 from app.models.citation import Citation
 from app.models.document import Document, DocumentFile
 from app.models.document_log import DocumentAccessLog, DocumentPipelineLog
+from app.models.doffice import DofficeRawDocument
 from app.models.graph import GraphDocumentStatus, GraphExtractionLog
 from app.models.ingestion_profile import IngestionProfileConfig
 from app.models.knowledge_artifact import KnowledgeArtifact
@@ -22,6 +23,7 @@ __all__ = [
     "DocumentAccessLog",
     "DocumentFile",
     "DocumentPipelineLog",
+    "DofficeRawDocument",
     "GraphDocumentStatus",
     "GraphExtractionLog",
     "IngestionProfileConfig",
