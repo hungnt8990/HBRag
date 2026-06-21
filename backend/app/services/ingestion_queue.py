@@ -19,6 +19,8 @@ from app.services.chunking_service import ChunkingService
 from app.services.document_parser_service import DocumentParserService
 from app.services.document_profiles import profile_config, resolve_profile_with_evidence
 from app.services.document_service import DocumentService
+from app.services.elasticsearch_indexing_service import ElasticsearchIndexingService
+from app.services.elasticsearch_store import get_elasticsearch_store
 from app.services.embeddings.factory import get_embedding_provider
 from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
 from app.services.llms.factory import get_llm_provider
@@ -306,22 +308,12 @@ class IngestionQueue:
                 )
                 self._log_enrichment_summary(job, enrich_response)
 
-            async with AsyncSessionLocal() as session:
-                await self._run_step(
-                    job,
-                    "index",
-                    lambda: VectorIndexingService(
-                        repository=DocumentRepository(session),
-                        embedding_provider=get_embedding_provider(),
-                        vector_store=get_vector_store(),
-                        sparse_embedding_provider=get_sparse_embedding_provider(),
-                    ).index_document(document_id),
-                    lambda response: {
-                        "document_id": str(response.document_id),
-                        "status": response.status,
-                        "indexed_chunk_count": response.indexed_chunk_count,
-                    },
-                )
+            await self._run_step(
+                job,
+                "index",
+                lambda: self._index_document_search_backends(document_id),
+                lambda response: response,
+            )
         except Exception as exc:
             logger.exception(
                 "Automatic ingestion failed job=%s document=%s",
@@ -428,6 +420,53 @@ class IngestionQueue:
             status=document.status,
             storage_path=getattr(file, "storage_path", ""),
         )
+
+    async def _index_document_search_backends(self, document_id: UUID) -> dict[str, Any]:
+        async with AsyncSessionLocal() as session:
+            vector_response = await VectorIndexingService(
+                repository=DocumentRepository(session),
+                embedding_provider=get_embedding_provider(),
+                vector_store=get_vector_store(),
+                sparse_embedding_provider=get_sparse_embedding_provider(),
+            ).index_document(document_id)
+
+        elasticsearch_store = get_elasticsearch_store()
+        try:
+            async with AsyncSessionLocal() as session:
+                elasticsearch_response = await ElasticsearchIndexingService(
+                    repository=DocumentRepository(session),
+                    store=elasticsearch_store,
+                ).index_document(document_id)
+            elasticsearch_output = {
+                "status": elasticsearch_response.status,
+                "indexed_chunk_count": elasticsearch_response.indexed_chunk_count,
+                "index_name": elasticsearch_response.index_name,
+                "skipped": elasticsearch_response.skipped,
+            }
+        except Exception as exc:
+            logger.warning(
+                "Elasticsearch indexing failed for document=%s; Qdrant index result is kept.",
+                document_id,
+                exc_info=True,
+            )
+            elasticsearch_output = {
+                "status": "failed",
+                "indexed_chunk_count": 0,
+                "index_name": elasticsearch_store.index_name,
+                "skipped": False,
+                "error": str(exc),
+            }
+
+        return {
+            "document_id": str(vector_response.document_id),
+            "status": vector_response.status,
+            "indexed_chunk_count": vector_response.indexed_chunk_count,
+            "qdrant": {
+                "status": vector_response.status,
+                "indexed_chunk_count": vector_response.indexed_chunk_count,
+            },
+            "elasticsearch": elasticsearch_output,
+        }
 
     async def _resolve_profile_for_document(
         self,

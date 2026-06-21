@@ -104,6 +104,48 @@ class DocumentVectorIndexResponse(BaseModel):
     indexed_chunk_count: int
 
 
+class DOfficeImportRequest(BaseModel):
+    id_vb: str = Field(min_length=1)
+    organization_id: UUID | None = None
+    knowledge_base_id: UUID | None = None
+    visibility: Literal["private", "organization", "subtree", "global"] = "organization"
+    force_reimport: bool = False
+    chunk_size: int | None = Field(default=None, ge=300, le=4000)
+    chunk_overlap: int | None = Field(default=None, ge=0)
+    chunk_mode: Literal[
+        "recursive",
+        "legal_article",
+        "table_aware",
+        "hybrid_structured",
+        "slide_page",
+        "heading_aware",
+    ] | None = None
+    profile: Literal[
+        "auto", "legal_admin", "catalog_table", "general", "spreadsheet", "slide"
+    ] | None = None
+
+    @model_validator(mode="after")
+    def validate_overlap(self) -> "DOfficeImportRequest":
+        if self.chunk_overlap is not None:
+            limit = (self.chunk_size if self.chunk_size is not None else 4000) // 2
+            if self.chunk_overlap > limit:
+                raise ValueError(
+                    "chunk_overlap must be between 0 and half of chunk_size."
+                )
+        return self
+
+
+class DOfficeImportResponse(BaseModel):
+    id_vb: str
+    document_id: UUID
+    title: str
+    status: str
+    character_count: int
+    chunk_count: int
+    indexed_chunk_count: int
+    reused_existing: bool = False
+
+
 class DocumentDeleteResponse(BaseModel):
     document_id: UUID
     deleted: bool

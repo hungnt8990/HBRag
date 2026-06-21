@@ -114,7 +114,7 @@ class VectorIndexingService:
                 total_chunks=len(rag_chunks),
                 indexable_chunks=len(indexable_chunks),
             )
-            dense_vectors = await self._embedding_provider.embed_texts(embedding_texts)
+            dense_vectors = await self._embed_texts_batched(embedding_texts)
             if len(dense_vectors) != len(indexable_chunks):
                 raise ValueError(
                     "Dense embedding count does not match the number of indexable chunks."
@@ -314,6 +314,34 @@ class VectorIndexingService:
             else {key: value for key, value in kwargs.items() if key in parameters}
         )
         return await self._vector_store.search(**supported)
+
+    async def _embed_texts_batched(self, texts: list[str]) -> list[list[float]]:
+        if not texts:
+            return []
+
+        batch_size = max(1, int(settings.embedding_batch_size or len(texts)))
+        vectors: list[list[float]] = []
+        for start in range(0, len(texts), batch_size):
+            batch = texts[start : start + batch_size]
+            try:
+                batch_vectors = await self._embedding_provider.embed_texts(batch)
+            except Exception as exc:
+                preview = [
+                    {
+                        "batch_index": start + offset,
+                        "chars": len(text),
+                        "preview": text[:CONTENT_PREVIEW_LIMIT],
+                    }
+                    for offset, text in enumerate(batch[:3])
+                ]
+                raise RuntimeError(
+                    "Embedding provider failed for batch "
+                    f"{start // batch_size + 1} containing {len(batch)} text(s): "
+                    f"{exc}; "
+                    f"{preview}"
+                ) from exc
+            vectors.extend(batch_vectors)
+        return vectors
 
     async def _delete_existing_document_points(
         self,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import html
 import re
 import unicodedata
 from typing import Any
@@ -269,6 +270,10 @@ DOC_CODE_PATTERN = re.compile(
 )
 DATE_PATTERN = re.compile(r"\b\d{1,2}/\d{1,2}/\d{4}\b")
 BARE_IDENTIFIER_PATTERN = re.compile(r"\b\d{3,8}\b")
+HTML_BLOCK_BOUNDARY_PATTERN = re.compile(
+    r"(?i)<br\s*/?>|</p>|</div>|</tr>|</li>|</td>|</th>|</h[1-6]>"
+)
+HTML_TAG_PATTERN = re.compile(r"<[^>]+>")
 
 
 def _unique_preserve_order(values: list[str]) -> list[str]:
@@ -352,6 +357,18 @@ def extract_search_metadata(text: str, record: dict[str, Any]) -> dict[str, list
 def _join_search_values(values: list[str]) -> str | None:
     clean = _unique_preserve_order(values)
     return " | ".join(clean) if clean else None
+
+
+def normalize_embedding_input(text: str) -> str:
+    if "<" not in text or ">" not in text:
+        return text
+
+    normalized = HTML_BLOCK_BOUNDARY_PATTERN.sub("\n", text)
+    normalized = HTML_TAG_PATTERN.sub(" ", normalized)
+    normalized = html.unescape(normalized)
+    lines = [" ".join(line.split()) for line in normalized.splitlines()]
+    clean = "\n".join(line for line in lines if line).strip()
+    return clean or text
 
 
 def _normalize_query_text(value: str) -> str:
@@ -566,7 +583,7 @@ def build_embedding_text(chunk: RagChunk) -> str:
         add_context("Phạm vi hàng", f"{start}-{end}")
 
     embedding_text = chunk.embedding_text.strip() if chunk.embedding_text else None
-    body = embedding_text or chunk.text.strip()
+    body = normalize_embedding_input(embedding_text or chunk.text.strip())
     if not context_lines:
         return body
     return "\n".join([*context_lines, "", body])

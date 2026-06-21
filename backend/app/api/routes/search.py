@@ -1,4 +1,5 @@
 import inspect
+import logging
 from typing import Annotated
 from uuid import UUID
 
@@ -6,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies.auth import get_current_user
+from app.core.config import settings
 from app.db.session import get_db_session
 from app.models.user import User
 from app.repositories.auth import AuthRepository
@@ -23,10 +25,12 @@ from app.schemas.documents import (
     VectorSearchResponse,
 )
 from app.services.access_control import build_access_filter, build_subject_context
+from app.services.elasticsearch_keyword_search import ElasticsearchKeywordSearchService
+from app.services.elasticsearch_store import get_elasticsearch_store
 from app.services.embeddings.base import EmbeddingProvider
 from app.services.embeddings.factory import get_embedding_provider
 from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
-from app.services.graph import GraphRetrievalService, Neo4jClient, get_neo4j_client
+from app.services.graph import GraphRetrievalService, get_neo4j_client
 from app.services.graph.extractors.factory import build_graph_extractor
 from app.services.hybrid_search import HybridSearchError, HybridSearchService
 from app.services.keyword_search import KeywordSearchError, KeywordSearchService
@@ -40,6 +44,7 @@ from app.services.vector_indexing_service import VectorIndexingService, VectorSe
 from app.services.vector_store import QdrantVectorStore, get_vector_store
 
 router = APIRouter(prefix="/api/search", tags=["search"])
+logger = logging.getLogger(__name__)
 
 
 def get_search_repository(
@@ -74,8 +79,12 @@ def get_vector_search_service(
 
 def get_keyword_search_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
-) -> KeywordSearchService:
-    return KeywordSearchService(session)
+) -> ElasticsearchKeywordSearchService:
+    return ElasticsearchKeywordSearchService(
+        store=get_elasticsearch_store(),
+        fallback=KeywordSearchService(session),
+        enabled=settings.elasticsearch_keyword_enabled,
+    )
 
 
 def get_retrieval_log_repository(
@@ -85,9 +94,17 @@ def get_retrieval_log_repository(
 
 
 def get_graph_retrieval_service(
-    neo4j_client: Annotated[Neo4jClient, Depends(get_neo4j_client)],
     llm_provider: Annotated[LLMProvider, Depends(get_llm_provider)],
-) -> GraphRetrievalService:
+) -> GraphRetrievalService | None:
+    if settings.graph_provider.lower() in {"", "none", "disabled", "off"}:
+        return None
+    if not settings.neo4j_uri.strip():
+        return None
+    try:
+        neo4j_client = get_neo4j_client()
+    except Exception:
+        logger.warning("Graph retrieval disabled because Neo4j is not configured.")
+        return None
     extractor = build_graph_extractor(llm_provider=llm_provider)
     return GraphRetrievalService(neo4j_client=neo4j_client, extractor=extractor)
 
@@ -125,7 +142,7 @@ def get_reranking_service(
     ],
     chunk_repository: Annotated[DocumentRepository, Depends(get_search_repository)],
     graph_retrieval_service: Annotated[
-        GraphRetrievalService,
+        GraphRetrievalService | None,
         Depends(get_graph_retrieval_service),
     ],
 ) -> RerankingService:

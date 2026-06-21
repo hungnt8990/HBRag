@@ -37,6 +37,8 @@ from app.schemas.documents import (
     DocumentPipelineLogResponse,
     DocumentUploadResponse,
     DocumentVectorIndexResponse,
+    DOfficeImportRequest,
+    DOfficeImportResponse,
     GraphDocumentStatusResponse,
     GraphExtractionLogResponse,
     GraphIndexRequest,
@@ -79,6 +81,12 @@ from app.services.document_service import (
     DuplicateDocumentUploadError,
     EmptyDocumentUploadError,
     UnsupportedDocumentTypeError,
+)
+from app.services.doffice_import_service import (
+    DOfficeDocumentNotFoundError,
+    DOfficeDuplicateDocumentError,
+    DOfficeImportError,
+    DOfficeImportService,
 )
 from app.services.embeddings.base import EmbeddingProvider
 from app.services.embeddings.factory import get_embedding_provider
@@ -151,6 +159,12 @@ def get_document_service(
     storage: Annotated[StorageClient, Depends(get_storage_client)],
 ) -> DocumentService:
     return DocumentService(repository=repository, storage=storage)
+
+
+def get_doffice_import_service(
+    repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+) -> DOfficeImportService:
+    return DOfficeImportService(repository=repository)
 
 
 def get_document_parser_service(
@@ -454,6 +468,180 @@ async def upload_documents_batch(
         items=results,
         success_count=success_count,
         failed_count=len(results) - success_count,
+    )
+
+
+@router.post("/import-doffice", response_model=DOfficeImportResponse)
+async def import_doffice_document(
+    request: DOfficeImportRequest,
+    repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+    auth_repository: Annotated[AuthRepository, Depends(get_auth_repository)],
+    knowledge_base_repository: Annotated[
+        KnowledgeBaseRepository,
+        Depends(get_knowledge_base_repository),
+    ],
+    log_repository: Annotated[DocumentLogRepository, Depends(get_document_log_repository)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    import_service: Annotated[DOfficeImportService, Depends(get_doffice_import_service)],
+    chunking_service: Annotated[ChunkingService, Depends(get_chunking_service)],
+    vector_indexing_service: Annotated[
+        VectorIndexingService,
+        Depends(get_vector_indexing_service),
+    ],
+) -> DOfficeImportResponse:
+    if not can_upload_document(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Upload is not allowed.")
+    if request.visibility not in {"private", "organization", "subtree", "global"}:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid visibility.",
+        )
+
+    descendant_ids = await auth_repository.get_descendant_organization_ids(
+        current_user.organization_id
+    )
+    knowledge_base, target_organization_id = await _resolve_upload_knowledge_base(
+        knowledge_base_repository=knowledge_base_repository,
+        current_user=current_user,
+        requested_organization_id=request.organization_id,
+        requested_knowledge_base_id=request.knowledge_base_id,
+        descendant_ids=descendant_ids,
+    )
+    if not can_assign_upload_organization(
+        current_user,
+        target_organization_id,
+        descendant_organization_ids=descendant_ids,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot upload to the selected organization.",
+        )
+
+    access = _upload_access_payload(
+        target_organization_id=target_organization_id,
+        access_scope=None,
+        classification=None,
+        allowed_org_ids=None,
+        allowed_org_paths=None,
+        allowed_role_names=None,
+        allowed_group_codes=None,
+        allowed_user_ids=None,
+        denied_org_ids=None,
+        denied_org_paths=None,
+        denied_role_names=None,
+        denied_group_codes=None,
+        denied_user_ids=None,
+        inherit_permission=None,
+    )
+
+    try:
+        imported = await import_service.import_document(
+            id_vb=request.id_vb,
+            uploaded_by_user_id=current_user.id,
+            organization_id=target_organization_id,
+            knowledge_base_id=knowledge_base.id,
+            visibility=request.visibility,
+            access=access,
+            force_reimport=request.force_reimport,
+        )
+    except DOfficeDocumentNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except DOfficeDuplicateDocumentError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except DOfficeImportError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(exc),
+        ) from exc
+
+    if imported.reused_existing:
+        chunk_count = await repository.count_chunks_for_document(imported.document_id)
+        return DOfficeImportResponse(
+            id_vb=imported.id_vb,
+            document_id=imported.document_id,
+            title=imported.title,
+            status="indexed",
+            character_count=imported.character_count,
+            chunk_count=chunk_count,
+            indexed_chunk_count=chunk_count,
+            reused_existing=True,
+        )
+
+    await log_repository.create_pipeline_log(
+        document_id=imported.document_id,
+        user_id=current_user.id,
+        organization_id=target_organization_id,
+        action="upload",
+        status="success",
+        message=f"Imported DOffice document id_vb={imported.id_vb}.",
+        metadata={
+            "source": "doffice",
+            "id_vb": imported.id_vb,
+            "knowledge_base_id": str(knowledge_base.id),
+        },
+    )
+    await log_repository.create_pipeline_log(
+        document_id=imported.document_id,
+        user_id=current_user.id,
+        organization_id=target_organization_id,
+        action="parse",
+        status="success",
+        message=f"Loaded {imported.character_count} characters from DOffice.",
+        metadata={"character_count": imported.character_count},
+    )
+    await log_repository.commit()
+
+    try:
+        chunk_response = await chunking_service.chunk_document(
+            imported.document_id,
+            chunk_size=request.chunk_size,
+            chunk_overlap=request.chunk_overlap,
+            chunk_mode=request.chunk_mode,
+            profile=request.profile,
+        )
+        await log_repository.create_pipeline_log(
+            document_id=imported.document_id,
+            user_id=current_user.id,
+            organization_id=target_organization_id,
+            action="chunk",
+            status="success",
+            message=f"Created {chunk_response.chunk_count} chunks.",
+            metadata={"chunk_count": chunk_response.chunk_count},
+        )
+        await log_repository.commit()
+
+        index_response = await vector_indexing_service.index_document(imported.document_id)
+        await log_repository.create_pipeline_log(
+            document_id=imported.document_id,
+            user_id=current_user.id,
+            organization_id=target_organization_id,
+            action="index_vector",
+            status="success",
+            message=f"Indexed {index_response.indexed_chunk_count} chunks.",
+            metadata={"indexed_chunk_count": index_response.indexed_chunk_count},
+        )
+        await log_repository.commit()
+    except (
+        DocumentChunkStatusError,
+        EmptyParsedTextError,
+        DocumentVectorIndexStatusError,
+        DocumentChunksNotFoundError,
+    ) as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except (DocumentChunkingError, VectorIndexingError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+    return DOfficeImportResponse(
+        id_vb=imported.id_vb,
+        document_id=imported.document_id,
+        title=imported.title,
+        status="indexed",
+        character_count=imported.character_count,
+        chunk_count=chunk_response.chunk_count,
+        indexed_chunk_count=index_response.indexed_chunk_count,
     )
 
 

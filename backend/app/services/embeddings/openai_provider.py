@@ -45,7 +45,14 @@ class OpenAICompatibleEmbeddingProvider:
                 headers=self._headers(),
                 json=payload,
             )
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                detail = response.text[:1000]
+                raise RuntimeError(
+                    "Embedding endpoint returned "
+                    f"{response.status_code}: {detail}"
+                ) from exc
             return response.json()
 
     def _headers(self) -> dict[str, str]:

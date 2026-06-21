@@ -2224,8 +2224,17 @@ class RagAnswerService:
         quote: str | None,
     ) -> RagCitationResponse:
         metadata = self._metadata(context_chunk.chunk.chunk_metadata)
-        document = getattr(context_chunk.chunk, "document", None)
-        files = getattr(document, "files", None) or []
+        document = context_chunk.chunk.__dict__.get("document")
+        files = getattr(document, "files", None) if document is not None else None
+        files = files if isinstance(files, list) else []
+        document_title = self._string_or_none(metadata.get("document_title"))
+        if document_title is None and document is not None:
+            document_title = getattr(document, "title", None)
+        file_name = (
+            self._string_or_none(metadata.get("file_name"))
+            or self._string_or_none(metadata.get("source_file"))
+            or (getattr(files[0], "filename", None) if files else None)
+        )
         raw_source_flags = list(context_chunk.source_flags or [context_chunk.source_type])
         source_flags = self._public_source_flags(raw_source_flags)
         if not source_flags:
@@ -2245,8 +2254,8 @@ class RagAnswerService:
             citation_index=context_chunk.citation_index,
             chunk_id=context_chunk.chunk.id,
             document_id=context_chunk.chunk.document_id,
-            document_title=getattr(document, "title", None),
-            file_name=getattr(files[0], "filename", None) if files else None,
+            document_title=document_title,
+            file_name=file_name,
             chunk_index=context_chunk.chunk.chunk_index,
             quote=quote,
             article_number=self._string_or_none(metadata.get("article_number")),

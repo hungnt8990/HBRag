@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     database_echo: bool = False
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: str | None = None
-    qdrant_collection_name: str = "hbrag_chunks_v2"
+    qdrant_collection_name: str = "hbrag_huybui"
     qdrant_upsert_batch_size: int = 64
     qdrant_upsert_retry_count: int = 2
     qdrant_hybrid_candidate_multiplier: int = 4
@@ -51,6 +51,14 @@ class Settings(BaseSettings):
     docling_ocr_mode: str = "off"
     docling_strict_quality: bool = True
     enable_unstructured: bool = False
+    doffice_elastic_url: str = "http://10.72.2.42:9200/doffice_vanban/_search"
+    elasticsearch_url: str | None = None
+    elasticsearch_cloud_id: str | None = None
+    elasticsearch_api_key: str | None = None
+    elasticsearch_index_name: str = "rag_cpcit"
+    elasticsearch_request_timeout: float = 60.0
+    elasticsearch_verify_ssl: bool = True
+    elasticsearch_keyword_enabled: bool = True
 
     memory_provider: str = "local"
     memory_enabled: bool = True
@@ -70,6 +78,7 @@ class Settings(BaseSettings):
     embedding_api_key: str | None = None
     embedding_model: str | None = None
     embedding_dimension: int = 384
+    embedding_batch_size: int = 16
 
     reranker_provider: str = "fake"
     reranker_base_url: str | None = None

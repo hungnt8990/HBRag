@@ -135,6 +135,30 @@ class DocumentRepository:
         result = await self._session.execute(statement)
         return result.scalar_one_or_none()
 
+    async def get_document_by_external_id(
+        self,
+        *,
+        external_source: str,
+        external_id: str,
+    ) -> Document | None:
+        statement = (
+            select(Document)
+            .options(
+                selectinload(Document.files),
+                selectinload(Document.organization),
+                selectinload(Document.uploaded_by),
+                selectinload(Document.knowledge_base),
+            )
+            .where(
+                Document.document_metadata["external_source"].astext == external_source,
+                Document.document_metadata["external_id"].astext == external_id,
+            )
+            .order_by(Document.updated_at.desc())
+            .limit(1)
+        )
+        result = await self._session.execute(statement)
+        return result.scalar_one_or_none()
+
     async def update_document_status(self, document: Document, status: str) -> Document:
         document.status = status
         await self._session.flush()
