@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import String, cast, delete, or_, select
+from sqlalchemy import String, cast, delete, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -18,7 +19,15 @@ class KnowledgeArtifactCreate:
     context_type: str
     canonical_text: str
     source_chunk_ids: list[str] = field(default_factory=list)
+    idea_block_type: str | None = None
     title: str | None = None
+    summary_text: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    evidence_chunk_ids: list[str] = field(default_factory=list)
+    scope_key: str | None = None
+    content_hash: str | None = None
+    dedup_hash: str | None = None
+    embedding_status: str = "pending"
     structured_data: dict[str, Any] = field(default_factory=dict)
     normalized_identifiers: dict[str, Any] = field(default_factory=dict)
     citation_map: dict[str, Any] = field(default_factory=dict)
@@ -50,23 +59,7 @@ class KnowledgeArtifactRepository:
         document_id: UUID,
         artifacts: Sequence[KnowledgeArtifactCreate],
     ) -> list[KnowledgeArtifact]:
-        models = [
-            KnowledgeArtifact(
-                document_id=document_id,
-                source_chunk_ids=list(artifact.source_chunk_ids),
-                artifact_type=artifact.artifact_type,
-                context_type=artifact.context_type,
-                title=artifact.title,
-                canonical_text=artifact.canonical_text,
-                structured_data=dict(artifact.structured_data),
-                normalized_identifiers=dict(artifact.normalized_identifiers),
-                citation_map=dict(artifact.citation_map),
-                confidence_score=float(artifact.confidence_score),
-                extraction_method=artifact.extraction_method,
-                status=artifact.status,
-            )
-            for artifact in artifacts
-        ]
+        models = [self._to_model(document_id=document_id, artifact=artifact) for artifact in artifacts]
         self._session.add_all(models)
         await self._session.flush()
         return models
@@ -102,6 +95,18 @@ class KnowledgeArtifactRepository:
         result = await self._session.execute(statement)
         return list(result.scalars().all())
 
+    async def update_embedding_status_for_document(
+        self,
+        document_id: UUID,
+        status: str,
+    ) -> None:
+        await self._session.execute(
+            update(KnowledgeArtifact)
+            .where(KnowledgeArtifact.document_id == document_id)
+            .values(embedding_status=status)
+        )
+        await self._session.flush()
+
     async def search_exact(
         self,
         *,
@@ -121,14 +126,17 @@ class KnowledgeArtifactRepository:
         clauses = []
         normalized_identifiers = cast(KnowledgeArtifact.normalized_identifiers, String)
         structured_data = cast(KnowledgeArtifact.structured_data, String)
+        idea_metadata = cast(KnowledgeArtifact.idea_metadata, String)
         for term in clean_terms:
             like_value = f"%{term}%"
             clauses.append(
                 or_(
                     KnowledgeArtifact.title.ilike(like_value),
                     KnowledgeArtifact.canonical_text.ilike(like_value),
+                    KnowledgeArtifact.scope_key.ilike(like_value),
                     normalized_identifiers.ilike(like_value),
                     structured_data.ilike(like_value),
+                    idea_metadata.ilike(like_value),
                 )
             )
 
@@ -148,7 +156,12 @@ class KnowledgeArtifactRepository:
         if artifact_types is not None:
             if not artifact_types:
                 return []
-            statement = statement.where(KnowledgeArtifact.artifact_type.in_(artifact_types))
+            statement = statement.where(
+                or_(
+                    KnowledgeArtifact.artifact_type.in_(artifact_types),
+                    KnowledgeArtifact.idea_block_type.in_(artifact_types),
+                )
+            )
         if context_types is not None:
             if not context_types:
                 return []
@@ -162,6 +175,83 @@ class KnowledgeArtifactRepository:
 
     async def rollback(self) -> None:
         await self._session.rollback()
+
+    @classmethod
+    def _to_model(
+        cls,
+        *,
+        document_id: UUID,
+        artifact: KnowledgeArtifactCreate,
+    ) -> KnowledgeArtifact:
+        idea_block_type = artifact.idea_block_type or cls._idea_block_type_for_artifact(artifact.artifact_type)
+        evidence_chunk_ids = list(artifact.evidence_chunk_ids or artifact.source_chunk_ids)
+        metadata = {
+            **dict(artifact.structured_data or {}),
+            **dict(artifact.metadata or {}),
+            "evidence_chunk_ids": evidence_chunk_ids,
+        }
+        source_chunk_ids = list(artifact.source_chunk_ids or evidence_chunk_ids)
+        content_hash = artifact.content_hash or cls._hash_text(artifact.canonical_text)
+        scope_key = artifact.scope_key or cls._default_scope_key(
+            document_id=document_id,
+            idea_block_type=idea_block_type,
+            metadata=metadata,
+        )
+        dedup_hash = artifact.dedup_hash or cls._hash_text(
+            "|".join([scope_key, idea_block_type or "", content_hash])
+        )
+        return KnowledgeArtifact(
+            document_id=document_id,
+            source_chunk_ids=source_chunk_ids,
+            artifact_type=artifact.artifact_type,
+            idea_block_type=idea_block_type,
+            context_type=artifact.context_type,
+            title=artifact.title,
+            canonical_text=artifact.canonical_text,
+            summary_text=artifact.summary_text,
+            idea_metadata=metadata,
+            evidence_chunk_ids=evidence_chunk_ids,
+            scope_key=scope_key,
+            content_hash=content_hash,
+            dedup_hash=dedup_hash,
+            embedding_status=artifact.embedding_status,
+            structured_data=dict(artifact.structured_data),
+            normalized_identifiers=dict(artifact.normalized_identifiers),
+            citation_map=dict(artifact.citation_map),
+            confidence_score=float(artifact.confidence_score),
+            extraction_method=artifact.extraction_method,
+            status=artifact.status,
+        )
+
+    @staticmethod
+    def _idea_block_type_for_artifact(artifact_type: str) -> str:
+        return {
+            "document_profile": "document_identity",
+            "identifier_lookup": "document_identity",
+            "procedure_artifact": "implementation_plan",
+            "policy_rule_artifact": "legal_clause",
+            "table_row_artifact": "assignment_table_row",
+            "person_assignment_artifact": "assignment_table_row",
+        }.get(str(artifact_type or ""), str(artifact_type or "summary_block"))
+
+    @staticmethod
+    def _default_scope_key(
+        *,
+        document_id: UUID,
+        idea_block_type: str | None,
+        metadata: dict[str, Any],
+    ) -> str:
+        doc_code = metadata.get("doc_code") or metadata.get("document_code") or metadata.get("official_dispatch_code")
+        issued_date = metadata.get("issued_date") or metadata.get("ngay_vb")
+        issuing_org = metadata.get("issuing_org") or metadata.get("issuer") or metadata.get("noi_ban_hanh")
+        return "|".join(
+            str(value or "").casefold()
+            for value in (doc_code or document_id, issued_date, issuing_org, idea_block_type)
+        )
+
+    @staticmethod
+    def _hash_text(text: str) -> str:
+        return hashlib.sha256((text or "").encode("utf-8")).hexdigest()
 
     @staticmethod
     def _clean_terms(terms: Sequence[str]) -> list[str]:

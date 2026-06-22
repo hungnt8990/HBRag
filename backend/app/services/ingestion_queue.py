@@ -46,7 +46,15 @@ StepState = Literal["idle", "running", "succeeded", "failed"]
 LogLevel = Literal["info", "success", "error"]
 
 PIPELINE_STEPS = ("upload", "parse", "chunk", "compile_artifacts", "enrich", "index")
-DOFFICE_PIPELINE_STEPS = ("parse", "chunk", "enrich", "index", "graph")
+DOFFICE_PIPELINE_STEPS = (
+    "parse",
+    "chunk",
+    "compile_artifacts",
+    "index_artifacts",
+    "enrich",
+    "index",
+    "graph",
+)
 logger = logging.getLogger(__name__)
 
 
@@ -576,9 +584,19 @@ class IngestionQueue:
 
         async with AsyncSessionLocal() as session:
             repository = DocumentRepository(session)
+            artifact_repository = KnowledgeArtifactRepository(session)
+            rag_runtime_config_repository = RagRuntimeConfigRepository(session)
             storage = get_storage_client()
+            artifact_vector_store = get_artifact_vector_store()
             service = DofficeIngestionService(
                 repository=repository,
+                artifact_repository=artifact_repository,
+                artifact_indexing_service=KnowledgeArtifactIndexingService(
+                    repository=artifact_repository,
+                    embedding_provider=get_embedding_provider(),
+                    vector_store=artifact_vector_store,
+                    sparse_embedding_provider=get_sparse_embedding_provider(),
+                ),
                 source=DofficeElasticsearchSource(),
                 chunking_service=ChunkingService(repository=repository, storage=storage),
                 vector_indexing_service=VectorIndexingService(
@@ -593,6 +611,7 @@ class IngestionQueue:
                     ),
                 ),
                 vector_store=get_vector_store(),
+                artifact_vector_store=artifact_vector_store,
                 enrichment_service=ChunkEnrichmentService(
                     repository=repository,
                     llm_provider=build_llm_provider_or_error(),
@@ -602,6 +621,7 @@ class IngestionQueue:
                     if settings.elasticsearch_enabled
                     else None
                 ),
+                rag_runtime_config_repository=rag_runtime_config_repository,
             )
             response = await service.ingest_doffice_document(
                 payload.id_vb,

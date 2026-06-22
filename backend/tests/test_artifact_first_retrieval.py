@@ -38,6 +38,31 @@ def test_artifact_first_retrieval_uses_exact_artifact_before_chunk_fallback() ->
 
     asyncio.run(run_test())
 
+def test_artifact_first_retrieval_uses_typed_idea_block_exact_match() -> None:
+    async def run_test() -> None:
+        artifact = _artifact(
+            artifact_type="identifier_lookup",
+            idea_block_type="document_identity",
+            canonical_text="Loai: Dinh danh van ban\nidentifier: 3113",
+            normalized_identifiers={"identifiers": ["3113"]},
+        )
+        reranking_service = FakeRerankingService()
+        service = ArtifactFirstRetrievalService(
+            artifact_repository=FakeArtifactRepository(exact_artifacts=[artifact]),  # type: ignore[arg-type]
+            artifact_indexing_service=FakeArtifactIndexingService(),  # type: ignore[arg-type]
+            reranking_service=reranking_service,  # type: ignore[arg-type]
+            query_contract_service=QueryContractService(),
+            rag_config=_config(),
+        )
+
+        result = await service.retrieve(query="3113 la van ban gi?", top_k=3, candidate_k=10)
+
+        assert result.selected_artifacts == [artifact]
+        assert result.used_chunk_fallback is False
+        assert reranking_service.called is False
+
+    asyncio.run(run_test())
+
 
 def test_artifact_first_retrieval_uses_vector_artifact_when_exact_search_misses() -> None:
     async def run_test() -> None:
@@ -133,20 +158,29 @@ def _artifact(
     *,
     artifact_type: str,
     canonical_text: str,
+    idea_block_type: str | None = None,
     structured_data: dict | None = None,
     normalized_identifiers: dict | None = None,
 ) -> KnowledgeArtifact:
+    source_chunk_id = str(uuid4())
     return KnowledgeArtifact(
         id=uuid4(),
         document_id=DOCUMENT_ID,
-        source_chunk_ids=[str(uuid4())],
+        source_chunk_ids=[source_chunk_id],
+        evidence_chunk_ids=[source_chunk_id],
         artifact_type=artifact_type,
+        idea_block_type=idea_block_type,
         context_type="identifier" if artifact_type == "identifier_lookup" else "policy",
         title=artifact_type,
         canonical_text=canonical_text,
+        idea_metadata=structured_data or {"identifier": "3113"},
         structured_data=structured_data or {"identifier": "3113"},
         normalized_identifiers=normalized_identifiers or {},
         citation_map={"document_id": str(DOCUMENT_ID), "chunks": [{"chunk_id": str(uuid4())}]},
+        scope_key=f"{DOCUMENT_ID}|{idea_block_type or artifact_type}",
+        content_hash="content-hash",
+        dedup_hash="dedup-hash",
+        embedding_status="indexed",
         confidence_score=0.9,
         extraction_method="deterministic",
         status="ready",
@@ -168,4 +202,3 @@ def _config() -> RagRuntimeConfigValues:
         max_artifacts=4,
         max_chunks=3,
     )
-

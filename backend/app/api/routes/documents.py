@@ -27,7 +27,9 @@ from app.repositories.auth import AuthRepository
 from app.repositories.document_logs import DocumentLogRepository
 from app.repositories.documents import DocumentRepository
 from app.repositories.graph import GraphRepository
+from app.repositories.knowledge_artifacts import KnowledgeArtifactRepository
 from app.repositories.knowledge_bases import KnowledgeBaseRepository
+from app.repositories.rag_runtime_config import RagRuntimeConfigRepository
 from app.schemas.documents import (
     DocumentAccessDecisionResponse,
     DocumentAccessResponse,
@@ -122,6 +124,9 @@ from app.services.graph import (
 )
 from app.services.graph.extractors.factory import build_graph_extractor
 from app.services.ingestion_queue import IngestionJob, IngestionQueue, get_ingestion_queue
+from app.services.knowledge_artifact_indexing_service import (
+    KnowledgeArtifactIndexingService,
+)
 from app.services.llms import LLMProvider
 from app.services.llms.factory import build_llm_provider_or_error, get_llm_provider
 from app.services.permissions import (
@@ -141,7 +146,11 @@ from app.services.vector_indexing_service import (
 from app.services.vector_indexing_service import (
     DocumentNotFoundError as VectorDocumentNotFoundError,
 )
-from app.services.vector_store import QdrantVectorStore, get_vector_store
+from app.services.vector_store import (
+    QdrantVectorStore,
+    get_artifact_vector_store,
+    get_vector_store,
+)
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 DOCUMENT_DETAIL_PREVIEW_LIMIT = 50_000
@@ -169,6 +178,19 @@ def get_graph_repository(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> GraphRepository:
     return GraphRepository(session)
+
+
+def get_knowledge_artifact_repository(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> KnowledgeArtifactRepository:
+    return KnowledgeArtifactRepository(session)
+
+
+def get_rag_runtime_config_repository(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> RagRuntimeConfigRepository:
+    return RagRuntimeConfigRepository(session)
+
 
 def get_knowledge_base_repository(
     session: Annotated[AsyncSession, Depends(get_db_session)],
@@ -227,6 +249,14 @@ def get_doffice_source() -> DofficeElasticsearchSource:
 
 def get_doffice_ingestion_service(
     repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+    artifact_repository: Annotated[
+        KnowledgeArtifactRepository,
+        Depends(get_knowledge_artifact_repository),
+    ],
+    rag_runtime_config_repository: Annotated[
+        RagRuntimeConfigRepository,
+        Depends(get_rag_runtime_config_repository),
+    ],
     source: Annotated[DofficeElasticsearchSource, Depends(get_doffice_source)],
     chunking_service: Annotated[ChunkingService, Depends(get_chunking_service)],
     vector_indexing_service: Annotated[
@@ -234,6 +264,10 @@ def get_doffice_ingestion_service(
         Depends(get_vector_indexing_service),
     ],
     vector_store: Annotated[QdrantVectorStore, Depends(get_vector_store)],
+    artifact_vector_store: Annotated[
+        QdrantVectorStore,
+        Depends(get_artifact_vector_store),
+    ],
     enrichment_service: Annotated[
         ChunkEnrichmentService,
         Depends(get_chunk_enrichment_service),
@@ -241,16 +275,25 @@ def get_doffice_ingestion_service(
 ) -> DofficeIngestionService:
     return DofficeIngestionService(
         repository=repository,
+        artifact_repository=artifact_repository,
+        artifact_indexing_service=KnowledgeArtifactIndexingService(
+            repository=artifact_repository,
+            embedding_provider=get_embedding_provider(),
+            vector_store=artifact_vector_store,
+            sparse_embedding_provider=get_sparse_embedding_provider(),
+        ),
         source=source,
         chunking_service=chunking_service,
         vector_indexing_service=vector_indexing_service,
         vector_store=vector_store,
+        artifact_vector_store=artifact_vector_store,
         enrichment_service=enrichment_service,
         keyword_index_store=(
             get_elasticsearch_keyword_store()
             if settings.elasticsearch_enabled
             else None
         ),
+        rag_runtime_config_repository=rag_runtime_config_repository,
     )
 
 def get_graph_indexing_service(

@@ -177,7 +177,10 @@ class ArtifactFirstRetrievalService:
                 artifact
                 for artifact in vector_artifacts
                 if artifact.status == "ready"
-                and artifact.artifact_type in preferred_types
+                and (
+                    artifact.artifact_type in preferred_types
+                    or getattr(artifact, "idea_block_type", None) in preferred_types
+                )
                 and float(artifact.confidence_score or 0.0) >= contract.confidence_threshold
             ]
             vector_artifacts.sort(key=lambda artifact: (-score_by_id.get(artifact.id, 0.0), -float(artifact.confidence_score or 0.0)))
@@ -200,7 +203,11 @@ class ArtifactFirstRetrievalService:
         if confidence < contract.confidence_threshold:
             return False
         preferred = set(contract.preferred_artifact_types)
-        if not any(artifact.artifact_type in preferred for artifact in artifacts):
+        if not any(
+            artifact.artifact_type in preferred
+            or getattr(artifact, "idea_block_type", None) in preferred
+            for artifact in artifacts
+        ):
             return False
         if contract.detected_intent in {"procedure_lookup", "policy_rule_lookup", "person_assignment", "table_lookup"}:
             return any(bool(artifact.structured_data) for artifact in artifacts)
@@ -259,4 +266,3 @@ class ArtifactFirstRetrievalService:
     @staticmethod
     def _duration_ms(started: float) -> int:
         return round((time.perf_counter() - started) * 1000)
-

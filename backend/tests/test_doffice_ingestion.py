@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from app.api.routes.documents import get_document_log_repository, get_doffice_ingestion_service
 from app.main import app
+from app.repositories.knowledge_artifacts import KnowledgeArtifactCreate
 from app.schemas.documents import ChunkPreview, DocumentChunkResponse, DocumentVectorIndexResponse, DofficeIngestResponse
 from app.services.document_sources import DOFFICE_SOURCE_TYPE, DofficeDocument, DofficeElasticsearchSource
 from app.services.doffice_chunking import build_doffice_chunks
@@ -15,6 +16,7 @@ from app.services.doffice_content_normalizer import apply_spacing_fixes, normali
 from app.services.doffice_ingestion_service import DofficeIngestionService, DofficeIngestOptions
 from app.services.hybrid_search import IDENTIFIER_EXACT_BOOST, identifier_exact_match_boost
 from app.services.keyword_search import KeywordSearchService
+from app.services.knowledge_artifact_compiler import KnowledgeArtifactCompiler
 from app.services.text_cleaning import clean_doffice_markdown_to_text
 
 DOCUMENT_ID = UUID("aaaaaaaa-1111-1111-1111-aaaaaaaaaaaa")
@@ -142,6 +144,47 @@ class FakeRepository:
 
     async def count_chunks_for_document(self, document_id: UUID) -> int:
         return 7
+
+    async def get_document(self, document_id: UUID):
+        if self.document is not None and document_id == self.document.id:
+            return self.document
+        if self.existing is not None and document_id == self.existing.id:
+            return self.existing
+        return None
+
+    async def list_chunks_for_document(self, document_id: UUID):
+        if document_id != DOCUMENT_ID:
+            return []
+        return [
+            SimpleNamespace(
+                id=UUID("11111111-1111-1111-1111-111111111111"),
+                document_id=document_id,
+                chunk_index=0,
+                content="CPCIT thuc hien GIS 110kV.",
+                chunk_metadata={
+                    "chunk_type": "document_body",
+                    "source_type": DOFFICE_SOURCE_TYPE,
+                    "id_vb": "1068586",
+                    "document_code": "6515/EVNCPC-VTCNTT+KD+KT",
+                },
+            ),
+            SimpleNamespace(
+                id=UUID("22222222-2222-2222-2222-222222222222"),
+                document_id=document_id,
+                chunk_index=1,
+                content="STT: 1; feature_name: GIS 110kV; platform: CPCIT",
+                chunk_metadata={
+                    "chunk_type": "table_row",
+                    "feature_name": "GIS 110kV",
+                    "platform": "CPCIT",
+                    "source_type": DOFFICE_SOURCE_TYPE,
+                    "id_vb": "1068586",
+                    "document_code": "6515/EVNCPC-VTCNTT+KD+KT",
+                    "headers": ["STT", "feature_name", "platform"],
+                    "is_table_row": True,
+                },
+            ),
+        ]
 
     async def create_document(self, **kwargs):
         self.document = SimpleNamespace(
@@ -271,8 +314,10 @@ class FakeEnrichmentService:
 class FakeVectorIndexingService:
     def __init__(self) -> None:
         self.calls: list[UUID] = []
+        self.event_log: list[str] = []
 
     async def index_document(self, document_id: UUID, **kwargs):
+        self.event_log.append("index_chunks")
         self.calls.append(document_id)
         return DocumentVectorIndexResponse(document_id=document_id, status="indexed", indexed_chunk_count=2)
 
@@ -285,18 +330,124 @@ class FakeVectorStore:
         self.deleted.append((str(document_id), str(tenant_id) if tenant_id else None))
 
 
-def _ingestion_service(repository: FakeRepository, source: FakeSource | None = None):
+class FakeArtifactRepository:
+    def __init__(self, event_log: list[str] | None = None) -> None:
+        self.event_log = event_log if event_log is not None else []
+        self.saved_artifacts: list[KnowledgeArtifactCreate] = []
+        self.commits = 0
+        self.rollbacks = 0
+
+    async def replace_for_document(self, document_id: UUID, artifacts: list[KnowledgeArtifactCreate]):
+        self.event_log.append("compile_artifacts")
+        self.saved_artifacts = list(artifacts)
+        return [
+            SimpleNamespace(
+                id=UUID(f"00000000-0000-0000-0000-{index + 1:012d}"),
+                document_id=document_id,
+                artifact_type=artifact.artifact_type,
+                context_type=artifact.context_type,
+                title=artifact.title,
+                canonical_text=artifact.canonical_text,
+                structured_data=artifact.structured_data,
+                normalized_identifiers=artifact.normalized_identifiers,
+                citation_map=artifact.citation_map,
+                confidence_score=artifact.confidence_score,
+                status=artifact.status,
+                source_chunk_ids=artifact.source_chunk_ids,
+            )
+            for index, artifact in enumerate(artifacts)
+        ]
+
+    async def commit(self) -> None:
+        self.commits += 1
+
+    async def rollback(self) -> None:
+        self.rollbacks += 1
+
+
+class FakeArtifactIndexingService:
+    def __init__(self, event_log: list[str] | None = None, *, should_fail: bool = False) -> None:
+        self.event_log = event_log if event_log is not None else []
+        self.should_fail = should_fail
+        self.calls: list[UUID] = []
+
+    async def index_document(self, document_id: UUID):
+        self.event_log.append("index_artifacts")
+        self.calls.append(document_id)
+        if self.should_fail:
+            raise RuntimeError("artifact indexing failed")
+        return SimpleNamespace(
+            document_id=document_id,
+            status="indexed",
+            indexed_artifact_count=3,
+        )
+
+
+class FakeRagRuntimeConfigRepository:
+    def __init__(self) -> None:
+        self.rollbacks = 0
+
+    async def list_configs(self):
+        return {"default": {"enable_knowledge_artifact_compilation": True}}
+
+    async def get_config(self, config_name: str):
+        return SimpleNamespace(
+            config_name=config_name,
+            config={
+                "enable_knowledge_artifact_compilation": True,
+                "enable_llm_artifact_extraction": False,
+                "enable_chunk_enrichment_at_ingest": True,
+                "enable_chunk_enrichment_at_retrieval": False,
+                "enable_artifact_first_retrieval": True,
+                "enable_chunk_fallback": True,
+                "enable_neighbor_expansion": True,
+                "enable_graph_expansion": True,
+                "artifact_confidence_threshold": 0.45,
+                "retrieval_token_budget": 6000,
+                "max_artifacts": 6,
+                "max_chunks": 8,
+            },
+        )
+
+    async def seed_missing_configs(self, configs: dict[str, dict[str, object]]) -> None:
+        return None
+
+    async def rollback(self) -> None:
+        self.rollbacks += 1
+
+
+def _ingestion_service(
+    repository: FakeRepository,
+    source: FakeSource | None = None,
+    *,
+    artifact_repository: FakeArtifactRepository | None = None,
+    artifact_indexing_service: FakeArtifactIndexingService | None = None,
+    rag_runtime_config_repository: FakeRagRuntimeConfigRepository | None = None,
+):
     vector_store = FakeVectorStore()
+    artifact_vector_store = FakeVectorStore()
+    artifact_repository = artifact_repository or FakeArtifactRepository()
+    artifact_indexing_service = artifact_indexing_service or FakeArtifactIndexingService()
+    rag_runtime_config_repository = (
+        rag_runtime_config_repository or FakeRagRuntimeConfigRepository()
+    )
     return (
         DofficeIngestionService(
             repository=repository,  # type: ignore[arg-type]
+            artifact_repository=artifact_repository,  # type: ignore[arg-type]
+            artifact_indexing_service=artifact_indexing_service,  # type: ignore[arg-type]
             source=source or FakeSource(),  # type: ignore[arg-type]
             chunking_service=FakeChunkingService(),  # type: ignore[arg-type]
             vector_indexing_service=FakeVectorIndexingService(),  # type: ignore[arg-type]
             vector_store=vector_store,  # type: ignore[arg-type]
+            artifact_vector_store=artifact_vector_store,  # type: ignore[arg-type]
             enrichment_service=FakeEnrichmentService(),  # type: ignore[arg-type]
+            rag_runtime_config_repository=rag_runtime_config_repository,  # type: ignore[arg-type]
         ),
         vector_store,
+        artifact_vector_store,
+        artifact_repository,
+        artifact_indexing_service,
     )
 
 def _sample_doffice_source_with_table() -> dict[str, object]:
@@ -563,7 +714,7 @@ def test_doffice_html_tables_keep_rowspan_context_and_chunk_rows() -> None:
 
 def test_ingest_doffice_document_creates_document_metadata() -> None:
     repository = FakeRepository()
-    service, _ = _ingestion_service(repository)
+    service, _, _, artifact_repository, artifact_indexing_service = _ingestion_service(repository)
 
     response = asyncio.run(
         service.ingest_doffice_document(
@@ -602,6 +753,8 @@ def test_ingest_doffice_document_creates_document_metadata() -> None:
     assert {"parse_status": "normalized", "clean_status": "cleaned"} in repository.raw_status_updates
     assert {"chunk_status": "chunked"} in repository.raw_status_updates
     assert {"embedding_status": "indexed", "sync_status": "indexed"} in repository.raw_status_updates
+    assert artifact_repository.saved_artifacts
+    assert artifact_indexing_service.calls == [DOCUMENT_ID]
 
 
 def test_ingest_doffice_document_skips_existing_without_force_refresh() -> None:
@@ -612,7 +765,7 @@ def test_ingest_doffice_document_skips_existing_without_force_refresh() -> None:
     )
     source = FakeSource()
     repository = FakeRepository(existing=existing)
-    service, vector_store = _ingestion_service(repository, source)
+    service, vector_store, _, _, artifact_indexing_service = _ingestion_service(repository, source)
 
     response = asyncio.run(
         service.ingest_doffice_document(
@@ -630,6 +783,7 @@ def test_ingest_doffice_document_skips_existing_without_force_refresh() -> None:
     assert source.calls == []
     assert repository.deleted_documents == []
     assert vector_store.deleted == []
+    assert artifact_indexing_service.calls == []
 
 
 def test_ingest_doffice_document_force_refresh_replaces_existing() -> None:
@@ -640,7 +794,7 @@ def test_ingest_doffice_document_force_refresh_replaces_existing() -> None:
     )
     source = FakeSource()
     repository = FakeRepository(existing=existing)
-    service, vector_store = _ingestion_service(repository, source)
+    service, vector_store, artifact_vector_store, _, _ = _ingestion_service(repository, source)
 
     response = asyncio.run(
         service.ingest_doffice_document(
@@ -656,6 +810,114 @@ def test_ingest_doffice_document_force_refresh_replaces_existing() -> None:
     assert source.calls == ["1068586"]
     assert repository.deleted_documents == [EXISTING_DOCUMENT_ID]
     assert vector_store.deleted == [(str(EXISTING_DOCUMENT_ID), str(ORG_ID))]
+    assert artifact_vector_store.deleted == [(str(EXISTING_DOCUMENT_ID), None)]
+
+
+def test_ingest_doffice_document_compiles_and_indexes_artifacts_before_chunk_fallback() -> None:
+    repository = FakeRepository()
+    progress_events: list[tuple[str, str]] = []
+    service, _, _, artifact_repository, artifact_indexing_service = _ingestion_service(
+        repository
+    )
+
+    response = asyncio.run(
+        service.ingest_doffice_document(
+            "1068586",
+            DofficeIngestOptions(
+                force_refresh=False,
+                enable_enrichment=True,
+                progress_callback=lambda step, state, message, output: progress_events.append((step, state)),
+            ),
+            uploaded_by_user_id=USER_ID,
+            organization_id=ORG_ID,
+            knowledge_base_id=KB_ID,
+        )
+    )
+
+    assert response.status == "success"
+    assert artifact_repository.saved_artifacts
+    assert artifact_indexing_service.calls == [DOCUMENT_ID]
+    succeeded_steps = [
+        step
+        for step, state in progress_events
+        if state == "succeeded"
+        and step in {"chunk", "compile_artifacts", "index_artifacts", "enrich", "index"}
+    ]
+    assert succeeded_steps == [
+        "chunk",
+        "compile_artifacts",
+        "index_artifacts",
+        "enrich",
+        "index",
+    ]
+
+
+def test_ingest_doffice_document_artifact_compile_failure_continues(monkeypatch) -> None:
+    repository = FakeRepository()
+    progress_events: list[tuple[str, str, dict[str, object]]] = []
+    service, _, _, artifact_repository, artifact_indexing_service = _ingestion_service(
+        repository
+    )
+
+    def _boom(self, *, document, chunks, docling_metadata=None):
+        raise RuntimeError("artifact compile exploded")
+
+    monkeypatch.setattr(KnowledgeArtifactCompiler, "compile_document", _boom)
+
+    response = asyncio.run(
+        service.ingest_doffice_document(
+            "1068586",
+            DofficeIngestOptions(
+                force_refresh=False,
+                enable_enrichment=True,
+                progress_callback=lambda step, state, message, output: progress_events.append((step, state, output or {})),
+            ),
+            uploaded_by_user_id=USER_ID,
+            organization_id=ORG_ID,
+            knowledge_base_id=KB_ID,
+        )
+    )
+
+    assert response.status == "success"
+    assert artifact_repository.saved_artifacts[-1].status == "failed"
+    assert artifact_indexing_service.calls == [DOCUMENT_ID]
+    compile_event = next(event for event in progress_events if event[0] == "compile_artifacts" and event[1] == "failed")
+    assert "artifact_count" in compile_event[2]
+    assert any(step == "index" and state == "succeeded" for step, state, _ in progress_events)
+
+
+def test_ingest_doffice_document_artifact_index_failure_continues() -> None:
+    repository = FakeRepository()
+    progress_events: list[tuple[str, str, dict[str, object]]] = []
+    artifact_indexing_service = FakeArtifactIndexingService(should_fail=True)
+    service, _, _, artifact_repository, _ = _ingestion_service(
+        repository,
+        artifact_indexing_service=artifact_indexing_service,
+    )
+
+    response = asyncio.run(
+        service.ingest_doffice_document(
+            "1068586",
+            DofficeIngestOptions(
+                force_refresh=False,
+                enable_enrichment=True,
+                progress_callback=lambda step, state, message, output: progress_events.append((step, state, output or {})),
+            ),
+            uploaded_by_user_id=USER_ID,
+            organization_id=ORG_ID,
+            knowledge_base_id=KB_ID,
+        )
+    )
+
+    assert response.status == "success"
+    assert artifact_repository.saved_artifacts
+    failed_index_event = next(
+        event
+        for event in progress_events
+        if event[0] == "index_artifacts" and event[1] == "failed"
+    )
+    assert failed_index_event[2]["error"] == "artifact indexing failed"
+    assert any(step == "index" and state == "succeeded" for step, state, _ in progress_events)
 
 
 def test_identifier_retrieval_boosts_doffice_metadata() -> None:

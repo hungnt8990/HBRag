@@ -4,13 +4,30 @@ from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 from app.services import ingestion_queue as ingestion_queue_module
-from app.services.ingestion_queue import PIPELINE_STEPS, IngestionJob, IngestionQueue
+from app.services.ingestion_queue import (
+    DOFFICE_PIPELINE_STEPS,
+    PIPELINE_STEPS,
+    IngestionJob,
+    IngestionQueue,
+)
 
 DOCUMENT_ID = UUID("99999999-9999-9999-9999-999999999999")
 
 
 def test_ingestion_pipeline_has_enrich_between_chunk_and_index() -> None:
     assert PIPELINE_STEPS == ("upload", "parse", "chunk", "compile_artifacts", "enrich", "index")
+
+
+def test_doffice_pipeline_has_artifact_compile_and_index_before_chunk_fallback() -> None:
+    assert DOFFICE_PIPELINE_STEPS == (
+        "parse",
+        "chunk",
+        "compile_artifacts",
+        "index_artifacts",
+        "enrich",
+        "index",
+        "graph",
+    )
 
 
 def test_ingestion_queue_logs_enrichment_failure_counts_without_failing_job() -> None:

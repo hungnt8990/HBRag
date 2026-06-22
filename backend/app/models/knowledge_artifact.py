@@ -23,6 +23,18 @@ ARTIFACT_TYPES = (
     "person_assignment_artifact",
 )
 
+IDEA_BLOCK_TYPES = (
+    "document_identity",
+    "directive_task",
+    "assignment_table_row",
+    "legal_clause",
+    "implementation_plan",
+    "system_or_project_reference",
+    "recipient_scope",
+    "summary_block",
+    "deadline_requirement",
+)
+
 ARTIFACT_EXTRACTION_METHODS = ("deterministic", "llm", "hybrid")
 ARTIFACT_STATUSES = ("ready", "skipped", "failed")
 
@@ -44,9 +56,27 @@ class KnowledgeArtifact(Base, TimestampMixin):
         server_default="[]",
     )
     artifact_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    idea_block_type: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     context_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     title: Mapped[str | None] = mapped_column(String(255), nullable=True)
     canonical_text: Mapped[str] = mapped_column(Text, nullable=False)
+    summary_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    idea_metadata: Mapped[dict[str, Any]] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=dict,
+        server_default="{}",
+    )
+    evidence_chunk_ids: Mapped[list[str]] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=list,
+        server_default="[]",
+    )
+    scope_key: Mapped[str | None] = mapped_column(String(512), nullable=True, index=True)
+    content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    dedup_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    embedding_status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending", server_default="pending", index=True)
     structured_data: Mapped[dict[str, Any]] = mapped_column(
         JSONB,
         nullable=False,
@@ -70,4 +100,3 @@ class KnowledgeArtifact(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="ready", server_default="ready", index=True)
 
     document: Mapped[Document] = relationship(back_populates="knowledge_artifacts")
-

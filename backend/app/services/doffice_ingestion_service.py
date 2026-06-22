@@ -5,10 +5,13 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from typing import Any
 from uuid import UUID
 
 from app.repositories.documents import DocumentRepository
+from app.repositories.knowledge_artifacts import KnowledgeArtifactRepository
+from app.repositories.rag_runtime_config import RagRuntimeConfigRepository
 from app.schemas.documents import DofficeIngestResponse
 from app.services.chunk_enrichment_service import ChunkEnrichmentService
 from app.services.chunking_service import ChunkingService
@@ -22,6 +25,16 @@ from app.services.doffice_content_normalizer import (
     normalize_doffice_source,
 )
 from app.services.elasticsearch_keyword_search import ElasticsearchKeywordStore
+from app.services.knowledge_artifact_compiler import (
+    KnowledgeArtifactCompiler,
+    KnowledgeArtifactCompilerConfig,
+)
+from app.services.knowledge_artifact_indexing_service import KnowledgeArtifactIndexingService
+from app.services.rag_runtime_config import (
+    RagRuntimeConfigValues,
+    default_rag_runtime_config,
+    load_rag_runtime_config,
+)
 from app.services.vector_indexing_service import VectorIndexingService
 from app.services.vector_store import QdrantVectorStore
 
@@ -51,20 +64,28 @@ class DofficeIngestionService:
         self,
         *,
         repository: DocumentRepository,
+        artifact_repository: KnowledgeArtifactRepository,
+        artifact_indexing_service: KnowledgeArtifactIndexingService,
         source: DofficeElasticsearchSource,
         chunking_service: ChunkingService,
         vector_indexing_service: VectorIndexingService,
         vector_store: QdrantVectorStore,
+        artifact_vector_store: QdrantVectorStore,
         enrichment_service: ChunkEnrichmentService | None = None,
         keyword_index_store: ElasticsearchKeywordStore | None = None,
+        rag_runtime_config_repository: RagRuntimeConfigRepository | None = None,
     ) -> None:
         self._repository = repository
+        self._artifact_repository = artifact_repository
+        self._artifact_indexing_service = artifact_indexing_service
         self._source = source
         self._chunking_service = chunking_service
         self._vector_indexing_service = vector_indexing_service
         self._vector_store = vector_store
+        self._artifact_vector_store = artifact_vector_store
         self._enrichment_service = enrichment_service
         self._keyword_index_store = keyword_index_store
+        self._rag_runtime_config_repository = rag_runtime_config_repository
 
     async def ingest_doffice_document(
         self,
@@ -98,6 +119,20 @@ class DofficeIngestionService:
                 "succeeded",
                 "Existing chunk set reused.",
                 {"chunk_count": chunk_count},
+            )
+            _emit_progress(
+                options,
+                "compile_artifacts",
+                "succeeded",
+                "Existing knowledge artifact set reused.",
+                {"document_id": str(existing.id)},
+            )
+            _emit_progress(
+                options,
+                "index_artifacts",
+                "succeeded",
+                "Existing artifact index reused.",
+                {"document_id": str(existing.id)},
             )
             _emit_progress(
                 options,
@@ -225,6 +260,98 @@ class DofficeIngestionService:
                 {"document_id": str(document_id), "chunk_count": chunk_response.chunk_count},
             )
 
+            rag_config = await self._load_rag_runtime_config()
+            _emit_progress(
+                options,
+                "compile_artifacts",
+                "running",
+                "Compiling knowledge artifacts for DOffice document.",
+                {
+                    "document_id": str(document_id),
+                    "enable_knowledge_artifact_compilation": (
+                        rag_config.enable_knowledge_artifact_compilation
+                    ),
+                    "enable_llm_artifact_extraction": (
+                        rag_config.enable_llm_artifact_extraction
+                    ),
+                },
+            )
+            artifact_compile_response = await self._compile_knowledge_artifacts(
+                document_id=document_id,
+                rag_config=rag_config,
+            )
+            compile_progress_state = (
+                "failed" if artifact_compile_response.status == "failed" else "succeeded"
+            )
+            compile_message = {
+                "compiled": "Knowledge artifacts compiled and persisted.",
+                "skipped": "Knowledge artifact compilation skipped by runtime config.",
+                "failed": "Knowledge artifact compilation failed; continuing with chunk fallback pipeline.",
+            }.get(artifact_compile_response.status, "Knowledge artifact compilation finished.")
+            logger.info(
+                "DOffice artifact compilation id_vb=%s document=%s status=%s artifacts=%s failed=%s skipped=%s",
+                clean_id,
+                document_id,
+                artifact_compile_response.status,
+                artifact_compile_response.artifact_count,
+                artifact_compile_response.failed_count,
+                artifact_compile_response.skipped_count,
+            )
+            _emit_progress(
+                options,
+                "compile_artifacts",
+                compile_progress_state,
+                compile_message,
+                {
+                    "document_id": str(document_id),
+                    "status": artifact_compile_response.status,
+                    "artifact_count": artifact_compile_response.artifact_count,
+                    "failed_count": artifact_compile_response.failed_count,
+                    "skipped_count": artifact_compile_response.skipped_count,
+                    "config_source": artifact_compile_response.config_source,
+                    "error": artifact_compile_response.error,
+                },
+            )
+
+            _emit_progress(
+                options,
+                "index_artifacts",
+                "running",
+                "Indexing knowledge artifacts into the artifact collection.",
+                {"document_id": str(document_id)},
+            )
+            artifact_index_response = await self._index_knowledge_artifacts(
+                document_id=document_id,
+                rag_config=rag_config,
+            )
+            artifact_index_progress_state = (
+                "failed" if artifact_index_response.status == "failed" else "succeeded"
+            )
+            artifact_index_message = {
+                "indexed": "Knowledge artifacts indexed successfully.",
+                "skipped": "Knowledge artifact indexing skipped because no ready artifacts were available.",
+                "failed": "Knowledge artifact indexing failed; continuing with chunk fallback indexing.",
+            }.get(artifact_index_response.status, "Knowledge artifact indexing finished.")
+            logger.info(
+                "DOffice artifact indexing id_vb=%s document=%s status=%s indexed_artifacts=%s",
+                clean_id,
+                document_id,
+                artifact_index_response.status,
+                artifact_index_response.indexed_artifact_count,
+            )
+            _emit_progress(
+                options,
+                "index_artifacts",
+                artifact_index_progress_state,
+                artifact_index_message,
+                {
+                    "document_id": str(document_id),
+                    "status": artifact_index_response.status,
+                    "indexed_artifact_count": artifact_index_response.indexed_artifact_count,
+                    "error": artifact_index_response.error,
+                },
+            )
+
             if options.enable_enrichment and self._enrichment_service is not None:
                 _emit_progress(
                     options,
@@ -323,7 +450,10 @@ class DofficeIngestionService:
             chunks_created=chunk_response.chunk_count,
             document_id=document_id,
             source_type=DOFFICE_SOURCE_TYPE,
-            message="Đã lấy thông tin văn bản DOffice; pipeline phía sau đã convert, chunk, enrich nếu bật và index.",
+            message=(
+                "DOffice document ingested: normalized, chunked, compiled/indexed "
+                "knowledge artifacts, enriched if enabled, and indexed chunk fallback."
+            ),
         )
 
     async def _update_raw_status(
@@ -355,6 +485,13 @@ class DofficeIngestionService:
             document.id,
             tenant_id=getattr(document, "organization_id", None),
         )
+        try:
+            await self._artifact_vector_store.delete_points_for_document(document.id)
+        except Exception:
+            logger.exception(
+                "Failed to delete existing artifact points for DOffice document=%s",
+                document.id,
+            )
         if self._keyword_index_store is not None:
             try:
                 await self._keyword_index_store.delete_points_for_document(
@@ -460,6 +597,142 @@ class DofficeIngestionService:
             },
         }
         return {key: value for key, value in metadata.items() if value not in (None, "", [])}
+
+    async def _load_rag_runtime_config(self) -> RagRuntimeConfigValues:
+        repository = self._rag_runtime_config_repository
+        if repository is None:
+            return default_rag_runtime_config()
+        try:
+            return await load_rag_runtime_config(repository)
+        except Exception:
+            logger.exception(
+                "Failed to load RAG runtime config for DOffice ingest; using settings fallback."
+            )
+            try:
+                await repository.rollback()
+            except Exception:
+                logger.exception("Failed to rollback RAG runtime config repository.")
+            return default_rag_runtime_config()
+
+    async def _compile_knowledge_artifacts(
+        self,
+        *,
+        document_id: UUID,
+        rag_config: RagRuntimeConfigValues,
+    ) -> SimpleNamespace:
+        if not rag_config.enable_knowledge_artifact_compilation:
+            return SimpleNamespace(
+                document_id=document_id,
+                status="skipped",
+                artifact_count=0,
+                failed_count=0,
+                skipped_count=1,
+                config_source="PostgreSQL/.env fallback",
+                error=None,
+            )
+
+        compiler = KnowledgeArtifactCompiler(
+            config=KnowledgeArtifactCompilerConfig(
+                enable_llm_extraction=rag_config.enable_llm_artifact_extraction,
+            )
+        )
+        try:
+            document = await self._repository.get_document(document_id)
+            if document is None:
+                raise ValueError("Document not found for knowledge artifact compilation.")
+            chunks = await self._repository.list_chunks_for_document(document_id)
+            artifacts = compiler.compile_document(
+                document=document,
+                chunks=chunks,
+                docling_metadata=dict((document.document_metadata or {}).get("parsed_metadata") or {}),
+            )
+            await self._artifact_repository.replace_for_document(document_id, artifacts)
+            await self._artifact_repository.commit()
+            return SimpleNamespace(
+                document_id=document_id,
+                status="compiled",
+                artifact_count=len(artifacts),
+                failed_count=sum(1 for artifact in artifacts if artifact.status == "failed"),
+                skipped_count=sum(1 for artifact in artifacts if artifact.status == "skipped"),
+                config_source="PostgreSQL/.env fallback",
+                error=None,
+            )
+        except Exception as exc:
+            logger.exception(
+                "Knowledge artifact compilation failed for DOffice document=%s",
+                document_id,
+            )
+            try:
+                await self._artifact_repository.rollback()
+            except Exception:
+                logger.exception(
+                    "Failed to rollback knowledge artifact compilation for document=%s",
+                    document_id,
+                )
+            try:
+                failed_artifact = compiler.failed_artifact(
+                    document_id=document_id,
+                    error=str(exc),
+                )
+                await self._artifact_repository.replace_for_document(
+                    document_id,
+                    [failed_artifact],
+                )
+                await self._artifact_repository.commit()
+            except Exception:
+                logger.exception(
+                    "Failed to persist failed knowledge artifact marker for DOffice document=%s",
+                    document_id,
+                )
+                try:
+                    await self._artifact_repository.rollback()
+                except Exception:
+                    logger.exception(
+                        "Failed to rollback failed knowledge artifact marker persistence for document=%s",
+                        document_id,
+                    )
+            return SimpleNamespace(
+                document_id=document_id,
+                status="failed",
+                artifact_count=0,
+                failed_count=1,
+                skipped_count=0,
+                config_source="PostgreSQL/.env fallback",
+                error=str(exc),
+            )
+
+    async def _index_knowledge_artifacts(
+        self,
+        *,
+        document_id: UUID,
+        rag_config: RagRuntimeConfigValues,
+    ) -> SimpleNamespace:
+        if not rag_config.enable_knowledge_artifact_compilation:
+            return SimpleNamespace(
+                document_id=document_id,
+                status="skipped",
+                indexed_artifact_count=0,
+                error=None,
+            )
+        try:
+            response = await self._artifact_indexing_service.index_document(document_id)
+            return SimpleNamespace(
+                document_id=document_id,
+                status=response.status,
+                indexed_artifact_count=response.indexed_artifact_count,
+                error=None,
+            )
+        except Exception as exc:
+            logger.exception(
+                "Knowledge artifact indexing failed for DOffice document=%s",
+                document_id,
+            )
+            return SimpleNamespace(
+                document_id=document_id,
+                status="failed",
+                indexed_artifact_count=0,
+                error=str(exc),
+            )
 
 
 def _emit_progress(

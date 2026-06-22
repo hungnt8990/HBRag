@@ -37,14 +37,14 @@ class QueryContract:
 
 DEFAULT_QUERY_CONTRACT_RULES: dict[str, Any] = {
     "identifier_patterns": [
-        r"\b[0-9]{3,8}(?:/[A-Z0-9._/-]+)?\b",
-        r"\b[A-Z]{1,12}[0-9]{1,8}[A-Z0-9._/-]*\b",
+        r"\b[0-9]{3,8}(?:/[\w._/-]+)?\b",
+        r"\b[^\W\d_]{1,12}[0-9]{1,8}[\w._/-]*\b",
     ],
     "person_assignment_patterns": [
         r"\b(who|person|people|staff|assignee|owner|participant|phong|phong ban|don vi|mang|nhiem vu|tham gia)\b",
     ],
     "procedure_patterns": [
-        r"\b(procedure|process|workflow|step|steps|application|dossier|fee|deadline|result|agency|thu tuc|ho so|le phi|thoi han|ket qua|co quan)\b",
+        r"\b(procedure|process|workflow|step|steps|application|dossier|fee|deadline|result|agency|thu tuc|ho so|le phi|thoi han|ket qua|co quan|bao cao|nhiem vu|don vi thuc hien|truoc ngay|han bao cao)\b",
     ],
     "policy_rule_patterns": [
         r"\b(policy|rule|condition|benefit|entitlement|obligation|exception|amount|days|salary|allowance|quyen loi|nghia vu|dieu kien|muc huong|so ngay|nghi|luong)\b",
@@ -62,12 +62,37 @@ DEFAULT_QUERY_CONTRACT_RULES: dict[str, Any] = {
 
 
 INTENT_ARTIFACT_TYPES: dict[DetectedIntent, list[str]] = {
-    "identifier_lookup": ["identifier_lookup", "document_profile"],
-    "person_assignment": ["person_assignment_artifact", "table_row_artifact"],
-    "procedure_lookup": ["procedure_artifact", "table_row_artifact", "document_profile"],
-    "policy_rule_lookup": ["policy_rule_artifact", "table_row_artifact"],
-    "table_lookup": ["table_row_artifact", "person_assignment_artifact", "policy_rule_artifact", "procedure_artifact"],
-    "general_summary": ["document_profile", "policy_rule_artifact", "procedure_artifact", "table_row_artifact"],
+    "identifier_lookup": ["document_identity", "identifier_lookup", "document_profile"],
+    "person_assignment": ["assignment_table_row", "person_assignment_artifact", "table_row_artifact"],
+    "procedure_lookup": [
+        "directive_task",
+        "deadline_requirement",
+        "implementation_plan",
+        "procedure_artifact",
+        "table_row_artifact",
+        "document_profile",
+    ],
+    "policy_rule_lookup": ["legal_clause", "policy_rule_artifact", "table_row_artifact"],
+    "table_lookup": [
+        "assignment_table_row",
+        "legal_clause",
+        "directive_task",
+        "table_row_artifact",
+        "person_assignment_artifact",
+        "policy_rule_artifact",
+        "procedure_artifact",
+    ],
+    "general_summary": [
+        "summary_block",
+        "document_identity",
+        "recipient_scope",
+        "legal_clause",
+        "directive_task",
+        "document_profile",
+        "policy_rule_artifact",
+        "procedure_artifact",
+        "table_row_artifact",
+    ],
 }
 
 
@@ -116,10 +141,10 @@ class QueryContractService:
     ) -> DetectedIntent:
         if exact_terms and len(normalized_query.split()) <= 8:
             return "identifier_lookup"
-        if self._matches("person_assignment_patterns", normalized_query) and self._looks_like_named_entity_question(normalized_query):
-            return "person_assignment"
         if self._matches("procedure_patterns", normalized_query):
             return "procedure_lookup"
+        if self._matches("person_assignment_patterns", normalized_query) and self._looks_like_named_entity_question(normalized_query):
+            return "person_assignment"
         if self._matches("policy_rule_patterns", normalized_query):
             return "policy_rule_lookup"
         if self._matches("table_patterns", normalized_query):

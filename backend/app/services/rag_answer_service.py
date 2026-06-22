@@ -867,7 +867,8 @@ class RagAnswerService:
         artifact_ids_by_chunk_id: dict[UUID, list[str]] = {}
         chunk_ids: list[UUID] = []
         for artifact in selected_artifacts:
-            for raw_chunk_id in artifact.source_chunk_ids or []:
+            evidence_chunk_ids = getattr(artifact, "evidence_chunk_ids", None) or artifact.source_chunk_ids or []
+            for raw_chunk_id in evidence_chunk_ids:
                 try:
                     chunk_id = UUID(str(raw_chunk_id))
                 except (TypeError, ValueError):

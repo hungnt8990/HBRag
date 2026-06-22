@@ -13,6 +13,7 @@ from app.models import (
     GraphDocumentStatus,
     GraphExtractionLog,
     IngestionProfileConfig,
+    KnowledgeArtifact,
     KnowledgeBase,
     KnowledgeBaseMember,
     Organization,
@@ -37,6 +38,7 @@ def test_database_models_are_importable() -> None:
         GraphDocumentStatus,
         KnowledgeBase,
         KnowledgeBaseMember,
+        KnowledgeArtifact,
         IngestionProfileConfig,
         Chunk,
         ChatSession,
@@ -57,6 +59,7 @@ def test_database_models_are_importable() -> None:
         "graph_document_status",
         "knowledge_bases",
         "knowledge_base_members",
+        "knowledge_artifacts",
         "ingestion_profile_configs",
         "chunks",
         "chat_sessions",
@@ -103,6 +106,25 @@ def test_chunk_model_contains_keyword_search_vector() -> None:
     assert "search_vector" in columns
     assert columns["search_vector"].nullable is True
     assert "ix_chunks_search_vector" in index_names
+
+def test_knowledge_artifact_model_contains_typed_idea_block_columns() -> None:
+    columns = KnowledgeArtifact.__table__.columns
+    index_names = {index.name for index in KnowledgeArtifact.__table__.indexes}
+
+    for column_name in {
+        "idea_block_type",
+        "summary_text",
+        "idea_metadata",
+        "evidence_chunk_ids",
+        "scope_key",
+        "content_hash",
+        "dedup_hash",
+        "embedding_status",
+    }:
+        assert column_name in columns
+
+    assert "ix_knowledge_artifacts_idea_block_type" in index_names
+    assert "ix_knowledge_artifacts_scope_key" in index_names
 
 
 def test_graph_document_status_model_matches_expected_table() -> None:
