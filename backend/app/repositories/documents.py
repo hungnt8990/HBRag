@@ -257,6 +257,25 @@ class DocumentRepository:
         await self._session.flush()
         return raw_document
 
+    async def update_doffice_raw_status_by_id(
+        self,
+        raw_document_id: UUID,
+        **statuses: str,
+    ) -> None:
+        values = {
+            key: value
+            for key, value in statuses.items()
+            if key in {"sync_status", "parse_status", "clean_status", "chunk_status", "embedding_status"}
+        }
+        if not values:
+            return
+        await self._session.execute(
+            update(DofficeRawDocument)
+            .where(DofficeRawDocument.id == raw_document_id)
+            .values(**values)
+        )
+        await self._session.flush()
+
     async def delete_document(self, document: Document) -> None:
         await self._session.delete(document)
         await self._session.flush()

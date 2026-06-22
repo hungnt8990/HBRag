@@ -1,0 +1,281 @@
+diff --git a/app/services/doffice_content_normalizer.py b/app/services/doffice_content_normalizer.py
+index 4c74d9b..5c57e4d 100644
+--- a/app/services/doffice_content_normalizer.py
++++ b/app/services/doffice_content_normalizer.py
+@@ -291,19 +291,28 @@ def parse_html_tables(raw_text: str) -> list[NormalizedTable]:
+             continue
+         headers = [clean_inline_text(value) for value in matrix[0]] if any(header_flags[0]) or len(matrix) > 1 else []
+         data_rows = matrix[1:] if headers and len(matrix) > 1 else matrix
+-        rows = [NormalizedTableRow(row_index=index + 1, values=[clean_inline_text(value) for value in row], metadata=row_metadata(headers, row, table_name=table_name)) for index, row in enumerate(data_rows)]
++        rows = [
++            NormalizedTableRow(
++                row_index=index + 1,
++                values=[clean_inline_text(value) for value in row],
++                metadata=row_metadata(headers, row, table_name=table_name),
++            )
++            for index, row in enumerate(data_rows)
++        ]
++        rows = inherit_table_context(rows)
++        valid_row_count = sum(1 for row in rows if not row.metadata.get("is_table_marker"))
+         tables.append(
+             NormalizedTable(
+                 table_index=table_index,
+                 headers=headers,
+-                rows=inherit_table_context(rows),
++                rows=rows,
+                 markdown=table_to_markdown(headers, data_rows),
+                 text=table_to_text(headers, data_rows),
+                 metadata={
+                     "table_index": table_index,
+                     "table_name": table_name,
+                     "section_title": table_name,
+-                    "row_count": len(rows),
++                    "row_count": valid_row_count,
+                     "column_count": max((len(row) for row in matrix), default=0),
+                 },
+             )
+@@ -313,8 +322,14 @@ def parse_html_tables(raw_text: str) -> list[NormalizedTable]:
+ def infer_table_name(raw_text: str, table_start: int, *, table_index: int) -> str:
+     before = html_to_plain_text((raw_text or "")[:table_start])
+     lines = [line.strip(" :-") for line in before.splitlines() if line.strip(" :-")]
+-    for line in reversed(lines[-8:]):
+-        lowered = line.casefold()
++    for line in reversed(lines[-16:]):
++        lowered = strip_vietnamese_accents(line).casefold()
++        if "nha thau trung thau" in lowered:
++            return "Thông tin nhà thầu trúng thầu"
++        if "nha thau khong trung thau" in lowered:
++            return "Thông tin nhà thầu không trúng thầu"
++        if "thong tin ve goi thau" in lowered or "thong tin goi thau" in lowered:
++            return "Thông tin gói thầu"
+         if "danh" in lowered and ("chuc" in lowered or "chức" in lowered):
+             return clean_inline_text(line)
+         if "giao" in lowered and "man" in lowered:
+@@ -388,6 +403,12 @@ def row_metadata(headers: list[str], values: list[str], *, table_name: str | Non
+     if table_name:
+         metadata["table_name"] = table_name
+         metadata["section_title"] = table_name
++
++    procurement_metadata = _procurement_table_row_metadata(headers=headers, values=values)
++    if procurement_metadata is not None:
++        metadata.update(procurement_metadata)
++        return {key: value for key, value in metadata.items() if value not in (None, "", [])}
++
+     for key, candidates in {
+         "row_number": ("stt", "tt"),
+         "platform": ("nen_tang", "doi_tuong", "ung_dung", "he_thong"),
+@@ -399,10 +420,11 @@ def row_metadata(headers: list[str], values: list[str], *, table_name: str | Non
+         value = next((_optional_string(normalized.get(candidate)) for candidate in candidates if _optional_string(normalized.get(candidate))), None)
+         if value:
+             metadata[key] = value
+-    if "feature_name" not in metadata:
+-        metadata["feature_name"] = _first_meaningful(values)
+-    if "change_content" not in metadata and len(values) >= 3:
+-        metadata["change_content"] = clean_inline_text(values[-2])
++    if _is_feature_change_table(headers):
++        if "feature_name" not in metadata:
++            metadata["feature_name"] = _first_meaningful(values)
++        if "change_content" not in metadata and len(values) >= 3:
++            metadata["change_content"] = clean_inline_text(values[-2])
+     if len(values) >= 2 and "\n" in str(values[-2] or ""):
+         metadata["change_content"] = clean_inline_text(values[-2])
+     change_content = metadata.get("change_content")
+@@ -424,6 +446,121 @@ def row_metadata(headers: list[str], values: list[str], *, table_name: str | Non
+     return {key: value for key, value in metadata.items() if value not in (None, "", [])}
+ 
+ 
++def _is_feature_change_table(headers: list[str]) -> bool:
++    normalized = {_normalize_key(header) for header in headers}
++    has_feature = bool(
++        {
++            "chuc_nang",
++            "chuc_nang_man_hinh",
++            "chuc_nang_man_hinh_ung_dung",
++            "giao_dien_man_hinh_ung_dung",
++            "giao_dien_man_hinh",
++            "man_hinh",
++            "ten_chuc_nang",
++            "module",
++        }
++        & normalized
++    )
++    has_change_context = bool(
++        {"noi_dung", "noi_dung_hieu_chinh", "hieu_chinh_bo_sung", "mo_ta", "giai_doan", "phase", "nen_tang"}
++        & normalized
++    )
++    return has_feature and has_change_context
++
++
++def _is_procurement_table(headers: list[str]) -> bool:
++    normalized = {_normalize_key(header) for header in headers}
++    return "ten_nha_thau" in normalized or "ma_so_thue" in normalized or any("nha_thau" in header for header in normalized)
++
++
++def _procurement_table_row_metadata(*, headers: list[str], values: list[str]) -> dict[str, Any] | None:
++    if not _is_procurement_table(headers):
++        return None
++    clean_values = [clean_inline_text(value) for value in values]
++    offset = _procurement_row_offset(clean_values)
++    if offset is None:
++        return {"is_table_marker": True, "indexable": False, "embedding_enabled": False}
++
++    is_non_winning = _is_non_winning_procurement_table(headers, clean_values, offset=offset)
++    labels = (
++        ["STT", "Tên nhà thầu", "Mã số thuế", "Lý do nhà thầu không trúng thầu"]
++        if is_non_winning
++        else [
++            "STT",
++            "Tên nhà thầu",
++            "Mã số thuế",
++            "Giá dự thầu (VNĐ)",
++            "Giá dự thầu sau giảm giá (nếu có) (VNĐ)",
++            "Giá trúng thầu (VNĐ)",
++            "Thời gian thực hiện gói thầu",
++            "Thời gian thực hiện hợp đồng",
++            "Nội dung khác (nếu có)",
++        ]
++    )
++    row_values = clean_values[offset : offset + len(labels)]
++    row_fields = {label: value for label, value in zip(labels, row_values, strict=False) if value}
++    vendor_name = row_fields.get("Tên nhà thầu")
++    tax_code = row_fields.get("Mã số thuế")
++    metadata: dict[str, Any] = {
++        "row_number": row_fields.get("STT"),
++        "vendor_name": vendor_name,
++        "contractor_name": vendor_name,
++        "tax_code": tax_code,
++        "feature_name": vendor_name,
++        "row_fields": row_fields,
++        "table_schema": "procurement_non_winning" if is_non_winning else "procurement_winning",
++    }
++    if is_non_winning:
++        metadata["change_content"] = row_fields.get("Lý do nhà thầu không trúng thầu")
++    else:
++        metadata.update(
++            {
++                "bid_price": row_fields.get("Giá dự thầu (VNĐ)"),
++                "bid_price_after_discount": row_fields.get("Giá dự thầu sau giảm giá (nếu có) (VNĐ)"),
++                "winning_price": row_fields.get("Giá trúng thầu (VNĐ)"),
++                "package_execution_time": row_fields.get("Thời gian thực hiện gói thầu"),
++                "contract_execution_time": row_fields.get("Thời gian thực hiện hợp đồng"),
++                "other_content": row_fields.get("Nội dung khác (nếu có)"),
++            }
++        )
++    return metadata
++
++
++def _procurement_row_offset(values: list[str]) -> int | None:
++    for index in range(max(0, len(values) - 2)):
++        if not _looks_like_row_number(values[index]):
++            continue
++        if _looks_like_vendor_name(values[index + 1]) and _looks_like_tax_code(values[index + 2]):
++            return index
++    return None
++
++
++def _is_non_winning_procurement_table(headers: list[str], values: list[str], *, offset: int) -> bool:
++    normalized = {_normalize_key(header) for header in headers}
++    if any("khong_trung_thau" in header or "ly_do" in header for header in normalized):
++        return True
++    tail = [value for value in values[offset + 3 :] if value]
++    return bool(tail) and not any(_looks_like_money(value) or "ngay" in value.casefold() for value in tail)
++
++
++def _looks_like_row_number(value: str | None) -> bool:
++    return bool(re.fullmatch(r"\d{1,4}", str(value or "").strip()))
++
++
++def _looks_like_vendor_name(value: str | None) -> bool:
++    lowered = strip_vietnamese_accents(str(value or "")).casefold()
++    return any(token in lowered for token in ("cong ty", "cty", "tnhh", "co phan", "doanh nghiep", "lien danh"))
++
++
++def _looks_like_tax_code(value: str | None) -> bool:
++    return bool(re.fullmatch(r"\d{10,14}", re.sub(r"\D", "", str(value or ""))))
++
++
++def _looks_like_money(value: str | None) -> bool:
++    clean = str(value or "").strip()
++    return bool(re.fullmatch(r"\d{1,3}(?:[.,]\d{3})+(?:\s*(?:VNĐ|VND|đồng))?", clean, flags=re.IGNORECASE))
++
++
+ def _compact_table_row_metadata(*, headers: list[str], values: list[str], metadata: dict[str, Any]) -> dict[str, Any]:
+     compact = dict(metadata)
+     clean_values = [clean_inline_text(value) for value in values]
+@@ -594,7 +731,8 @@ def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[Norm
+                     },
+                 )
+             )
+-            groups.setdefault((row.metadata.get("platform"), row.metadata.get("phase")), []).append(row)
++            if _is_feature_change_table(table.headers):
++                groups.setdefault((row.metadata.get("platform"), row.metadata.get("phase")), []).append(row)
+         for (platform, phase), group_rows in groups.items():
+             if len(group_rows) < 2:
+                 continue
+@@ -664,12 +802,16 @@ def _body_without_tables_or_appendix(clean_text: str) -> str:
+     return normalize_lines(body)
+ 
+ def table_parent_text(table: NormalizedTable) -> str:
+-    groups = unique_strings(
+-        [
+-            " - ".join(str(value) for value in (row.metadata.get("platform"), row.metadata.get("phase")) if value)
+-            for row in table.rows
+-            if not row.metadata.get("is_table_marker")
+-        ]
++    groups = (
++        unique_strings(
++            [
++                " - ".join(str(value) for value in (row.metadata.get("platform"), row.metadata.get("phase")) if value)
++                for row in table.rows
++                if not row.metadata.get("is_table_marker")
++            ]
++        )
++        if _is_feature_change_table(table.headers)
++        else []
+     )
+     columns = _canonical_table_columns(table.headers)
+     lines = [
+@@ -697,6 +839,20 @@ def table_group_text(*, table: NormalizedTable, platform: str | None, phase: str
+ 
+ def _canonical_table_columns(headers: list[str]) -> list[str]:
+     normalized = {_normalize_key(header) for header in headers}
++    if _is_procurement_table(headers):
++        if any("khong_trung_thau" in header or "ly_do" in header for header in normalized):
++            return ["STT", "Tên nhà thầu", "Mã số thuế", "Lý do nhà thầu không trúng thầu"]
++        return [
++            "STT",
++            "Tên nhà thầu",
++            "Mã số thuế",
++            "Giá dự thầu (VNĐ)",
++            "Giá dự thầu sau giảm giá (nếu có) (VNĐ)",
++            "Giá trúng thầu (VNĐ)",
++            "Thời gian thực hiện gói thầu",
++            "Thời gian thực hiện hợp đồng",
++            "Nội dung khác (nếu có)",
++        ]
+     if {"stt", "tt"} & normalized and any("chuc_nang" in header or "man_hinh" in header for header in normalized):
+         return ["STT", "nền tảng", "chức năng/màn hình", "nội dung hiệu chỉnh/bổ sung", "giai đoạn"]
+     return [clean_inline_text(header) for header in headers if clean_inline_text(header)]
+@@ -709,6 +865,13 @@ def table_row_text(*, source: dict[str, Any], table: NormalizedTable, row: Norma
+         f"Phụ lục: {metadata.get('section_title') or table.metadata.get('section_title') or table.metadata.get('table_name') or ''}".strip(" :"),
+         f"Bảng: {table.metadata.get('table_name') or 'Bảng dữ liệu DOffice'}",
+     ]
++    row_fields = metadata.get("row_fields")
++    if isinstance(row_fields, dict) and row_fields:
++        for label, value in row_fields.items():
++            if value:
++                lines.append(f"{label}: {value}")
++        return "\n".join(line for line in lines if line.strip())
++
+     for label, key in (
+         ("Nền tảng", "platform"),
+         ("STT", "row_number"),
+@@ -761,7 +924,7 @@ def clean_light_text(value: str) -> str:
+     return normalize_lines(apply_spacing_fixes(strip_markdown_noise(html.unescape(str(value or "")).replace("\\n", "\n"))))
+ 
+ 
+-def compact_source_summary(value: str, *, max_chars: int = 900) -> str | None:
++def compact_source_summary(value: str, *, max_chars: int = 4000) -> str | None:
+     text = clean_light_text(value)
+     if not text:
+         return None

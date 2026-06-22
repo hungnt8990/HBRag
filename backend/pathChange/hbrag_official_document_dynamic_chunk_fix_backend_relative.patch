@@ -1,0 +1,1062 @@
+diff --git a/app/api/routes/documents.py b/app/api/routes/documents.py
+--- a/app/api/routes/documents.py
++++ b/app/api/routes/documents.py
+@@ -684,6 +684,7 @@
+             DofficeIngestOptions(
+                 force_refresh=request.force_refresh,
+                 enable_enrichment=request.enable_enrichment,
++                ingestion_profile=request.profile or request.ingestion_profile or "auto",
+             ),
+             uploaded_by_user_id=current_user.id,
+             organization_id=target_organization_id,
+diff --git a/app/schemas/documents.py b/app/schemas/documents.py
+--- a/app/schemas/documents.py
++++ b/app/schemas/documents.py
+@@ -41,6 +41,8 @@
+     id_vb: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+     force_refresh: bool = False
+     enable_enrichment: bool = True
++    ingestion_profile: str = "auto"
++    profile: str | None = None
+ 
+ class DofficeIngestResponse(BaseModel):
+     status: Literal["success", "skipped"]
+Binary files backend12_orig/app/services/__pycache__/doffice_ingestion_service.cpython-313.pyc and backend12/app/services/__pycache__/doffice_ingestion_service.cpython-313.pyc differ
+diff --git a/app/services/chunk_enrichment_service.py b/app/services/chunk_enrichment_service.py
+--- a/app/services/chunk_enrichment_service.py
++++ b/app/services/chunk_enrichment_service.py
+@@ -180,6 +180,9 @@
+     if not content.strip():
+         reason["skip"] = "empty_content"
+         return False, reason
++    if _truthy(metadata.get("chunk_enrichment_disabled")) or _truthy(metadata.get("disable_llm_enrichment")):
++        reason["skip"] = "profile_disabled_llm_enrichment"
++        return False, reason
+     if chunk_type in NON_LLM_CHUNK_TYPES or _looks_like_footer(content):
+         reason["skip"] = "footer_or_non_indexable"
+         return False, reason
+diff --git a/app/services/chunking_service.py b/app/services/chunking_service.py
+--- a/app/services/chunking_service.py
++++ b/app/services/chunking_service.py
+@@ -436,10 +436,23 @@
+             raise EmptyParsedTextError("Document has no parsed text to chunk.")
+ 
+         document_metadata = dict(getattr(document, "document_metadata", None) or {})
++        document_file = await self._get_primary_document_file(document.id)
+         if document_metadata.get("source_type") == "doffice_elasticsearch" and document_metadata.get("normalized_elements"):
+-            return await self._chunk_doffice_document(document=document, document_metadata=document_metadata)
++            from app.services.document_profiles import resolve_profile
++
++            requested_profile = profile or getattr(document, "document_profile", None) or document_metadata.get("document_profile")
++            effective_profile = resolve_profile(
++                requested_profile,
++                text=document.parsed_text,
++                filename=str(document_metadata.get("ten_file") or document_metadata.get("source_name") or ""),
++                content_type="application/json",
++            )
++            return await self._chunk_doffice_document(
++                document=document,
++                document_metadata=document_metadata,
++                profile=effective_profile,
++            )
+ 
+-        document_file = await self._get_primary_document_file(document.id)
+ 
+         if self._can_use_docling_router(
+             document_metadata=document_metadata,
+@@ -630,7 +643,13 @@
+             ],
+         )
+ 
+-    async def _chunk_doffice_document(self, *, document: Any, document_metadata: dict[str, Any]) -> DocumentChunkResponse:
++    async def _chunk_doffice_document(
++        self,
++        *,
++        document: Any,
++        document_metadata: dict[str, Any],
++        profile: str,
++    ) -> DocumentChunkResponse:
+         from app.services.doffice_chunking import build_doffice_chunks
+         from app.services.doffice_content_normalizer import NormalizedDofficeDocument, NormalizedElement, NormalizedTable, NormalizedTableRow
+ 
+@@ -693,7 +712,7 @@
+         ]
+ 
+         try:
+-            document.document_profile = "doffice_admin"
++            document.document_profile = document_profile_column_value(profile)
+             await self._repository.delete_chunks_for_document(document.id)
+             await self._repository.create_chunks(document_id=document.id, chunks=chunk_records)
+             await self._repository.update_document_status(document, "chunked")
+diff --git a/app/services/document_profiles.py b/app/services/document_profiles.py
+--- a/app/services/document_profiles.py
++++ b/app/services/document_profiles.py
+@@ -94,7 +94,7 @@
+     normalized_sample = _normalize_for_detection(sample)
+     score = 0
+     matches: list[dict[str, str]] = []
+-    for rule_key, weight in (("title_keywords", 2), ("table_headers", 2)):
++    for rule_key, weight in (("title_keywords", 2), ("table_headers", 2), ("source_type_keywords", 4)):
+         for value in detect_rules.get(rule_key) or []:
+             if not isinstance(value, str):
+                 continue
+diff --git a/app/services/doffice_chunking.py b/app/services/doffice_chunking.py
+--- a/app/services/doffice_chunking.py
++++ b/app/services/doffice_chunking.py
+@@ -24,6 +24,9 @@
+     "row_count",
+     "column_count",
+     "columns",
++    "schema_fields",
++    "table_schema",
++    "group_rows",
+     "group_name",
+     "features",
+     "platform",
+@@ -31,6 +34,17 @@
+     "screen_name",
+     "change_content",
+     "phase",
++    "row_schema",
++    "row_fields",
++    "row_keys",
++    "tax_code",
++    "bid_price",
++    "bid_price_after_discount",
++    "winning_price",
++    "package_execution_time",
++    "contract_execution_time",
++    "other_content",
++    "reason",
+     "is_table_row",
+     "is_footer_or_signature",
+     "indexable",
+@@ -41,6 +55,9 @@
+     "structure_path",
+     "doc_codes",
+     "identifiers",
++    "document_profile",
++    "detected_document_profile",
++    "chunk_enrichment_disabled",
+ }
+ 
+ 
+@@ -98,6 +115,9 @@
+             "duong_dan",
+             "doc_codes",
+             "identifiers",
++            "document_profile",
++            "detected_document_profile",
++            "chunk_enrichment_disabled",
+         )
+     }
+ 
+diff --git a/app/services/doffice_content_normalizer.py b/app/services/doffice_content_normalizer.py
+--- a/app/services/doffice_content_normalizer.py
++++ b/app/services/doffice_content_normalizer.py
+@@ -202,21 +202,46 @@
+             self.parts.append("\n")
+ 
+ 
+-def normalize_doffice_source(source: dict[str, Any]) -> NormalizedDofficeDocument:
++def normalize_doffice_source(
++    source: dict[str, Any],
++    *,
++    profile_name: str | None = None,
++    profile_config: dict[str, Any] | None = None,
++) -> NormalizedDofficeDocument:
+     raw_text = str(source.get("noi_dung") or "")
+-    summary_text = compact_source_summary(str(source.get("tom_tat") or "").strip()) or None
+-    tables = parse_html_tables(raw_text)
++    normalizer_config = _normalizer_config(profile_config)
++    effective_profile = _effective_profile_name(profile_name, profile_config)
++    summary_text = compact_source_summary(
++        str(source.get("tom_tat") or "").strip(),
++        max_chars=_config_int(normalizer_config, "source_summary_max_chars", 4000),
++    ) or None
++    tables = parse_html_tables(raw_text, normalizer_config=normalizer_config)
++    summary_text = append_table_highlights_to_summary(summary_text, tables, normalizer_config=normalizer_config)
+     base_markdown_text = replace_tables(raw_text, tables, replacement="markdown")
+     base_plain_text = html_to_plain_text(replace_tables(raw_text, tables, replacement="placeholder"))
+     body_text, footer_text = split_footer_signature(base_plain_text)
+     base_clean_text = normalize_lines(apply_spacing_fixes(strip_markdown_noise(body_text)))
+-    metadata = build_rule_metadata(source=source, clean_text=base_clean_text, tables=tables)
++    metadata = build_rule_metadata(
++        source=source,
++        clean_text=base_clean_text,
++        tables=tables,
++        profile_name=effective_profile,
++        normalizer_config=normalizer_config,
++    )
+     metadata_preamble = build_doffice_metadata_preamble(source=source, metadata=metadata)
+     metadata = {**metadata, "metadata_preamble": metadata_preamble}
+     clean_text = prepend_metadata_preamble(base_clean_text, metadata_preamble)
+     plain_text = prepend_metadata_preamble(base_plain_text, metadata_preamble)
+     markdown_text = prepend_metadata_preamble(base_markdown_text, metadata_preamble)
+-    elements = build_elements(source=source, clean_text=base_clean_text, tables=tables, footer_text=footer_text, summary_text=summary_text, metadata=metadata)
++    elements = build_elements(
++        source=source,
++        clean_text=base_clean_text,
++        tables=tables,
++        footer_text=footer_text,
++        summary_text=summary_text,
++        metadata=metadata,
++        normalizer_config=normalizer_config,
++    )
+     content_hash = sha256_text("\n\n".join(part for part in (metadata_preamble, raw_text) if part.strip()))
+     metadata_hash = sha256_json({key: source.get(key) for key in sorted(source) if key != "noi_dung"})
+ 
+@@ -279,46 +304,111 @@
+     return "\n\n".join(part for part in (clean_preamble, clean_text) if part.strip())
+ 
+ 
+-def parse_html_tables(raw_text: str) -> list[NormalizedTable]:
++def parse_html_tables(raw_text: str, *, normalizer_config: dict[str, Any] | None = None) -> list[NormalizedTable]:
++    config = normalizer_config or {}
+     tables: list[NormalizedTable] = []
+     for table_index, match in enumerate(TABLE_PATTERN.finditer(raw_text or "")):
+-        table_name = infer_table_name(raw_text or "", match.start(), table_index=table_index)
++        context_text = table_context_before(raw_text or "", match.start(), normalizer_config=config)
++        table_name = infer_table_name(
++            raw_text or "",
++            match.start(),
++            table_index=table_index,
++            normalizer_config=config,
++        )
+         parser = DofficeHTMLTableParser()
+         parser.feed(match.group(0))
+         parser.close()
+         matrix, header_flags = expand_table_matrix(parser.raw_rows)
+         if not matrix:
+             continue
+-        headers = [clean_inline_text(value) for value in matrix[0]] if any(header_flags[0]) or len(matrix) > 1 else []
+-        data_rows = matrix[1:] if headers and len(matrix) > 1 else matrix
+-        rows = [NormalizedTableRow(row_index=index + 1, values=[clean_inline_text(value) for value in row], metadata=row_metadata(headers, row, table_name=table_name)) for index, row in enumerate(data_rows)]
++        raw_headers = [clean_inline_text(value) for value in matrix[0]] if any(header_flags[0]) or len(matrix) > 1 else []
++        raw_data_rows = matrix[1:] if raw_headers and len(matrix) > 1 else matrix
++        schema = match_table_schema(
++            raw_headers,
++            table_name=table_name,
++            context_text=context_text,
++            normalizer_config=config,
++        )
++        if schema is not None:
++            headers = [str(field.get("label") or field.get("key") or "").strip() for field in schema.get("fields") or []]
++            rows = schema_table_rows(schema=schema, raw_rows=raw_data_rows, table_name=table_name)
++            data_rows = [row.values for row in rows]
++        else:
++            headers = raw_headers
++            data_rows = [[clean_inline_text(value) for value in row] for row in raw_data_rows]
++            rows = [
++                NormalizedTableRow(
++                    row_index=index + 1,
++                    values=row,
++                    metadata=row_metadata(headers, row, table_name=table_name),
++                )
++                for index, row in enumerate(data_rows)
++            ]
++        inherited_rows = inherit_table_context(rows) if schema is None else rows
++        visible_row_count = sum(1 for row in inherited_rows if not row.metadata.get("is_table_marker"))
++        table_metadata: dict[str, Any] = {
++            "table_index": table_index,
++            "table_name": table_name,
++            "section_title": table_name,
++            "row_count": visible_row_count,
++            "column_count": max((len(row) for row in matrix), default=0),
++        }
++        if schema is not None:
++            table_metadata.update(
++                {
++                    "table_schema": schema.get("name"),
++                    "schema_fields": headers,
++                    "group_rows": bool(schema.get("group_rows", False)),
++                }
++            )
+         tables.append(
+             NormalizedTable(
+                 table_index=table_index,
+                 headers=headers,
+-                rows=inherit_table_context(rows),
+-                markdown=table_to_markdown(headers, data_rows),
+-                text=table_to_text(headers, data_rows),
+-                metadata={
+-                    "table_index": table_index,
+-                    "table_name": table_name,
+-                    "section_title": table_name,
+-                    "row_count": len(rows),
+-                    "column_count": max((len(row) for row in matrix), default=0),
+-                },
++                rows=inherited_rows,
++                markdown=table_to_markdown(headers, [row.values for row in inherited_rows if not row.metadata.get("is_table_marker")]),
++                text=table_to_text(headers, [row.values for row in inherited_rows if not row.metadata.get("is_table_marker")]),
++                metadata=table_metadata,
+             )
+         )
+     return tables
+ 
+-def infer_table_name(raw_text: str, table_start: int, *, table_index: int) -> str:
++def table_context_before(raw_text: str, table_start: int, *, normalizer_config: dict[str, Any] | None = None) -> str:
+     before = html_to_plain_text((raw_text or "")[:table_start])
+     lines = [line.strip(" :-") for line in before.splitlines() if line.strip(" :-")]
++    window = _config_int(normalizer_config or {}, "table_context_window_lines", 8)
++    return "\n".join(lines[-max(1, window):])
++
++def infer_table_name(
++    raw_text: str,
++    table_start: int,
++    *,
++    table_index: int,
++    normalizer_config: dict[str, Any] | None = None,
++) -> str:
++    context_text = table_context_before(raw_text, table_start, normalizer_config=normalizer_config)
++    normalized_context = _normalize_for_match(context_text)
++    for rule in _config_list(normalizer_config or {}, "table_name_rules"):
++        if not isinstance(rule, dict):
++            continue
++        contains_all = [_normalize_for_match(value) for value in _string_list(rule.get("contains_all"))]
++        exclude_any = [_normalize_for_match(value) for value in _string_list(rule.get("exclude_any"))]
++        if contains_all and not all(value in normalized_context for value in contains_all):
++            continue
++        if exclude_any and any(value in normalized_context for value in exclude_any):
++            continue
++        table_name = _optional_string(rule.get("table_name"))
++        if table_name:
++            return table_name
++    lines = [line.strip(" :-") for line in context_text.splitlines() if line.strip(" :-")]
+     for line in reversed(lines[-8:]):
+         lowered = line.casefold()
+         if "danh" in lowered and ("chuc" in lowered or "chức" in lowered):
+             return clean_inline_text(line)
+         if "giao" in lowered and "man" in lowered:
+             return clean_inline_text(line)
++        if ("thầu" in lowered or "thau" in _normalize_for_match(lowered)) and len(line) <= 140:
++            return clean_inline_text(line)
+     return f"Bảng DOffice {table_index + 1}"
+ 
+ 
+@@ -547,10 +637,283 @@
+     return unique[0] if unique else None
+ 
+ 
+-def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[NormalizedTable], footer_text: str | None, summary_text: str | None, metadata: dict[str, Any]) -> list[NormalizedElement]:
++OFFICIAL_DOCUMENT_STRUCTURED_PROFILE = "official_document_structured"
++NORMALIZER_CONFIG_KEYS = (
++    "official_document_normalizer",
++    "document_structure_normalizer",
++    "doffice_normalizer",
++)
++
++
++def _normalizer_config(profile_config: dict[str, Any] | None) -> dict[str, Any]:
++    if not isinstance(profile_config, dict):
++        return {}
++    for key in NORMALIZER_CONFIG_KEYS:
++        value = profile_config.get(key)
++        if isinstance(value, dict):
++            return value
++    return {}
++
++
++def _effective_profile_name(profile_name: str | None, profile_config: dict[str, Any] | None) -> str:
++    explicit = _optional_string(profile_name)
++    if explicit:
++        return explicit
++    configured = _optional_string((profile_config or {}).get("profile_name"))
++    return configured or OFFICIAL_DOCUMENT_STRUCTURED_PROFILE
++
++
++def _config_int(config: dict[str, Any] | None, key: str, default: int) -> int:
++    if not isinstance(config, dict):
++        return default
++    try:
++        value = int(config.get(key, default))
++    except (TypeError, ValueError):
++        return default
++    return value if value > 0 else default
++
++
++def _config_list(config: dict[str, Any] | None, key: str) -> list[Any]:
++    value = (config or {}).get(key) if isinstance(config, dict) else None
++    return value if isinstance(value, list) else []
++
++
++def _string_list(value: Any) -> list[str]:
++    if value is None:
++        return []
++    if isinstance(value, str):
++        return [value]
++    if isinstance(value, (list, tuple, set)):
++        return [str(item) for item in value if str(item or "").strip()]
++    return [str(value)] if str(value or "").strip() else []
++
++
++def _truthy(value: Any) -> bool:
++    if isinstance(value, bool):
++        return value
++    if value is None:
++        return False
++    return str(value).strip().casefold() in {"1", "true", "yes", "y", "on", "enabled"}
++
++
++def _disable_llm_enrichment(config: dict[str, Any] | None) -> bool:
++    return _truthy((config or {}).get("disable_llm_enrichment"))
++
++
++def _element_metadata(chunk_type: str, normalizer_config: dict[str, Any] | None = None, **metadata: Any) -> dict[str, Any]:
++    output = {"chunk_type": chunk_type, **metadata}
++    non_llm_types = set(_string_list((normalizer_config or {}).get("non_llm_chunk_types")))
++    if _disable_llm_enrichment(normalizer_config or {}) or chunk_type in non_llm_types:
++        output["chunk_enrichment_disabled"] = True
++    return output
++
++
++def _normalize_for_match(value: Any) -> str:
++    import unicodedata
++
++    text = clean_inline_text(str(value or ""))
++    decomposed = unicodedata.normalize("NFD", text)
++    stripped = "".join(char for char in decomposed if unicodedata.category(char) != "Mn")
++    return " ".join(stripped.casefold().split())
++
++
++def match_table_schema(
++    headers: list[str],
++    *,
++    table_name: str | None,
++    context_text: str | None,
++    normalizer_config: dict[str, Any] | None,
++) -> dict[str, Any] | None:
++    haystack_headers = _normalize_for_match(" | ".join(headers))
++    haystack_context = _normalize_for_match("\n".join(part for part in (table_name, context_text) if part))
++    for raw_schema in _config_list(normalizer_config or {}, "table_schemas"):
++        if not isinstance(raw_schema, dict) or raw_schema.get("enabled") is False:
++            continue
++        matcher = raw_schema.get("match") if isinstance(raw_schema.get("match"), dict) else {}
++        header_terms = [_normalize_for_match(value) for value in _string_list(matcher.get("header_contains_any"))]
++        context_terms = [_normalize_for_match(value) for value in _string_list(matcher.get("context_contains_any"))]
++        exclude_terms = [_normalize_for_match(value) for value in _string_list(matcher.get("exclude_any"))]
++        if header_terms and not any(term in haystack_headers for term in header_terms):
++            continue
++        if context_terms and not any(term in haystack_context for term in context_terms):
++            continue
++        if exclude_terms and any(term in haystack_context or term in haystack_headers for term in exclude_terms):
++            continue
++        fields = raw_schema.get("fields")
++        if isinstance(fields, list) and fields:
++            return raw_schema
++    return None
++
++
++def schema_table_rows(*, schema: dict[str, Any], raw_rows: list[list[str]], table_name: str) -> list[NormalizedTableRow]:
++    rows: list[NormalizedTableRow] = []
++    fields = [field for field in schema.get("fields") or [] if isinstance(field, dict)]
++    labels = [str(field.get("label") or field.get("key") or "").strip() for field in fields]
++    for row_index, raw_row in enumerate(raw_rows, start=1):
++        values = [clean_inline_text(value) for value in raw_row]
++        row_map = _extract_schema_row(schema=schema, values=values)
++        if row_map is None:
++            rows.append(
++                NormalizedTableRow(
++                    row_index=row_index,
++                    values=values,
++                    metadata={
++                        "table_name": table_name,
++                        "section_title": table_name,
++                        "is_table_marker": True,
++                        "indexable": False,
++                        "embedding_enabled": False,
++                    },
++                )
++            )
++            continue
++        row_values = [row_map.get(str(field.get("key") or ""), "") for field in fields]
++        row_fields = {label: value for label, value in zip(labels, row_values, strict=False) if label and value}
++        metadata: dict[str, Any] = {
++            "table_name": table_name,
++            "section_title": table_name,
++            "row_schema": schema.get("name"),
++            "row_fields": row_fields,
++        }
++        for field in fields:
++            key = str(field.get("key") or "").strip()
++            value = row_map.get(key)
++            if not value:
++                continue
++            metadata_key = str(field.get("metadata_key") or key).strip()
++            if metadata_key:
++                metadata[metadata_key] = value
++            if key == "contractor_name":
++                metadata.setdefault("feature_name", value)
++            elif key in {"reason", "change_content", "other_content"}:
++                metadata.setdefault("change_content", value)
++            elif key == "row_number":
++                metadata.setdefault("row_number", value)
++        row_keys = [row_map.get(key) for key in _string_list(schema.get("row_key_fields")) if row_map.get(key)]
++        if row_keys:
++            metadata["row_keys"] = unique_strings(row_keys)
++        rows.append(NormalizedTableRow(row_index=row_index, values=row_values, metadata=metadata))
++    return rows
++
++
++def _extract_schema_row(*, schema: dict[str, Any], values: list[str]) -> dict[str, str] | None:
++    clean_values = [clean_inline_text(value) for value in values if clean_inline_text(value)]
++    if not clean_values:
++        return None
++    fields = [field for field in schema.get("fields") or [] if isinstance(field, dict)]
++    row_map: dict[str, str] = {}
++    consumed_indices: set[int] = set()
++    cursor = 0
++    row_number_index: int | None = None
++    for field in fields:
++        key = str(field.get("key") or "").strip()
++        patterns = _string_list(field.get("patterns"))
++        if not patterns:
++            continue
++        found_index: int | None = None
++        for index in range(cursor, len(clean_values)):
++            if index in consumed_indices:
++                continue
++            candidate = clean_values[index]
++            if _matches_any_pattern(candidate, patterns):
++                found_index = index
++                break
++        if found_index is None:
++            if key == "row_number":
++                return None
++            continue
++        row_map[key] = clean_values[found_index]
++        consumed_indices.add(found_index)
++        cursor = found_index + 1
++        if key == "row_number":
++            row_number_index = found_index
++    if "row_number" in [str(field.get("key") or "") for field in fields] and not row_map.get("row_number"):
++        return None
++    # Fill remaining fields from the first anchored position. Header fragments before
++    # the real STT are ignored, which fixes multi-row headers such as
++    # "thời / gian / thực / hiện / gói / thầu / hợp / đồng".
++    start_index = (row_number_index + 1) if row_number_index is not None else cursor
++    seq_index = start_index
++    for field in fields:
++        key = str(field.get("key") or "").strip()
++        if not key or key in row_map:
++            continue
++        while seq_index < len(clean_values):
++            candidate = clean_values[seq_index]
++            current_index = seq_index
++            seq_index += 1
++            if current_index in consumed_indices:
++                continue
++            if candidate:
++                row_map[key] = candidate
++                consumed_indices.add(current_index)
++                break
++    min_fields = _config_int(schema, "min_row_non_empty_fields", 1)
++    if sum(1 for value in row_map.values() if value) < min_fields:
++        return None
++    return row_map
++
++def _matches_any_pattern(value: str, patterns: list[str]) -> bool:
++    normalized_value = _normalize_for_match(value)
++    for pattern in patterns:
++        try:
++            if re.search(pattern, value, flags=re.IGNORECASE | re.UNICODE):
++                return True
++        except re.error:
++            pass
++        normalized_pattern = _normalize_for_match(pattern)
++        terms = [term.strip() for term in re.split(r"\|", normalized_pattern) if term.strip()] or [normalized_pattern]
++        if any(term in normalized_value for term in terms):
++            return True
++    return False
++
++
++def append_table_highlights_to_summary(
++    summary_text: str | None,
++    tables: list[NormalizedTable],
++    *,
++    normalizer_config: dict[str, Any] | None = None,
++) -> str | None:
++    if not summary_text:
++        return summary_text
++    summary = summary_text.strip()
++    if not summary.endswith("..."):
++        return summary
++    max_chars = _config_int(normalizer_config or {}, "source_summary_max_chars", 4000)
++    additions: list[str] = []
++    for table in tables:
++        for row in table.rows:
++            row_fields = row.metadata.get("row_fields")
++            if not isinstance(row_fields, dict) or not row_fields:
++                continue
++            details = " | ".join(f"{label}: {value}" for label, value in row_fields.items() if value)
++            if details and details not in summary:
++                additions.append(f"Thông tin bảng {table.metadata.get('table_name') or table.table_index + 1}: {details}")
++            if additions:
++                break
++        if additions:
++            break
++    if not additions:
++        return summary
++    combined = normalize_lines("\n".join([summary.rstrip("."), *additions]))
++    if len(combined) <= max_chars:
++        return combined
++    return combined[:max_chars].rsplit(" ", 1)[0].rstrip(" ,;:") + "..."
++
++
++def build_elements(
++    *,
++    source: dict[str, Any],
++    clean_text: str,
++    tables: list[NormalizedTable],
++    footer_text: str | None,
++    summary_text: str | None,
++    metadata: dict[str, Any],
++    normalizer_config: dict[str, Any] | None = None,
++) -> list[NormalizedElement]:
+     elements: list[NormalizedElement] = []
+     if summary_text:
+-        elements.append(NormalizedElement("document_summary", summary_text, {"source_summary": True, "chunk_type": "document_summary", "indexable": True}))
++        elements.append(NormalizedElement("document_summary", summary_text, _element_metadata("document_summary", normalizer_config, source_summary=True, indexable=True)))
+     header_text = "\n".join(
+         part
+         for part in (
+@@ -563,16 +926,16 @@
+         if part.rsplit(":", 1)[-1].strip()
+     )
+     if header_text:
+-        elements.append(NormalizedElement("document_header", header_text, {"chunk_type": "document_header", "indexable": True}))
++        elements.append(NormalizedElement("document_header", header_text, _element_metadata("document_header", normalizer_config, indexable=True)))
+     body_without_tables = _body_without_tables_or_appendix(clean_text)
+     if body_without_tables.strip():
+-        elements.append(NormalizedElement("document_body", body_without_tables.strip(), {"chunk_type": "document_body", "indexable": True}))
++        elements.append(NormalizedElement("document_body", body_without_tables.strip(), _element_metadata("document_body", normalizer_config, indexable=True)))
+     for table in tables:
+         elements.append(
+             NormalizedElement(
+                 "table_parent",
+                 table_parent_text(table),
+-                {**table.metadata, "chunk_type": "table_parent", "table_index": table.table_index, "indexable": True},
++                {**table.metadata, **_element_metadata("table_parent", normalizer_config, indexable=True), "table_index": table.table_index},
+             )
+         )
+         groups: dict[tuple[str | None, str | None], list[NormalizedTableRow]] = {}
+@@ -586,15 +949,16 @@
+                     {
+                         **row.metadata,
+                         **table.metadata,
+-                        "chunk_type": "table_row",
++                        **_element_metadata("table_row", normalizer_config, indexable=True),
+                         "table_index": table.table_index,
+                         "row_index": row.row_index,
+                         "is_table_row": True,
+-                        "indexable": True,
+                     },
+                 )
+             )
+             groups.setdefault((row.metadata.get("platform"), row.metadata.get("phase")), []).append(row)
++        if table.metadata.get("group_rows") is False:
++            continue
+         for (platform, phase), group_rows in groups.items():
+             if len(group_rows) < 2:
+                 continue
+@@ -604,23 +968,29 @@
+                     "table_group",
+                     group_text,
+                     {
+-                        "chunk_type": "table_group",
++                        **_element_metadata("table_group", normalizer_config, indexable=True),
+                         **table.metadata,
+                         "table_index": table.table_index,
+                         "platform": platform,
+                         "phase": phase,
+                         "group_name": " - ".join(str(value) for value in (platform, phase) if value),
+                         "row_count": len(group_rows),
+-                        "indexable": True,
+                     },
+                 )
+             )
+     if footer_text:
+-        elements.append(NormalizedElement("footer_signature", footer_text, {"chunk_type": "footer_signature", "is_footer_or_signature": True, "indexable": False, "embedding_enabled": False}))
++        elements.append(NormalizedElement("footer_signature", footer_text, _element_metadata("footer_signature", normalizer_config, is_footer_or_signature=True, indexable=False, embedding_enabled=False)))
+     return elements
+ 
+ 
+-def build_rule_metadata(*, source: dict[str, Any], clean_text: str, tables: list[NormalizedTable]) -> dict[str, Any]:
++def build_rule_metadata(
++    *,
++    source: dict[str, Any],
++    clean_text: str,
++    tables: list[NormalizedTable],
++    profile_name: str | None = None,
++    normalizer_config: dict[str, Any] | None = None,
++) -> dict[str, Any]:
+     ky_hieu = _optional_string(source.get("ky_hieu"))
+     doc_codes = [code for code in unique_strings([ky_hieu, *DOC_CODE_PATTERN.findall(clean_text)]) if _is_document_code(code)]
+     id_vb = _optional_string(source.get("id_vb"))
+@@ -652,7 +1022,9 @@
+         "source_summary": _optional_string(source.get("tom_tat")),
+         "referenced_documents": referenced_documents(clean_text, primary_code=ky_hieu),
+         "table_count": len(tables),
+-        "document_profile": "doffice_admin",
++        "document_profile": profile_name or OFFICIAL_DOCUMENT_STRUCTURED_PROFILE,
++        "detected_document_profile": profile_name or OFFICIAL_DOCUMENT_STRUCTURED_PROFILE,
++        "chunk_enrichment_disabled": _disable_llm_enrichment(normalizer_config or {}),
+     }
+ 
+ 
+@@ -671,7 +1043,7 @@
+             if not row.metadata.get("is_table_marker")
+         ]
+     )
+-    columns = _canonical_table_columns(table.headers)
++    columns = list(table.metadata.get("schema_fields") or _canonical_table_columns(table.headers))
+     lines = [
+         f"Bảng: {table.metadata.get('table_name') or 'Bảng dữ liệu DOffice'}",
+         f"Số dòng: {sum(1 for row in table.rows if not row.metadata.get('is_table_marker'))}",
+@@ -709,6 +1081,20 @@
+         f"Phụ lục: {metadata.get('section_title') or table.metadata.get('section_title') or table.metadata.get('table_name') or ''}".strip(" :"),
+         f"Bảng: {table.metadata.get('table_name') or 'Bảng dữ liệu DOffice'}",
+     ]
++    row_fields = metadata.get("row_fields")
++    if isinstance(row_fields, dict) and row_fields:
++        for label, value in row_fields.items():
++            if value in (None, "", []):
++                continue
++            if isinstance(value, list):
++                lines.append(f"{label}:")
++                lines.extend(f"- {item}" for item in value if item)
++            else:
++                lines.append(f"{label}: {value}")
++        row_keys = [value for value in _string_list(metadata.get("row_keys")) if value]
++        if row_keys:
++            lines.append("Khóa dòng: " + "; ".join(row_keys))
++        return "\n".join(line for line in lines if line.strip())
+     for label, key in (
+         ("Nền tảng", "platform"),
+         ("STT", "row_number"),
+@@ -761,7 +1147,7 @@
+     return normalize_lines(apply_spacing_fixes(strip_markdown_noise(html.unescape(str(value or "")).replace("\\n", "\n"))))
+ 
+ 
+-def compact_source_summary(value: str, *, max_chars: int = 900) -> str | None:
++def compact_source_summary(value: str, *, max_chars: int = 4000) -> str | None:
+     text = clean_light_text(value)
+     if not text:
+         return None
+diff --git a/app/services/doffice_ingestion_service.py b/app/services/doffice_ingestion_service.py
+--- a/app/services/doffice_ingestion_service.py
++++ b/app/services/doffice_ingestion_service.py
+@@ -21,6 +21,8 @@
+     NormalizedDofficeDocument,
+     normalize_doffice_source,
+ )
++from app.services.document_profiles import profile_config, resolve_profile_with_evidence
++from app.services.ingestion_profiles import get_profile_configs
+ from app.services.elasticsearch_keyword_search import ElasticsearchKeywordStore
+ from app.services.vector_indexing_service import VectorIndexingService
+ from app.services.vector_store import QdrantVectorStore
+@@ -43,6 +45,7 @@
+ class DofficeIngestOptions:
+     force_refresh: bool = False
+     enable_enrichment: bool = True
++    ingestion_profile: str = "auto"
+     progress_callback: DofficeProgressCallback | None = None
+ 
+ 
+@@ -146,7 +149,19 @@
+         raw_source = dict(source_document.raw_source or {})
+         if not raw_source:
+             raw_source = _source_document_to_payload(source_document)
+-        normalized = normalize_doffice_source(raw_source)
++        detection_text = _source_detection_text(raw_source)
++        detection = _resolve_doffice_profile(
++            options.ingestion_profile,
++            text=detection_text,
++            filename=source_document.ten_file,
++        )
++        effective_profile = str(detection.get("profile") or "general")
++        config = profile_config(effective_profile)
++        normalized = normalize_doffice_source(
++            raw_source,
++            profile_name=effective_profile,
++            profile_config=config,
++        )
+         raw_record = await self._repository.upsert_doffice_raw_document(
+             payload=raw_source,
+             content_hash=normalized.content_hash,
+@@ -164,6 +179,8 @@
+                 "clean_characters": len(normalized.clean_text),
+                 "table_count": len(normalized.tables),
+                 "element_count": len(normalized.elements),
++                "profile": effective_profile,
++                "profile_detection": detection,
+             },
+         )
+         if not normalized.clean_text.strip():
+@@ -172,8 +189,9 @@
+             )
+ 
+         logger.info(
+-            "Starting DOffice ingest id_vb=%s clean_chars=%s force_refresh=%s enable_enrichment=%s",
++            "Starting DOffice ingest id_vb=%s profile=%s clean_chars=%s force_refresh=%s enable_enrichment=%s",
+             clean_id,
++            effective_profile,
+             len(normalized.clean_text),
+             options.force_refresh,
+             options.enable_enrichment,
+@@ -185,6 +203,7 @@
+             organization_id=organization_id,
+             knowledge_base_id=knowledge_base_id,
+             access=access,
++            profile_name=effective_profile,
+         )
+         _emit_progress(
+             options,
+@@ -200,9 +219,9 @@
+                 "chunk",
+                 "running",
+                 "Chunking DOffice document.",
+-                {"document_id": str(document.id), "profile": "auto"},
++                {"document_id": str(document.id), "profile": effective_profile},
+             )
+-            chunk_response = await self._chunking_service.chunk_document(document.id, profile="auto")
++            chunk_response = await self._chunking_service.chunk_document(document.id, profile=effective_profile)
+             logger.info(
+                 "Chunked DOffice document id_vb=%s document=%s chunks=%s",
+                 clean_id,
+@@ -353,6 +372,7 @@
+         organization_id: UUID | None,
+         knowledge_base_id: UUID | None,
+         access: dict[str, Any] | None,
++        profile_name: str,
+     ) -> Any:
+         title = _source_name(source_document)
+         document = await self._repository.create_document(
+@@ -365,7 +385,7 @@
+             visibility="organization",
+             access=access,
+         )
+-        document.document_profile = "doffice_admin"
++        document.document_profile = _document_profile_value(profile_name)
+         await self._repository.update_document_parsed_content(
+             document,
+             parsed_text=normalized.clean_text,
+@@ -429,6 +449,8 @@
+                 "normalizer_version": "doffice_structured_v1",
+                 "table_count": len(normalized.tables),
+                 "element_count": len(normalized.elements),
++                "profile": effective_profile,
++                "profile_detection": detection,
+             },
+             "raw_source_metadata": {
+                 **dict(source_document.raw_source or _source_document_to_payload(source_document)),
+@@ -560,5 +582,62 @@
+     return clean or None
+ 
+ 
++def _resolve_doffice_profile(profile: str | None, *, text: str, filename: str | None) -> dict[str, Any]:
++    detection = resolve_profile_with_evidence(
++        profile,
++        text=text,
++        filename=filename,
++        content_type="application/json",
++    )
++    requested = str(profile or "auto").strip().casefold() or "auto"
++    if requested != "auto" or detection.get("profile") != "general":
++        return detection
++    normalizer_profile = _first_profile_with_document_normalizer()
++    if normalizer_profile is None:
++        return detection
++    return {
++        "profile": normalizer_profile,
++        "mode": "source_type_document_normalizer_fallback",
++        "score": max(int(detection.get("score") or 0), 1),
++        "evidence": [
++            *list(detection.get("evidence") or []),
++            {"source": "profile_config", "reason": "document_normalizer_available", "profile": normalizer_profile},
++        ],
++        "candidates": list(detection.get("candidates") or []),
++    }
++
++
++def _first_profile_with_document_normalizer() -> str | None:
++    normalizer_keys = (
++        "official_document_normalizer",
++        "document_structure_normalizer",
++        "doffice_normalizer",
++    )
++    for profile_name, config in get_profile_configs().items():
++        if any(isinstance(config.get(key), dict) for key in normalizer_keys):
++            return profile_name
++    return None
++
++
++def _source_detection_text(source: dict[str, Any]) -> str:
++    parts = [
++        "source_type: doffice_elasticsearch",
++        str(source.get("ky_hieu") or ""),
++        str(source.get("trich_yeu") or ""),
++        str(source.get("noi_ban_hanh") or ""),
++        str(source.get("ten_file") or ""),
++        str(source.get("tom_tat") or ""),
++        str(source.get("noi_dung") or "")[:20000],
++    ]
++    return "\n".join(part for part in parts if part.strip())
++
++
++def _document_profile_value(profile_name: str | None) -> str:
++    clean = "_".join(str(profile_name or "general").strip().split()) or "general"
++    if len(clean) <= 32:
++        return clean
++    return clean[:32]
++
++
+ def _duration_ms(started: float) -> int:
+     return round((time.perf_counter() - started) * 1000)
+diff --git a/app/services/ingestion_profiles.py b/app/services/ingestion_profiles.py
+--- a/app/services/ingestion_profiles.py
++++ b/app/services/ingestion_profiles.py
+@@ -188,6 +188,120 @@
+             "staff_matrix_row",
+         ],
+     },
++    "official_document_structured": {
++        "chunk_mode": "recursive",
++        "chunk_size": 1800,
++        "chunk_overlap": 180,
++        "top_k": 8,
++        "candidate_k": 40,
++        "answer_mode": "hybrid",
++        "answer_style": "policy_explainer",
++        "max_context_chars": 9000,
++        "heading_rules": [],
++        "detect_rules": {
++            "title_keywords": [
++                "công văn",
++                "quyết định",
++                "tờ trình",
++                "báo cáo",
++                "thông báo",
++                "kế hoạch",
++                "phê duyệt",
++                "kết quả lựa chọn nhà thầu",
++                "lựa chọn nhà thầu",
++                "gói thầu",
++                "kính gửi",
++                "căn cứ",
++                "quyết định:",
++                "điều 1",
++                "nơi nhận",
++            ],
++            "table_headers": [
++                "STT",
++                "Tên nhà thầu",
++                "Mã số thuế",
++                "Giá dự thầu",
++                "Giá trúng thầu",
++                "Lý do nhà thầu không trúng thầu",
++                "Thời gian thực hiện",
++                "Nội dung khác",
++            ],
++            "source_type_keywords": [
++                "doffice_elasticsearch",
++                "doffice",
++                "official_document",
++            ],
++            "min_score": 6,
++        },
++        "doffice_normalizer": {
++            "source_summary_max_chars": 4000,
++            "disable_llm_enrichment": True,
++            "non_llm_chunk_types": [
++                "document_summary",
++                "document_header",
++                "document_body",
++                "table_parent",
++                "table_row",
++                "table_group",
++                "footer_signature",
++            ],
++            "table_context_window_lines": 16,
++            "table_name_rules": [
++                {
++                    "name": "procurement_winning_context",
++                    "contains_all": ["nha thau", "trung thau"],
++                    "exclude_any": ["khong trung thau"],
++                    "table_name": "Thông tin nhà thầu trúng thầu",
++                },
++                {
++                    "name": "procurement_non_winning_context",
++                    "contains_all": ["nha thau", "khong trung thau"],
++                    "table_name": "Thông tin nhà thầu không trúng thầu",
++                },
++            ],
++            "table_schemas": [
++                {
++                    "name": "procurement_winning",
++                    "enabled": True,
++                    "match": {
++                        "context_contains_any": ["nha thau trung thau", "thong tin nha thau trung thau"],
++                        "header_contains_any": ["ten nha thau", "ma so thue", "gia trung thau"],
++                    },
++                    "min_row_non_empty_fields": 5,
++                    "fields": [
++                        {"key": "row_number", "label": "STT", "patterns": [r"^\d{1,4}$"], "metadata_key": "row_number"},
++                        {"key": "contractor_name", "label": "Tên nhà thầu", "patterns": ["cong ty|cty|tnhh|co phan|doanh nghiep|lien danh"], "metadata_key": "feature_name"},
++                        {"key": "tax_code", "label": "Mã số thuế", "patterns": [r"^\d{10,14}$"], "metadata_key": "tax_code"},
++                        {"key": "bid_price", "label": "Giá dự thầu (VNĐ)", "metadata_key": "bid_price"},
++                        {"key": "bid_price_after_discount", "label": "Giá dự thầu sau giảm giá (nếu có) (VNĐ)", "metadata_key": "bid_price_after_discount"},
++                        {"key": "winning_price", "label": "Giá trúng thầu (VNĐ)", "metadata_key": "winning_price"},
++                        {"key": "package_execution_time", "label": "Thời gian thực hiện gói thầu", "metadata_key": "package_execution_time"},
++                        {"key": "contract_execution_time", "label": "Thời gian thực hiện hợp đồng", "metadata_key": "contract_execution_time"},
++                        {"key": "other_content", "label": "Nội dung khác (nếu có)", "metadata_key": "other_content"},
++                    ],
++                    "row_key_fields": ["contractor_name", "tax_code"],
++                    "group_rows": False,
++                },
++                {
++                    "name": "procurement_non_winning",
++                    "enabled": True,
++                    "match": {
++                        "context_contains_any": ["nha thau khong trung thau"],
++                        "header_contains_any": ["ten nha thau", "ma so thue", "ly do"],
++                    },
++                    "min_row_non_empty_fields": 4,
++                    "fields": [
++                        {"key": "row_number", "label": "STT", "patterns": [r"^\d{1,4}$"], "metadata_key": "row_number"},
++                        {"key": "contractor_name", "label": "Tên nhà thầu", "patterns": ["cong ty|cty|tnhh|co phan|doanh nghiep|lien danh"], "metadata_key": "feature_name"},
++                        {"key": "tax_code", "label": "Mã số thuế", "patterns": [r"^\d{10,14}$"], "metadata_key": "tax_code"},
++                        {"key": "reason", "label": "Lý do nhà thầu không trúng thầu", "metadata_key": "change_content"},
++                    ],
++                    "row_key_fields": ["contractor_name", "tax_code"],
++                    "group_rows": False,
++                },
++            ],
++        },
++    },
+     "general": {
+         "chunk_mode": "recursive",
+         "chunk_size": 1000,
+diff --git a/app/services/ingestion_queue.py b/app/services/ingestion_queue.py
+--- a/app/services/ingestion_queue.py
++++ b/app/services/ingestion_queue.py
+@@ -231,8 +231,8 @@
+             status="queued",
+             created_at=now,
+             updated_at=now,
+-            ingestion_profile="doffice_admin",
+-            resolved_ingestion_profile="doffice_admin",
++            ingestion_profile="auto",
++            resolved_ingestion_profile="auto",
+             steps={step: IngestionStep(name=step) for step in DOFFICE_PIPELINE_STEPS},
+         )
+         self._jobs[job.job_id] = job
+@@ -616,7 +616,7 @@
+                 access=payload.access,
+             )
+             job.document_id = response.document_id
+-            job.resolved_ingestion_profile = "doffice_admin"
++            job.resolved_ingestion_profile = response.source_type
+             self._log(
+                 job,
+                 step="doffice",

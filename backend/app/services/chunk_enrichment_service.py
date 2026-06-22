@@ -6,6 +6,7 @@ import json
 import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from typing import Any
 from uuid import UUID
 
@@ -300,6 +301,27 @@ def build_rule_enrichment(*, document: Any, chunk: Any) -> dict[str, Any]:
     return {key: value for key, value in payload.items() if value not in (None, "", [])}
 
 
+def _snapshot_document_for_enrichment(document: Any) -> SimpleNamespace:
+    return SimpleNamespace(
+        id=getattr(document, "id", None),
+        title=getattr(document, "title", None),
+        status=getattr(document, "status", None),
+        document_metadata=dict(getattr(document, "document_metadata", None) or {}),
+    )
+
+
+def _snapshot_chunk_for_enrichment(chunk: Any) -> SimpleNamespace:
+    return SimpleNamespace(
+        id=getattr(chunk, "id", None),
+        document_id=getattr(chunk, "document_id", None),
+        chunk_index=getattr(chunk, "chunk_index", 0),
+        content=str(getattr(chunk, "content", "") or ""),
+        enriched_content=getattr(chunk, "enriched_content", None),
+        token_count=getattr(chunk, "token_count", None),
+        chunk_metadata=dict(getattr(chunk, "chunk_metadata", None) or {}),
+    )
+
+
 class ChunkEnrichmentService:
     def __init__(
         self,
@@ -351,6 +373,15 @@ class ChunkEnrichmentService:
         if not chunks:
             raise ChunkEnrichmentChunksNotFoundError("Document has no chunks to enrich.")
 
+        # Keep enrichment planning and LLM calls independent from live ORM objects.
+        # The DOffice queue runs chunking/enrichment/indexing in a long async flow,
+        # and previous pipeline stages commit their own transactions. Snapshotting
+        # the scalar fields we need prevents SQLAlchemy async lazy loads from being
+        # attempted inside plain asyncio tasks, which otherwise raises
+        # MissingGreenlet/greenlet_spawn errors.
+        document_snapshot = _snapshot_document_for_enrichment(document)
+        chunk_snapshots = [_snapshot_chunk_for_enrichment(chunk) for chunk in chunks]
+
         effective_enabled = self._enabled if enabled is None else bool(enabled)
         if not effective_enabled:
             return DocumentChunkEnrichmentResponse(
@@ -358,8 +389,8 @@ class ChunkEnrichmentService:
                 status="skipped",
                 enriched_count=0,
                 failed_count=0,
-                skipped_count=len(chunks),
-                preview=[self._preview(chunk, {"status": "skipped"}) for chunk in chunks[:PREVIEW_LIMIT]],
+                skipped_count=len(chunk_snapshots),
+                preview=[self._preview(chunk, {"status": "skipped"}) for chunk in chunk_snapshots[:PREVIEW_LIMIT]],
             )
 
         previous = (
@@ -378,9 +409,12 @@ class ChunkEnrichmentService:
             self._version = version
 
         try:
-            plans = [self._plan_chunk(document=document, chunk=chunk, force=force) for chunk in chunks]
+            plans = [
+                self._plan_chunk(document=document_snapshot, chunk=chunk, force=force)
+                for chunk in chunk_snapshots
+            ]
             plans = self._apply_llm_limit(plans)
-            results = await self._run_llm_plans(document=document, plans=plans)
+            results = await self._run_llm_plans(document=document_snapshot, plans=plans)
 
             enriched_count = 0
             failed_count = 0
@@ -394,6 +428,8 @@ class ChunkEnrichmentService:
                     rule_enrichment=plan.rule_enrichment,
                     update_search_vector=update_keyword_search_vector,
                 )
+                if enriched_content is not None:
+                    plan.chunk.enriched_content = enriched_content
                 attempt_status = enrichment_metadata.get("last_attempt_status") or enrichment_metadata.get("status")
                 if attempt_status == "success":
                     enriched_count += 1

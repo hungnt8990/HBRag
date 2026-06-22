@@ -289,9 +289,16 @@ def parse_html_tables(raw_text: str) -> list[NormalizedTable]:
         matrix, header_flags = expand_table_matrix(parser.raw_rows)
         if not matrix:
             continue
-        headers = [clean_inline_text(value) for value in matrix[0]] if any(header_flags[0]) or len(matrix) > 1 else []
-        data_rows = matrix[1:] if headers and len(matrix) > 1 else matrix
-        rows = [NormalizedTableRow(row_index=index + 1, values=[clean_inline_text(value) for value in row], metadata=row_metadata(headers, row, table_name=table_name)) for index, row in enumerate(data_rows)]
+        headers, data_rows = normalize_table_header_and_rows(matrix, header_flags)
+        rows = [
+            NormalizedTableRow(
+                row_index=index + 1,
+                values=[clean_inline_text(value) for value in row],
+                metadata=row_metadata(headers, row, table_name=table_name),
+            )
+            for index, row in enumerate(data_rows)
+            if _is_meaningful_table_data_row(headers, row)
+        ]
         tables.append(
             NormalizedTable(
                 table_index=table_index,
@@ -361,6 +368,160 @@ def expand_table_matrix(raw_rows: list[list[dict[str, Any]]]) -> tuple[list[list
     return ([row + [""] * (width - len(row)) for row in matrix], [flags + [False] * (width - len(flags)) for flags in header_flags])
 
 
+
+def normalize_table_header_and_rows(
+    matrix: list[list[str]],
+    header_flags: list[list[bool]],
+) -> tuple[list[str], list[list[str]]]:
+    """Return semantically useful headers and data rows for DOffice HTML tables.
+
+    DOffice/PDF extraction often expands multi-row table headers into ordinary
+    rows. In procurement tables this produced bogus rows such as ``hiện``,
+    ``gói``, ``thầu`` and ``(*)`` under the STT column. The normalizer keeps
+    the true header, discards short header fragments, and realigns data rows
+    that start with footnote markers before the actual STT value.
+    """
+    clean_matrix = [[clean_inline_text(value) for value in row] for row in matrix]
+    if not clean_matrix:
+        return [], []
+
+    first_row = clean_matrix[0]
+    first_flags = header_flags[0] if header_flags else []
+    has_header = bool(any(first_flags)) or len(clean_matrix) > 1 or _row_looks_like_header(first_row)
+    if not has_header:
+        return [], [_trim_empty_tail(row) for row in clean_matrix]
+
+    header_rows = [first_row]
+    data_start = 1
+    has_stt_header = any(_normalize_key(cell) in {"stt", "tt"} for cell in first_row)
+    if has_stt_header:
+        while data_start < len(clean_matrix) and _looks_like_continued_header_row(clean_matrix[data_start]):
+            header_rows.append(clean_matrix[data_start])
+            data_start += 1
+
+    headers = _merge_table_header_rows(header_rows)
+    data_rows = [_align_table_data_row(headers, row) for row in clean_matrix[data_start:]]
+    return headers, [_trim_empty_tail(row) for row in data_rows]
+
+
+def _row_looks_like_header(row: list[str]) -> bool:
+    normalized = {_normalize_key(cell) for cell in row if clean_inline_text(cell)}
+    return bool(normalized & {"stt", "tt", "ten_nha_thau", "ma_so_thue", "chuc_nang", "man_hinh"})
+
+
+def _looks_like_continued_header_row(row: list[str]) -> bool:
+    values = [clean_inline_text(value) for value in row if clean_inline_text(value)]
+    if not values:
+        return True
+    if _row_has_numbered_stt(row):
+        return False
+    # Keep category/group rows such as "Website Quản trị nội dung (CMS)" as data.
+    if any(_looks_like_platform(value) for value in values):
+        return False
+    long_values = [value for value in values if len(value) > 24]
+    if long_values:
+        return False
+    short_header_fragments = 0
+    for value in values:
+        lowered = value.casefold().strip()
+        if re.fullmatch(r"\(?\*+\)?|\(?\*{1,3}\)?", lowered):
+            short_header_fragments += 1
+            continue
+        if re.fullmatch(r"[a-zà-ỹđ0-9()*/.,\-\s]{1,24}", lowered, flags=re.IGNORECASE):
+            short_header_fragments += 1
+    return short_header_fragments == len(values)
+
+
+def _row_has_numbered_stt(row: list[str]) -> bool:
+    for value in row[:5]:
+        clean = clean_inline_text(value)
+        if not clean:
+            continue
+        if re.fullmatch(r"\d{1,4}[.)]?", clean):
+            return True
+    return False
+
+
+def _merge_table_header_rows(header_rows: list[list[str]]) -> list[str]:
+    width = max((len(row) for row in header_rows), default=0)
+    headers: list[str] = []
+    for index in range(width):
+        parts: list[str] = []
+        for row in header_rows:
+            value = clean_inline_text(row[index]) if index < len(row) else ""
+            if not value or value in parts:
+                continue
+            if parts and _should_skip_header_continuation(parts[0], value):
+                continue
+            if _looks_like_header_footnote(value):
+                if parts and not _should_skip_header_continuation(parts[0], value):
+                    parts[-1] = f"{parts[-1]} {value}"
+                continue
+            parts.append(value)
+        header = clean_inline_text(" ".join(parts))
+        header = re.sub(r"\s*-\s*", " ", header)
+        headers.append(header)
+    return _trim_empty_tail(headers)
+
+
+def _looks_like_header_footnote(value: str) -> bool:
+    return bool(re.fullmatch(r"\(?\*{1,3}\)?", clean_inline_text(value)))
+
+
+def _should_skip_header_continuation(base_header: str, value: str) -> bool:
+    base = _normalize_key(base_header)
+    clean = clean_inline_text(value)
+    if not clean:
+        return True
+    stable_headers = {
+        "stt",
+        "tt",
+        "ten_nha_thau",
+        "ma_so_thue",
+        "gia_du_thau",
+        "gia_du_thau_vnd",
+        "gia_du_thau_vnđ",
+        "gia_trung_thau",
+        "noi_dung_khac",
+    }
+    if base in stable_headers and len(clean) <= 24:
+        return True
+    if base.startswith("gia_") and len(clean) <= 24:
+        return True
+    return False
+
+
+def _align_table_data_row(headers: list[str], row: list[str]) -> list[str]:
+    clean_row = [clean_inline_text(value) for value in row]
+    normalized_headers = [_normalize_key(header) for header in headers]
+    if normalized_headers and normalized_headers[0] in {"stt", "tt"}:
+        for index, value in enumerate(clean_row[: min(len(clean_row), 5)]):
+            if re.fullmatch(r"\d{1,4}[.)]?", value or ""):
+                if index > 0:
+                    clean_row = clean_row[index:]
+                break
+    return clean_row
+
+
+def _trim_empty_tail(values: list[str]) -> list[str]:
+    output = list(values)
+    while output and not clean_inline_text(output[-1]):
+        output.pop()
+    return output
+
+
+def _is_meaningful_table_data_row(headers: list[str], row: list[str]) -> bool:
+    clean_row = [clean_inline_text(value) for value in row]
+    if not any(clean_row):
+        return False
+    normalized_headers = [_normalize_key(header) for header in headers]
+    if normalized_headers and normalized_headers[0] in {"stt", "tt"}:
+        first = next((value for value in clean_row if value), "")
+        if not re.fullmatch(r"\d{1,4}[.)]?", first or "") and _looks_like_continued_header_row(clean_row):
+            return False
+    return True
+
+
 def inherit_table_context(rows: list[NormalizedTableRow]) -> list[NormalizedTableRow]:
     inherited: dict[str, Any] = {}
     output: list[NormalizedTableRow] = []
@@ -388,6 +549,9 @@ def row_metadata(headers: list[str], values: list[str], *, table_name: str | Non
     if table_name:
         metadata["table_name"] = table_name
         metadata["section_title"] = table_name
+    if not _is_feature_change_table(headers):
+        return _generic_table_row_metadata(headers=headers, values=values, metadata=metadata)
+    metadata["table_schema"] = "feature_change"
     for key, candidates in {
         "row_number": ("stt", "tt"),
         "platform": ("nen_tang", "doi_tuong", "ung_dung", "he_thong"),
@@ -422,6 +586,60 @@ def row_metadata(headers: list[str], values: list[str], *, table_name: str | Non
             metadata["platform"] = platform
     metadata = _compact_table_row_metadata(headers=headers, values=values, metadata=metadata)
     return {key: value for key, value in metadata.items() if value not in (None, "", [])}
+
+
+
+def _is_feature_change_table(headers: list[str]) -> bool:
+    normalized = {_normalize_key(header) for header in headers}
+    return bool(
+        ({"stt", "tt"} & normalized)
+        and any("chuc_nang" in header or "man_hinh" in header for header in normalized)
+    )
+
+
+def _generic_table_row_metadata(*, headers: list[str], values: list[str], metadata: dict[str, Any]) -> dict[str, Any]:
+    compact = dict(metadata)
+    compact["table_schema"] = "generic_table"
+    clean_values = [clean_inline_text(value) for value in values]
+    normalized_headers = [_normalize_key(header) for header in headers]
+    for index, header in enumerate(normalized_headers):
+        value = clean_values[index] if index < len(clean_values) else ""
+        if not value:
+            continue
+        field_key = _canonical_table_field_key(header, index=index)
+        if field_key and field_key not in compact:
+            compact[field_key] = value
+    if "row_number" not in compact:
+        row_number = _first_header_value(normalized_headers, clean_values, {"stt", "tt"})
+        if row_number:
+            compact["row_number"] = row_number
+    if "feature_name" in compact and not _is_feature_change_table(headers):
+        compact.pop("feature_name", None)
+    return {key: value for key, value in compact.items() if value not in (None, "", [])}
+
+
+def _canonical_table_field_key(header: str, *, index: int) -> str | None:
+    if header in {"stt", "tt"}:
+        return "row_number"
+    if "ten_nha_thau" in header or header == "nha_thau":
+        return "contractor_name"
+    if "ma_so_thue" in header or header in {"mst", "tax_code"}:
+        return "tax_code"
+    if "gia_du_thau_sau_giam" in header or ("gia_du_thau" in header and "giam" in header):
+        return "discounted_bid_price"
+    if "gia_du_thau" in header:
+        return "bid_price"
+    if "gia_trung_thau" in header:
+        return "winning_price"
+    if "thoi_gian" in header and "hop_dong" in header:
+        return "contract_execution_time"
+    if "thoi_gian" in header and "goi_thau" in header:
+        return "package_execution_time"
+    if "thoi_gian_thuc" in header:
+        return "package_execution_time" if index == 6 else "contract_execution_time"
+    if "noi_dung_khac" in header or "ly_do" in header or "khong_trung" in header:
+        return "other_content"
+    return None
 
 
 def _compact_table_row_metadata(*, headers: list[str], values: list[str], metadata: dict[str, Any]) -> dict[str, Any]:
@@ -575,6 +793,7 @@ def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[Norm
                 {**table.metadata, "chunk_type": "table_parent", "table_index": table.table_index, "indexable": True},
             )
         )
+        is_feature_table = _is_feature_change_table(table.headers)
         groups: dict[tuple[str | None, str | None], list[NormalizedTableRow]] = {}
         for row in table.rows:
             if row.metadata.get("is_table_marker"):
@@ -594,7 +813,8 @@ def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[Norm
                     },
                 )
             )
-            groups.setdefault((row.metadata.get("platform"), row.metadata.get("phase")), []).append(row)
+            if is_feature_table:
+                groups.setdefault((row.metadata.get("platform"), row.metadata.get("phase")), []).append(row)
         for (platform, phase), group_rows in groups.items():
             if len(group_rows) < 2:
                 continue
@@ -664,11 +884,12 @@ def _body_without_tables_or_appendix(clean_text: str) -> str:
     return normalize_lines(body)
 
 def table_parent_text(table: NormalizedTable) -> str:
+    is_feature_table = _is_feature_change_table(table.headers)
     groups = unique_strings(
         [
             " - ".join(str(value) for value in (row.metadata.get("platform"), row.metadata.get("phase")) if value)
             for row in table.rows
-            if not row.metadata.get("is_table_marker")
+            if is_feature_table and not row.metadata.get("is_table_marker")
         ]
     )
     columns = _canonical_table_columns(table.headers)
@@ -699,6 +920,26 @@ def _canonical_table_columns(headers: list[str]) -> list[str]:
     normalized = {_normalize_key(header) for header in headers}
     if {"stt", "tt"} & normalized and any("chuc_nang" in header or "man_hinh" in header for header in normalized):
         return ["STT", "nền tảng", "chức năng/màn hình", "nội dung hiệu chỉnh/bổ sung", "giai đoạn"]
+    if any("ten_nha_thau" in header or header == "nha_thau" for header in normalized):
+        labels = []
+        normalized_list = [_normalize_key(header) for header in headers]
+        for index, header in enumerate(normalized_list):
+            field_key = _canonical_table_field_key(header, index=index)
+            labels.append(
+                {
+                    "row_number": "STT",
+                    "contractor_name": "Tên nhà thầu",
+                    "tax_code": "Mã số thuế",
+                    "bid_price": "Giá dự thầu",
+                    "discounted_bid_price": "Giá dự thầu sau giảm giá",
+                    "winning_price": "Giá trúng thầu",
+                    "package_execution_time": "Thời gian thực hiện gói thầu",
+                    "contract_execution_time": "Thời gian thực hiện hợp đồng",
+                    "other_content": "Nội dung khác",
+                }.get(field_key)
+                or clean_inline_text(headers[index])
+            )
+        return [label for label in labels if label]
     return [clean_inline_text(header) for header in headers if clean_inline_text(header)]
 
 
@@ -709,23 +950,43 @@ def table_row_text(*, source: dict[str, Any], table: NormalizedTable, row: Norma
         f"Phụ lục: {metadata.get('section_title') or table.metadata.get('section_title') or table.metadata.get('table_name') or ''}".strip(" :"),
         f"Bảng: {table.metadata.get('table_name') or 'Bảng dữ liệu DOffice'}",
     ]
-    for label, key in (
-        ("Nền tảng", "platform"),
-        ("STT", "row_number"),
-        ("Chức năng/Màn hình", "feature_name"),
-        ("Nội dung hiệu chỉnh/Bổ sung", "change_content"),
-        ("Giai đoạn", "phase"),
-    ):
-        value = metadata.get(key)
-        if not value:
-            continue
-        if isinstance(value, list):
-            lines.append(f"{label}:")
-            lines.extend(f"- {item}" for item in value if item)
-        else:
-            lines.append(f"{label}: {value}")
+    if metadata.get("table_schema") == "feature_change" or _is_feature_change_table(table.headers):
+        for label, key in (
+            ("Nền tảng", "platform"),
+            ("STT", "row_number"),
+            ("Chức năng/Màn hình", "feature_name"),
+            ("Nội dung hiệu chỉnh/Bổ sung", "change_content"),
+            ("Giai đoạn", "phase"),
+        ):
+            value = metadata.get(key)
+            if not value:
+                continue
+            if isinstance(value, list):
+                lines.append(f"{label}:")
+                lines.extend(f"- {item}" for item in value if item)
+            else:
+                lines.append(f"{label}: {value}")
+    else:
+        for label, key in (
+            ("STT", "row_number"),
+            ("Nhà thầu", "contractor_name"),
+            ("Mã số thuế", "tax_code"),
+            ("Giá dự thầu", "bid_price"),
+            ("Giá dự thầu sau giảm giá", "discounted_bid_price"),
+            ("Giá trúng thầu", "winning_price"),
+            ("Thời gian thực hiện gói thầu", "package_execution_time"),
+            ("Thời gian thực hiện hợp đồng", "contract_execution_time"),
+            ("Nội dung khác", "other_content"),
+        ):
+            value = metadata.get(key)
+            if value:
+                lines.append(f"{label}: {value}")
     if table.headers and row.values:
-        details = " | ".join(f"{table.headers[index]}: {value}" for index, value in enumerate(row.values) if value and index < len(table.headers))
+        details = " | ".join(
+            f"{table.headers[index]}: {value}"
+            for index, value in enumerate(row.values)
+            if value and index < len(table.headers)
+        )
         if details:
             lines.append("Chi tiết: " + details)
     return "\n".join(line for line in lines if line.strip())

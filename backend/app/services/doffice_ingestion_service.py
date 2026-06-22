@@ -153,7 +153,13 @@ class DofficeIngestionService:
             metadata_hash=normalized.metadata_hash,
             source_type=DOFFICE_SOURCE_TYPE,
         )
-        await self._repository.update_doffice_raw_status(raw_record, parse_status="normalized", clean_status="cleaned")
+        raw_record_id = getattr(raw_record, "id", None)
+        await self._update_raw_status(
+            raw_record=raw_record,
+            raw_record_id=raw_record_id,
+            parse_status="normalized",
+            clean_status="cleaned",
+        )
         _emit_progress(
             options,
             "parse",
@@ -186,12 +192,13 @@ class DofficeIngestionService:
             knowledge_base_id=knowledge_base_id,
             access=access,
         )
+        document_id = document.id
         _emit_progress(
             options,
             "parse",
             "succeeded",
             "DOffice document created in PostgreSQL with parsed content.",
-            {"document_id": str(document.id), "id_vb": clean_id},
+            {"document_id": str(document_id), "id_vb": clean_id},
         )
 
         try:
@@ -200,22 +207,22 @@ class DofficeIngestionService:
                 "chunk",
                 "running",
                 "Chunking DOffice document.",
-                {"document_id": str(document.id), "profile": "auto"},
+                {"document_id": str(document_id), "profile": "auto"},
             )
-            chunk_response = await self._chunking_service.chunk_document(document.id, profile="auto")
+            chunk_response = await self._chunking_service.chunk_document(document_id, profile="auto")
             logger.info(
                 "Chunked DOffice document id_vb=%s document=%s chunks=%s",
                 clean_id,
-                document.id,
+                document_id,
                 chunk_response.chunk_count,
             )
-            await self._repository.update_doffice_raw_status(raw_record, chunk_status="chunked")
+            await self._update_raw_status(raw_record=raw_record, raw_record_id=raw_record_id, chunk_status="chunked")
             _emit_progress(
                 options,
                 "chunk",
                 "succeeded",
                 "DOffice document chunking completed.",
-                {"document_id": str(document.id), "chunk_count": chunk_response.chunk_count},
+                {"document_id": str(document_id), "chunk_count": chunk_response.chunk_count},
             )
 
             if options.enable_enrichment and self._enrichment_service is not None:
@@ -224,17 +231,17 @@ class DofficeIngestionService:
                     "enrich",
                     "running",
                     "Running chunk enrichment for DOffice document.",
-                    {"document_id": str(document.id)},
+                    {"document_id": str(document_id)},
                 )
                 enrich_response = await self._enrichment_service.enrich_document(
-                    document.id,
+                    document_id,
                     enabled=True,
                     update_keyword_search_vector=True,
                 )
                 logger.info(
                     "Enriched DOffice document id_vb=%s document=%s status=%s enriched=%s skipped=%s failed=%s",
                     clean_id,
-                    document.id,
+                    document_id,
                     enrich_response.status,
                     enrich_response.enriched_count,
                     enrich_response.skipped_count,
@@ -246,7 +253,7 @@ class DofficeIngestionService:
                     "succeeded",
                     "Chunk enrichment completed.",
                     {
-                        "document_id": str(document.id),
+                        "document_id": str(document_id),
                         "status": enrich_response.status,
                         "enriched_count": enrich_response.enriched_count,
                         "skipped_count": enrich_response.skipped_count,
@@ -254,14 +261,14 @@ class DofficeIngestionService:
                     },
                 )
             else:
-                logger.info("Skipped DOffice enrichment id_vb=%s document=%s", clean_id, document.id)
+                logger.info("Skipped DOffice enrichment id_vb=%s document=%s", clean_id, document_id)
                 _emit_progress(
                     options,
                     "enrich",
                     "succeeded",
                     "Chunk enrichment skipped.",
                     {
-                        "document_id": str(document.id),
+                        "document_id": str(document_id),
                         "enabled": options.enable_enrichment,
                         "has_enrichment_service": self._enrichment_service is not None,
                     },
@@ -272,17 +279,22 @@ class DofficeIngestionService:
                 "index",
                 "running",
                 "Indexing DOffice chunks into Qdrant and Elasticsearch keyword store if enabled.",
-                {"document_id": str(document.id)},
+                {"document_id": str(document_id)},
             )
             index_response = await self._vector_indexing_service.index_document(
-                document.id,
+                document_id,
                 use_enriched_content_for_embedding=options.enable_enrichment,
             )
-            await self._repository.update_doffice_raw_status(raw_record, embedding_status="indexed", sync_status="indexed")
+            await self._update_raw_status(
+                raw_record=raw_record,
+                raw_record_id=raw_record_id,
+                embedding_status="indexed",
+                sync_status="indexed",
+            )
             logger.info(
                 "Indexed DOffice document id_vb=%s document=%s indexed_chunks=%s duration_ms=%s",
                 clean_id,
-                document.id,
+                document_id,
                 index_response.indexed_chunk_count,
                 _duration_ms(started),
             )
@@ -292,14 +304,14 @@ class DofficeIngestionService:
                 "succeeded",
                 "Vector and keyword indexing completed.",
                 {
-                    "document_id": str(document.id),
+                    "document_id": str(document_id),
                     "status": index_response.status,
                     "indexed_chunk_count": index_response.indexed_chunk_count,
                     "duration_ms": _duration_ms(started),
                 },
             )
         except Exception as exc:
-            logger.exception("DOffice ingest failed id_vb=%s document=%s", clean_id, document.id)
+            logger.exception("DOffice ingest failed id_vb=%s document=%s", clean_id, document_id)
             raise DofficeIngestionError(f"Failed to ingest DOffice document: {exc}") from exc
 
         return DofficeIngestResponse(
@@ -309,10 +321,23 @@ class DofficeIngestionService:
             trich_yeu=source_document.trich_yeu,
             noi_ban_hanh=source_document.noi_ban_hanh,
             chunks_created=chunk_response.chunk_count,
-            document_id=document.id,
+            document_id=document_id,
             source_type=DOFFICE_SOURCE_TYPE,
             message="Đã lấy thông tin văn bản DOffice; pipeline phía sau đã convert, chunk, enrich nếu bật và index.",
         )
+
+    async def _update_raw_status(
+        self,
+        *,
+        raw_record: Any,
+        raw_record_id: UUID | None,
+        **statuses: str,
+    ) -> None:
+        updater_by_id = getattr(self._repository, "update_doffice_raw_status_by_id", None)
+        if updater_by_id is not None and raw_record_id is not None:
+            await updater_by_id(raw_record_id, **statuses)
+            return
+        await self._repository.update_doffice_raw_status(raw_record, **statuses)
 
     async def _find_existing(self, id_vb: str) -> Any | None:
         finder = getattr(self._repository, "find_document_by_source_metadata", None)
