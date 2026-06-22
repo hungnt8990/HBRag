@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import re
 import time
+import unicodedata
 from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID
@@ -118,6 +119,10 @@ class ArtifactFirstRetrievalService:
                 retrieval_enrichment_enabled=retrieval_enrichment_enabled,
                 query_intent_rules=query_intent_rules,
             )
+            chunk_response = self._filter_chunk_response_by_exact_terms(
+                response=chunk_response,
+                exact_terms=contract.exact_terms,
+            )
             used_chunk_fallback = True
 
         latency_ms = self._duration_ms(started)
@@ -183,6 +188,10 @@ class ArtifactFirstRetrievalService:
                 )
                 and float(artifact.confidence_score or 0.0) >= contract.confidence_threshold
             ]
+            vector_artifacts = self._filter_artifacts_by_exact_terms(
+                artifacts=vector_artifacts,
+                exact_terms=contract.exact_terms,
+            )
             vector_artifacts.sort(key=lambda artifact: (-score_by_id.get(artifact.id, 0.0), -float(artifact.confidence_score or 0.0)))
             artifacts.extend(vector_artifacts)
 
@@ -190,6 +199,101 @@ class ArtifactFirstRetrievalService:
 
     async def _fallback_chunks(self, **kwargs: Any) -> RerankSearchResponse:
         return await self._reranking_service.search(**kwargs)
+
+    @classmethod
+    def _filter_chunk_response_by_exact_terms(
+        cls,
+        *,
+        response: RerankSearchResponse,
+        exact_terms: list[str],
+    ) -> RerankSearchResponse:
+        strong_terms = cls._strong_exact_terms(exact_terms)
+        if not strong_terms or not response.results:
+            return response
+
+        filtered = [
+            result
+            for result in response.results
+            if cls._result_matches_any_exact_term(result, strong_terms)
+        ]
+        if len(filtered) == len(response.results):
+            return response
+        return response.model_copy(update={"results": filtered})
+
+    @classmethod
+    def _filter_artifacts_by_exact_terms(
+        cls,
+        *,
+        artifacts: list[KnowledgeArtifact],
+        exact_terms: list[str],
+    ) -> list[KnowledgeArtifact]:
+        strong_terms = cls._strong_exact_terms(exact_terms)
+        if not strong_terms or not artifacts:
+            return artifacts
+        return [
+            artifact
+            for artifact in artifacts
+            if cls._artifact_matches_any_exact_term(artifact, strong_terms)
+        ]
+
+    @classmethod
+    def _artifact_matches_any_exact_term(cls, artifact: KnowledgeArtifact, exact_terms: list[str]) -> bool:
+        haystack = " ".join(
+            [
+                str(getattr(artifact, "title", "") or ""),
+                str(getattr(artifact, "canonical_text", "") or ""),
+                str(getattr(artifact, "summary_text", "") or ""),
+                cls._metadata_text(getattr(artifact, "structured_data", None)),
+                cls._metadata_text(getattr(artifact, "normalized_identifiers", None)),
+                cls._metadata_text(getattr(artifact, "idea_metadata", None)),
+            ]
+        )
+        normalized_haystack = cls._normalize_exact_text(haystack)
+        return any(cls._normalize_exact_text(term) in normalized_haystack for term in exact_terms)
+
+    @staticmethod
+    def _strong_exact_terms(exact_terms: list[str]) -> list[str]:
+        ordered: list[str] = []
+        seen: set[str] = set()
+        for term in exact_terms:
+            clean = " ".join(str(term or "").split()).strip(" ?!.,;:")
+            if len(clean) < 3:
+                continue
+            if "/" not in clean and "-" not in clean and not clean.isdigit():
+                continue
+            key = ArtifactFirstRetrievalService._normalize_exact_text(clean)
+            if key in seen:
+                continue
+            seen.add(key)
+            ordered.append(clean)
+        return ordered
+
+    @classmethod
+    def _result_matches_any_exact_term(cls, result: Any, exact_terms: list[str]) -> bool:
+        haystack = " ".join(
+            [
+                str(getattr(result, "content_preview", "") or ""),
+                cls._metadata_text(getattr(result, "metadata", None)),
+            ]
+        )
+        normalized_haystack = cls._normalize_exact_text(haystack)
+        return any(cls._normalize_exact_text(term) in normalized_haystack for term in exact_terms)
+
+    @classmethod
+    def _metadata_text(cls, value: Any) -> str:
+        if isinstance(value, dict):
+            return " ".join(cls._metadata_text(item) for item in value.values())
+        if isinstance(value, list | tuple | set):
+            return " ".join(cls._metadata_text(item) for item in value)
+        if value is None:
+            return ""
+        return str(value)
+
+    @staticmethod
+    def _normalize_exact_text(value: str) -> str:
+        normalized = unicodedata.normalize("NFD", value or "")
+        stripped = "".join(char for char in normalized if unicodedata.category(char) != "Mn")
+        return re.sub(r"\s+", " ", stripped.replace("Đ", "D").replace("đ", "d").casefold()).strip()
 
     @staticmethod
     def _artifacts_are_sufficient(

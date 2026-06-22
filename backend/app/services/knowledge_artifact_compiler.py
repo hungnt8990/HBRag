@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
@@ -9,6 +10,7 @@ from uuid import UUID
 from app.models.chunk import Chunk
 from app.models.document import Document
 from app.repositories.knowledge_artifacts import KnowledgeArtifactCreate
+from app.services.semantic_dedup_service import SemanticDedupService
 
 DOCUMENT_IDENTIFIER_PATTERN = re.compile(
     r"\b(?:[0-9]{3,8}(?:/[\w._/-]{2,})?|[^\W\d_]{1,12}[0-9]{1,8}[\w._/-]*)\b",
@@ -16,6 +18,11 @@ DOCUMENT_IDENTIFIER_PATTERN = re.compile(
 )
 DATE_PATTERN = re.compile(r"\b(?:[0-3]?\d[/-][01]?\d[/-](?:\d{2}|\d{4})|\d{4}-\d{2}-\d{2})\b")
 SHORT_DOC_NUMBER_PATTERN = re.compile(r"\b([0-9]{3,8})(?=/[\w._/-]+)?\b", flags=re.IGNORECASE)
+DEADLINE_PATTERN = re.compile(
+    r"(?:truoc ngay|hoan thanh truoc ngay|gui[^.\n]{0,80}truoc ngay)\s*"
+    r"([0-3]?\d[/-][01]?\d[/-](?:\d{2}|\d{4}))",
+    flags=re.IGNORECASE,
+)
 
 ARTIFACT_TYPE_BY_IDEA_BLOCK_TYPE = {
     "document_identity": "identifier_lookup",
@@ -151,16 +158,23 @@ class KnowledgeArtifactCompiler:
         chunks: list[Chunk],
         document_metadata: dict[str, Any],
     ) -> list[KnowledgeArtifactCreate]:
-        by_identifier: dict[str, list[Chunk]] = {}
-        for chunk in chunks:
-            identifiers = self._identifier_variants(
-                self._identifiers_from_text(f"{chunk.content}\n{chunk.chunk_metadata}")
-            )
-            for identifier in identifiers:
-                by_identifier.setdefault(identifier, []).append(chunk)
+        base_metadata = self._base_document_metadata(document=document, document_metadata=document_metadata)
+        primary_identifiers = self._identifier_variants(
+            [
+                base_metadata.get("doc_code"),
+                base_metadata.get("doc_number"),
+                document_metadata.get("id_vb"),
+                document_metadata.get("document_code"),
+                document_metadata.get("ky_hieu"),
+            ]
+        )
+        by_identifier: dict[str, list[Chunk]] = {
+            identifier: chunks[:5] or []
+            for identifier in primary_identifiers
+            if identifier
+        }
 
         artifacts: list[KnowledgeArtifactCreate] = []
-        base_metadata = self._base_document_metadata(document=document, document_metadata=document_metadata)
         for identifier, source_chunks in sorted(by_identifier.items())[: self._config.max_identifier_artifacts]:
             metadata = {
                 **base_metadata,
@@ -199,6 +213,10 @@ class KnowledgeArtifactCompiler:
             if str((chunk.chunk_metadata or {}).get("chunk_type") or "").casefold()
             in {"recipient_block", "document_preamble"}
         ]
+        if not recipient_values:
+            for chunk in recipient_chunks:
+                recipient_values.extend(self._recipient_units_from_text(chunk.content))
+            recipient_values = self._dedupe_text(recipient_values, limit=30)
         if not recipient_values and not recipient_chunks:
             return []
         metadata = {**base_metadata, "recipient_units": recipient_values}
@@ -227,6 +245,7 @@ class KnowledgeArtifactCompiler:
             if not self._is_table_row(metadata):
                 continue
             row_data = self._row_data(chunk=chunk, metadata=metadata)
+            row_data = {**self._row_tags_from_text(chunk.content), **row_data}
             idea_metadata = {
                 **self._base_document_metadata(document=document, document_metadata=document_metadata),
                 **self._metadata_tags_from_row(row_data),
@@ -282,11 +301,18 @@ class KnowledgeArtifactCompiler:
                 continue
             if not selected and not self._looks_like_directive(chunk.content):
                 continue
+            deadline = selected.get("deadline") or selected.get("deadline_text") or self._deadline_from_text(chunk.content)
+            assigned_units = self._first_list(selected, keys=("assigned_units", "assigned_unit", "unit", "owner_unit"))
+            if not assigned_units:
+                assigned_units = self._assigned_units_from_text(chunk.content)
             metadata_tags = {
                 **self._base_document_metadata(document=document, document_metadata=document_metadata),
                 **selected,
                 **self._metadata_tags_from_row(selected),
                 "directive_text": self._snippet(chunk.content, 1200),
+                "deadline": deadline,
+                "deadline_text": deadline,
+                "assigned_units": assigned_units,
             }
             idea_type = "deadline_requirement" if metadata_tags.get("deadline") else "directive_task"
             if self._field_name_contains_any(selected, {"system", "project", "software"}):
@@ -312,6 +338,18 @@ class KnowledgeArtifactCompiler:
                     confidence_score=0.78 if selected else 0.62,
                 )
             )
+            if self._looks_like_implementation_plan(chunk.content):
+                artifacts.append(
+                    self._block(
+                        document=document,
+                        idea_block_type="implementation_plan",
+                        context_type="implementation_plan",
+                        title=str(selected.get("task") or selected.get("title") or metadata.get("section_title") or document.title),
+                        metadata=metadata_tags,
+                        evidence_chunks=[chunk],
+                        confidence_score=0.7,
+                    )
+                )
         return artifacts
 
     def _legal_clause_blocks(
@@ -351,6 +389,10 @@ class KnowledgeArtifactCompiler:
             if numeric_facts:
                 rule_data["numeric_facts"] = numeric_facts
             rule_data.setdefault("clause_text", self._snippet(chunk.content, 1200))
+            article_no, clause_no, point_no = self._legal_numbers_from_text(chunk.content)
+            rule_data.setdefault("article_no", article_no)
+            rule_data.setdefault("clause_no", clause_no)
+            rule_data.setdefault("point_no", point_no)
             metadata_tags = {
                 **self._base_document_metadata(document=document, document_metadata=document_metadata),
                 **rule_data,
@@ -411,6 +453,8 @@ class KnowledgeArtifactCompiler:
         confidence_score: float,
     ) -> KnowledgeArtifactCreate:
         clean_metadata = self._clean_metadata(metadata)
+        clean_metadata["source_layer"] = "idea_block"
+        clean_metadata["idea_block_type"] = idea_block_type
         evidence_chunk_ids = [str(chunk.id) for chunk in evidence_chunks if getattr(chunk, "id", None)]
         clean_metadata["evidence_chunk_ids"] = evidence_chunk_ids
         clean_metadata["confidence"] = confidence_score
@@ -501,6 +545,17 @@ class KnowledgeArtifactCompiler:
             "assigned_units": KnowledgeArtifactCompiler._first_list(row_data, keys=("assigned_units", "assigned_unit", "unit", "owner_unit")),
             "person_names": KnowledgeArtifactCompiler._person_names(row_data),
             "department_names": KnowledgeArtifactCompiler._first_list(row_data, keys=("department_names", "department", "department_name", "phong_ban")),
+            "person_name": row_data.get("person_name"),
+            "department": row_data.get("department") or row_data.get("phong_ban"),
+            "assigned_unit": row_data.get("assigned_unit") or row_data.get("unit") or row_data.get("owner_unit"),
+            "task": row_data.get("task") or row_data.get("directive_text"),
+            "deadline_text": row_data.get("deadline_text"),
+            "point_no": row_data.get("point_no") or row_data.get("point"),
+            "case_name": row_data.get("case_name"),
+            "condition": row_data.get("condition"),
+            "days": row_data.get("days"),
+            "relationship_type": row_data.get("relationship_type"),
+            "assignment_area": row_data.get("assignment_area") or row_data.get("task_area") or row_data.get("area"),
             "project_names": KnowledgeArtifactCompiler._first_list(row_data, keys=("project_names", "project_name", "project")),
             "system_names": KnowledgeArtifactCompiler._first_list(row_data, keys=("system_names", "software_system", "system_name", "system")),
             "article_no": row_data.get("article_no") or row_data.get("article"),
@@ -646,8 +701,101 @@ class KnowledgeArtifactCompiler:
 
     @staticmethod
     def _looks_like_directive(text: str) -> bool:
-        normalized = (text or "").casefold()
-        return any(fragment in normalized for fragment in ("bao cao", "thuc hien", "trien khai", "hoan thanh", "nhiem vu", "deadline"))
+        normalized = KnowledgeArtifactCompiler._normalize_for_match(text)
+        return any(
+            fragment in normalized
+            for fragment in (
+                "bao cao",
+                "thuc hien",
+                "trien khai",
+                "hoan thanh",
+                "nhiem vu",
+                "de nghi",
+                "yeu cau",
+                "giao",
+                "truoc ngay",
+                "gui ve",
+                "deadline",
+            )
+        )
+
+    @staticmethod
+    def _looks_like_implementation_plan(text: str) -> bool:
+        normalized = KnowledgeArtifactCompiler._normalize_for_match(text)
+        return any(fragment in normalized for fragment in ("ke hoach", "lo trinh", "trien khai", "ap dung", "van hanh"))
+
+    @staticmethod
+    def _normalize_for_match(text: str) -> str:
+        normalized = unicodedata.normalize("NFKD", text or "")
+        return "".join(ch for ch in normalized if not unicodedata.combining(ch)).casefold()
+
+    @staticmethod
+    def _deadline_from_text(text: str) -> str | None:
+        match = DEADLINE_PATTERN.search(KnowledgeArtifactCompiler._normalize_for_match(text))
+        return match.group(1) if match else None
+
+    @staticmethod
+    def _recipient_units_from_text(text: str) -> list[str]:
+        units: list[str] = []
+        for line in (text or "").splitlines():
+            clean = line.strip(" -–;:\t")
+            if not clean or clean.casefold().startswith("kính gửi"):
+                continue
+            if len(clean) >= 4:
+                units.append(clean)
+        return KnowledgeArtifactCompiler._dedupe_text(units, limit=30)
+
+    @staticmethod
+    def _assigned_units_from_text(text: str) -> list[str]:
+        units: list[str] = []
+        for line in (text or "").splitlines():
+            clean = line.strip()
+            match = re.match(r"^(?:\d+\.\s*)?([^:\n]{2,80}):\s*$", clean)
+            if match:
+                candidate = match.group(1).strip(" -–")
+                if any(ch.isupper() for ch in candidate) or any(
+                    token in KnowledgeArtifactCompiler._normalize_for_match(candidate)
+                    for token in ("cong ty", "phong", "ban", "don vi")
+                ):
+                    units.append(candidate)
+        return KnowledgeArtifactCompiler._dedupe_text(units, limit=20)
+
+    @staticmethod
+    def _row_tags_from_text(text: str) -> dict[str, Any]:
+        tags: dict[str, Any] = {}
+        for raw_line in (text or "").splitlines():
+            if ":" not in raw_line:
+                continue
+            key, value = raw_line.split(":", 1)
+            normalized_key = KnowledgeArtifactCompiler._normalize_for_match(key).strip()
+            clean_value = value.strip(" |")
+            if not clean_value:
+                continue
+            if normalized_key in {"stt"}:
+                tags.setdefault("stt", clean_value)
+            elif normalized_key in {"ho va ten", "nguoi", "can bo", "nhan su"}:
+                tags.setdefault("person_name", clean_value)
+            elif normalized_key in {"phong", "phong ban", "don vi", "bo phan"}:
+                tags.setdefault("department", clean_value)
+                tags.setdefault("assigned_unit", clean_value)
+            elif normalized_key in {"mang", "linh vuc", "noi dung", "chuc nang/man hinh", "chuc nang", "nhom"}:
+                tags.setdefault("assignment_area", clean_value)
+            elif normalized_key in {"han", "thoi han", "deadline"}:
+                tags.setdefault("deadline", clean_value)
+                tags.setdefault("deadline_text", clean_value)
+        return tags
+
+    @staticmethod
+    def _legal_numbers_from_text(text: str) -> tuple[str | None, str | None, str | None]:
+        normalized = KnowledgeArtifactCompiler._normalize_for_match(text)
+        article = re.search(r"\bdieu\s+([0-9]+[a-z]?)", normalized)
+        clause = re.search(r"\bkhoan\s+([0-9]+[a-z]?)", normalized)
+        point = re.search(r"\bdiem\s+([a-z])", normalized)
+        return (
+            article.group(1) if article else None,
+            clause.group(1) if clause else None,
+            point.group(1) if point else None,
+        )
 
     @staticmethod
     def _fields_with_name_fragments(metadata: dict[str, Any], fragments: set[str]) -> dict[str, Any]:
@@ -800,23 +948,7 @@ class KnowledgeArtifactCompiler:
 
     @staticmethod
     def _dedupe_artifacts(artifacts: list[KnowledgeArtifactCreate]) -> list[KnowledgeArtifactCreate]:
-        by_hash: dict[str, KnowledgeArtifactCreate] = {}
-        for artifact in artifacts:
-            key = artifact.dedup_hash or hashlib.sha1(
-                "|".join(
-                    [
-                        artifact.idea_block_type or artifact.artifact_type,
-                        artifact.scope_key or "",
-                        artifact.canonical_text,
-                    ]
-                ).encode("utf-8")
-            ).hexdigest()
-            existing = by_hash.get(key)
-            if existing is None:
-                by_hash[key] = artifact
-                continue
-            by_hash[key] = KnowledgeArtifactCompiler._merge_artifacts(existing, artifact)
-        return list(by_hash.values())
+        return SemanticDedupService().dedupe(artifacts)
 
     @staticmethod
     def _merge_artifacts(left: KnowledgeArtifactCreate, right: KnowledgeArtifactCreate) -> KnowledgeArtifactCreate:

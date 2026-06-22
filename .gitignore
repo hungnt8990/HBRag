@@ -21,3 +21,5 @@ coverage/
 
 .DS_Store
 Thumbs.db
+local_cache/**/model_optimized.onnx
+backend/local_cache/**/model_optimized.onnx

@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 from app.models.knowledge_artifact import KnowledgeArtifact
-from app.schemas.documents import RerankSearchResponse
+from app.schemas.documents import RerankSearchResponse, RerankSearchResult
 from app.services.artifact_first_retrieval import ArtifactFirstRetrievalService
 from app.services.query_contract_service import QueryContractService
 from app.services.rag_runtime_config import RagRuntimeConfigValues
@@ -87,6 +87,37 @@ def test_artifact_first_retrieval_uses_vector_artifact_when_exact_search_misses(
 
     asyncio.run(run_test())
 
+def test_artifact_first_retrieval_filters_vector_artifacts_by_exact_identifier() -> None:
+    async def run_test() -> None:
+        wrong = _artifact(
+            artifact_type="document_profile",
+            canonical_text="Thong bao 648/TB-IT ve ung dung quan ly tien do.",
+            normalized_identifiers={"identifiers": ["648/TB-IT"]},
+        )
+        right = _artifact(
+            artifact_type="document_profile",
+            canonical_text="Van ban 907/EVNICT-TTPM co duong dan App Store.",
+            normalized_identifiers={"identifiers": ["907/EVNICT-TTPM"]},
+        )
+        repository = FakeArtifactRepository(vector_artifacts=[wrong, right])
+        service = ArtifactFirstRetrievalService(
+            artifact_repository=repository,  # type: ignore[arg-type]
+            artifact_indexing_service=FakeArtifactIndexingService([wrong, right]),  # type: ignore[arg-type]
+            reranking_service=FakeRerankingService(),  # type: ignore[arg-type]
+            query_contract_service=QueryContractService(),
+            rag_config=_config(),
+        )
+
+        result = await service.retrieve(
+            query="Trong van ban 907/EVNICT-TTPM, duong dan App Store la gi?",
+            top_k=3,
+            candidate_k=10,
+        )
+
+        assert result.selected_artifacts == [right]
+
+    asyncio.run(run_test())
+
 
 def test_artifact_first_retrieval_falls_back_to_chunks_when_no_artifact() -> None:
     async def run_test() -> None:
@@ -105,6 +136,68 @@ def test_artifact_first_retrieval_falls_back_to_chunks_when_no_artifact() -> Non
         assert result.chunk_response is not None
         assert result.used_chunk_fallback is True
         assert reranking_service.called is True
+
+    asyncio.run(run_test())
+
+def test_artifact_first_retrieval_filters_chunk_fallback_by_exact_identifier() -> None:
+    async def run_test() -> None:
+        wrong = _rerank_result(
+            chunk_id=uuid4(),
+            document_id=uuid4(),
+            content_preview="Thong bao 648/TB-IT ve ung dung quan ly tien do.",
+            metadata={"doc_code": "648/TB-IT"},
+        )
+        right = _rerank_result(
+            chunk_id=uuid4(),
+            document_id=uuid4(),
+            content_preview="Van ban 907/EVNICT-TTPM co duong dan App Store.",
+            metadata={"doc_code": "907/EVNICT-TTPM"},
+        )
+        reranking_service = FakeRerankingService(results=[wrong, right])
+        service = ArtifactFirstRetrievalService(
+            artifact_repository=FakeArtifactRepository(),  # type: ignore[arg-type]
+            artifact_indexing_service=FakeArtifactIndexingService(),  # type: ignore[arg-type]
+            reranking_service=reranking_service,  # type: ignore[arg-type]
+            query_contract_service=QueryContractService(),
+            rag_config=_config(),
+        )
+
+        result = await service.retrieve(
+            query="Trong van ban 907/EVNICT-TTPM, duong dan App Store la gi?",
+            top_k=3,
+            candidate_k=10,
+        )
+
+        assert result.chunk_response is not None
+        assert [item.chunk_id for item in result.chunk_response.results] == [right.chunk_id]
+
+    asyncio.run(run_test())
+
+def test_artifact_first_retrieval_returns_empty_fallback_when_exact_identifier_absent() -> None:
+    async def run_test() -> None:
+        wrong = _rerank_result(
+            chunk_id=uuid4(),
+            document_id=uuid4(),
+            content_preview="Thong bao 648/TB-IT ve ung dung quan ly tien do.",
+            metadata={"doc_code": "648/TB-IT"},
+        )
+        reranking_service = FakeRerankingService(results=[wrong])
+        service = ArtifactFirstRetrievalService(
+            artifact_repository=FakeArtifactRepository(),  # type: ignore[arg-type]
+            artifact_indexing_service=FakeArtifactIndexingService(),  # type: ignore[arg-type]
+            reranking_service=reranking_service,  # type: ignore[arg-type]
+            query_contract_service=QueryContractService(),
+            rag_config=_config(),
+        )
+
+        result = await service.retrieve(
+            query="Trong van ban 907/EVNICT-TTPM, duong dan App Store la gi?",
+            top_k=3,
+            candidate_k=10,
+        )
+
+        assert result.chunk_response is not None
+        assert result.chunk_response.results == []
 
     asyncio.run(run_test())
 
@@ -141,8 +234,9 @@ class FakeArtifactIndexingService:
 
 
 class FakeRerankingService:
-    def __init__(self) -> None:
+    def __init__(self, results: list[RerankSearchResult] | None = None) -> None:
         self.called = False
+        self.results = results or []
 
     async def search(self, **kwargs):
         self.called = True
@@ -150,7 +244,7 @@ class FakeRerankingService:
             query=kwargs["query"],
             top_k=kwargs["top_k"],
             candidate_k=kwargs["candidate_k"],
-            results=[],
+            results=list(self.results),
         )
 
 
@@ -186,6 +280,25 @@ def _artifact(
         status="ready",
     )
 
+
+def _rerank_result(
+    *,
+    chunk_id: UUID,
+    document_id: UUID,
+    content_preview: str,
+    metadata: dict,
+) -> RerankSearchResult:
+    return RerankSearchResult(
+        chunk_id=chunk_id,
+        document_id=document_id,
+        rerank_score=0.9,
+        fused_score=0.9,
+        vector_score=None,
+        keyword_score=0.9,
+        content_preview=content_preview,
+        metadata=metadata,
+        source_flags=["keyword"],
+    )
 
 def _config() -> RagRuntimeConfigValues:
     return RagRuntimeConfigValues(

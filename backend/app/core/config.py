@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     elasticsearch_enabled: bool = False
     elasticsearch_url: str = "http://localhost:9200"
     elasticsearch_index_name: str = "hbrag_chunks_bm25_v1"
+    elasticsearch_idea_block_index_name: str = "hbrag_idea_blocks_bm25_v1"
     elasticsearch_timeout_seconds: int = 30
     elasticsearch_index_batch_size: int = 128
     elasticsearch_fallback_to_postgres: bool = True
@@ -147,6 +148,8 @@ class Settings(BaseSettings):
     retrieval_token_budget: int = 6000
     max_artifacts: int = 6
     max_chunks: int = 8
+    idea_block_semantic_dedup_enabled: bool = True
+    idea_block_semantic_dedup_threshold: float = 0.92
 
     graph_enabled: bool = False
     graph_provider: str = "neo4j"
