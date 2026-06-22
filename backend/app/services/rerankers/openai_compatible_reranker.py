@@ -35,6 +35,7 @@ class OpenAICompatibleReranker:
                 "model": self._model,
                 "query": query,
                 "documents": [candidate.content for candidate in candidates],
+                "top_n": len(candidates),
             }
         )
         scores = self._extract_scores(response=response, expected_count=len(candidates))

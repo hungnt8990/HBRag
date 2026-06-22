@@ -17,7 +17,8 @@ from app.schemas.documents import (
     VectorSearchResult,
 )
 from app.services.hybrid_search import HybridSearchRun
-from app.services.rerankers import FakeReranker
+from app.services.rerankers import FakeReranker, RerankCandidate
+from app.services.rerankers.openai_compatible_reranker import OpenAICompatibleReranker
 from app.services.reranking_service import RerankingService
 
 DOCUMENT_ID = UUID("99999999-9999-9999-9999-999999999999")
@@ -202,6 +203,58 @@ def test_fake_reranker_prefers_token_overlap_content() -> None:
         by_chunk_id = {score.chunk_id: score.score for score in scores}
         assert by_chunk_id[str(RELEVANT_CHUNK_ID)] > by_chunk_id[str(UNRELATED_CHUNK_ID)]
         assert by_chunk_id[str(RELEVANT_CHUNK_ID)] == 1.0
+
+    asyncio.run(run_test())
+
+def test_openai_compatible_reranker_sends_gateway_payload() -> None:
+    async def run_test() -> None:
+        captured_payloads: list[dict[str, object]] = []
+
+        class CapturingReranker(OpenAICompatibleReranker):
+            async def _post_rerank(self, payload):
+                captured_payloads.append(dict(payload))
+                return {
+                    "results": [
+                        {"index": 0, "relevance_score": 0.9},
+                        {"index": 1, "relevance_score": 0.2},
+                    ]
+                }
+
+        reranker = CapturingReranker(
+            base_url="https://stag-llm-gateway.cpc.vn/v1",
+            api_key="test-key",
+            model="Qwen/Qwen3-Reranker-8B",
+        )
+
+        scores = await reranker.rerank(
+            query="quy trình xử lý văn bản đến",
+            candidates=[
+                RerankCandidate(
+                    chunk_id="chunk-1",
+                    content="Văn bản đến được tiếp nhận, phân loại, trình lãnh đạo và phân công xử lý.",
+                ),
+                RerankCandidate(
+                    chunk_id="chunk-2",
+                    content="Lịch công tác tuần được tổng hợp từ các đơn vị.",
+                ),
+            ],
+        )
+
+        assert captured_payloads == [
+            {
+                "model": "Qwen/Qwen3-Reranker-8B",
+                "query": "quy trình xử lý văn bản đến",
+                "documents": [
+                    "Văn bản đến được tiếp nhận, phân loại, trình lãnh đạo và phân công xử lý.",
+                    "Lịch công tác tuần được tổng hợp từ các đơn vị.",
+                ],
+                "top_n": 2,
+            }
+        ]
+        assert [(score.chunk_id, score.score) for score in scores] == [
+            ("chunk-1", 0.9),
+            ("chunk-2", 0.2),
+        ]
 
     asyncio.run(run_test())
 
