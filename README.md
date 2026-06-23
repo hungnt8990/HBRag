@@ -293,7 +293,14 @@ npm run build
 cd backend
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
 
+python -m venv .venv
+#MacOS source .venv/bin/activate
+.\.venv\Scripts\Activate.ps1
+
 alembic upgrade head
 pytest
 ruff check .
 uvicorn app.main:app --reload
+
+
+codegraph index
