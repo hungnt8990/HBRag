@@ -16,11 +16,17 @@ if TYPE_CHECKING:
 
 ARTIFACT_TYPES = (
     "document_profile",
+    "document_summary_artifact",
     "identifier_lookup",
     "procedure_artifact",
     "policy_rule_artifact",
+    "legal_evidence_artifact",
+    "table_evidence_artifact",
     "table_row_artifact",
+    "assignment_artifact",
     "person_assignment_artifact",
+    "training_decision",
+    "qa_packet",
 )
 
 ARTIFACT_EXTRACTION_METHODS = ("deterministic", "llm", "hybrid")

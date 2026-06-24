@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+﻿from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -14,7 +14,7 @@ from app.models.document_log import DocumentPipelineLog
 from app.models.doffice import DofficeRawDocument
 from app.models.graph import GraphDocumentStatus
 from app.models.knowledge_base import KnowledgeBase
-from app.services.access_control import access_payload_for_chunk, normalize_access_payload
+from app.services.security.security_access_control import access_payload_for_chunk, normalize_access_payload
 
 
 @dataclass(frozen=True)

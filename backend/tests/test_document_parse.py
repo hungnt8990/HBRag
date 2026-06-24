@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 from datetime import datetime
 from types import SimpleNamespace
 from uuid import UUID
@@ -11,7 +11,7 @@ from app.api.routes.documents import (
     get_storage_client,
 )
 from app.main import app
-from app.services.document_parser_service import DocumentParserService
+from app.services.documents.document_parser_service import DocumentParserService
 from app.services.parsers import (
     DocumentParser,
     DocxParser,
@@ -23,7 +23,7 @@ from app.services.parsers import (
     parsed_element_from_dict,
     parsed_element_to_dict,
 )
-from app.services.parsers.pdf_parser import PdfParser as PdfParserImpl
+from app.services.parsers.parser_pdf_parser import PdfParser as PdfParserImpl
 
 DOCUMENT_ID = UUID("22222222-2222-2222-2222-222222222222")
 
@@ -464,7 +464,7 @@ def test_parse_pdf_serializes_detected_tables(monkeypatch) -> None:
         def __init__(self, _stream):
             self.pages = [FakePage()]
 
-    monkeypatch.setattr("app.services.parsers.pdf_parser.PdfReader", FakeReader)
+    monkeypatch.setattr("app.services.parsers.parser_pdf_parser.PdfReader", FakeReader)
 
     parsed = PdfParserImpl().parse(b"%PDF-1.4 fake")
 
@@ -477,7 +477,7 @@ def test_parse_pdf_serializes_detected_tables(monkeypatch) -> None:
 
 
 def test_table_serialization_preserves_multiline_cells_and_width() -> None:
-    from app.services.parsers.table_serialization import serialize_table
+    from app.services.parsers.parser_table_serialization import serialize_table
 
     rows = [
         ["STT", "Nhom nhiem vu", "Don vi", "Danh sach"],
@@ -536,7 +536,7 @@ def test_table_serialization_preserves_multiline_cells_and_width() -> None:
 
 
 def test_parse_pdf_merges_wrapped_aligned_rows() -> None:
-    from app.services.parsers.table_serialization import rewrite_text_with_serialized_tables
+    from app.services.parsers.parser_table_serialization import rewrite_text_with_serialized_tables
 
     raw_text = (
         "No              Work stream                  Owner             People\n"
@@ -587,7 +587,7 @@ def test_parse_pdf_merges_wrapped_aligned_rows() -> None:
     )
 
 def test_table_serialization_row_record_preserves_extra_and_missing_columns() -> None:
-    from app.services.parsers.table_serialization import build_table_row_record
+    from app.services.parsers.parser_table_serialization import build_table_row_record
 
     extra_value_record = build_table_row_record(
         table_id="fixture_t2",
@@ -697,15 +697,15 @@ def test_pdf_parser_cleans_presentation_overlay_lines(monkeypatch) -> None:
     class FakePage:
         def extract_text(self):
             return (
-                "\x00Quá trình triển khai\n"
-                "QQuuáá ttrrììnnhh ttrriiểểnn kkhhaaii\n"
-                "Công cụ chuyển đổi dữ liệu GIS 110kV\n"
+                "\x00QuÃ¡ trÃ¬nh triá»ƒn khai\n"
+                "QQuuÃ¡Ã¡ ttrrÃ¬Ã¬nnhh ttrriiá»ƒá»ƒnn kkhhaaii\n"
+                "CÃ´ng cá»¥ chuyá»ƒn Ä‘á»•i dá»¯ liá»‡u GIS 110kV\n"
             )
 
         def extract_tables(self, *, table_settings):
             return [[
                 [
-                    "Nhóm, lớp dữ liệu Sổ tay bao gồm nhóm lớp",
+                    "NhÃ³m, lá»›p dá»¯ liá»‡u Sá»• tay bao gá»“m nhÃ³m lá»›p",
                     "",
                     "01",
                 ]
@@ -731,9 +731,9 @@ def test_pdf_parser_cleans_presentation_overlay_lines(monkeypatch) -> None:
     parsed = PdfParserImpl().parse(b"%PDF-1.4 fake")
 
     assert "\x00" not in parsed.text
-    assert "QQuuáá" not in parsed.text
-    assert parsed.text.count("Quá trình triển khai") == 1
-    assert "Công cụ chuyển đổi dữ liệu GIS 110kV" in parsed.text
+    assert "QQuuÃ¡Ã¡" not in parsed.text
+    assert parsed.text.count("QuÃ¡ trÃ¬nh triá»ƒn khai") == 1
+    assert "CÃ´ng cá»¥ chuyá»ƒn Ä‘á»•i dá»¯ liá»‡u GIS 110kV" in parsed.text
     assert "TABLE_ROW" not in parsed.text
 
 def test_pdf_parser_prefers_page_fallback_for_orphan_diacritics() -> None:
@@ -771,13 +771,13 @@ def test_pdf_parser_does_not_emit_invalid_staff_table_rows(monkeypatch) -> None:
     class FakePage:
         def extract_text(self, extraction_mode=None):
             return (
-                "Mô tả các mảng công nghệ lõi trước phần bảng.\n"
-                "DANH SÁCH NHÂN SỰ PHỤ TRÁCH TỪNG MẢNG CÔNG NGHỆ LÕI\n"
-                "6 PTUD 6. Nguyễn Huỳnh Đăng Khoa Platform AI 7. Nguyễn Quang Lâm "
-                "8. Nguyễn Trọng Hùng 9. Võ Văn Phúc 10. Võ Văn Hòa 11. Đoàn Gia Hy "
-                "12. Nguyễn Hữu Thiện Đức 13. Trịnh Thế Phong "
-                "Ứng dụng AI vào các "
-                "phần mềm Phòng P.\n"
+                "MÃ´ táº£ cÃ¡c máº£ng cÃ´ng nghá»‡ lÃµi trÆ°á»›c pháº§n báº£ng.\n"
+                "DANH SÃCH NHÃ‚N Sá»° PHá»¤ TRÃCH Tá»ªNG Máº¢NG CÃ”NG NGHá»† LÃ•I\n"
+                "6 PTUD 6. Nguyá»…n Huá»³nh ÄÄƒng Khoa Platform AI 7. Nguyá»…n Quang LÃ¢m "
+                "8. Nguyá»…n Trá»ng HÃ¹ng 9. VÃµ VÄƒn PhÃºc 10. VÃµ VÄƒn HÃ²a 11. ÄoÃ n Gia Hy "
+                "12. Nguyá»…n Há»¯u Thiá»‡n Äá»©c 13. Trá»‹nh Tháº¿ Phong "
+                "á»¨ng dá»¥ng AI vÃ o cÃ¡c "
+                "pháº§n má»m PhÃ²ng P.\n"
             )
 
     class FakeReader:
@@ -785,14 +785,14 @@ def test_pdf_parser_does_not_emit_invalid_staff_table_rows(monkeypatch) -> None:
             self.pages = [FakePage()]
 
     monkeypatch.setattr(PdfParserImpl, "_parse_with_pdfplumber", lambda *_args: None)
-    monkeypatch.setattr("app.services.parsers.pdf_parser.PdfReader", FakeReader)
+    monkeypatch.setattr("app.services.parsers.parser_pdf_parser.PdfReader", FakeReader)
 
     parsed = PdfParserImpl().parse(b"%PDF-1.4 fake")
     table_rows = [element for element in parsed.elements if element.element_type == "table_row"]
 
     assert table_rows == []
     assert any(element.element_type == "page" for element in parsed.elements)
-    assert "Mô tả các mảng công nghệ lõi" in parsed.text
+    assert "MÃ´ táº£ cÃ¡c máº£ng cÃ´ng nghá»‡ lÃµi" in parsed.text
 
 
 def test_docling_parser_uses_lossless_json_serializer() -> None:

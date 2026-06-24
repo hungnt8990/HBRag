@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 import json
 from types import SimpleNamespace
 from uuid import UUID
@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from app.api.routes import documents as documents_routes
 from app.api.routes.documents import get_document_repository
 from app.main import app
-from app.services.chunk_enrichment_service import ChunkEnrichmentService, should_llm_enrich
+from app.services.chunkers.chunker_chunk_enrichment_service import ChunkEnrichmentService, should_llm_enrich
 
 DOCUMENT_ID = UUID("dddddddd-4444-4444-4444-dddddddddddd")
 CHUNK_ID = UUID("eeeeeeee-5555-5555-5555-eeeeeeeeeeee")
@@ -19,7 +19,7 @@ class FakeDocumentRepository:
     def __init__(self, *, status: str = "chunked") -> None:
         self.document = SimpleNamespace(
             id=DOCUMENT_ID,
-            title="Quyết định vận hành nội bộ",
+            title="Quyáº¿t Ä‘á»‹nh váº­n hÃ nh ná»™i bá»™",
             status=status,
             organization_id=ORGANIZATION_ID,
             document_metadata={"parser": "docling", "department": "CPCIT"},
@@ -29,7 +29,7 @@ class FakeDocumentRepository:
                 id=CHUNK_ID,
                 document_id=DOCUMENT_ID,
                 chunk_index=0,
-                content="Số 123/QĐ-CPCIT ngày 01/02/2024 về quy trình vận hành.",
+                content="Sá»‘ 123/QÄ-CPCIT ngÃ y 01/02/2024 vá» quy trÃ¬nh váº­n hÃ nh.",
                 token_count=20,
                 chunk_metadata={"chunk_id": "chunk_000", "keep": "original"},
                 enriched_content=None,
@@ -119,43 +119,43 @@ class OrderedSlowLLM:
 def _valid_enrichment_json() -> str:
     return json.dumps(
         {
-            "summary": "Chunk nêu số hiệu và ngày ban hành quyết định vận hành.",
-            "keywords": ["quyết định", "vận hành"],
-            "aliases": ["QĐ vận hành"],
-            "document_type": "quyết định",
+            "summary": "Chunk nÃªu sá»‘ hiá»‡u vÃ  ngÃ y ban hÃ nh quyáº¿t Ä‘á»‹nh váº­n hÃ nh.",
+            "keywords": ["quyáº¿t Ä‘á»‹nh", "váº­n hÃ nh"],
+            "aliases": ["QÄ váº­n hÃ nh"],
+            "document_type": "quyáº¿t Ä‘á»‹nh",
             "issuing_org": "CPCIT",
-            "document_code": "123/QĐ-CPCIT",
+            "document_code": "123/QÄ-CPCIT",
             "issued_date": "01/02/2024",
             "effective_date": None,
             "expiry_date": None,
             "legal_refs": [],
-            "structure_path": "Quy trình vận hành",
+            "structure_path": "Quy trÃ¬nh váº­n hÃ nh",
             "entities": ["CPCIT"],
             "obligations": [],
             "permissions": [],
             "prohibitions": [],
             "table_context": None,
             "article_number": "1",
-            "article_title": "Quy trình vận hành",
+            "article_title": "Quy trÃ¬nh váº­n hÃ nh",
             "clause_number": "2",
             "point_number": None,
             "appendix": None,
-            "section_title": "Quy định chung",
-            "parent_structure": "Chương I",
-            "signer": "Nguyễn Văn A",
-            "recipients": "Các đơn vị liên quan",
+            "section_title": "Quy Ä‘á»‹nh chung",
+            "parent_structure": "ChÆ°Æ¡ng I",
+            "signer": "Nguyá»…n VÄƒn A",
+            "recipients": "CÃ¡c Ä‘Æ¡n vá»‹ liÃªn quan",
             "applies_to": ["CPCIT"],
-            "responsible_unit": ["Phòng vận hành"],
+            "responsible_unit": ["PhÃ²ng váº­n hÃ nh"],
             "deadline": None,
-            "effective_scope": "Nội bộ",
+            "effective_scope": "Ná»™i bá»™",
             "supersedes": [],
             "amends": [],
-            "referenced_documents": ["456/QĐ-CPCIT"],
+            "referenced_documents": ["456/QÄ-CPCIT"],
             "table_name": None,
             "row_keys": [],
             "is_table_row": "false",
             "is_footer_or_signature": False,
-            "answerable_facts": ["Quyết định có số 123/QĐ-CPCIT."],
+            "answerable_facts": ["Quyáº¿t Ä‘á»‹nh cÃ³ sá»‘ 123/QÄ-CPCIT."],
             "confidence": 0.9,
         },
         ensure_ascii=False,
@@ -184,35 +184,58 @@ def test_chunk_enrichment_service_updates_metadata_and_enriched_content() -> Non
     assert enrichment["provider"] == "openai_compatible"
     assert enrichment["model"] == "test-model"
     assert enrichment["version"] == "test-v1"
-    assert enrichment["document_code"] == "123/QĐ-CPCIT"
-    assert enrichment["keywords"] == ["quyết định", "vận hành"]
+    assert enrichment["document_code"] == "123/QÄ-CPCIT"
+    assert enrichment["keywords"] == ["quyáº¿t Ä‘á»‹nh", "váº­n hÃ nh"]
     assert enrichment["article_number"] == "1"
-    assert enrichment["recipients"] == ["Các đơn vị liên quan"]
+    assert enrichment["recipients"] == ["CÃ¡c Ä‘Æ¡n vá»‹ liÃªn quan"]
     assert enrichment["is_table_row"] is False
-    assert enrichment["answerable_facts"] == ["Quyết định có số 123/QĐ-CPCIT."]
+    assert enrichment["answerable_facts"] == ["Quyáº¿t Ä‘á»‹nh cÃ³ sá»‘ 123/QÄ-CPCIT."]
     assert chunk.chunk_metadata["keep"] == "original"
     assert chunk.enriched_content is not None
     assert not chunk.enriched_content.startswith(chunk.content)
-    assert "Tóm tắt: Chunk nêu số hiệu" in chunk.enriched_content
-    assert "Fact trả lời trực tiếp: Quyết định có số 123/QĐ-CPCIT." in chunk.enriched_content
-    assert chunk.chunk_metadata["rule_enrichment"]["document_code"] == "123/QĐ-CPCIT"
+    assert "TÃ³m táº¯t: Chunk nÃªu sá»‘ hiá»‡u" in chunk.enriched_content
+    assert "Fact tráº£ lá»i trá»±c tiáº¿p: Quyáº¿t Ä‘á»‹nh cÃ³ sá»‘ 123/QÄ-CPCIT." in chunk.enriched_content
+    assert chunk.chunk_metadata["rule_enrichment"]["document_code"] == "123/QÄ-CPCIT"
     assert repository.update_search_vector_calls == [True]
     assert repository.committed is True
     assert repository.rolled_back is False
 
+
+def test_chunk_enrichment_deduplicates_and_validates_entities() -> None:
+    repository = FakeDocumentRepository()
+    payload = json.dumps(
+        {
+            "summary": "Chunk nÃªu sá»‘ hiá»‡u vÃ  Ä‘Æ¡n vá»‹ CPCIT.",
+            "keywords": [],
+            "entities": ["CPCIT", "CPCIT", "ThÆ° Viá»‡n Quá»‘c Gia HÃ  Ná»™i"],
+            "aliases": [],
+            "answerable_facts": [],
+            "possible_queries": [],
+            "table_context": None,
+            "legal_context": None,
+            "confidence": 0.9,
+        },
+        ensure_ascii=False,
+    )
+    service = ChunkEnrichmentService(repository=repository, llm_provider=QueueLLM(payload), enabled=True)
+
+    response = asyncio.run(service.enrich_document(DOCUMENT_ID, force=True))
+
+    assert response.status == "enriched"
+    assert repository.chunks[0].chunk_metadata["enrichment"]["entities"] == ["CPCIT"]
 def test_clear_prose_with_section_path_uses_rule_enrichment_without_llm() -> None:
     repository = FakeDocumentRepository()
     repository.chunks[0].content = (
-        "Quy trình vận hành hệ thống được thực hiện theo các bước kiểm tra, "
-        "phê duyệt và ghi nhận kết quả trên phần mềm nội bộ. Nội dung này đã "
-        "nêu rõ phạm vi áp dụng, đơn vị phối hợp và trách nhiệm chung của các "
-        "bộ phận liên quan trong quá trình xử lý công việc hằng ngày. "
-        "Các bước được mô tả đầy đủ, có ngữ cảnh mục rõ ràng và không chứa "
-        "dòng bảng, số hiệu văn bản, ngày tháng hoặc mã định danh cần suy diễn."
+        "Quy trÃ¬nh váº­n hÃ nh há»‡ thá»‘ng Ä‘Æ°á»£c thá»±c hiá»‡n theo cÃ¡c bÆ°á»›c kiá»ƒm tra, "
+        "phÃª duyá»‡t vÃ  ghi nháº­n káº¿t quáº£ trÃªn pháº§n má»m ná»™i bá»™. Ná»™i dung nÃ y Ä‘Ã£ "
+        "nÃªu rÃµ pháº¡m vi Ã¡p dá»¥ng, Ä‘Æ¡n vá»‹ phá»‘i há»£p vÃ  trÃ¡ch nhiá»‡m chung cá»§a cÃ¡c "
+        "bá»™ pháº­n liÃªn quan trong quÃ¡ trÃ¬nh xá»­ lÃ½ cÃ´ng viá»‡c háº±ng ngÃ y. "
+        "CÃ¡c bÆ°á»›c Ä‘Æ°á»£c mÃ´ táº£ Ä‘áº§y Ä‘á»§, cÃ³ ngá»¯ cáº£nh má»¥c rÃµ rÃ ng vÃ  khÃ´ng chá»©a "
+        "dÃ²ng báº£ng, sá»‘ hiá»‡u vÄƒn báº£n, ngÃ y thÃ¡ng hoáº·c mÃ£ Ä‘á»‹nh danh cáº§n suy diá»…n."
     )
     repository.chunks[0].chunk_metadata = {
         "chunk_id": "chunk_000",
-        "section_path": ["Quy trình", "Vận hành"],
+        "section_path": ["Quy trÃ¬nh", "Váº­n hÃ nh"],
     }
     llm = QueueLLM(_valid_enrichment_json())
     service = ChunkEnrichmentService(repository=repository, llm_provider=llm, enabled=True)
@@ -225,7 +248,7 @@ def test_clear_prose_with_section_path_uses_rule_enrichment_without_llm() -> Non
     enrichment = repository.chunks[0].chunk_metadata["enrichment"]
     assert enrichment["status"] == "skipped"
     assert enrichment["last_skip_reason"]["skip"] == "clear_prose_with_section_path"
-    assert repository.chunks[0].chunk_metadata["rule_enrichment"]["section_path"] == "Quy trình > Vận hành"
+    assert repository.chunks[0].chunk_metadata["rule_enrichment"]["section_path"] == "Quy trÃ¬nh > Váº­n hÃ nh"
 
 def test_table_row_calls_llm() -> None:
     repository = FakeDocumentRepository()
@@ -233,7 +256,7 @@ def test_table_row_calls_llm() -> None:
         "chunk_id": "chunk_000",
         "chunk_type": "table_row",
         "table_name": "BangPhanCong",
-        "table_columns": ["STT", "Nhân sự", "Mảng công nghệ"],
+        "table_columns": ["STT", "NhÃ¢n sá»±", "Máº£ng cÃ´ng nghá»‡"],
     }
     llm = QueueLLM(_valid_enrichment_json())
     service = ChunkEnrichmentService(repository=repository, llm_provider=llm, enabled=True)
@@ -294,7 +317,7 @@ def test_content_change_invalidates_hash_and_enriches_again() -> None:
     )
     asyncio.run(first.enrich_document(DOCUMENT_ID))
     input_hash = repository.chunks[0].chunk_metadata["enrichment"]["input_hash"]
-    repository.chunks[0].content = "Số 999/QĐ-CPCIT ngày 02/03/2024 về quy trình mới."
+    repository.chunks[0].content = "Sá»‘ 999/QÄ-CPCIT ngÃ y 02/03/2024 vá» quy trÃ¬nh má»›i."
     llm = QueueLLM(_valid_enrichment_json())
     second = ChunkEnrichmentService(
         repository=repository,
@@ -361,7 +384,7 @@ def test_one_chunk_failure_does_not_fail_entire_document() -> None:
             id=UUID("eeeeeeee-5555-5555-5555-eeeeeeeeeee1"),
             document_id=DOCUMENT_ID,
             chunk_index=0,
-            content="STT: 1\nNhân sự: A\nMảng công nghệ: GIS",
+            content="STT: 1\nNhÃ¢n sá»±: A\nMáº£ng cÃ´ng nghá»‡: GIS",
             token_count=12,
             chunk_metadata={"chunk_id": "chunk_000", "chunk_type": "table_row"},
             enriched_content=None,
@@ -370,7 +393,7 @@ def test_one_chunk_failure_does_not_fail_entire_document() -> None:
             id=UUID("eeeeeeee-5555-5555-5555-eeeeeeeeeee2"),
             document_id=DOCUMENT_ID,
             chunk_index=1,
-            content="STT: 2\nNhân sự: B\nMảng công nghệ: DMS",
+            content="STT: 2\nNhÃ¢n sá»±: B\nMáº£ng cÃ´ng nghá»‡: DMS",
             token_count=12,
             chunk_metadata={"chunk_id": "chunk_001", "chunk_type": "table_row"},
             enriched_content=None,
@@ -399,7 +422,7 @@ def test_concurrent_enrichment_preserves_preview_order_and_counts(monkeypatch) -
             id=UUID(f"eeeeeeee-5555-5555-5555-eeeeeeeeeee{index}"),
             document_id=DOCUMENT_ID,
             chunk_index=index,
-            content=f"STT: {index}\nNhân sự: Người {index}\nMảng công nghệ: GIS",
+            content=f"STT: {index}\nNhÃ¢n sá»±: NgÆ°á»i {index}\nMáº£ng cÃ´ng nghá»‡: GIS",
             token_count=12,
             chunk_metadata={"chunk_id": f"chunk_00{index}", "chunk_type": "table_row"},
             enriched_content=None,
@@ -407,7 +430,7 @@ def test_concurrent_enrichment_preserves_preview_order_and_counts(monkeypatch) -
         for index in range(3)
     ]
     monkeypatch.setattr(
-        "app.services.chunk_enrichment_service.settings.chunk_enrichment_concurrency",
+        "app.services.chunkers.chunker_chunk_enrichment_service.settings.chunk_enrichment_concurrency",
         3,
     )
     llm = OrderedSlowLLM()
@@ -427,7 +450,7 @@ def test_concurrent_enrichment_preserves_preview_order_and_counts(monkeypatch) -
 def test_should_llm_enrich_skips_footer() -> None:
     document = SimpleNamespace(title="Doc", document_metadata={})
     chunk = SimpleNamespace(
-        content="Nơi nhận: Như trên; Lưu VT.",
+        content="NÆ¡i nháº­n: NhÆ° trÃªn; LÆ°u VT.",
         chunk_metadata={"chunk_type": "administrative_footer"},
     )
 
@@ -440,10 +463,10 @@ def test_force_enrich_failure_preserves_existing_success_metadata() -> None:
     repository = FakeDocumentRepository()
     repository.chunks[0].chunk_metadata["enrichment"] = {
         "status": "success",
-        "summary": "Bản enrich cũ.",
-        "keywords": ["cũ"],
+        "summary": "Báº£n enrich cÅ©.",
+        "keywords": ["cÅ©"],
     }
-    repository.chunks[0].enriched_content = "Nội dung enrich cũ"
+    repository.chunks[0].enriched_content = "Ná»™i dung enrich cÅ©"
     service = ChunkEnrichmentService(
         repository=repository,
         llm_provider=FailingLLM(),
@@ -456,10 +479,10 @@ def test_force_enrich_failure_preserves_existing_success_metadata() -> None:
     assert response.status == "failed"
     assert response.failed_count == 1
     assert enrichment["status"] == "success"
-    assert enrichment["summary"] == "Bản enrich cũ."
+    assert enrichment["summary"] == "Báº£n enrich cÅ©."
     assert enrichment["last_attempt_status"] == "failed"
     assert "LLM provider unavailable" in enrichment["last_error"]
-    assert repository.chunks[0].enriched_content == "Nội dung enrich cũ"
+    assert repository.chunks[0].enriched_content == "Ná»™i dung enrich cÅ©"
 
 
 def test_chunk_enrichment_service_skips_when_disabled_without_force() -> None:
@@ -530,7 +553,7 @@ def test_enrich_endpoint_runs_service_and_returns_counts(monkeypatch) -> None:
     assert payload["enriched_count"] == 1
     assert payload["failed_count"] == 0
     assert payload["skipped_count"] == 0
-    assert payload["preview"][0]["summary"].startswith("Chunk nêu số hiệu")
+    assert payload["preview"][0]["summary"].startswith("Chunk nÃªu sá»‘ hiá»‡u")
     assert repository.chunks[0].chunk_metadata["enrichment"]["status"] == "success"
     assert repository.chunks[0].chunk_metadata["enrichment"]["provider"] == "openai_compatible"
     assert repository.chunks[0].chunk_metadata["enrichment"]["model"] == "endpoint-model"

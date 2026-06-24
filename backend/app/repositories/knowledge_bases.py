@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from collections.abc import Sequence
 from uuid import UUID
@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.knowledge_base import KnowledgeBase, KnowledgeBaseMember
 from app.models.user import User
-from app.services.permissions import can_view_knowledge_base
+from app.services.security.security_permissions import can_view_knowledge_base
 
 DEFAULT_KNOWLEDGE_BASE_NAME = "Default Knowledge Base"
 

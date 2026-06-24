@@ -1,4 +1,4 @@
-import inspect
+﻿import inspect
 from dataclasses import asdict
 from typing import Annotated, Any
 from uuid import UUID
@@ -21,18 +21,18 @@ from app.db.session import get_db_session
 from app.repositories.documents import DocumentRepository
 from app.repositories.ingestion_profiles import IngestionProfileRepository
 from app.repositories.rag_runtime_config import RagRuntimeConfigRepository
-from app.services.document_profiles import DEFAULT_PROFILE
-from app.services.document_service import DocumentService
+from app.services.documents.document_profiles import DEFAULT_PROFILE
+from app.services.documents.document_service import DocumentService
 from app.services.graph import Neo4jClient, get_neo4j_client
-from app.services.heading_rule_engine import detect_headings, heading_rules_from_config
-from app.services.ingestion_profiles import (
+from app.services.chunkers.chunker_heading_rule_engine import detect_headings, heading_rules_from_config
+from app.services.ingestion.ingestion_profiles import (
     get_profile_names,
     load_profile_configs,
     save_profile_config_to_database,
 )
-from app.services.ingestion_queue import IngestionJob, IngestionQueue, get_ingestion_queue
-from app.services.rag_runtime_config import DEFAULT_RAG_CONFIG_NAME, default_rag_runtime_config, load_rag_runtime_config, save_rag_runtime_config
-from app.services.vector_store import QdrantVectorStore, get_vector_store
+from app.services.ingestion.ingestion_queue import IngestionJob, IngestionQueue, get_ingestion_queue
+from app.services.rag.rag_runtime_config import DEFAULT_RAG_CONFIG_NAME, default_rag_runtime_config, load_rag_runtime_config, save_rag_runtime_config
+from app.services.vector.vector_store import QdrantVectorStore, get_vector_store
 
 
 class RuntimeConfigResponse(BaseModel):

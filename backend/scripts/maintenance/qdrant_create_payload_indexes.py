@@ -10,7 +10,7 @@ import asyncio
 
 from qdrant_client.models import PayloadSchemaType
 
-from app.services.vector_store import get_vector_store
+from app.services.vector.vector_store import get_vector_store
 
 KEYWORD_FIELDS = [
     "document_id",

@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 import json
 from uuid import UUID
 
@@ -7,8 +7,8 @@ from fastapi.testclient import TestClient
 from app.api.routes.chat import get_rag_answer_service
 from app.main import app
 from app.schemas.chat import RagCitationResponse
-from app.services.llms.fake_llm import FakeLLM
-from app.services.rag_answer_service import RagStreamEvent
+from app.services.llms.llm_fake_llm import FakeLLM
+from app.services.rag.rag_answer_service import RagStreamEvent
 
 SESSION_ID = UUID("aaaaaaaa-1111-1111-1111-aaaaaaaaaaaa")
 USER_MESSAGE_ID = UUID("bbbbbbbb-2222-2222-2222-bbbbbbbbbbbb")

@@ -1,0 +1,5 @@
+{"question_type":"doc_code","expected_evidence":["document_summary_artifact","document_header"],"metrics":["recall_at_5","recall_at_10","mrr","wrong_document_rate"]}
+{"question_type":"person_assignment","expected_evidence":["assignment_artifact","table_row"],"metrics":["recall_at_5","precision_at_5","wrong_row_rate"]}
+{"question_type":"table_lookup","expected_evidence":["table_evidence_artifact","table_row"],"metrics":["recall_at_5","wrong_row_rate"]}
+{"question_type":"legal_clause","expected_evidence":["legal_evidence_artifact","legal_clause"],"metrics":["recall_at_5","wrong_article_rate"]}
+{"question_type":"summary","expected_evidence":["document_summary_artifact","evidence_chunk"],"metrics":["recall_at_10","mrr","completeness"]}

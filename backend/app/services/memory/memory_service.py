@@ -1,18 +1,18 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import logging
 
-from app.services.memory.base import MemoryProvider, MemoryResult, MemoryUser
+from app.services.memory.memory_base import MemoryProvider, MemoryResult, MemoryUser
 
 logger = logging.getLogger(__name__)
 
 # Conservative trigger phrases (Vietnamese + intent) for auto-saving preferences.
 AUTO_SAVE_PHRASES = (
-    "nhớ rằng",
-    "từ nay",
-    "tôi thích",
-    "hãy luôn",
-    "ưu tiên",
+    "nhá»› ráº±ng",
+    "tá»« nay",
+    "tÃ´i thÃ­ch",
+    "hÃ£y luÃ´n",
+    "Æ°u tiÃªn",
 )
 
 
@@ -21,7 +21,7 @@ def detect_auto_save_memory(message: str) -> tuple[str, str] | None:
     lowered = message.lower()
     for phrase in AUTO_SAVE_PHRASES:
         if phrase in lowered:
-            memory_type = "instruction" if phrase in ("từ nay", "hãy luôn") else "preference"
+            memory_type = "instruction" if phrase in ("tá»« nay", "hÃ£y luÃ´n") else "preference"
             return memory_type, message.strip()
     return None
 

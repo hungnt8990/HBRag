@@ -1,15 +1,15 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import re
 from uuid import UUID
 
 from app.core.config import settings
 from app.schemas.documents import HybridSearchResult
-from app.services.graph.extractors.base import GraphExtractor
-from app.services.graph.models import GraphChunkCandidate
-from app.services.graph.neo4j_client import Neo4jClient
+from app.services.graph.extractors.extractor_base import GraphExtractor
+from app.services.graph.graph_models import GraphChunkCandidate
+from app.services.graph.graph_neo4j_client import Neo4jClient
 
-TOKEN_PATTERN = re.compile(r"[\wÀ-ỹ]+", flags=re.UNICODE)
+TOKEN_PATTERN = re.compile(r"[\wÃ€-á»¹]+", flags=re.UNICODE)
 
 
 class GraphRetrievalService:

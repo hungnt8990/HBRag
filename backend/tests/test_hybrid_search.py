@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 from types import SimpleNamespace
 from uuid import UUID
 
@@ -17,7 +17,7 @@ from app.schemas.documents import (
     VectorSearchResponse,
     VectorSearchResult,
 )
-from app.services.hybrid_search import HybridSearchService
+from app.services.retrieval.retrieval_hybrid_search import HybridSearchService
 
 DOCUMENT_ID = UUID("88888888-8888-8888-8888-888888888888")
 VECTOR_ONLY_CHUNK_ID = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
@@ -226,20 +226,20 @@ def test_schema_count_query_boosts_schema_chunks_over_flow_summary() -> None:
     flow_chunk_id = UUID("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
 
     results = HybridSearchService.fuse_results(
-        query="Khung CSDL gis hạ thế có mấy lớp thuộc tính",
+        query="Khung CSDL gis háº¡ tháº¿ cÃ³ máº¥y lá»›p thuá»™c tÃ­nh",
         vector_results=[
             VectorSearchResult(
                 chunk_id=flow_chunk_id,
                 document_id=DOCUMENT_ID,
                 score=0.95,
-                content_preview="CÁC LỚP DỮ LIỆU\nCMIS/TTHT → Lưu trữ & Tổng hợp → GIS Hạ thế",
+                content_preview="CÃC Lá»šP Dá»® LIá»†U\nCMIS/TTHT â†’ LÆ°u trá»¯ & Tá»•ng há»£p â†’ GIS Háº¡ tháº¿",
                 metadata={"chunk_type": "docling_hybrid_repaired"},
             ),
             VectorSearchResult(
                 chunk_id=schema_chunk_id,
                 document_id=DOCUMENT_ID,
                 score=0.70,
-                content_preview="Bảng dữ liệu: F08_CotDien_HT. Tổng số trường: 18.",
+                content_preview="Báº£ng dá»¯ liá»‡u: F08_CotDien_HT. Tá»•ng sá»‘ trÆ°á»ng: 18.",
                 metadata={
                     "chunk_type": "table_parent",
                     "table_name": "F08_CotDien_HT",
@@ -262,27 +262,27 @@ def test_schema_count_query_prefers_structural_overview_over_field_rows() -> Non
     field_chunk_id = UUID("44444444-4444-4444-4444-444444444444")
 
     results = HybridSearchService.fuse_results(
-        query="Khung CSDL gis hạ thế có mấy lớp thuộc tính",
+        query="Khung CSDL gis háº¡ tháº¿ cÃ³ máº¥y lá»›p thuá»™c tÃ­nh",
         vector_results=[
             VectorSearchResult(
                 chunk_id=field_chunk_id,
                 document_id=DOCUMENT_ID,
                 score=0.99,
-                content_preview="F08_CotDien_HT có trường Trị số tiếp địa",
+                content_preview="F08_CotDien_HT cÃ³ trÆ°á»ng Trá»‹ sá»‘ tiáº¿p Ä‘á»‹a",
                 metadata={"chunk_type": "schema_field_row", "field_name": "TriSoTiepDia"},
             ),
             VectorSearchResult(
                 chunk_id=attribute_chunk_id,
                 document_id=DOCUMENT_ID,
                 score=0.70,
-                content_preview="03 bảng dữ liệu thuộc tính",
+                content_preview="03 báº£ng dá»¯ liá»‡u thuá»™c tÃ­nh",
                 metadata={"chunk_type": "attribute_table_schema", "table_name": "HinhAnhCotDien"},
             ),
             VectorSearchResult(
                 chunk_id=relationship_chunk_id,
                 document_id=DOCUMENT_ID,
                 score=0.69,
-                content_preview="03 mối quan hệ 1-M",
+                content_preview="03 má»‘i quan há»‡ 1-M",
                 metadata={
                     "chunk_type": "gis_relationship_schema",
                     "relationship_name": "PXXXXX_CotDien_HT_HinhAnhCotDien",
@@ -293,7 +293,7 @@ def test_schema_count_query_prefers_structural_overview_over_field_rows() -> Non
                 chunk_id=summary_chunk_id,
                 document_id=DOCUMENT_ID,
                 score=0.68,
-                content_preview="Khung CSDL tổng thể có 11 lớp dữ liệu",
+                content_preview="Khung CSDL tá»•ng thá»ƒ cÃ³ 11 lá»›p dá»¯ liá»‡u",
                 metadata={"chunk_type": "schema_object_summary"},
             ),
         ],
@@ -312,7 +312,7 @@ def test_schema_field_boost_uses_profile_query_intent_rules() -> None:
         chunk_id=field_chunk_id,
         document_id=DOCUMENT_ID,
         score=0.99,
-        content_preview="F08_CotDien_HT có trường Trị số tiếp địa",
+        content_preview="F08_CotDien_HT cÃ³ trÆ°á»ng Trá»‹ sá»‘ tiáº¿p Ä‘á»‹a",
         metadata={"chunk_type": "schema_field_row"},
     )
 
@@ -348,33 +348,33 @@ def test_enrichment_metadata_boost_is_gated() -> None:
             chunk_id=plain_chunk_id,
             document_id=DOCUMENT_ID,
             score=0.99,
-            content_preview="Nội dung chung",
+            content_preview="Ná»™i dung chung",
             metadata={"chunk_id": str(plain_chunk_id)},
         ),
         VectorSearchResult(
             chunk_id=enriched_chunk_id,
             document_id=DOCUMENT_ID,
             score=0.5,
-            content_preview="Nội dung gốc không có mã",
+            content_preview="Ná»™i dung gá»‘c khÃ´ng cÃ³ mÃ£",
             metadata={
                 "chunk_id": str(enriched_chunk_id),
                 "enrichment": {
                     "keywords": ["PMISToGIS"],
-                    "document_code": "123/QĐ-CPCIT",
+                    "document_code": "123/QÄ-CPCIT",
                 },
             },
         ),
     ]
 
     disabled = HybridSearchService.fuse_results(
-        query="PMISToGIS 123/QĐ-CPCIT",
+        query="PMISToGIS 123/QÄ-CPCIT",
         vector_results=vector_results,
         keyword_results=[],
         top_k=2,
         retrieval_enrichment_enabled=False,
     )
     enabled = HybridSearchService.fuse_results(
-        query="PMISToGIS 123/QĐ-CPCIT",
+        query="PMISToGIS 123/QÄ-CPCIT",
         vector_results=vector_results,
         keyword_results=[],
         top_k=2,
@@ -391,8 +391,8 @@ def test_person_area_membership_boosts_valid_entity_or_table_row() -> None:
     valid_chunk_id = UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
     warning_chunk_id = UUID("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
     query = (
-        "Nguyễn Trọng Hùng tham gia Xây dựng nền tảng RAG trên dữ liệu nội bộ "
-        "đúng không?"
+        "Nguyá»…n Trá»ng HÃ¹ng tham gia XÃ¢y dá»±ng ná»n táº£ng RAG trÃªn dá»¯ liá»‡u ná»™i bá»™ "
+        "Ä‘Ãºng khÃ´ng?"
     )
 
     results = HybridSearchService.fuse_results(
@@ -402,7 +402,7 @@ def test_person_area_membership_boosts_valid_entity_or_table_row() -> None:
                 chunk_id=warning_chunk_id,
                 document_id=DOCUMENT_ID,
                 score=0.99,
-                content_preview="Nguyễn Trọng Hùng Platform AI",
+                content_preview="Nguyá»…n Trá»ng HÃ¹ng Platform AI",
                 metadata={
                     "chunk_type": "table_block",
                     "table_parse_warning": True,
@@ -414,17 +414,17 @@ def test_person_area_membership_boosts_valid_entity_or_table_row() -> None:
                 document_id=DOCUMENT_ID,
                 score=0.5,
                 content_preview=(
-                    "Nhân sự: Nguyễn Trọng Hùng. Xây dựng nền tảng RAG trên "
-                    "dữ liệu nội bộ."
+                    "NhÃ¢n sá»±: Nguyá»…n Trá»ng HÃ¹ng. XÃ¢y dá»±ng ná»n táº£ng RAG trÃªn "
+                    "dá»¯ liá»‡u ná»™i bá»™."
                 ),
                 metadata={
                     "chunk_type": "entity_profile",
                     "relationship_type": "technology_area_staff",
                     "confidence": 0.95,
-                    "person_name": "Nguyễn Trọng Hùng",
+                    "person_name": "Nguyá»…n Trá»ng HÃ¹ng",
                     "areas": [
                         {
-                            "area": "Xây dựng nền tảng RAG trên dữ liệu nội bộ",
+                            "area": "XÃ¢y dá»±ng ná»n táº£ng RAG trÃªn dá»¯ liá»‡u ná»™i bá»™",
                             "lead_department": "PTUD",
                             "stt": "3",
                         }
@@ -453,7 +453,7 @@ def test_identifier_lookup_boosts_doc_code_metadata_over_topical_vector_match() 
                 chunk_id=caption_chunk_id,
                 document_id=DOCUMENT_ID,
                 score=0.99,
-                content_preview="Màn hình ứng dụng EVN CSKH, tài liệu 907.",
+                content_preview="MÃ n hÃ¬nh á»©ng dá»¥ng EVN CSKH, tÃ i liá»‡u 907.",
                 metadata={
                     "chunk_type": "app_ui_caption",
                     "identifiers": ["907"],
@@ -463,11 +463,11 @@ def test_identifier_lookup_boosts_doc_code_metadata_over_topical_vector_match() 
                 chunk_id=dispatch_chunk_id,
                 document_id=DOCUMENT_ID,
                 score=0.4,
-                content_preview="Công văn cập nhật phiên bản chính thức EVN CSKH.",
+                content_preview="CÃ´ng vÄƒn cáº­p nháº­t phiÃªn báº£n chÃ­nh thá»©c EVN CSKH.",
                 metadata={
                     "chunk_type": "official_dispatch_main",
-                    "doc_codes": ["3113/EVN-KDMBĐ"],
-                    "identifiers": ["3113/EVN-KDMBĐ", "3113", "EVN-KDMBĐ"],
+                    "doc_codes": ["3113/EVN-KDMBÄ"],
+                    "identifiers": ["3113/EVN-KDMBÄ", "3113", "EVN-KDMBÄ"],
                 },
             ),
         ],

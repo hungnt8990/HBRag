@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import importlib.util
 import sys
@@ -56,9 +56,9 @@ def _stub_modules() -> dict[str, ModuleType]:
 
 def _load_docling_v6_module():
     if importlib.util.find_spec("docling") is not None:
-        from app.services import docling_v6_chunking
+        from app.services.chunkers import chunker_docling_v6_chunking
 
-        return docling_v6_chunking
+        return chunker_docling_v6_chunking
 
     stubs = _stub_modules()
     previous = {name: sys.modules.get(name) for name in stubs}
@@ -68,7 +68,8 @@ def _load_docling_v6_module():
             Path(__file__).resolve().parents[1]
             / "app"
             / "services"
-            / "docling_v6_chunking.py"
+            / "chunkers"
+            / "chunker_docling_v6_chunking.py"
         )
         spec = importlib.util.spec_from_file_location(
             "_test_docling_v6_chunking", module_path
@@ -105,15 +106,15 @@ semantic_validation_issues = _docling_v6.semantic_validation_issues
 synchronize_record_provenance = _docling_v6.synchronize_record_provenance
 
 def test_explicit_attribute_table_name_resets_stale_f10_context() -> None:
-    text = """3. Khởi tạo bổ sung 03 bảng dữ liệu thuộc tính
-(7) F10_TuPhanPhoi_HT - Lớp tủ phân phối
-(1) HinhAnhCotDien - Hình ảnh cột điện
-Tên bảng dữ liệu: HinhAnhCotDien
-Mô tả đường dẫn hình ảnh cột điện
-| TT | Tên trường | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng |
+    text = """3. Khá»Ÿi táº¡o bá»• sung 03 báº£ng dá»¯ liá»‡u thuá»™c tÃ­nh
+(7) F10_TuPhanPhoi_HT - Lá»›p tá»§ phÃ¢n phá»‘i
+(1) HinhAnhCotDien - HÃ¬nh áº£nh cá»™t Ä‘iá»‡n
+TÃªn báº£ng dá»¯ liá»‡u: HinhAnhCotDien
+MÃ´ táº£ Ä‘Æ°á»ng dáº«n hÃ¬nh áº£nh cá»™t Ä‘iá»‡n
+| TT | TÃªn trÆ°á»ng | MÃ´ táº£ | Kiá»ƒu dá»¯ liá»‡u | Miá»n giÃ¡ trá»‹ | Äá»™ rá»™ng |
 |---|---|---|---|---|---|
-| 1 | IDHinhAnh | ID hình ảnh | Text | | 50 |
-| 2 | IDCotDien | ID cột điện | Text | | 50 |"""
+| 1 | IDHinhAnh | ID hÃ¬nh áº£nh | Text | | 50 |
+| 2 | IDCotDien | ID cá»™t Ä‘iá»‡n | Text | | 50 |"""
     records = repair_table_identity(
         [
             {
@@ -121,8 +122,8 @@ Mô tả đường dẫn hình ảnh cột điện
                 "text": text,
                 "table_name": "F10_TuPhanPhoi_HT",
                 "section_path": [
-                    "3. Khởi tạo bổ sung 03 bảng dữ liệu thuộc tính",
-                    "(7) F10_TuPhanPhoi_HT - Lớp tủ phân phối",
+                    "3. Khá»Ÿi táº¡o bá»• sung 03 báº£ng dá»¯ liá»‡u thuá»™c tÃ­nh",
+                    "(7) F10_TuPhanPhoi_HT - Lá»›p tá»§ phÃ¢n phá»‘i",
                 ],
                 "headings": [],
                 "pages": [9, 10],
@@ -139,19 +140,19 @@ Mô tả đường dẫn hình ảnh cột điện
 
 
 def test_full_repair_pipeline_does_not_carry_f10_into_hinhanhcotdien() -> None:
-    f10_text = """(7) F10_TuPhanPhoi_HT - Lớp tủ phân phối
-| TT | Trường dữ liệu | Mô tả | Kiểu dữ liệu | Nguồn dữ liệu |
+    f10_text = """(7) F10_TuPhanPhoi_HT - Lá»›p tá»§ phÃ¢n phá»‘i
+| TT | TrÆ°á»ng dá»¯ liá»‡u | MÃ´ táº£ | Kiá»ƒu dá»¯ liá»‡u | Nguá»“n dá»¯ liá»‡u |
 |---|---|---|---|---|
-| 1 | ID | ID tủ hạ thế | Text | ID tự sinh của GIS |"""
-    attribute_text = """3. Khởi tạo bổ sung 03 bảng dữ liệu thuộc tính
-(7) F10_TuPhanPhoi_HT - Lớp tủ phân phối
-(1) HinhAnhCotDien - Hình ảnh cột điện
-Tên bảng dữ liệu: HinhAnhCotDien
-Mô tả đường dẫn hình ảnh cột điện
-| TT | Tên trường | Mô tả | Kiểu dữ liệu | Độ rộng |
+| 1 | ID | ID tá»§ háº¡ tháº¿ | Text | ID tá»± sinh cá»§a GIS |"""
+    attribute_text = """3. Khá»Ÿi táº¡o bá»• sung 03 báº£ng dá»¯ liá»‡u thuá»™c tÃ­nh
+(7) F10_TuPhanPhoi_HT - Lá»›p tá»§ phÃ¢n phá»‘i
+(1) HinhAnhCotDien - HÃ¬nh áº£nh cá»™t Ä‘iá»‡n
+TÃªn báº£ng dá»¯ liá»‡u: HinhAnhCotDien
+MÃ´ táº£ Ä‘Æ°á»ng dáº«n hÃ¬nh áº£nh cá»™t Ä‘iá»‡n
+| TT | TÃªn trÆ°á»ng | MÃ´ táº£ | Kiá»ƒu dá»¯ liá»‡u | Äá»™ rá»™ng |
 |---|---|---|---|---|
-| 1 | IDHinhAnh | ID hình ảnh | Text | 50 |
-| 2 | IDCotDien | ID cột điện | Text | 50 |"""
+| 1 | IDHinhAnh | ID hÃ¬nh áº£nh | Text | 50 |
+| 2 | IDCotDien | ID cá»™t Ä‘iá»‡n | Text | 50 |"""
     records = []
     for index, text in enumerate((f10_text, attribute_text), start=1):
         records.append(
@@ -187,9 +188,9 @@ Mô tả đường dẫn hình ảnh cột điện
 
 def test_final_provenance_keeps_parser_source_but_aligns_raw_text_to_chunk() -> None:
     record = {
-        "contextualized_text": "1.2. GIS hạ thế:\nNội dung đã sửa.",
+        "contextualized_text": "1.2. GIS háº¡ tháº¿:\nNá»™i dung Ä‘Ã£ sá»­a.",
         "text": "old",
-        "raw_text": "một block nguồn dài chứa cả mục 1.2 và 2.1",
+        "raw_text": "má»™t block nguá»“n dÃ i chá»©a cáº£ má»¥c 1.2 vÃ  2.1",
         "pages": [1, 2],
     }
 
@@ -197,18 +198,18 @@ def test_final_provenance_keeps_parser_source_but_aligns_raw_text_to_chunk() -> 
 
     assert result["raw_text"] == result["text"]
     assert result["normalized_text"] == result["text"]
-    assert result["source_raw_text"] == "một block nguồn dài chứa cả mục 1.2 và 2.1"
+    assert result["source_raw_text"] == "má»™t block nguá»“n dÃ i chá»©a cáº£ má»¥c 1.2 vÃ  2.1"
     assert result["provenance_status"] == "chunk_aligned"
 
 
 def test_table_repacking_avoids_a_tiny_tail() -> None:
-    prefix = ["(1) F05_CongToKhachHang_HT - Lớp công tơ khách hàng"]
+    prefix = ["(1) F05_CongToKhachHang_HT - Lá»›p cÃ´ng tÆ¡ khÃ¡ch hÃ ng"]
     header = [
-        "| TT | Trường dữ liệu | Mô tả | Kiểu dữ liệu | Nguồn dữ liệu |",
+        "| TT | TrÆ°á»ng dá»¯ liá»‡u | MÃ´ táº£ | Kiá»ƒu dá»¯ liá»‡u | Nguá»“n dá»¯ liá»‡u |",
         "|---|---|---|---|---|",
     ]
     rows = [
-        f"| {index} | Field{index} | Mô tả trường dữ liệu số {index} có nội dung | Text | CMIS |"
+        f"| {index} | Field{index} | MÃ´ táº£ trÆ°á»ng dá»¯ liá»‡u sá»‘ {index} cÃ³ ná»™i dung | Text | CMIS |"
         for index in range(1, 25)
     ]
     groups = []
@@ -245,7 +246,7 @@ def test_table_parent_is_inserted_and_children_point_to_it() -> None:
             "text": "F08 part 1",
             "raw_text": "F08 part 1",
             "table_name": "F08_CotDien_HT",
-            "table_description": "Lớp cột điện",
+            "table_description": "Lá»›p cá»™t Ä‘iá»‡n",
             "chunk_type": "table_rows",
             "content_format": "markdown_table",
             "field_names": ["ID", "MaTramBienAp"],
@@ -254,15 +255,15 @@ def test_table_parent_is_inserted_and_children_point_to_it() -> None:
             "row_start": 1,
             "row_end": 2,
             "pages": [5],
-            "section_path": ["F08_CotDien_HT - Lớp cột điện"],
-            "headings": ["F08_CotDien_HT - Lớp cột điện"],
+            "section_path": ["F08_CotDien_HT - Lá»›p cá»™t Ä‘iá»‡n"],
+            "headings": ["F08_CotDien_HT - Lá»›p cá»™t Ä‘iá»‡n"],
         },
         {
             "contextualized_text": "F08 part 2",
             "text": "F08 part 2",
             "raw_text": "F08 part 2",
             "table_name": "F08_CotDien_HT",
-            "table_description": "Lớp cột điện",
+            "table_description": "Lá»›p cá»™t Ä‘iá»‡n",
             "chunk_type": "table_rows",
             "content_format": "markdown_table",
             "field_names": ["X", "Y"],
@@ -271,8 +272,8 @@ def test_table_parent_is_inserted_and_children_point_to_it() -> None:
             "row_start": 3,
             "row_end": 4,
             "pages": [6],
-            "section_path": ["F08_CotDien_HT - Lớp cột điện"],
-            "headings": ["F08_CotDien_HT - Lớp cột điện"],
+            "section_path": ["F08_CotDien_HT - Lá»›p cá»™t Ä‘iá»‡n"],
+            "headings": ["F08_CotDien_HT - Lá»›p cá»™t Ä‘iá»‡n"],
         },
     ]
 
@@ -290,24 +291,24 @@ def test_table_parent_is_inserted_and_children_point_to_it() -> None:
 def test_cross_reference_is_resolved_to_section_text() -> None:
     records = [
         {
-            "contextualized_text": "2.2. GIS hạ thế:\nHoàn thành trong tháng 9/2026.",
-            "section_path": ["2. Các CTĐL", "2.2. GIS hạ thế"],
+            "contextualized_text": "2.2. GIS háº¡ tháº¿:\nHoÃ n thÃ nh trong thÃ¡ng 9/2026.",
+            "section_path": ["2. CÃ¡c CTÄL", "2.2. GIS háº¡ tháº¿"],
         },
         {
-            "contextualized_text": "3.2. GIS hạ thế:\nTriển khai theo kế hoạch tại mục 2.2.",
-            "section_path": ["3. KHoPC", "3.2. GIS hạ thế"],
+            "contextualized_text": "3.2. GIS háº¡ tháº¿:\nTriá»ƒn khai theo káº¿ hoáº¡ch táº¡i má»¥c 2.2.",
+            "section_path": ["3. KHoPC", "3.2. GIS háº¡ tháº¿"],
         },
     ]
 
     resolved = resolve_cross_references(records)
 
     assert resolved[1]["cross_references"] == ["2.2"]
-    assert "tháng 9/2026" in resolved[1]["resolved_reference_text"]
+    assert "thÃ¡ng 9/2026" in resolved[1]["resolved_reference_text"]
 
 
 def test_semantic_validator_rejects_table_metadata_mismatch() -> None:
-    text = """Tên bảng dữ liệu: HinhAnhCotDien
-| TT | Tên trường |
+    text = """TÃªn báº£ng dá»¯ liá»‡u: HinhAnhCotDien
+| TT | TÃªn trÆ°á»ng |
 |---|---|
 | 1 | IDHinhAnh |"""
     issues = semantic_validation_issues(
@@ -316,7 +317,7 @@ def test_semantic_validator_rejects_table_metadata_mismatch() -> None:
             "raw_text": text,
             "table_name": "F10_TuPhanPhoi_HT",
             "chunk_type": "table_rows",
-            "section_path": ["(7) F10_TuPhanPhoi_HT - Lớp tủ phân phối"],
+            "section_path": ["(7) F10_TuPhanPhoi_HT - Lá»›p tá»§ phÃ¢n phá»‘i"],
         }
     )
 
@@ -330,8 +331,8 @@ def test_semantic_validator_rejects_table_metadata_mismatch() -> None:
 
 def test_single_small_table_becomes_complete_without_parent() -> None:
     table_text = (
-        "Tên bảng dữ liệu: HinhAnhCotDien\n"
-        "| TT | Tên trường |\n"
+        "TÃªn báº£ng dá»¯ liá»‡u: HinhAnhCotDien\n"
+        "| TT | TÃªn trÆ°á»ng |\n"
         "|---|---|\n"
         "| 1 | IDHinhAnh |"
     )
@@ -344,7 +345,7 @@ def test_single_small_table_becomes_complete_without_parent() -> None:
         "chunk_type": "table_rows",
         "field_names": ["IDHinhAnh"],
         "pages": [10],
-        "section_path": ["3. Khởi tạo bổ sung 03 bảng dữ liệu thuộc tính"],
+        "section_path": ["3. Khá»Ÿi táº¡o bá»• sung 03 báº£ng dá»¯ liá»‡u thuá»™c tÃ­nh"],
     }
 
     records = add_table_parent_chunks([child])
@@ -361,13 +362,13 @@ def test_split_table_grouping_is_content_first_not_stale_metadata() -> None:
         "chunk_type": "table_rows",
         "field_names": ["ID"],
         "pages": [10],
-        "section_path": ["3. Khởi tạo bổ sung 03 bảng dữ liệu thuộc tính"],
+        "section_path": ["3. Khá»Ÿi táº¡o bá»• sung 03 báº£ng dá»¯ liá»‡u thuá»™c tÃ­nh"],
         "table_name": "F10_TuPhanPhoi_HT",
         "entity": "F10_TuPhanPhoi_HT",
     }
     first_text = (
-        "Tên bảng dữ liệu: HinhAnhCotDien\n"
-        "| TT | Tên trường |\n"
+        "TÃªn báº£ng dá»¯ liá»‡u: HinhAnhCotDien\n"
+        "| TT | TÃªn trÆ°á»ng |\n"
         "|---|---|\n"
         "| 1 | ID |"
     )
@@ -380,8 +381,8 @@ def test_split_table_grouping_is_content_first_not_stale_metadata() -> None:
         "row_end": 1,
     }
     second_text = (
-        "Tên bảng dữ liệu: HinhAnhCotDien\n"
-        "| TT | Tên trường |\n"
+        "TÃªn báº£ng dá»¯ liá»‡u: HinhAnhCotDien\n"
+        "| TT | TÃªn trÆ°á»ng |\n"
         "|---|---|\n"
         "| 2 | IDCotDien |"
     )
@@ -408,55 +409,55 @@ def test_split_table_grouping_is_content_first_not_stale_metadata() -> None:
 
 
 def test_normalize_vietnamese_pdf_text_repairs_slide_glyph_spacing() -> None:
-    raw = "CÔNG C Ụ ĐÔ NG B Ộ D Ữ LI Ệ U GIS H Ạ THÊ"
+    raw = "CÃ”NG C á»¤ ÄÃ” NG B á»˜ D á»® LI á»† U GIS H áº  THÃŠ"
     assert normalize_vietnamese_pdf_text(raw) == (
-        "CÔNG CỤ ĐỒNG BỘ DỮ LIỆU GIS HẠ THẾ"
+        "CÃ”NG Cá»¤ Äá»’NG Bá»˜ Dá»® LIá»†U GIS Háº  THáº¾"
     )
 
 
 def test_normalize_vietnamese_pdf_text_keeps_real_word_boundaries() -> None:
-    raw = "Căn c ứ vb s ố 6515 và L ớ p thi ế t b ị đóng c ắ t"
+    raw = "CÄƒn c á»© vb s á»‘ 6515 vÃ  L á»› p thi áº¿ t b á»‹ Ä‘Ã³ng c áº¯ t"
     assert normalize_vietnamese_pdf_text(raw) == (
-        "Căn cứ vb số 6515 và Lớp thiết bị đóng cắt"
+        "CÄƒn cá»© vb sá»‘ 6515 vÃ  Lá»›p thiáº¿t bá»‹ Ä‘Ã³ng cáº¯t"
     )
 
 
 def test_strip_image_placeholders_removes_visual_only_markers() -> None:
     assert strip_image_placeholders(
-        "GIỚI THIỆU CÔNG CỤ\n<!-- image -->\n<!-- image -->"
-    ) == "GIỚI THIỆU CÔNG CỤ"
+        "GIá»šI THIá»†U CÃ”NG Cá»¤\n<!-- image -->\n<!-- image -->"
+    ) == "GIá»šI THIá»†U CÃ”NG Cá»¤"
 
 
 def test_normalize_vietnamese_pdf_text_keeps_space_before_accented_word() -> None:
-    assert normalize_vietnamese_pdf_text("đã có ở các phần mềm") == (
-        "đã có ở các phần mềm"
+    assert normalize_vietnamese_pdf_text("Ä‘Ã£ cÃ³ á»Ÿ cÃ¡c pháº§n má»m") == (
+        "Ä‘Ã£ cÃ³ á»Ÿ cÃ¡c pháº§n má»m"
     )
-    assert normalize_vietnamese_pdf_text("chuyển đổi ở giai đoạn sau") == (
-        "chuyển đổi ở giai đoạn sau"
+    assert normalize_vietnamese_pdf_text("chuyá»ƒn Ä‘á»•i á»Ÿ giai Ä‘oáº¡n sau") == (
+        "chuyá»ƒn Ä‘á»•i á»Ÿ giai Ä‘oáº¡n sau"
     )
 
 
 def test_cross_page_table_carries_merged_leading_cells() -> None:
     first = {
         "contextualized_text": (
-            "PHỤ LỤC\n"
-            "| STT | Hệ thống | Tình trạng | Nguyên nhân | "
-            "Đã xử lý | Yêu cầu thực hiện |\n"
+            "PHá»¤ Lá»¤C\n"
+            "| STT | Há»‡ thá»‘ng | TÃ¬nh tráº¡ng | NguyÃªn nhÃ¢n | "
+            "ÄÃ£ xá»­ lÃ½ | YÃªu cáº§u thá»±c hiá»‡n |\n"
             "|---|---|---|---|---|---|\n"
-            "| 3 | Web/app CSKH | Hiển thị sai | Nguồn dữ liệu sai | Đã đồng bộ lại | Lấy từ CMIS |"
+            "| 3 | Web/app CSKH | Hiá»ƒn thá»‹ sai | Nguá»“n dá»¯ liá»‡u sai | ÄÃ£ Ä‘á»“ng bá»™ láº¡i | Láº¥y tá»« CMIS |"
         ),
         "text": "",
         "pages": [3],
-        "section_path": ["PHỤ LỤC"],
+        "section_path": ["PHá»¤ Lá»¤C"],
     }
     second = {
         "contextualized_text": (
-            "| STT | Hệ thống | Tình trạng | Nguyên nhân | "
-            "Đã xử lý | Yêu cầu thực hiện |\n"
+            "| STT | Há»‡ thá»‘ng | TÃ¬nh tráº¡ng | NguyÃªn nhÃ¢n | "
+            "ÄÃ£ xá»­ lÃ½ | YÃªu cáº§u thá»±c hiá»‡n |\n"
             "|---|---|---|---|---|---|\n"
-            "|  |  | Không hiển thị hóa đơn | Dùng chỉ số chốt cũ | "
-            "Đã đồng bộ lại | Lấy hóa đơn từ CMIS |\n"
-            "|  |  | Gián đoạn dịch vụ | Thiếu HA DC-DR | Đã khôi phục | Hoàn thiện HA |"
+            "|  |  | KhÃ´ng hiá»ƒn thá»‹ hÃ³a Ä‘Æ¡n | DÃ¹ng chá»‰ sá»‘ chá»‘t cÅ© | "
+            "ÄÃ£ Ä‘á»“ng bá»™ láº¡i | Láº¥y hÃ³a Ä‘Æ¡n tá»« CMIS |\n"
+            "|  |  | GiÃ¡n Ä‘oáº¡n dá»‹ch vá»¥ | Thiáº¿u HA DC-DR | ÄÃ£ khÃ´i phá»¥c | HoÃ n thiá»‡n HA |"
         ),
         "text": "",
         "pages": [4],
@@ -466,13 +467,13 @@ def test_cross_page_table_carries_merged_leading_cells() -> None:
     repaired = repair_cross_page_table_continuations([first, second])
 
     assert repaired[1]["cross_page_table_continuation"] is True
-    assert "| 3 | Web/app CSKH | Không hiển thị hóa đơn" in repaired[1][
+    assert "| 3 | Web/app CSKH | KhÃ´ng hiá»ƒn thá»‹ hÃ³a Ä‘Æ¡n" in repaired[1][
         "contextualized_text"
     ]
-    assert "| 3 | Web/app CSKH | Gián đoạn dịch vụ" in repaired[1][
+    assert "| 3 | Web/app CSKH | GiÃ¡n Ä‘oáº¡n dá»‹ch vá»¥" in repaired[1][
         "contextualized_text"
     ]
-    assert repaired[1]["section_path"] == ["PHỤ LỤC"]
+    assert repaired[1]["section_path"] == ["PHá»¤ Lá»¤C"]
 
 
 def test_detect_document_profile_recognizes_admin_with_table() -> None:
@@ -484,8 +485,8 @@ def test_detect_document_profile_recognizes_admin_with_table() -> None:
         pages={1: object(), 2: object(), 3: object()},
         texts=[
             Item(
-                "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM Kính gửi: các đơn vị "
-                "Nơi nhận: như trên"
+                "Cá»˜NG HÃ’A XÃƒ Há»˜I CHá»¦ NGHÄ¨A VIá»†T NAM KÃ­nh gá»­i: cÃ¡c Ä‘Æ¡n vá»‹ "
+                "NÆ¡i nháº­n: nhÆ° trÃªn"
             )
         ],
         pictures=[],
@@ -496,7 +497,7 @@ def test_detect_document_profile_recognizes_admin_with_table() -> None:
 
 
 def test_final_token_guard_splits_single_oversized_table_row() -> None:
-    from app.services.docling_v6_chunking import (
+    from app.services.chunkers.chunker_docling_v6_chunking import (
         RegexVietnameseTokenizer,
         enforce_token_limit,
     )
@@ -505,7 +506,7 @@ def test_final_token_guard_splits_single_oversized_table_row() -> None:
     long_cell = " ".join(f"token{i}" for i in range(430))
     record = {
         "contextualized_text": (
-            "| STT | Hệ thống | Tình trạng |\n"
+            "| STT | Há»‡ thá»‘ng | TÃ¬nh tráº¡ng |\n"
             "|---|---|---|\n"
             f"| 3 | Web/app CSKH | {long_cell} |"
         ),
@@ -528,7 +529,7 @@ def test_hard_token_split_prefers_sentence_boundary() -> None:
     build_quality_report = _docling_v6.build_quality_report
     tokenizer = RegexVietnameseTokenizer(max_tokens=80)
     sentences = [
-        f"Đây là câu kiểm thử số {index} có đủ nội dung để tạo một đoạn văn tự nhiên."
+        f"ÄÃ¢y lÃ  cÃ¢u kiá»ƒm thá»­ sá»‘ {index} cÃ³ Ä‘á»§ ná»™i dung Ä‘á»ƒ táº¡o má»™t Ä‘oáº¡n vÄƒn tá»± nhiÃªn."
         for index in range(1, 25)
     ]
     text = " ".join(sentences)
@@ -557,7 +558,7 @@ def test_administrative_document_with_tables_is_not_classified_as_presentation()
 
     from types import SimpleNamespace
 
-    from app.services.docling_v6_chunking import detect_document_profile
+    from app.services.chunkers.chunker_docling_v6_chunking import detect_document_profile
 
     def item(text: str, label: str = "text") -> SimpleNamespace:
         return SimpleNamespace(text=text, label=SimpleNamespace(value=label), prov=[])
@@ -565,12 +566,12 @@ def test_administrative_document_with_tables_is_not_classified_as_presentation()
     doc = SimpleNamespace(
         pages={1: object(), 2: object(), 3: object(), 4: object()},
         texts=[
-            item("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM", "title"),
-            item("TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG"),
-            item("Kính gửi: Công ty CNTT Điện lực miền Trung"),
-            item("Nơi nhận: Như trên"),
-            item("KT. TỔNG GIÁM ĐỐC"),
-            item("PHỤ LỤC TÌNH TRẠNG, NGUYÊN NHÂN VÀ YÊU CẦU THỰC HIỆN"),
+            item("Cá»˜NG HÃ’A XÃƒ Há»˜I CHá»¦ NGHÄ¨A VIá»†T NAM", "title"),
+            item("Tá»”NG CÃ”NG TY ÄIá»†N Lá»°C MIá»€N TRUNG"),
+            item("KÃ­nh gá»­i: CÃ´ng ty CNTT Äiá»‡n lá»±c miá»n Trung"),
+            item("NÆ¡i nháº­n: NhÆ° trÃªn"),
+            item("KT. Tá»”NG GIÃM Äá»C"),
+            item("PHá»¤ Lá»¤C TÃŒNH TRáº NG, NGUYÃŠN NHÃ‚N VÃ€ YÃŠU Cáº¦U THá»°C HIá»†N"),
         ],
         tables=[object()],
         pictures=[object(), object()],
@@ -580,24 +581,24 @@ def test_administrative_document_with_tables_is_not_classified_as_presentation()
 
 
 def test_adaptive_admin_incident_table_becomes_key_value_records() -> None:
-    from app.services.docling_v6_chunking import (
+    from app.services.chunkers.chunker_docling_v6_chunking import (
         semanticize_administrative_tables,
     )
 
     record = {
         "contextualized_text": (
-            "PHỤ LỤC\n"
-            "| STT | Hệ thống | Tình trạng | Nguyên nhân | Đã xử lý | Yêu cầu thực hiện |\n"
+            "PHá»¤ Lá»¤C\n"
+            "| STT | Há»‡ thá»‘ng | TÃ¬nh tráº¡ng | NguyÃªn nhÃ¢n | ÄÃ£ xá»­ lÃ½ | YÃªu cáº§u thá»±c hiá»‡n |\n"
             "|---|---|---|---|---|---|\n"
-            "| 1 | CMIS | Lỗi ghép HHC | Không có dữ liệu | CPCIT xử lý | CPCIT phối hợp EVNICT |\n"
-            "| 2 | Đo xa | Thiếu Pmax | HES chưa ưu tiên | CPCIT cập nhật | EMEC tối ưu thuật toán |"
+            "| 1 | CMIS | Lá»—i ghÃ©p HHC | KhÃ´ng cÃ³ dá»¯ liá»‡u | CPCIT xá»­ lÃ½ | CPCIT phá»‘i há»£p EVNICT |\n"
+            "| 2 | Äo xa | Thiáº¿u Pmax | HES chÆ°a Æ°u tiÃªn | CPCIT cáº­p nháº­t | EMEC tá»‘i Æ°u thuáº­t toÃ¡n |"
         ),
         "text": "",
         "raw_text": "",
         "chunk_type": "table_rows",
         "pages": [3],
-        "section_path": ["PHỤ LỤC"],
-        "headings": ["PHỤ LỤC"],
+        "section_path": ["PHá»¤ Lá»¤C"],
+        "headings": ["PHá»¤ Lá»¤C"],
     }
 
     result = semanticize_administrative_tables([record])
@@ -605,19 +606,19 @@ def test_adaptive_admin_incident_table_becomes_key_value_records() -> None:
     assert len(result) == 2
     assert all(item["chunk_type"] == "administrative_incident" for item in result)
     assert all(item["content_format"] == "semantic_key_value" for item in result)
-    assert result[0]["fields"]["Hệ thống"] == "CMIS"
-    assert "Tình trạng: Lỗi ghép HHC" in result[0]["contextualized_text"]
+    assert result[0]["fields"]["Há»‡ thá»‘ng"] == "CMIS"
+    assert "TÃ¬nh tráº¡ng: Lá»—i ghÃ©p HHC" in result[0]["contextualized_text"]
     assert result[1]["incident_type"] == "pmax_collection"
 
 
 def test_adaptive_admin_does_not_convert_unrelated_table() -> None:
-    from app.services.docling_v6_chunking import semanticize_administrative_tables
+    from app.services.chunkers.chunker_docling_v6_chunking import semanticize_administrative_tables
 
     record = {
         "contextualized_text": (
-            "| Tên trường | Kiểu dữ liệu | Mô tả |\n"
+            "| TÃªn trÆ°á»ng | Kiá»ƒu dá»¯ liá»‡u | MÃ´ táº£ |\n"
             "|---|---|---|\n"
-            "| id | UUID | Khóa chính |"
+            "| id | UUID | KhÃ³a chÃ­nh |"
         ),
         "chunk_type": "table_rows",
     }
@@ -628,7 +629,7 @@ def test_adaptive_admin_does_not_convert_unrelated_table() -> None:
 
 
 def test_adaptive_admin_body_uses_semantic_sections_not_docling_fragments() -> None:
-    from app.services.docling_v6_chunking import (
+    from app.services.chunkers.chunker_docling_v6_chunking import (
         RegexVietnameseTokenizer,
         semanticize_administrative_body,
     )
@@ -636,10 +637,10 @@ def test_adaptive_admin_body_uses_semantic_sections_not_docling_fragments() -> N
     records = [
         {
             "contextualized_text": (
-                "V/v nâng cao vận hành CSKH.\nKính gửi: CPCIT; CPCCC; EMEC.\n"
-                "Qua theo dõi, Tổng công ty nhận thấy các vướng mắc sau:\n"
-                "i) CMIS: Lỗi ghép HHC.\n"
-                "2. ii) Hệ thống đo xa: HES chưa thu thập đủ Pmax đối với các công"
+                "V/v nÃ¢ng cao váº­n hÃ nh CSKH.\nKÃ­nh gá»­i: CPCIT; CPCCC; EMEC.\n"
+                "Qua theo dÃµi, Tá»•ng cÃ´ng ty nháº­n tháº¥y cÃ¡c vÆ°á»›ng máº¯c sau:\n"
+                "i) CMIS: Lá»—i ghÃ©p HHC.\n"
+                "2. ii) Há»‡ thá»‘ng Ä‘o xa: HES chÆ°a thu tháº­p Ä‘á»§ Pmax Ä‘á»‘i vá»›i cÃ¡c cÃ´ng"
             ),
             "text": "",
             "raw_text": "",
@@ -650,17 +651,17 @@ def test_adaptive_admin_body_uses_semantic_sections_not_docling_fragments() -> N
         },
         {
             "contextualized_text": (
-                "4. tơ nhiều biểu giá.\n"
-                "iii) Web và app CSKH: Không hiển thị hóa đơn.\n"
-                "Tổng công ty đã họp rà soát và yêu cầu phối hợp khắc phục.\n"
-                "Trong trường hợp phát hiện sự cố, báo cáo qua Ban VTCNTT."
+                "4. tÆ¡ nhiá»u biá»ƒu giÃ¡.\n"
+                "iii) Web vÃ  app CSKH: KhÃ´ng hiá»ƒn thá»‹ hÃ³a Ä‘Æ¡n.\n"
+                "Tá»•ng cÃ´ng ty Ä‘Ã£ há»p rÃ  soÃ¡t vÃ  yÃªu cáº§u phá»‘i há»£p kháº¯c phá»¥c.\n"
+                "Trong trÆ°á»ng há»£p phÃ¡t hiá»‡n sá»± cá»‘, bÃ¡o cÃ¡o qua Ban VTCNTT."
             ),
             "text": "",
             "raw_text": "",
             "chunk_type": "docling_hybrid_repaired",
             "pages": [1],
-            "section_path": ["iii) Web và app CSKH"],
-            "headings": ["iii) Web và app CSKH"],
+            "section_path": ["iii) Web vÃ  app CSKH"],
+            "headings": ["iii) Web vÃ  app CSKH"],
         },
     ]
 
@@ -678,14 +679,14 @@ def test_adaptive_admin_body_uses_semantic_sections_not_docling_fragments() -> N
     ]
     overview = result[1]["contextualized_text"]
     assert "2. ii)" not in overview
-    assert "4. tơ" not in overview
-    assert "công\ntơ" not in overview
-    assert "công tơ nhiều biểu giá" in overview
-    assert result[2]["section_path"] == ["Chỉ đạo và đầu mối báo cáo"]
+    assert "4. tÆ¡" not in overview
+    assert "cÃ´ng\ntÆ¡" not in overview
+    assert "cÃ´ng tÆ¡ nhiá»u biá»ƒu giÃ¡" in overview
+    assert result[2]["section_path"] == ["Chá»‰ Ä‘áº¡o vÃ  Ä‘áº§u má»‘i bÃ¡o cÃ¡o"]
 
 
 def test_adaptive_admin_does_not_inject_synthetic_labels_into_body_text() -> None:
-    from app.services.docling_v6_chunking import (
+    from app.services.chunkers.chunker_docling_v6_chunking import (
         RegexVietnameseTokenizer,
         semanticize_administrative_body,
     )
@@ -693,13 +694,13 @@ def test_adaptive_admin_does_not_inject_synthetic_labels_into_body_text() -> Non
     records = [
         {
             "contextualized_text": (
-                "V/v nâng cao công tác vận hành CSKH.\n"
-                "Kính gửi: CPCIT; CPCCC; EMEC.\n"
-                "Qua theo dõi, Tổng công ty nhận thấy các vướng mắc sau:\n"
-                "i) CMIS: Lỗi ghép HHC.\n"
-                "ii) Hệ thống đo xa: Thiếu Pmax.\n"
-                "iii) Web và app CSKH: Không hiển thị hóa đơn.\n"
-                "Tổng công ty đã họp rà soát và yêu cầu phối hợp khắc phục."
+                "V/v nÃ¢ng cao cÃ´ng tÃ¡c váº­n hÃ nh CSKH.\n"
+                "KÃ­nh gá»­i: CPCIT; CPCCC; EMEC.\n"
+                "Qua theo dÃµi, Tá»•ng cÃ´ng ty nháº­n tháº¥y cÃ¡c vÆ°á»›ng máº¯c sau:\n"
+                "i) CMIS: Lá»—i ghÃ©p HHC.\n"
+                "ii) Há»‡ thá»‘ng Ä‘o xa: Thiáº¿u Pmax.\n"
+                "iii) Web vÃ  app CSKH: KhÃ´ng hiá»ƒn thá»‹ hÃ³a Ä‘Æ¡n.\n"
+                "Tá»•ng cÃ´ng ty Ä‘Ã£ há»p rÃ  soÃ¡t vÃ  yÃªu cáº§u phá»‘i há»£p kháº¯c phá»¥c."
             ),
             "text": "",
             "raw_text": "",
@@ -717,23 +718,23 @@ def test_adaptive_admin_does_not_inject_synthetic_labels_into_body_text() -> Non
     )
 
     combined = "\n".join(item["contextualized_text"] for item in result)
-    assert "Loại: Công văn hành chính" not in combined
-    assert "Chủ đề:" not in combined
-    assert "Mục: Tình trạng vướng mắc" not in combined
-    assert "Mục: Chỉ đạo và đầu mối báo cáo" not in combined
+    assert "Loáº¡i: CÃ´ng vÄƒn hÃ nh chÃ­nh" not in combined
+    assert "Chá»§ Ä‘á»:" not in combined
+    assert "Má»¥c: TÃ¬nh tráº¡ng vÆ°á»›ng máº¯c" not in combined
+    assert "Má»¥c: Chá»‰ Ä‘áº¡o vÃ  Ä‘áº§u má»‘i bÃ¡o cÃ¡o" not in combined
     assert result[0]["document_type"] == "administrative_document"
-    assert result[0]["document_subject"] == "nâng cao công tác vận hành CSKH"
+    assert result[0]["document_subject"] == "nÃ¢ng cao cÃ´ng tÃ¡c váº­n hÃ nh CSKH"
 
 
 def test_adaptive_admin_incident_metadata_is_consistent_and_source_safe() -> None:
-    from app.services.docling_v6_chunking import semanticize_administrative_tables
+    from app.services.chunkers.chunker_docling_v6_chunking import semanticize_administrative_tables
 
     record = {
         "contextualized_text": (
-            "| STT | Hệ thống | Tình trạng | Nguyên nhân | Đã xử lý | Yêu cầu thực hiện |\n"
+            "| STT | Há»‡ thá»‘ng | TÃ¬nh tráº¡ng | NguyÃªn nhÃ¢n | ÄÃ£ xá»­ lÃ½ | YÃªu cáº§u thá»±c hiá»‡n |\n"
             "|---|---|---|---|---|---|\n"
-            "| 2 | Đo xa | Thiếu Pmax | HES chưa ưu tiên | CPCIT cập nhật | EMEC tối ưu |\n"
-            "| 2 | Đo xa | Đồng bộ lỗi | Công cụ lỗi | EMEC xử lý | CPCIT chủ trì, EMEC phối hợp |"
+            "| 2 | Äo xa | Thiáº¿u Pmax | HES chÆ°a Æ°u tiÃªn | CPCIT cáº­p nháº­t | EMEC tá»‘i Æ°u |\n"
+            "| 2 | Äo xa | Äá»“ng bá»™ lá»—i | CÃ´ng cá»¥ lá»—i | EMEC xá»­ lÃ½ | CPCIT chá»§ trÃ¬, EMEC phá»‘i há»£p |"
         ),
         "chunk_type": "table_rows",
         "pages": [3],
@@ -742,8 +743,8 @@ def test_adaptive_admin_incident_metadata_is_consistent_and_source_safe() -> Non
     result = semanticize_administrative_tables([record])
 
     assert [item["incident_id"] for item in result] == ["2a", "2b"]
-    assert all(item["unit"] == "Đo xa" for item in result)
-    assert all("Nguồn:" not in item["contextualized_text"] for item in result)
+    assert all(item["unit"] == "Äo xa" for item in result)
+    assert all("Nguá»“n:" not in item["contextualized_text"] for item in result)
     assert result[1]["lead_units"] == ["CPCIT"]
     assert result[1]["coordination_units"] == ["EMEC"]
-    assert result[0]["raw_text"].startswith("| 2 | Đo xa |")
+    assert result[0]["raw_text"].startswith("| 2 | Äo xa |")

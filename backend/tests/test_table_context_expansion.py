@@ -7,80 +7,80 @@ from uuid import UUID, uuid4
 
 from docx import Document
 
-from app.services.parsers.docx_parser import DocxParser
-from app.services.rag_answer_service import ContextChunk, RagAnswerService
-from app.services.table_aware_chunking import table_aware_chunk_text
+from app.services.parsers.parser_docx_parser import DocxParser
+from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
+from app.services.chunkers.chunker_table_aware_chunking import table_aware_chunk_text
 
 DOCUMENT_ID = UUID("10000000-aaaa-4000-9000-000000000001")
 OTHER_DOCUMENT_ID = UUID("10000000-aaaa-4000-9000-000000000002")
 TABLE_QUERY = (
-    "Danh sách hộ gia đình được kêu gọi ủng hộ khắc phục thiệt hại do cơn bão số 10 "
-    "gồm những ai?"
+    "Danh sÃ¡ch h? gia dÌnh du?c kÃªu g?i ?ng h? kh?c ph?c thi?t h?i do con bÄƒo s? 10 "
+    "g?m nh?ng ai?"
 )
 HOUSEHOLD_NAMES = [
-    "Đoàn Tấn Châu",
-    "Khương Thanh Hà",
-    "Trần Đình Thanh",
-    "Đặng Thị Hiền",
-    "Nguyễn Thị Thu Lan",
-    "Đoàn Ngọc Bích Thủy",
-    "Huỳnh Thị Thanh",
-    "Lê Thị Đan Thanh",
-    "Nguyễn Văn Tường",
-    "Trần Thị Thu Trang",
-    "Nguyễn Tấn Trung",
-    "Kiều Phước Sen",
-    "Nguyễn Thị Hương",
-    "Hoàng Quang",
-    "Trần Thị Lệ",
-    "Trần Nhật Lợi",
-    "Lê Văn Hà",
-    "Trần Lê Nhật Trâm",
-    "Đinh Thị Thúy Phương",
-    "Trịnh Minh Quang",
-    "Huỳnh Văn Thu",
-    "Nguyễn Thị Giang Phương",
-    "Lê Thị Thanh",
-    "Ngô Anh Đức",
-    "Đỗ Thị Thu Hiệp",
-    "Nguyễn Văn Liên",
-    "Nguyễn Thị Hùng",
-    "Phạm Viết Trang",
-    "Trần Khanh",
-    "Lê Thị Hồng Minh",
-    "Trần Thị Đà",
-    "Phan Thị Xuân",
-    "Trần Thị Hoa",
-    "Cao Thị Thuỳ Trang",
+    "ÄoÃ n T?n ChÃ¢u",
+    "Khuong Thanh HÃ ",
+    "Tr?n ÄÌnh Thanh",
+    "Ä?ng Th? Hi?n",
+    "Nguy?n Th? Thu Lan",
+    "ÄoÃ n Ng?c BÃ­ch Th?y",
+    "Hu?nh Th? Thanh",
+    "LÃª Th? Äan Thanh",
+    "Nguy?n Van Tu?ng",
+    "Tr?n Th? Thu Trang",
+    "Nguy?n T?n Trung",
+    "Ki?u Phu?c Sen",
+    "Nguy?n Th? Huong",
+    "HoÃ ng Quang",
+    "Tr?n Th? L?",
+    "Tr?n Nh?t L?i",
+    "LÃª Van HÃ ",
+    "Tr?n LÃª Nh?t TrÃ¢m",
+    "Äinh Th? ThÃºy Phuong",
+    "Tr?nh Minh Quang",
+    "Hu?nh Van Thu",
+    "Nguy?n Th? Giang Phuong",
+    "LÃª Th? Thanh",
+    "NgÃ´ Anh Ä?c",
+    "Ä? Th? Thu Hi?p",
+    "Nguy?n Van LiÃªn",
+    "Nguy?n Th? HÃ¹ng",
+    "Ph?m Vi?t Trang",
+    "Tr?n Khanh",
+    "LÃª Th? H?ng Minh",
+    "Tr?n Th? ÄÃ ",
+    "Phan Th? XuÃ¢n",
+    "Tr?n Th? Hoa",
+    "Cao Th? Thu? Trang",
 ]
 
 
 def _build_household_docx() -> bytes:
     document = Document()
     document.add_paragraph(
-        "DANH SÁCH HỘ GIA ĐÌNH ỦNG HỘ KHẮC PHỤC THIỆT HẠI DO CƠN BÃO SỐ 10 "
-        "GÂY RA. THƯ KÊU GỌI MTTP NGÀY 6/10/2025"
+        "DANH SÃCH H? GIA ÄÌ€NH ?NG H? KH?C PH?C THI?T H?I DO CON BÄ‚O S? 10 "
+        "GÃ‚Y RA. THU KÃŠU G?I MTTP NGÃ€Y 6/10/2025"
     )
-    document.add_paragraph("TỔ 40/HTT - PHƯỜNG HÒA CƯỜNG")
+    document.add_paragraph("T? 40/HTT - PHU?NG HÌ‰A CU?NG")
     table = document.add_table(rows=1, cols=5)
-    headers = ["TT", "Họ và tên", "Địa chỉ", "Số tiền(đ)", "Ghi chú"]
+    headers = ["TT", "H? vÃ  tÃªn", "Ä?a ch?", "S? ti?n(d)", "Ghi chÃº"]
     for cell, header in zip(table.rows[0].cells, headers, strict=True):
         cell.text = header
 
-    amounts = ["600.000đ"] * 34
+    amounts = ["600.000d"] * 34
     for index, (name, amount) in enumerate(zip(HOUSEHOLD_NAMES, amounts, strict=True), start=1):
         row = table.add_row().cells
         row[0].text = str(index)
         row[1].text = name
-        row[2].text = f"Địa chỉ {index}"
+        row[2].text = f"Ä?a ch? {index}"
         row[3].text = amount
         row[4].text = ""
 
     total_row = table.add_row().cells
     total_row[0].text = ""
-    total_row[1].text = "Tổng cộng"
+    total_row[1].text = "T?ng c?ng"
     total_row[2].text = ""
-    total_row[3].text = "20.400.000đ"
+    total_row[3].text = "20.400.000d"
     total_row[4].text = ""
 
     buffer = BytesIO()
@@ -111,7 +111,7 @@ def test_docx_parser_serializes_household_table_rows() -> None:
     assert "TABLE_TITLE table_id=docx_t1" in parsed
     assert parsed.count("TABLE_ROW table_id=docx_t1") >= 35
     assert all(name in parsed for name in HOUSEHOLD_NAMES)
-    assert "20.400.000đ" in parsed
+    assert "20.400.000d" in parsed
 
 
 def test_table_aware_chunking_emits_required_table_metadata() -> None:
@@ -131,7 +131,7 @@ def test_table_aware_chunking_emits_required_table_metadata() -> None:
     assert metadata["chunk_mode"] == "table_aware"
     assert metadata["table_id"] == "docx_t1"
     assert metadata["table_title"]
-    assert metadata["headers"] == ["TT", "Họ và tên", "Địa chỉ", "Số tiền(đ)", "Ghi chú"]
+    assert metadata["headers"] == ["TT", "H? vÃ  tÃªn", "Ä?a ch?", "S? ti?n(d)", "Ghi chÃº"]
     assert metadata["row_index"] == 1
     assert metadata["row_start"] == 1
     assert metadata["row_end"] == 1
@@ -175,7 +175,7 @@ def test_table_expansion_fetches_all_rows_when_retrieval_only_hits_header() -> N
     contents = "\n".join(chunk.chunk.content for chunk in expanded)
     assert repo.requested_document_id == DOCUMENT_ID
     assert all(name in contents for name in HOUSEHOLD_NAMES)
-    assert "20.400.000đ" in contents
+    assert "20.400.000d" in contents
     assert sum("TABLE_ROW table_id=docx_t1" in chunk.chunk.content for chunk in expanded) >= 35
 
 
@@ -186,7 +186,7 @@ def test_table_list_query_prompt_contains_all_rows_total_and_no_other_document()
         id=uuid4(),
         document_id=OTHER_DOCUMENT_ID,
         chunk_index=1,
-        content="TABLE_ROW table_id=docx_t1 row=1 | Họ và tên: PoC ThinkLabs",
+        content="TABLE_ROW table_id=docx_t1 row=1 | H? vÃ  tÃªn: PoC ThinkLabs",
         chunk_metadata={"chunk_type": "table_row", "table_id": "docx_t1"},
     )
 
@@ -218,9 +218,9 @@ def test_table_list_query_prompt_contains_all_rows_total_and_no_other_document()
 
     assert "ENTITY_MATCHED_ROWS:" in prompt
     assert all(name in prompt for name in HOUSEHOLD_NAMES)
-    assert "20.400.000đ" in prompt
+    assert "20.400.000d" in prompt
     assert "PoC ThinkLabs" not in prompt
-    assert prompt.count("Đoàn Tấn Châu") == 1
+    assert prompt.count("ÄoÃ n T?n ChÃ¢u") == 1
 
 
 def test_table_row_deduplication_keeps_distinct_rows() -> None:
@@ -242,6 +242,6 @@ def test_table_row_deduplication_keeps_distinct_rows() -> None:
 
     assert len(deduplicated) == 3
     assert [item.citation_index for item in deduplicated] == [1, 2, 3]
-    assert "Đoàn Tấn Châu" in deduplicated[0].chunk.content
-    assert "Khương Thanh Hà" in deduplicated[1].chunk.content
-    assert "Trần Đình Thanh" in deduplicated[2].chunk.content
+    assert "ÄoÃ n T?n ChÃ¢u" in deduplicated[0].chunk.content
+    assert "Khuong Thanh HÃ " in deduplicated[1].chunk.content
+    assert "Tr?n ÄÌnh Thanh" in deduplicated[2].chunk.content

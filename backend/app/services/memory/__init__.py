@@ -1,13 +1,13 @@
-from app.services.memory.base import (
+﻿from app.services.memory.memory_base import (
     MemoryConfigError,
     MemoryProvider,
     MemoryResult,
     MemoryUser,
 )
-from app.services.memory.factory import build_mem0_provider, build_memory_provider
-from app.services.memory.hybrid_memory_provider import HybridMemoryProvider
-from app.services.memory.local_memory_provider import LocalMemoryProvider
-from app.services.memory.mem0_provider import Mem0Provider
+from app.services.memory.memory_factory import build_mem0_provider, build_memory_provider
+from app.services.memory.memory_hybrid_memory_provider import HybridMemoryProvider
+from app.services.memory.memory_local_memory_provider import LocalMemoryProvider
+from app.services.memory.memory_mem0_provider import Mem0Provider
 
 __all__ = [
     "HybridMemoryProvider",

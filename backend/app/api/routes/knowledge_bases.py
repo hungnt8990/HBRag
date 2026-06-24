@@ -1,4 +1,4 @@
-from typing import Annotated
+﻿from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -18,7 +18,7 @@ from app.schemas.knowledge_bases import (
     KnowledgeBaseResponse,
     KnowledgeBaseUpdate,
 )
-from app.services.permissions import (
+from app.services.security.security_permissions import (
     can_assign_upload_organization,
     can_manage_knowledge_base,
     can_view_knowledge_base,

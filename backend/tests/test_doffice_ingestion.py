@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import asyncio
 from types import SimpleNamespace
@@ -10,11 +10,11 @@ from app.api.routes.documents import get_document_log_repository, get_doffice_in
 from app.main import app
 from app.schemas.documents import ChunkPreview, DocumentChunkResponse, DocumentVectorIndexResponse, DofficeIngestResponse
 from app.services.document_sources import DOFFICE_SOURCE_TYPE, DofficeDocument, DofficeElasticsearchSource
-from app.services.doffice_chunking import build_doffice_chunks
-from app.services.doffice_content_normalizer import apply_spacing_fixes, normalize_doffice_source
-from app.services.doffice_ingestion_service import DofficeIngestionService, DofficeIngestOptions
-from app.services.hybrid_search import IDENTIFIER_EXACT_BOOST, identifier_exact_match_boost
-from app.services.keyword_search import KeywordSearchService
+from app.services.chunkers.chunker_doffice_chunking import build_doffice_chunks
+from app.services.ingestion.ingestion_doffice_content_normalizer import apply_spacing_fixes, normalize_doffice_source
+from app.services.ingestion.ingestion_doffice_ingestion_service import DofficeIngestionService, DofficeIngestOptions
+from app.services.retrieval.retrieval_hybrid_search import IDENTIFIER_EXACT_BOOST, identifier_exact_match_boost
+from app.services.retrieval.retrieval_keyword_search import KeywordSearchService
 from app.services.text_cleaning import clean_doffice_markdown_to_text
 
 DOCUMENT_ID = UUID("aaaaaaaa-1111-1111-1111-aaaaaaaaaaaa")
@@ -30,11 +30,11 @@ def test_clean_doffice_markdown_to_text_preserves_table_content() -> None:
 ## 1. CPCIT:
 [Image]
 <table>
-  <tr><th>TT</th><th>Trường dữ liệu</th><th>Nguồn dữ liệu</th><th>Chuyển đổi sang GIS</th></tr>
+  <tr><th>TT</th><th>TrÆ°á»ng dá»¯ liá»‡u</th><th>Nguá»“n dá»¯ liá»‡u</th><th>Chuyá»ƒn Ä‘á»•i sang GIS</th></tr>
   <tr><td>1</td><td><strong>MaTramBienAp</strong></td><td>CPCIT</td><td>GIS 110kV</td></tr>
 </table>
 <br>
-- - Như trên;
+- - NhÆ° trÃªn;
 """
 
     cleaned = clean_doffice_markdown_to_text(raw)
@@ -47,22 +47,22 @@ def test_clean_doffice_markdown_to_text_preserves_table_content() -> None:
     assert "--- Page" not in cleaned
     assert "1. CPCIT:" in cleaned
     assert "MaTramBienAp" in cleaned
-    assert "Chuyển đổi sang GIS" in cleaned
+    assert "Chuyá»ƒn Ä‘á»•i sang GIS" in cleaned
     assert "CPCIT" in cleaned
     assert "GIS 110kV" in cleaned
-    assert "- Như trên;" in cleaned
+    assert "- NhÆ° trÃªn;" in cleaned
 
 
 def test_vietnamese_ocr_spacing_cleaner_repairs_common_splits() -> None:
     cases = {
-        "Li Ãªn káº¿t khÃ¡ch hÃ ng": "LiÃªn káº¿t khÃ¡ch hÃ ng",
-        "TÃ  i khoáº£n": "TÃ i khoáº£n",
-        "Th anh toÃ¡n": "Thanh toÃ¡n",
-        "H Ã³a Ä‘Æ¡n": "HÃ³a Ä‘Æ¡n",
-        "D anh má»¥c Ä‘iá»ƒm thu": "Danh má»¥c Ä‘iá»ƒm thu",
-        "Q uáº£n lÃ½ ngÆ°á»i dÃ¹ng": "Quáº£n lÃ½ ngÆ°á»i dÃ¹ng",
+        "Li ÃƒÂªn kÃ¡ÂºÂ¿t khÃƒÂ¡ch hÃƒÂ ng": "LiÃƒÂªn kÃ¡ÂºÂ¿t khÃƒÂ¡ch hÃƒÂ ng",
+        "TÃƒÂ  i khoÃ¡ÂºÂ£n": "TÃƒÂ i khoÃ¡ÂºÂ£n",
+        "Th anh toÃƒÂ¡n": "Thanh toÃƒÂ¡n",
+        "H ÃƒÂ³a Ã„â€˜Ã†Â¡n": "HÃƒÂ³a Ã„â€˜Ã†Â¡n",
+        "D anh mÃ¡Â»Â¥c Ã„â€˜iÃ¡Â»Æ’m thu": "Danh mÃ¡Â»Â¥c Ã„â€˜iÃ¡Â»Æ’m thu",
+        "Q uÃ¡ÂºÂ£n lÃƒÂ½ ngÃ†Â°Ã¡Â»Âi dÃƒÂ¹ng": "QuÃ¡ÂºÂ£n lÃƒÂ½ ngÃ†Â°Ã¡Â»Âi dÃƒÂ¹ng",
         "D ashboard": "Dashboard",
-        "bÃ¡oc Ã¡o": "bÃ¡o cÃ¡o",
+        "bÃƒÂ¡oc ÃƒÂ¡o": "bÃƒÂ¡o cÃƒÂ¡o",
     }
 
     for broken, fixed in cases.items():
@@ -85,12 +85,12 @@ def test_fetch_document_by_id_vb_parses_elasticsearch_response(monkeypatch) -> N
                             "_source": {
                                 "id_vb": 1068586,
                                 "ky_hieu": "6515/EVNCPC-VTCNTT+KD+KT",
-                                "trich_yeu": "Triển khai GIS",
+                                "trich_yeu": "Triá»ƒn khai GIS",
                                 "noi_ban_hanh": "EVNCPC",
                                 "nguoi_ky": "Nguyen Van A",
                                 "ten_file": "6515.pdf",
                                 "duong_dan": "/doffice/6515.pdf",
-                                "noi_dung": "--- Page 1 ---\n## CPCIT\nNội dung văn bản",
+                                "noi_dung": "--- Page 1 ---\n## CPCIT\nNá»™i dung vÄƒn báº£n",
                             }
                         },
                     ]
@@ -111,7 +111,7 @@ def test_fetch_document_by_id_vb_parses_elasticsearch_response(monkeypatch) -> N
             requests.append({"method": method, "url": url, **kwargs})
             return FakeResponse()
 
-    monkeypatch.setattr("app.services.document_sources.doffice_elasticsearch_source.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("app.services.document_sources.document_source_doffice_elasticsearch_source.httpx.AsyncClient", FakeAsyncClient)
 
     document = asyncio.run(
         DofficeElasticsearchSource(url="http://example.test/_search", timeout_seconds=5).fetch_document_by_id_vb("1068586")
@@ -120,7 +120,7 @@ def test_fetch_document_by_id_vb_parses_elasticsearch_response(monkeypatch) -> N
     assert requests[0]["method"] == "GET"
     assert document.id_vb == "1068586"
     assert document.ky_hieu == "6515/EVNCPC-VTCNTT+KD+KT"
-    assert document.trich_yeu == "Triển khai GIS"
+    assert document.trich_yeu == "Triá»ƒn khai GIS"
     assert "--- Page" not in document.clean_text
     assert "CPCIT" in document.clean_text
 
@@ -211,7 +211,7 @@ class FakeSource:
         return DofficeDocument(
             id_vb="1068586",
             ky_hieu="6515/EVNCPC-VTCNTT+KD+KT",
-            trich_yeu="Giao nhiệm vụ GIS cho CPCIT",
+            trich_yeu="Giao nhiá»‡m vá»¥ GIS cho CPCIT",
             id_dv_ban_hanh=1,
             noi_ban_hanh="EVNCPC",
             nguoi_ky="Nguyen Van A",
@@ -240,8 +240,8 @@ class FakeSource:
                 "tom_tat": "Tom tat van ban GIS.",
                 "noi_dung": "--- Page 1 ---\n## CPCIT\nCPCIT thuc hien GIS 110kV.",
             },
-            raw_noi_dung="--- Page 1 ---\n## CPCIT\nCPCIT thực hiện GIS 110kV.",
-            clean_text="CPCIT\nCPCIT thực hiện GIS 110kV.",
+            raw_noi_dung="--- Page 1 ---\n## CPCIT\nCPCIT thá»±c hiá»‡n GIS 110kV.",
+            clean_text="CPCIT\nCPCIT thá»±c hiá»‡n GIS 110kV.",
         )
 
 
@@ -328,7 +328,7 @@ Phu luc danh sach chi tiet chuc nang hieu chinh &nbsp;
   <tbody>
     <tr>
       <td>1</td><td rowspan="3">App cham soc khach hang</td>
-      <td>Li Ãªn ket khach hang</td><td rowspan="2">Cap nhat giao dien moi</td>
+      <td>Li ÃƒÂªn ket khach hang</td><td rowspan="2">Cap nhat giao dien moi</td>
       <td rowspan="2">Giai doan 1</td>
     </tr>
     <tr><td>2</td><td>Th anh toan</td></tr>
@@ -351,7 +351,7 @@ PHO GIAM DOC
 def _sample_doffice_source_with_realistic_tables() -> dict[str, object]:
     phase1 = [
         "Man hinh trang chu ung dung",
-        "Li Ãªn ket khach hang",
+        "Li ÃƒÂªn ket khach hang",
         "Tai khoan",
         "Thanh toan",
         "Hoa don",
@@ -389,7 +389,7 @@ def _sample_doffice_source_with_realistic_tables() -> dict[str, object]:
         (29, "Quan ly nguoi dung", "Hieu chinh phan quyen"),
         (30, "D ashboard", "Y 1<br>Y 2<br>Y 3<br>Y 4"),
         (31, "Q uan ly nhom quyen", "p<br>Bo sung tao nhom quyen theo phan cap"),
-        (32, "Bao cao", "Hieu chinh bÃ¡oc Ã¡o"),
+        (32, "Bao cao", "Hieu chinh bÃƒÂ¡oc ÃƒÂ¡o"),
         (33, "Danh muc cau hoi", "Cap nhat noi dung"),
         (34, "Quan ly log", "Bo sung tra cuu"),
     ]:
@@ -446,7 +446,7 @@ def test_doffice_normalizer_parses_tables_metadata_and_footer() -> None:
     assert normalized.tables
 
     rows = {row.metadata.get("feature_name"): row for row in normalized.tables[0].rows}
-    lien_ket = rows["LiÃªn ket khach hang"]
+    lien_ket = rows["LiÃƒÂªn ket khach hang"]
     assert lien_ket.metadata["platform"] == "App cham soc khach hang"
     assert lien_ket.metadata["change_content"] == "Cap nhat giao dien moi"
     assert lien_ket.metadata["phase"] == "Giai doan 1"
@@ -489,25 +489,29 @@ def test_doffice_chunk_builder_keeps_table_rows_structured() -> None:
     assert "|" not in summary.content
 
     body = next(chunk for chunk in chunks if chunk.metadata["chunk_type"] == "document_body")
-    assert "Tóm tắt nguồn" not in body.content
+    assert "TÃ³m táº¯t nguá»“n" not in body.content
     assert "PHU LUC" not in body.content
     assert "[[TABLE_1]]" not in body.content
 
     table_parent = next(chunk for chunk in chunks if chunk.metadata["chunk_type"] == "table_parent")
     assert table_parent.metadata["row_count"] == 4
-    assert "Bảng:" in table_parent.content
-    assert "Số dòng: 4" in table_parent.content
-    assert "Các cột chuẩn hóa:" in table_parent.content
-    assert "chức năng/màn hình" in table_parent.content
-    assert "nội dung hiệu chỉnh/bổ sung" in table_parent.content
-    assert "Nhóm chính:" in table_parent.content
-    assert not any(marker in table_parent.content for marker in ("Báº", "Sá»", "CÃ", "NhÃ", "dÃ²ng", "cá»"))
+    assert "Báº£ng:" in table_parent.content
+    assert "Sá»‘ dÃ²ng: 4" in table_parent.content
+    assert "CÃ¡c cá»™t chuáº©n hÃ³a:" in table_parent.content
+    assert "chá»©c nÄƒng/mÃ n hÃ¬nh" in table_parent.content
+    assert "ná»™i dung hiá»‡u chá»‰nh/bá»• sung" in table_parent.content
+    assert "NhÃ³m chÃ­nh:" in table_parent.content
+    assert not any(marker in table_parent.content for marker in ("BÃ¡Âº", "SÃ¡Â»", "CÃƒ", "NhÃƒ", "dÃƒÂ²ng", "cÃ¡Â»"))
     assert "Cap dien moi ha ap" not in table_parent.content
+    assert table_parent.metadata["table_title"] == table_parent.metadata["table_name"]
+    assert table_parent.metadata["table_headers"]
 
     cap_dien = next(chunk for chunk in chunks if chunk.metadata.get("feature_name") == "Cap dien moi ha ap")
     assert cap_dien.metadata["platform"] == "App cham soc khach hang"
     assert cap_dien.metadata["change_content"] == "Bo sung chuc nang moi"
     assert cap_dien.metadata["phase"] == "Giai doan 2"
+    assert cap_dien.metadata["table_title"] == cap_dien.metadata["table_name"]
+    assert cap_dien.metadata["table_headers"]
     assert cap_dien.metadata["source_type"] == DOFFICE_SOURCE_TYPE
     assert cap_dien.metadata["id_vb"] == "1459570"
     assert cap_dien.metadata["document_code"] == "907/EVNICT-TTPM"
@@ -522,6 +526,48 @@ def test_doffice_chunk_builder_keeps_table_rows_structured() -> None:
     assert footer.metadata["indexable"] is False
     assert footer.metadata["embedding_enabled"] is False
 
+def test_doffice_summary_filters_pii_and_table_rows_are_lookup_ready() -> None:
+    source = {
+        "id_vb": "608",
+        "ky_hieu": "608/QÄ-IT",
+        "trich_yeu": "Quyáº¿t Ä‘á»‹nh cá»­ cÃ¡n bá»™ tham gia khÃ³a Ä‘Ã o táº¡o á»¨ng dá»¥ng Python trÃªn ná»n táº£ng ArcGIS",
+        "noi_ban_hanh": "CPCIT",
+        "ngay_vb": "2026-06-10",
+        "tom_tat": "Quyáº¿t Ä‘á»‹nh cá»­ 06 cÃ¡n bá»™ Ä‘i Ä‘Ã o táº¡o. Nguyá»…n Thanh PhÃº 0983129374 phunt3@cpc.vn; danh sÃ¡ch cÃ¡n bá»™ PM kÃ¨m theo.",
+        "noi_dung": """
+Äiá»u 1. Cá»­ cÃ¡n bá»™ tham gia khÃ³a Ä‘Ã o táº¡o á»¨ng dá»¥ng Python trÃªn ná»n táº£ng ArcGIS.
+Thá»i gian Ä‘Ã o táº¡o tá»« ngÃ y 17/06/2026 Ä‘áº¿n ngÃ y 19/06/2026.
+Äá»‹a Ä‘iá»ƒm Ä‘Ã o táº¡o: HÃ  Ná»™i.
+ÄÆ¡n vá»‹ Ä‘Ã o táº¡o: ESRI Viá»‡t Nam.
+Kinh phÃ­ do CPCIT chi tráº£.
+Danh sÃ¡ch cÃ¡n bá»™ tham gia
+<table>
+<tr><th>STT</th><th>Há» tÃªn</th><th>Chá»©c vá»¥</th><th>PhÃ²ng</th><th>Äiá»‡n thoáº¡i</th><th>Email</th></tr>
+<tr><td>1</td><td>Nguyá»…n Thanh PhÃº</td><td>ChuyÃªn viÃªn</td><td>VH</td><td>0983129374</td><td>phunt3@cpc.vn</td></tr>
+<tr><td>2</td><td>Tráº§n VÄƒn B</td><td>ChuyÃªn viÃªn</td><td>PM</td><td>0912345678</td><td>b@cpc.vn</td></tr>
+</table>
+""",
+    }
+
+    chunks = build_doffice_chunks(normalize_doffice_source(source))
+    summary = next(chunk for chunk in chunks if chunk.metadata["chunk_type"] == "document_summary")
+    row = next(chunk for chunk in chunks if chunk.metadata.get("person_name") == "Nguyá»…n Thanh PhÃº")
+
+    assert "0983129374" not in summary.content
+    assert "phunt3@cpc.vn" not in summary.content
+    assert "Nguyá»…n Thanh PhÃº" not in summary.content
+    assert len(summary.content.split()) <= 200
+    for chunk in chunks:
+        if chunk.metadata.get("chunk_type") in {"document_summary", "document_header", "legal_clause", "table_parent", "table_row"}:
+            assert chunk.metadata["source_span"]["start"] <= chunk.metadata["source_span"]["end"]
+
+    assert row.metadata["row_key"] == "Nguyá»…n Thanh PhÃº"
+    assert row.metadata["position"] == "ChuyÃªn viÃªn"
+    assert row.metadata["department"] == "VH"
+    assert row.metadata["phone"] == "0983129374"
+    assert row.metadata["email"] == "phunt3@cpc.vn"
+    assert "Há» tÃªn: Nguyá»…n Thanh PhÃº" in row.content
+    assert "PhÃ²ng/ÄÆ¡n vá»‹: VH" in row.content
 def test_doffice_html_tables_keep_rowspan_context_and_chunk_rows() -> None:
     normalized = normalize_doffice_source(_sample_doffice_source_with_realistic_tables())
 
@@ -533,7 +579,7 @@ def test_doffice_html_tables_keep_rowspan_context_and_chunk_rows() -> None:
     assert len(normalized.table_rows) == 43
 
     rows = {row.metadata["row_number"]: row for row in normalized.tables[0].rows}
-    assert rows["2"].metadata["feature_name"] == "LiÃªn ket khach hang"
+    assert rows["2"].metadata["feature_name"] == "LiÃƒÂªn ket khach hang"
     assert rows["2"].metadata["change_content"] == "Cap nhat giao dien moi"
     assert rows["2"].metadata["phase"] == "Giai doan 1"
     assert rows["17"].metadata["feature_name"] == "Cap dien moi ha ap"
@@ -579,7 +625,7 @@ def test_ingest_doffice_document_creates_document_metadata() -> None:
     assert response.status == "success"
     assert response.chunks_created == 2
     assert repository.document is not None
-    assert not repository.document.parsed_text.startswith("Tóm tắt nguồn:")
+    assert not repository.document.parsed_text.startswith("TÃ³m táº¯t nguá»“n:")
     assert "CPCIT" in repository.document.parsed_text
     metadata = repository.document.document_metadata
     assert metadata["source_type"] == DOFFICE_SOURCE_TYPE
@@ -693,7 +739,7 @@ def test_doffice_ingest_endpoint_uses_service_override() -> None:
                 status="success",
                 id_vb="1068586",
                 ky_hieu="6515/EVNCPC-VTCNTT+KD+KT",
-                trich_yeu="Giao nhiệm vụ GIS",
+                trich_yeu="Giao nhiá»‡m vá»¥ GIS",
                 noi_ban_hanh="EVNCPC",
                 chunks_created=2,
                 document_id=DOCUMENT_ID,

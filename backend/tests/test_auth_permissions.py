@@ -1,4 +1,4 @@
-from datetime import timedelta
+﻿from datetime import timedelta
 from types import SimpleNamespace
 from uuid import UUID
 
@@ -12,7 +12,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.services.permissions import (
+from app.services.security.security_permissions import (
     can_manage_document,
     can_upload_document,
     can_view_document,

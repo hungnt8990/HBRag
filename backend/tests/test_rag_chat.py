@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 from types import SimpleNamespace
 from uuid import UUID
 
@@ -14,8 +14,8 @@ from app.schemas.chat import (
     RagSessionContext,
 )
 from app.schemas.documents import RerankSearchResponse, RerankSearchResult
-from app.services.llms.fake_llm import FakeLLM
-from app.services.rag_answer_service import RagAnswerService
+from app.services.llms.llm_fake_llm import FakeLLM
+from app.services.rag.rag_answer_service import RagAnswerService
 
 SESSION_ID = UUID("aaaaaaaa-1111-1111-1111-aaaaaaaaaaaa")
 USER_MESSAGE_ID = UUID("bbbbbbbb-2222-2222-2222-bbbbbbbbbbbb")
@@ -344,7 +344,7 @@ def test_rag_service_rewrites_followup_query_for_retrieval() -> None:
         )
 
         response = await service.answer(
-            query="Còn cái này thì sao?",
+            query="CÃ²n cÃ¡i nÃ y thÃ¬ sao?",
             session_id=None,
             top_k=2,
             candidate_k=10,
@@ -368,7 +368,7 @@ def test_rag_service_rewrites_followup_query_for_retrieval() -> None:
         assert llm.answer_prompts
         assert "Conversation reference wording" in llm.answer_prompts[0]
         assert "How should RAG cite chunks?" in llm.answer_prompts[0]
-        assert "Question:\nCòn cái này thì sao?" in llm.answer_prompts[0]
+        assert "Question:\nCÃ²n cÃ¡i nÃ y thÃ¬ sao?" in llm.answer_prompts[0]
         assert "Generated from provided context" in response.answer
 
     asyncio.run(run_test())
@@ -377,7 +377,7 @@ def test_rag_service_rewrites_followup_query_for_retrieval() -> None:
 def test_person_area_query_does_not_answer_from_unrelated_context() -> None:
     async def run_test() -> None:
         repository = FakeChatRepository()
-        repository.chunks[CHUNK_ID_1].content = "CHƯƠNG II\nVIỆC LÀM VÀ ĐẢM BẢO VIỆC LÀM\nĐiều 7. Công tác đào tạo.\nEVNCPC coi trọng công tác đào tạo và đào tạo lại để nâng cao trình độ quản lý, chuyên môn nghiệp vụ."
+        repository.chunks[CHUNK_ID_1].content = "CHÆ¯Æ NG II\nVIá»†C LÃ€M VÃ€ Äáº¢M Báº¢O VIá»†C LÃ€M\nÄiá»u 7. CÃ´ng tÃ¡c Ä‘Ã o táº¡o.\nEVNCPC coi trá»ng cÃ´ng tÃ¡c Ä‘Ã o táº¡o vÃ  Ä‘Ã o táº¡o láº¡i Ä‘á»ƒ nÃ¢ng cao trÃ¬nh Ä‘á»™ quáº£n lÃ½, chuyÃªn mÃ´n nghiá»‡p vá»¥."
         repository.chunks[CHUNK_ID_1].chunk_metadata = {
             "chunk_type": "docling_hybrid_repaired",
             "start_char": 0,
@@ -391,15 +391,15 @@ def test_person_area_query_does_not_answer_from_unrelated_context() -> None:
         )
 
         response = await service.answer(
-            query="Phước Lâm tham gia vào mảng công nghệ nào",
+            query="PhÆ°á»›c LÃ¢m tham gia vÃ o máº£ng cÃ´ng nghá»‡ nÃ o",
             session_id=None,
             top_k=1,
             candidate_k=10,
         )
 
         assert response.answer == "Kh\u00f4ng t\u00ecm th\u1ea5y th\u00f4ng tin ph\u00f9 h\u1ee3p trong c\u00e1c t\u00e0i li\u1ec7u b\u1ea1n c\u00f3 quy\u1ec1n truy c\u1eadp."
-        assert "CHƯƠNG II" not in response.answer
-        assert "Công tác đào tạo" not in response.answer
+        assert "CHÆ¯Æ NG II" not in response.answer
+        assert "CÃ´ng tÃ¡c Ä‘Ã o táº¡o" not in response.answer
 
     asyncio.run(run_test())
 
@@ -564,7 +564,7 @@ def test_rag_citation_quote_uses_exact_chunk_text_with_500_char_limit() -> None:
 
 
 def test_system_prompt_for_mode_selects_expected_prompt() -> None:
-    from app.services.rag_answer_service import (
+    from app.services.rag.rag_answer_service import (
         EXTRACTIVE_PROMPT,
         GENERATIVE_PROMPT,
         HYBRID_PROMPT,
@@ -583,7 +583,7 @@ def test_system_prompt_for_mode_selects_expected_prompt() -> None:
 
 
 def test_build_system_prompt_includes_policy_explainer_instructions() -> None:
-    from app.services.rag_answer_service import build_system_prompt
+    from app.services.rag.rag_answer_service import build_system_prompt
 
     prompt = build_system_prompt(answer_mode="hybrid", answer_style="policy_explainer")
     assert "Provide a concise answer" in prompt or "concise answer first" in prompt
@@ -603,13 +603,13 @@ def test_build_system_prompt_includes_policy_explainer_instructions() -> None:
 def test_numeric_identifier_query_defaults_to_vietnamese_prompt() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     chunk = SimpleNamespace(
         id=uuid4(),
         document_id=uuid4(),
         chunk_index=0,
-        content="574/BC-ĐLĐS là báo cáo về xây dựng kế hoạch đào tạo năm 2024.",
+        content="574/BC-ÄLÄS lÃ  bÃ¡o cÃ¡o vá» xÃ¢y dá»±ng káº¿ hoáº¡ch Ä‘Ã o táº¡o nÄƒm 2024.",
         chunk_metadata={"identifier_exact_boost": "1"},
     )
 
@@ -626,7 +626,7 @@ def test_numeric_identifier_query_defaults_to_vietnamese_prompt() -> None:
 def test_citation_response_maps_lexical_exact_to_public_keyword_flag() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     chunk = SimpleNamespace(
         id=uuid4(),
@@ -661,28 +661,28 @@ def test_neighbor_expansion_fetches_same_article_chunks() -> None:
     import asyncio
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     document_id = uuid4()
     primary = SimpleNamespace(
         id=uuid4(),
         document_id=document_id,
         chunk_index=0,
-        content="Điều 10 nội dung chính.",
+        content="Äiá»u 10 ná»™i dung chÃ­nh.",
         chunk_metadata={"article_number": "10"},
     )
     neighbor_a = SimpleNamespace(
         id=uuid4(),
         document_id=document_id,
         chunk_index=1,
-        content="Bảng quy định kèm theo Điều 10.",
+        content="Báº£ng quy Ä‘á»‹nh kÃ¨m theo Äiá»u 10.",
         chunk_metadata={"article_number": "10"},
     )
     neighbor_b = SimpleNamespace(
         id=uuid4(),
         document_id=document_id,
         chunk_index=2,
-        content="Ghi chú bổ sung của Điều 10.",
+        content="Ghi chÃº bá»• sung cá»§a Äiá»u 10.",
         chunk_metadata={"article_number": "10"},
     )
 
@@ -718,7 +718,7 @@ def test_neighbor_expansion_respects_max_context_chars() -> None:
     import asyncio
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     document_id = uuid4()
     primary = SimpleNamespace(
@@ -754,7 +754,7 @@ def test_neighbor_expansion_respects_max_context_chars() -> None:
         )
     )
 
-    # Primary alone fits, big neighbor would exceed cap → not added.
+    # Primary alone fits, big neighbor would exceed cap â†’ not added.
     assert len(expanded) == 1
     assert expanded[0].source_type == "primary"
 
@@ -792,10 +792,10 @@ def test_rag_endpoint_rejects_invalid_answer_mode() -> None:
 def test_deduplicate_context_chunks_removes_duplicates() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     doc_id = uuid4()
-    same_quote = "Kết hôn - Nghỉ 03 ngày hưởng nguyên lương"
+    same_quote = "Káº¿t hÃ´n - Nghá»‰ 03 ngÃ y hÆ°á»Ÿng nguyÃªn lÆ°Æ¡ng"
 
     chunk_a = SimpleNamespace(
         id=uuid4(),
@@ -809,7 +809,7 @@ def test_deduplicate_context_chunks_removes_duplicates() -> None:
         id=uuid4(),
         document_id=doc_id,
         chunk_index=1,
-        content="  Kết hôn -   Nghỉ 03 ngày hưởng nguyên lương  ",
+        content="  Káº¿t hÃ´n -   Nghá»‰ 03 ngÃ y hÆ°á»Ÿng nguyÃªn lÆ°Æ¡ng  ",
         chunk_metadata={"article_number": "10"},
     )
     # Truly different content.
@@ -817,7 +817,7 @@ def test_deduplicate_context_chunks_removes_duplicates() -> None:
         id=uuid4(),
         document_id=doc_id,
         chunk_index=2,
-        content="Tang lễ cha mẹ - Nghỉ 03 ngày.",
+        content="Tang lá»… cha máº¹ - Nghá»‰ 03 ngÃ y.",
         chunk_metadata={"article_number": "10"},
     )
 
@@ -846,14 +846,14 @@ def test_deduplicate_context_chunks_removes_duplicates() -> None:
 def test_deduplicate_context_chunks_removes_repeated_chunk_id() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     doc_id = uuid4()
     chunk = SimpleNamespace(
         id=uuid4(),
         document_id=doc_id,
         chunk_index=0,
-        content="Nội dung điều 10.",
+        content="Ná»™i dung Ä‘iá»u 10.",
         chunk_metadata={"article_number": "10"},
     )
 
@@ -876,10 +876,10 @@ def test_deduplicate_context_chunks_removes_repeated_chunk_id() -> None:
 def test_deduplicated_prompt_has_no_repeated_lines() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     doc_id = uuid4()
-    same = "Kết hôn - Nghỉ 03 ngày hưởng nguyên lương"
+    same = "Káº¿t hÃ´n - Nghá»‰ 03 ngÃ y hÆ°á»Ÿng nguyÃªn lÆ°Æ¡ng"
     chunk_a = SimpleNamespace(
         id=uuid4(),
         document_id=doc_id,
@@ -916,18 +916,18 @@ def test_deduplicated_prompt_has_no_repeated_lines() -> None:
 def test_prompt_forbids_internal_retrieval_terms_in_final_answer() -> None:
     from uuid import uuid4
 
-    from app.services.query_contract_service import QueryContract
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.queries.query_contract_service import QueryContract
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     chunk = SimpleNamespace(
         id=uuid4(),
         document_id=uuid4(),
         chunk_index=0,
-        content="Số 3113/EVN-KDMBD ngày 02/06/2026 là văn bản căn cứ triển khai EVN CSKH.",
+        content="Sá»‘ 3113/EVN-KDMBD ngÃ y 02/06/2026 lÃ  vÄƒn báº£n cÄƒn cá»© triá»ƒn khai EVN CSKH.",
         chunk_metadata={"identifier_exact_boost": "1"},
     )
     query_contract = QueryContract(
-        raw_query="văn bản 3113",
+        raw_query="vÄƒn báº£n 3113",
         detected_intent="identifier_lookup",
         target_contexts=["document_header", "references"],
         preferred_artifact_types=["document_profile"],
@@ -937,7 +937,7 @@ def test_prompt_forbids_internal_retrieval_terms_in_final_answer() -> None:
     )
 
     prompt = RagAnswerService._build_user_prompt(
-        query="văn bản 3113",
+        query="vÄƒn báº£n 3113",
         context_chunks=[ContextChunk(citation_index=1, chunk=chunk)],
         query_contract=query_contract,
     )
@@ -950,26 +950,26 @@ def test_prompt_forbids_internal_retrieval_terms_in_final_answer() -> None:
 
 
 def test_clean_llm_answer_drops_internal_leak_notes() -> None:
-    from app.services.rag_answer_service import RagAnswerService
+    from app.services.rag.rag_answer_service import RagAnswerService
 
     answer = (
-        "Số 3113/EVN-KDMBD được nêu là văn bản căn cứ ngày 02/06/2026 về triển khai EVN CSKH.\n"
-        "Lưu ý: thông tin này không xuất hiện trong target_contexts hoặc các đoạn trích hồi phục.\n"
-        "Nguồn: 907/EVNICT-TTPM"
+        "Sá»‘ 3113/EVN-KDMBD Ä‘Æ°á»£c nÃªu lÃ  vÄƒn báº£n cÄƒn cá»© ngÃ y 02/06/2026 vá» triá»ƒn khai EVN CSKH.\n"
+        "LÆ°u Ã½: thÃ´ng tin nÃ y khÃ´ng xuáº¥t hiá»‡n trong target_contexts hoáº·c cÃ¡c Ä‘oáº¡n trÃ­ch há»“i phá»¥c.\n"
+        "Nguá»“n: 907/EVNICT-TTPM"
     )
 
     cleaned = RagAnswerService._clean_llm_answer(answer)
 
     assert "3113/EVN-KDMBD" in cleaned
-    assert "Nguồn: 907/EVNICT-TTPM" in cleaned
+    assert "Nguá»“n: 907/EVNICT-TTPM" in cleaned
     assert "target_contexts" not in cleaned
-    assert "đoạn trích" not in cleaned
+    assert "Ä‘oáº¡n trÃ­ch" not in cleaned
 
 
 def test_table_neighbor_expansion_prefers_matching_rows_and_headers() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     document_id = uuid4()
     primary = SimpleNamespace(
@@ -1028,7 +1028,7 @@ def test_table_neighbor_expansion_prefers_matching_rows_and_headers() -> None:
 def test_entity_summary_expansion_uses_table_ids_metadata() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     document_id = uuid4()
     summary_chunk = SimpleNamespace(
@@ -1094,7 +1094,7 @@ def test_entity_summary_expansion_uses_table_ids_metadata() -> None:
 def test_entity_coverage_lookup_adds_all_matching_table_rows_only() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     document_id = uuid4()
     primary = SimpleNamespace(
@@ -1222,7 +1222,7 @@ def test_entity_coverage_repository_queries_full_content_with_priority_order() -
 def test_user_prompt_separates_entity_matched_rows_from_table_support() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     table_chunk = SimpleNamespace(
         id=uuid4(),
@@ -1268,7 +1268,7 @@ def test_user_prompt_separates_entity_matched_rows_from_table_support() -> None:
 def test_user_prompt_splits_inline_table_rows_before_matching_entity() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     table_chunk = SimpleNamespace(
         id=uuid4(),
@@ -1304,7 +1304,7 @@ def test_user_prompt_splits_inline_table_rows_before_matching_entity() -> None:
 def test_structured_rows_are_passed_to_dynamic_prompt() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     document_id = uuid4()
     rows = [
@@ -1312,17 +1312,17 @@ def test_structured_rows_are_passed_to_dynamic_prompt() -> None:
             id=uuid4(),
             document_id=document_id,
             chunk_index=12,
-            content="Trường hợp: Kết hôn; Nghỉ 03 ngày hưởng nguyên lương",
+            content="TrÆ°á»ng há»£p: Káº¿t hÃ´n; Nghá»‰ 03 ngÃ y hÆ°á»Ÿng nguyÃªn lÆ°Æ¡ng",
             chunk_metadata={
                 "chunk_type": "legal_table_row",
                 "relationship_type": "legal_leave_benefit",
                 "case_code": "a",
-                "case_name": "Kết hôn",
+                "case_name": "Káº¿t hÃ´n",
                 "total_leave_days": 3,
-                "total_leave_benefit": "Nghỉ 03 ngày hưởng nguyên lương",
-                "labor_code_benefit": "Nghỉ 03 ngày hưởng nguyên lương",
-                "table_name": "Điều 10. Nghỉ việc riêng có hưởng lương",
-                "source_label": "Quy chế nghỉ hưởng lương mẫu",
+                "total_leave_benefit": "Nghá»‰ 03 ngÃ y hÆ°á»Ÿng nguyÃªn lÆ°Æ¡ng",
+                "labor_code_benefit": "Nghá»‰ 03 ngÃ y hÆ°á»Ÿng nguyÃªn lÆ°Æ¡ng",
+                "table_name": "Äiá»u 10. Nghá»‰ viá»‡c riÃªng cÃ³ hÆ°á»Ÿng lÆ°Æ¡ng",
+                "source_label": "Quy cháº¿ nghá»‰ hÆ°á»Ÿng lÆ°Æ¡ng máº«u",
                 "source_file": "TULDTT CPC 2024 KY KET 11.10.2024.docx",
             },
         ),
@@ -1330,18 +1330,18 @@ def test_structured_rows_are_passed_to_dynamic_prompt() -> None:
             id=uuid4(),
             document_id=document_id,
             chunk_index=13,
-            content=("Trường hợp: Con đẻ, con nuôi kết hôn; Nghỉ 02 ngày hưởng nguyên lương (01 ngày theo BLLĐ + 01 ngày hưởng thêm theo TƯLĐTT này)"),
+            content=("TrÆ°á»ng há»£p: Con Ä‘áº», con nuÃ´i káº¿t hÃ´n; Nghá»‰ 02 ngÃ y hÆ°á»Ÿng nguyÃªn lÆ°Æ¡ng (01 ngÃ y theo BLLÄ + 01 ngÃ y hÆ°á»Ÿng thÃªm theo TÆ¯LÄTT nÃ y)"),
             chunk_metadata={
                 "chunk_type": "legal_table_row",
                 "relationship_type": "legal_leave_benefit",
                 "case_code": "b",
-                "case_name": "Con đẻ, con nuôi kết hôn",
+                "case_name": "Con Ä‘áº», con nuÃ´i káº¿t hÃ´n",
                 "total_leave_days": 2,
-                "total_leave_benefit": "Nghỉ 02 ngày hưởng nguyên lương",
-                "labor_code_benefit": "Nghỉ 01 ngày hưởng nguyên lương",
-                "collective_agreement_benefit": "Nghỉ 01 ngày hưởng nguyên lương",
-                "table_name": "Điều 10. Nghỉ việc riêng có hưởng lương",
-                "source_label": "Quy chế nghỉ hưởng lương mẫu",
+                "total_leave_benefit": "Nghá»‰ 02 ngÃ y hÆ°á»Ÿng nguyÃªn lÆ°Æ¡ng",
+                "labor_code_benefit": "Nghá»‰ 01 ngÃ y hÆ°á»Ÿng nguyÃªn lÆ°Æ¡ng",
+                "collective_agreement_benefit": "Nghá»‰ 01 ngÃ y hÆ°á»Ÿng nguyÃªn lÆ°Æ¡ng",
+                "table_name": "Äiá»u 10. Nghá»‰ viá»‡c riÃªng cÃ³ hÆ°á»Ÿng lÆ°Æ¡ng",
+                "source_label": "Quy cháº¿ nghá»‰ hÆ°á»Ÿng lÆ°Æ¡ng máº«u",
                 "source_file": "TULDTT CPC 2024 KY KET 11.10.2024.docx",
             },
         ),
@@ -1350,21 +1350,21 @@ def test_structured_rows_are_passed_to_dynamic_prompt() -> None:
             document_id=document_id,
             chunk_index=17,
             content=(
-                "Trường hợp: Cha hoặc mẹ của NLĐ hoặc của vợ (chồng) NLĐ "
-                "kết hôn (kể cả bố, mẹ nuôi được pháp luật công nhận); "
-                "Anh, chị, em ruột của NLĐ hoặc của vợ (chồng) NLĐ kết hôn. "
-                "Nghỉ 01 ngày hưởng nguyên lương và phải thông báo với NSDLĐ"
+                "TrÆ°á»ng há»£p: Cha hoáº·c máº¹ cá»§a NLÄ hoáº·c cá»§a vá»£ (chá»“ng) NLÄ "
+                "káº¿t hÃ´n (ká»ƒ cáº£ bá»‘, máº¹ nuÃ´i Ä‘Æ°á»£c phÃ¡p luáº­t cÃ´ng nháº­n); "
+                "Anh, chá»‹, em ruá»™t cá»§a NLÄ hoáº·c cá»§a vá»£ (chá»“ng) NLÄ káº¿t hÃ´n. "
+                "Nghá»‰ 01 ngÃ y hÆ°á»Ÿng nguyÃªn lÆ°Æ¡ng vÃ  pháº£i thÃ´ng bÃ¡o vá»›i NSDLÄ"
             ),
             chunk_metadata={
                 "chunk_type": "legal_table_row",
                 "relationship_type": "legal_leave_benefit",
                 "case_code": "f",
-                "case_name": ("Cha hoặc mẹ của NLĐ hoặc của vợ (chồng) NLĐ kết hôn (kể cả bố, mẹ nuôi được pháp luật công nhận); Anh, chị, em ruột của NLĐ hoặc của vợ (chồng) NLĐ kết hôn."),
+                "case_name": ("Cha hoáº·c máº¹ cá»§a NLÄ hoáº·c cá»§a vá»£ (chá»“ng) NLÄ káº¿t hÃ´n (ká»ƒ cáº£ bá»‘, máº¹ nuÃ´i Ä‘Æ°á»£c phÃ¡p luáº­t cÃ´ng nháº­n); Anh, chá»‹, em ruá»™t cá»§a NLÄ hoáº·c cá»§a vá»£ (chá»“ng) NLÄ káº¿t hÃ´n."),
                 "total_leave_days": 1,
-                "total_leave_benefit": "Nghỉ 01 ngày hưởng nguyên lương",
-                "collective_agreement_benefit": ("Nghỉ 01 ngày hưởng nguyên lương và phải thông báo với NSDLĐ"),
-                "table_name": "Điều 10. Nghỉ việc riêng có hưởng lương",
-                "source_label": "Quy chế nghỉ hưởng lương mẫu",
+                "total_leave_benefit": "Nghá»‰ 01 ngÃ y hÆ°á»Ÿng nguyÃªn lÆ°Æ¡ng",
+                "collective_agreement_benefit": ("Nghá»‰ 01 ngÃ y hÆ°á»Ÿng nguyÃªn lÆ°Æ¡ng vÃ  pháº£i thÃ´ng bÃ¡o vá»›i NSDLÄ"),
+                "table_name": "Äiá»u 10. Nghá»‰ viá»‡c riÃªng cÃ³ hÆ°á»Ÿng lÆ°Æ¡ng",
+                "source_label": "Quy cháº¿ nghá»‰ hÆ°á»Ÿng lÆ°Æ¡ng máº«u",
                 "source_file": "TULDTT CPC 2024 KY KET 11.10.2024.docx",
             },
         ),
@@ -1372,14 +1372,14 @@ def test_structured_rows_are_passed_to_dynamic_prompt() -> None:
     context_chunks = [ContextChunk(citation_index=index, chunk=chunk) for index, chunk in enumerate(rows, start=1)]
 
     prompt = RagAnswerService._build_user_prompt(
-        query="Con đẻ kết hôn được nghỉ bao nhiêu ngày?",
+        query="Con Ä‘áº» káº¿t hÃ´n Ä‘Æ°á»£c nghá»‰ bao nhiÃªu ngÃ y?",
         context_chunks=context_chunks,
     )
 
     assert "Document Text:" in prompt
-    assert "Con đẻ, con nuôi kết hôn" in prompt
-    assert "Nghỉ 02 ngày hưởng nguyên lương" in prompt
-    assert "Kết hôn" in prompt
+    assert "Con Ä‘áº», con nuÃ´i káº¿t hÃ´n" in prompt
+    assert "Nghá»‰ 02 ngÃ y hÆ°á»Ÿng nguyÃªn lÆ°Æ¡ng" in prompt
+    assert "Káº¿t hÃ´n" in prompt
     assert "Dynamic answer requirements:" in prompt
     assert "For count questions, state the count first" in prompt
 
@@ -1387,7 +1387,7 @@ def test_structured_rows_are_passed_to_dynamic_prompt() -> None:
 def test_direct_entity_guard_requires_context_that_mentions_entity() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     unrelated_chunk = SimpleNamespace(
         id=uuid4(),
@@ -1400,11 +1400,11 @@ def test_direct_entity_guard_requires_context_that_mentions_entity() -> None:
         id=uuid4(),
         document_id=uuid4(),
         chunk_index=2,
-        content="Tống Phước Lâm is listed in the retrieved table row.",
+        content="Tá»‘ng PhÆ°á»›c LÃ¢m is listed in the retrieved table row.",
         chunk_metadata={"chunk_type": "table_row"},
     )
 
-    query = "Phước Lâm tham gia vào mảng công nghệ nào?"
+    query = "PhÆ°á»›c LÃ¢m tham gia vÃ o máº£ng cÃ´ng nghá»‡ nÃ o?"
 
     assert RagAnswerService._query_requires_direct_entity_evidence(
         query=query,
@@ -1443,7 +1443,7 @@ def test_entity_coverage_repository_adds_token_fallback_for_split_person_names()
     asyncio.run(
         repository.get_entity_coverage_chunks(
             document_id=uuid4(),
-            search_terms=["Nguyễn Quang Lâm", "Nguyen Quang Lam"],
+            search_terms=["Nguyá»…n Quang LÃ¢m", "Nguyen Quang Lam"],
         )
     )
 
@@ -1451,15 +1451,15 @@ def test_entity_coverage_repository_adds_token_fallback_for_split_person_names()
     params = fake_session.statement.compile().params
     values = [str(value) for value in params.values()]
     assert "AND" in statement_text
-    assert any("%Nguyễn%" == value for value in values)
+    assert any("%Nguyá»…n%" == value for value in values)
     assert any("%Quang%" == value for value in values)
-    assert any("%Lâm%" == value for value in values)
+    assert any("%LÃ¢m%" == value for value in values)
 
 
 def test_user_prompt_keeps_narrative_context_when_table_rows_match() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     document_id = uuid4()
     narrative_chunk = SimpleNamespace(
@@ -1467,13 +1467,13 @@ def test_user_prompt_keeps_narrative_context_when_table_rows_match() -> None:
         document_id=document_id,
         chunk_index=5,
         content=(
-            "3. Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
-            "Mục tiêu: Khai thác tri thức nội bộ qua hỏi đáp có dẫn nguồn, "
-            "chính xác và được phân quyền.\n"
-            "- Khảo sát và lựa chọn kỹ thuật RAG phù hợp.\n"
-            "- Chuẩn hóa quy trình phân đoạn tài liệu, embedding và index.\n"
-            "- Kết hợp tìm kiếm từ khóa và tìm kiếm ngữ nghĩa.\n"
-            "- Phân quyền truy hồi theo tài liệu hoặc người dùng."
+            "3. XÃ¢y dá»±ng ná»n táº£ng RAG trÃªn dá»¯ liá»‡u ná»™i bá»™\n"
+            "Má»¥c tiÃªu: Khai thÃ¡c tri thá»©c ná»™i bá»™ qua há»i Ä‘Ã¡p cÃ³ dáº«n nguá»“n, "
+            "chÃ­nh xÃ¡c vÃ  Ä‘Æ°á»£c phÃ¢n quyá»n.\n"
+            "- Kháº£o sÃ¡t vÃ  lá»±a chá»n ká»¹ thuáº­t RAG phÃ¹ há»£p.\n"
+            "- Chuáº©n hÃ³a quy trÃ¬nh phÃ¢n Ä‘oáº¡n tÃ i liá»‡u, embedding vÃ  index.\n"
+            "- Káº¿t há»£p tÃ¬m kiáº¿m tá»« khÃ³a vÃ  tÃ¬m kiáº¿m ngá»¯ nghÄ©a.\n"
+            "- PhÃ¢n quyá»n truy há»“i theo tÃ i liá»‡u hoáº·c ngÆ°á»i dÃ¹ng."
         ),
         chunk_metadata={"chunk_type": "docling_hybrid_repaired"},
     )
@@ -1481,12 +1481,12 @@ def test_user_prompt_keeps_narrative_context_when_table_rows_match() -> None:
         id=uuid4(),
         document_id=document_id,
         chunk_index=19,
-        content=("STT: 3\nMảng công nghệ: Xây dựng nền tảng RAG trên dữ liệu nội bộ\nPhòng chủ trì: PTUD\nNhân sự đề xuất: Tống Phước Lâm; Nguyễn Quang Lâm"),
+        content=("STT: 3\nMáº£ng cÃ´ng nghá»‡: XÃ¢y dá»±ng ná»n táº£ng RAG trÃªn dá»¯ liá»‡u ná»™i bá»™\nPhÃ²ng chá»§ trÃ¬: PTUD\nNhÃ¢n sá»± Ä‘á» xuáº¥t: Tá»‘ng PhÆ°á»›c LÃ¢m; Nguyá»…n Quang LÃ¢m"),
         chunk_metadata={"chunk_type": "table_row"},
     )
 
     prompt = RagAnswerService._build_user_prompt(
-        query="Mảng công nghệ RAG trên dữ liệu nội bộ có mục tiêu gì?",
+        query="Máº£ng cÃ´ng nghá»‡ RAG trÃªn dá»¯ liá»‡u ná»™i bá»™ cÃ³ má»¥c tiÃªu gÃ¬?",
         context_chunks=[
             ContextChunk(citation_index=1, chunk=table_row),
             ContextChunk(citation_index=2, chunk=narrative_chunk),
@@ -1495,8 +1495,8 @@ def test_user_prompt_keeps_narrative_context_when_table_rows_match() -> None:
 
     assert "ENTITY_MATCHED_ROWS:" in prompt
     assert "Document Text:" in prompt
-    assert "Mục tiêu: Khai thác tri thức nội bộ" in prompt
-    assert "Kết hợp tìm kiếm từ khóa" in prompt
+    assert "Má»¥c tiÃªu: Khai thÃ¡c tri thá»©c ná»™i bá»™" in prompt
+    assert "Káº¿t há»£p tÃ¬m kiáº¿m tá»« khÃ³a" in prompt
     assert "do not ignore narrative text" in prompt
     assert "summary followed by list items" in prompt
 
@@ -1504,7 +1504,7 @@ def test_user_prompt_keeps_narrative_context_when_table_rows_match() -> None:
 def test_dynamic_prompt_preserves_narrative_section_bullets() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     document_id = uuid4()
     narrative_chunk = SimpleNamespace(
@@ -1512,13 +1512,13 @@ def test_dynamic_prompt_preserves_narrative_section_bullets() -> None:
         document_id=document_id,
         chunk_index=5,
         content=(
-            "3. Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
-            "Mục tiêu: Khai thác tri thức nội bộ qua hỏi đáp có dẫn nguồn, "
-            "chính xác và được phân quyền.\n"
-            "- Khảo sát, đánh giá và lựa chọn kỹ thuật RAG phù hợp.\n"
-            "- Chuẩn hóa quy trình phân đoạn tài liệu, vector hóa và lập chỉ mục.\n"
-            "- Kết hợp tìm kiếm từ khóa và tìm kiếm ngữ nghĩa.\n"
-            "- Xây dựng pipeline RAG dùng chung cho toàn EVNCPC."
+            "3. XÃ¢y dá»±ng ná»n táº£ng RAG trÃªn dá»¯ liá»‡u ná»™i bá»™\n"
+            "Má»¥c tiÃªu: Khai thÃ¡c tri thá»©c ná»™i bá»™ qua há»i Ä‘Ã¡p cÃ³ dáº«n nguá»“n, "
+            "chÃ­nh xÃ¡c vÃ  Ä‘Æ°á»£c phÃ¢n quyá»n.\n"
+            "- Kháº£o sÃ¡t, Ä‘Ã¡nh giÃ¡ vÃ  lá»±a chá»n ká»¹ thuáº­t RAG phÃ¹ há»£p.\n"
+            "- Chuáº©n hÃ³a quy trÃ¬nh phÃ¢n Ä‘oáº¡n tÃ i liá»‡u, vector hÃ³a vÃ  láº­p chá»‰ má»¥c.\n"
+            "- Káº¿t há»£p tÃ¬m kiáº¿m tá»« khÃ³a vÃ  tÃ¬m kiáº¿m ngá»¯ nghÄ©a.\n"
+            "- XÃ¢y dá»±ng pipeline RAG dÃ¹ng chung cho toÃ n EVNCPC."
         ),
         chunk_metadata={"chunk_type": "docling_hybrid_repaired"},
     )
@@ -1526,12 +1526,12 @@ def test_dynamic_prompt_preserves_narrative_section_bullets() -> None:
         id=uuid4(),
         document_id=document_id,
         chunk_index=19,
-        content=("STT: 3\nMảng công nghệ: Xây dựng nền tảng RAG trên dữ liệu nội bộ\nPhòng chủ trì: PTUD"),
+        content=("STT: 3\nMáº£ng cÃ´ng nghá»‡: XÃ¢y dá»±ng ná»n táº£ng RAG trÃªn dá»¯ liá»‡u ná»™i bá»™\nPhÃ²ng chá»§ trÃ¬: PTUD"),
         chunk_metadata={"chunk_type": "table_row"},
     )
 
     prompt = RagAnswerService._build_user_prompt(
-        query="Mảng công nghệ RAG trên dữ liệu nội bộ có mục tiêu gì?",
+        query="Máº£ng cÃ´ng nghá»‡ RAG trÃªn dá»¯ liá»‡u ná»™i bá»™ cÃ³ má»¥c tiÃªu gÃ¬?",
         context_chunks=[
             ContextChunk(citation_index=1, chunk=table_row),
             ContextChunk(citation_index=2, chunk=narrative_chunk),
@@ -1539,34 +1539,34 @@ def test_dynamic_prompt_preserves_narrative_section_bullets() -> None:
     )
 
     assert "Document Text:" in prompt
-    assert "Khai thác tri thức nội bộ" in prompt
-    assert "Khảo sát, đánh giá" in prompt
-    assert "Chuẩn hóa quy trình" in prompt
-    assert "Kết hợp tìm kiếm từ khóa" in prompt
-    assert "pipeline RAG dùng chung" in prompt
+    assert "Khai thÃ¡c tri thá»©c ná»™i bá»™" in prompt
+    assert "Kháº£o sÃ¡t, Ä‘Ã¡nh giÃ¡" in prompt
+    assert "Chuáº©n hÃ³a quy trÃ¬nh" in prompt
+    assert "Káº¿t há»£p tÃ¬m kiáº¿m tá»« khÃ³a" in prompt
+    assert "pipeline RAG dÃ¹ng chung" in prompt
     assert "For narrative evidence, preserve the relevant section heading" in prompt
 
 
 def test_schema_count_query_uses_dynamic_count_prompt() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     narrative_chunk = SimpleNamespace(
         id=uuid4(),
         document_id=uuid4(),
         chunk_index=7,
-        content=("CÁC LỚP DỮ LIỆU\nLuồng dữ liệu: CMIS/TTHT → Lưu trữ & Tổng hợp → GIS Hạ thế.\n- Thông tin Trạm, Sổ.\n- Thông tin khách hàng.\n- Lớp điểm đo."),
+        content=("CÃC Lá»šP Dá»® LIá»†U\nLuá»“ng dá»¯ liá»‡u: CMIS/TTHT â†’ LÆ°u trá»¯ & Tá»•ng há»£p â†’ GIS Háº¡ tháº¿.\n- ThÃ´ng tin Tráº¡m, Sá»•.\n- ThÃ´ng tin khÃ¡ch hÃ ng.\n- Lá»›p Ä‘iá»ƒm Ä‘o."),
         chunk_metadata={"chunk_type": "docling_hybrid_repaired"},
     )
 
     prompt = RagAnswerService._build_user_prompt(
-        query="Khung CSDL gis hạ thế có mấy lớp thuộc tính",
+        query="Khung CSDL gis háº¡ tháº¿ cÃ³ máº¥y lá»›p thuá»™c tÃ­nh",
         context_chunks=[ContextChunk(citation_index=2, chunk=narrative_chunk)],
     )
 
     assert "Document Text:" in prompt
-    assert "CÁC LỚP DỮ LIỆU" in prompt
+    assert "CÃC Lá»šP Dá»® LIá»†U" in prompt
     assert "Reading notes" in prompt
     assert "overview_summary" in prompt
     assert "count_list" in prompt
@@ -1577,28 +1577,28 @@ def test_schema_count_query_uses_dynamic_count_prompt() -> None:
 def test_count_prompt_separates_evidence_categories_without_domain_template() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     summary_chunk = SimpleNamespace(
         id=uuid4(),
         document_id=uuid4(),
         chunk_index=8,
         content=(
-            "3. Khởi tạo bổ sung 03 bảng dữ liệu thuộc tính\n"
+            "3. Khá»Ÿi táº¡o bá»• sung 03 báº£ng dá»¯ liá»‡u thuá»™c tÃ­nh\n"
             "HinhAnhCotDien; HinhAnhKhachHang; HinhAnhHoSoKhachHang.\n"
-            "Khung CSDL GIS hạ thế tổng thể có 11 lớp dữ liệu GIS; "
-            "07 lớp đối tượng chính được ưu tiên, 04 lớp còn lại thực hiện giai đoạn sau."
+            "Khung CSDL GIS háº¡ tháº¿ tá»•ng thá»ƒ cÃ³ 11 lá»›p dá»¯ liá»‡u GIS; "
+            "07 lá»›p Ä‘á»‘i tÆ°á»£ng chÃ­nh Ä‘Æ°á»£c Æ°u tiÃªn, 04 lá»›p cÃ²n láº¡i thá»±c hiá»‡n giai Ä‘oáº¡n sau."
         ),
         chunk_metadata={"chunk_type": "docling_hybrid_repaired"},
     )
 
     prompt = RagAnswerService._build_user_prompt(
-        query="Khung CSDL gis hạ thế có mấy lớp thuộc tính",
+        query="Khung CSDL gis háº¡ tháº¿ cÃ³ máº¥y lá»›p thuá»™c tÃ­nh",
         context_chunks=[ContextChunk(citation_index=1, chunk=summary_chunk)],
     )
 
-    assert "03 bảng dữ liệu thuộc tính" in prompt
-    assert "11 lớp dữ liệu GIS" in prompt
+    assert "03 báº£ng dá»¯ liá»‡u thuá»™c tÃ­nh" in prompt
+    assert "11 lá»›p dá»¯ liá»‡u GIS" in prompt
     assert "different groups, tables, layers, sections" in prompt
     assert "Do not merge partial, priority, phase, or subtype counts" in prompt
     assert "GIS/spatial" not in prompt
@@ -1607,7 +1607,7 @@ def test_count_prompt_separates_evidence_categories_without_domain_template() ->
 def test_overview_prompt_omits_field_level_schema_when_structural_context_exists() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     document_id = uuid4()
     structural_chunk = SimpleNamespace(
@@ -1615,7 +1615,7 @@ def test_overview_prompt_omits_field_level_schema_when_structural_context_exists
         document_id=document_id,
         chunk_index=1,
         content=(
-            "Khung CSDL tổng thể có 11 lớp dữ liệu và 03 bảng dữ liệu thuộc tính: "
+            "Khung CSDL tá»•ng thá»ƒ cÃ³ 11 lá»›p dá»¯ liá»‡u vÃ  03 báº£ng dá»¯ liá»‡u thuá»™c tÃ­nh: "
             "HinhAnhCotDien, HinhAnhKhachHang, HinhAnhHoSoKhachHang."
         ),
         chunk_metadata={"chunk_type": "attribute_table_schema"},
@@ -1625,8 +1625,8 @@ def test_overview_prompt_omits_field_level_schema_when_structural_context_exists
         document_id=document_id,
         chunk_index=2,
         content=(
-            "3. Khởi tạo bổ sung 03 bảng dữ liệu thuộc tính. "
-            "Tên bảng dữ liệu: HinhAnhCotDien, HinhAnhKhachHang, HinhAnhHoSoKhachHang."
+            "3. Khá»Ÿi táº¡o bá»• sung 03 báº£ng dá»¯ liá»‡u thuá»™c tÃ­nh. "
+            "TÃªn báº£ng dá»¯ liá»‡u: HinhAnhCotDien, HinhAnhKhachHang, HinhAnhHoSoKhachHang."
         ),
         chunk_metadata={
             "chunk_type": "table_complete",
@@ -1640,12 +1640,12 @@ def test_overview_prompt_omits_field_level_schema_when_structural_context_exists
         id=uuid4(),
         document_id=document_id,
         chunk_index=3,
-        content="F08_CotDien_HT có trường Trị số tiếp địa và Chiều cao cột.",
+        content="F08_CotDien_HT cÃ³ trÆ°á»ng Trá»‹ sá»‘ tiáº¿p Ä‘á»‹a vÃ  Chiá»u cao cá»™t.",
         chunk_metadata={"chunk_type": "schema_field_row", "field_name": "TriSoTiepDia"},
     )
 
     prompt = RagAnswerService._build_user_prompt(
-        query="Khung CSDL gis hạ thế có mấy lớp thuộc tính",
+        query="Khung CSDL gis háº¡ tháº¿ cÃ³ máº¥y lá»›p thuá»™c tÃ­nh",
         context_chunks=[
             ContextChunk(citation_index=1, chunk=structural_chunk),
             ContextChunk(citation_index=2, chunk=structural_table_chunk),
@@ -1654,35 +1654,35 @@ def test_overview_prompt_omits_field_level_schema_when_structural_context_exists
     )
 
     assert "HinhAnhCotDien" in prompt
-    assert "03 bảng dữ liệu thuộc tính" in prompt
+    assert "03 báº£ng dá»¯ liá»‡u thuá»™c tÃ­nh" in prompt
     assert "SCHEMA_OVERVIEW_EVIDENCE" in prompt
-    assert "Trị số tiếp địa" not in prompt
+    assert "Trá»‹ sá»‘ tiáº¿p Ä‘á»‹a" not in prompt
     assert "Do not switch to field-level schemas" in prompt
 
 
 def test_field_detail_prompt_uses_profile_query_intent_rules() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     document_id = uuid4()
     structural_chunk = SimpleNamespace(
         id=uuid4(),
         document_id=document_id,
         chunk_index=1,
-        content="Khung CSDL tổng thể có 11 lớp dữ liệu.",
+        content="Khung CSDL tá»•ng thá»ƒ cÃ³ 11 lá»›p dá»¯ liá»‡u.",
         chunk_metadata={"chunk_type": "attribute_table_schema"},
     )
     field_chunk = SimpleNamespace(
         id=uuid4(),
         document_id=document_id,
         chunk_index=2,
-        content="F08_CotDien_HT có trường Trị số tiếp địa và Chiều cao cột.",
+        content="F08_CotDien_HT cÃ³ trÆ°á»ng Trá»‹ sá»‘ tiáº¿p Ä‘á»‹a vÃ  Chiá»u cao cá»™t.",
         chunk_metadata={"chunk_type": "schema_field_row", "field_name": "TriSoTiepDia"},
     )
 
     prompt = RagAnswerService._build_user_prompt(
-        query="schema-field khung CSDL gis hạ thế có mấy lớp thuộc tính",
+        query="schema-field khung CSDL gis háº¡ tháº¿ cÃ³ máº¥y lá»›p thuá»™c tÃ­nh",
         context_chunks=[
             ContextChunk(citation_index=1, chunk=structural_chunk),
             ContextChunk(citation_index=2, chunk=field_chunk),
@@ -1697,28 +1697,28 @@ def test_field_detail_prompt_uses_profile_query_intent_rules() -> None:
         },
     )
 
-    assert "Khung CSDL tổng thể" in prompt
-    assert "Trị số tiếp địa" in prompt
+    assert "Khung CSDL tá»•ng thá»ƒ" in prompt
+    assert "Trá»‹ sá»‘ tiáº¿p Ä‘á»‹a" in prompt
 
 
 def test_prompt_lists_structured_relationship_evidence_when_available() -> None:
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     document_id = uuid4()
     summary_chunk = SimpleNamespace(
         id=uuid4(),
         document_id=document_id,
         chunk_index=8,
-        content="Khởi tạo bổ sung 03 mối quan hệ giữa lớp dữ liệu và bảng thuộc tính.",
+        content="Khá»Ÿi táº¡o bá»• sung 03 má»‘i quan há»‡ giá»¯a lá»›p dá»¯ liá»‡u vÃ  báº£ng thuá»™c tÃ­nh.",
         chunk_metadata={"chunk_type": "docling_hybrid_repaired"},
     )
     relationship_chunk = SimpleNamespace(
         id=uuid4(),
         document_id=document_id,
         chunk_index=9,
-        content="Tên mối quan hệ: PXXXXX_CotDien_HT_HinhAnhCotDien",
+        content="TÃªn má»‘i quan há»‡: PXXXXX_CotDien_HT_HinhAnhCotDien",
         chunk_metadata={
             "chunk_type": "relationship_definition",
             "relationship_name": "PXXXXX_CotDien_HT_HinhAnhCotDien",
@@ -1731,7 +1731,7 @@ def test_prompt_lists_structured_relationship_evidence_when_available() -> None:
     )
 
     prompt = RagAnswerService._build_user_prompt(
-        query="Khung CSDL gis hạ thế có mấy lớp thuộc tính",
+        query="Khung CSDL gis háº¡ tháº¿ cÃ³ máº¥y lá»›p thuá»™c tÃ­nh",
         context_chunks=[
             ContextChunk(citation_index=1, chunk=summary_chunk),
             ContextChunk(citation_index=2, chunk=relationship_chunk),
@@ -1747,9 +1747,9 @@ def test_prompt_lists_structured_relationship_evidence_when_available() -> None:
 
 
 def test_schema_count_search_terms_are_query_derived() -> None:
-    from app.services.rag_answer_service import RagAnswerService
+    from app.services.rag.rag_answer_service import RagAnswerService
 
-    query_terms = ["Khung CSDL gis hạ thế có mấy lớp thuộc tính"]
+    query_terms = ["Khung CSDL gis háº¡ tháº¿ cÃ³ máº¥y lá»›p thuá»™c tÃ­nh"]
 
     terms = RagAnswerService._schema_count_search_terms(query_terms)
     normalized = [RagAnswerService._strip_vietnamese_accents(term).casefold() for term in terms]
@@ -1763,10 +1763,10 @@ def test_schema_count_search_terms_are_query_derived() -> None:
     assert all("cotdien_ht" not in term for term in normalized)
 
 def test_strategy_enriched_query_adds_search_terms_not_answer_facts() -> None:
-    from app.services.query_strategy import classify_query_strategy
-    from app.services.rag_answer_service import RagAnswerService
+    from app.services.queries.query_strategy import classify_query_strategy
+    from app.services.rag.rag_answer_service import RagAnswerService
 
-    query = "Khung CSDL gis hạ thế có mấy lớp thuộc tính"
+    query = "Khung CSDL gis háº¡ tháº¿ cÃ³ máº¥y lá»›p thuá»™c tÃ­nh"
     enriched = RagAnswerService._strategy_enriched_query(
         query,
         query_strategy=classify_query_strategy(query),
@@ -1779,9 +1779,9 @@ def test_strategy_enriched_query_adds_search_terms_not_answer_facts() -> None:
 
 
 def test_query_terms_extract_generic_keyphrases_for_section_recovery() -> None:
-    from app.services.rag_answer_service import RagAnswerService
+    from app.services.rag.rag_answer_service import RagAnswerService
 
-    terms = RagAnswerService._query_terms("Mảng công nghệ RAG trên dữ liệu nội bộ có mục tiêu gì?")
+    terms = RagAnswerService._query_terms("Máº£ng cÃ´ng nghá»‡ RAG trÃªn dá»¯ liá»‡u ná»™i bá»™ cÃ³ má»¥c tiÃªu gÃ¬?")
 
     normalized_terms = [RagAnswerService._strip_vietnamese_accents(term).casefold() for term in terms]
     assert "rag" in normalized_terms
@@ -1793,7 +1793,7 @@ def test_high_signal_coverage_chunk_can_override_context_budget() -> None:
     import asyncio
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     document_id = uuid4()
     primary = SimpleNamespace(
@@ -1807,7 +1807,7 @@ def test_high_signal_coverage_chunk_can_override_context_budget() -> None:
         id=uuid4(),
         document_id=document_id,
         chunk_index=5,
-        content=("3. Xây dựng nền tảng RAG trên dữ liệu nội bộ. Mục tiêu: Khai thác tri thức nội bộ qua hỏi đáp có dẫn nguồn."),
+        content=("3. XÃ¢y dá»±ng ná»n táº£ng RAG trÃªn dá»¯ liá»‡u ná»™i bá»™. Má»¥c tiÃªu: Khai thÃ¡c tri thá»©c ná»™i bá»™ qua há»i Ä‘Ã¡p cÃ³ dáº«n nguá»“n."),
         chunk_metadata={"chunk_type": "docling_hybrid_repaired"},
     )
 
@@ -1824,33 +1824,33 @@ def test_high_signal_coverage_chunk_can_override_context_budget() -> None:
 
     expanded = asyncio.run(
         service._expand_with_neighbors(
-            query="Mảng công nghệ RAG trên dữ liệu nội bộ có mục tiêu gì?",
+            query="Máº£ng cÃ´ng nghá»‡ RAG trÃªn dá»¯ liá»‡u ná»™i bá»™ cÃ³ má»¥c tiÃªu gÃ¬?",
             context_chunks=[ContextChunk(citation_index=1, chunk=primary)],
             max_context_chars=200,
         )
     )
 
-    assert any("Mục tiêu: Khai thác tri thức nội bộ" in item.chunk.content for item in expanded)
+    assert any("Má»¥c tiÃªu: Khai thÃ¡c tri thá»©c ná»™i bá»™" in item.chunk.content for item in expanded)
 
 def test_schema_count_expansion_prioritizes_structural_schema_chunks() -> None:
     import asyncio
     from uuid import uuid4
 
-    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+    from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
     document_id = uuid4()
     primary = SimpleNamespace(
         id=uuid4(),
         document_id=document_id,
         chunk_index=11,
-        content="1. Mục tiêu - Khởi tạo khung CSDL GIS hạ thế bao gồm 10 đối tượng." + (" X" * 10000),
+        content="1. Má»¥c tiÃªu - Khá»Ÿi táº¡o khung CSDL GIS háº¡ tháº¿ bao gá»“m 10 Ä‘á»‘i tÆ°á»£ng." + (" X" * 10000),
         chunk_metadata={"chunk_type": "docling_hybrid_repaired"},
     )
     field_row = SimpleNamespace(
         id=uuid4(),
         document_id=document_id,
         chunk_index=14,
-        content="F08_CotDien_HT có các trường thuộc tính: ID, MaTramBienAp, ViTriCotHaThe.",
+        content="F08_CotDien_HT cÃ³ cÃ¡c trÆ°á»ng thuá»™c tÃ­nh: ID, MaTramBienAp, ViTriCotHaThe.",
         chunk_metadata={"chunk_type": "schema_field_row", "field_name": "MaTramBienAp"},
     )
     structural_table = SimpleNamespace(
@@ -1858,8 +1858,8 @@ def test_schema_count_expansion_prioritizes_structural_schema_chunks() -> None:
         document_id=document_id,
         chunk_index=30,
         content=(
-            "3. Khởi tạo bổ sung 03 bảng dữ liệu thuộc tính. "
-            "Tên bảng dữ liệu: HinhAnhCotDien; HinhAnhKhachHang; HinhAnhHoSoKhachHang."
+            "3. Khá»Ÿi táº¡o bá»• sung 03 báº£ng dá»¯ liá»‡u thuá»™c tÃ­nh. "
+            "TÃªn báº£ng dá»¯ liá»‡u: HinhAnhCotDien; HinhAnhKhachHang; HinhAnhHoSoKhachHang."
         ),
         chunk_metadata={
             "chunk_type": "table_complete",
@@ -1873,13 +1873,13 @@ def test_schema_count_expansion_prioritizes_structural_schema_chunks() -> None:
         id=uuid4(),
         document_id=document_id,
         chunk_index=31,
-        content="4. Khởi tạo bổ sung 03 mối quan hệ giữa lớp dữ liệu GIS với bảng dữ liệu 1-M.",
+        content="4. Khá»Ÿi táº¡o bá»• sung 03 má»‘i quan há»‡ giá»¯a lá»›p dá»¯ liá»‡u GIS vá»›i báº£ng dá»¯ liá»‡u 1-M.",
         chunk_metadata={"chunk_type": "relationship_definition", "relationship_name": "R1"},
     )
 
     class FakeCoverageRepo:
         async def get_entity_coverage_chunks(self, *, document_id, search_terms, exclude_ids):
-            assert any("bảng dữ liệu thuộc tính" in term for term in search_terms)
+            assert any("báº£ng dá»¯ liá»‡u thuá»™c tÃ­nh" in term for term in search_terms)
             return [field_row, structural_table, relationship]
 
     service = RagAnswerService(
@@ -1890,17 +1890,17 @@ def test_schema_count_expansion_prioritizes_structural_schema_chunks() -> None:
 
     expanded = asyncio.run(
         service._expand_with_neighbors(
-            query="Khung CSDL gis hạ thế có mấy lớp thuộc tính",
+            query="Khung CSDL gis háº¡ tháº¿ cÃ³ máº¥y lá»›p thuá»™c tÃ­nh",
             context_chunks=[ContextChunk(citation_index=1, chunk=primary)],
             max_context_chars=200,
         )
     )
 
     expanded_contents = [item.chunk.content for item in expanded]
-    assert any("03 bảng dữ liệu thuộc tính" in content for content in expanded_contents)
-    assert any("03 mối quan hệ" in content for content in expanded_contents)
+    assert any("03 báº£ng dá»¯ liá»‡u thuá»™c tÃ­nh" in content for content in expanded_contents)
+    assert any("03 má»‘i quan há»‡" in content for content in expanded_contents)
     structural_index = next(
-        index for index, content in enumerate(expanded_contents) if "03 bảng dữ liệu thuộc tính" in content
+        index for index, content in enumerate(expanded_contents) if "03 báº£ng dá»¯ liá»‡u thuá»™c tÃ­nh" in content
     )
     field_index = next(index for index, content in enumerate(expanded_contents) if "MaTramBienAp" in content)
     assert structural_index < field_index

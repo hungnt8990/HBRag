@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 from types import SimpleNamespace
 from uuid import UUID, uuid4
 
@@ -8,11 +8,11 @@ from app.api.routes import memory as memory_routes
 from app.core.config import Settings
 from app.main import app
 from app.models.memory import SessionSummary, UserMemory
-from app.services.memory.base import MemoryResult
-from app.services.memory.hybrid_memory_provider import HybridMemoryProvider
-from app.services.memory.local_memory_provider import LocalMemoryProvider
-from app.services.memory.mem0_provider import Mem0Provider
-from app.services.rag_answer_service import ContextChunk, RagAnswerService
+from app.services.memory.memory_base import MemoryResult
+from app.services.memory.memory_hybrid_memory_provider import HybridMemoryProvider
+from app.services.memory.memory_local_memory_provider import LocalMemoryProvider
+from app.services.memory.memory_mem0_provider import Mem0Provider
+from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
 
 USER_A = SimpleNamespace(id=uuid4(), organization_id=uuid4())
 USER_B = SimpleNamespace(id=uuid4(), organization_id=uuid4())

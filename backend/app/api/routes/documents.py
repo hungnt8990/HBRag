@@ -1,4 +1,4 @@
-import inspect
+﻿import inspect
 from typing import Annotated
 from urllib.parse import quote
 from uuid import UUID
@@ -27,6 +27,7 @@ from app.repositories.auth import AuthRepository
 from app.repositories.document_logs import DocumentLogRepository
 from app.repositories.documents import DocumentRepository
 from app.repositories.graph import GraphRepository
+from app.repositories.knowledge_artifacts import KnowledgeArtifactRepository
 from app.repositories.knowledge_bases import KnowledgeBaseRepository
 from app.schemas.documents import (
     DocumentAccessDecisionResponse,
@@ -57,30 +58,30 @@ from app.schemas.documents import (
     GraphIndexRequest,
     GraphIndexResponse,
 )
-from app.services.access_control import (
+from app.services.security.security_access_control import (
     AccessAction,
     build_resource_context,
     build_subject_context,
     can_access_resource,
     normalize_document_access_metadata,
 )
-from app.services.chunk_enrichment_service import (
+from app.services.chunkers.chunker_chunk_enrichment_service import (
     ChunkEnrichmentChunksNotFoundError,
     ChunkEnrichmentDocumentNotFoundError,
     ChunkEnrichmentError,
     ChunkEnrichmentService,
     ChunkEnrichmentStatusError,
 )
-from app.services.chunking_service import (
+from app.services.chunkers.chunker_chunking_service import (
     ChunkingService,
     DocumentChunkingError,
     DocumentChunkStatusError,
     EmptyParsedTextError,
 )
-from app.services.chunking_service import (
+from app.services.chunkers.chunker_chunking_service import (
     DocumentNotFoundError as ChunkDocumentNotFoundError,
 )
-from app.services.document_parser_service import (
+from app.services.documents.document_parser_service import (
     DocumentFileNotFoundError,
     DocumentNotFoundError,
     DocumentParserService,
@@ -88,8 +89,8 @@ from app.services.document_parser_service import (
     DocumentParsingError,
     UnsupportedDocumentParserError,
 )
-from app.services.document_profiles import resolve_profile
-from app.services.document_service import (
+from app.services.documents.document_profiles import resolve_profile
+from app.services.documents.document_service import (
     DocumentService,
     DocumentUploadError,
     DuplicateDocumentUploadError,
@@ -101,16 +102,16 @@ from app.services.document_sources import (
     DofficeElasticsearchSource,
     DofficeSourceError,
 )
-from app.services.doffice_ingestion_service import (
+from app.services.ingestion.ingestion_doffice_ingestion_service import (
     DofficeIngestionError,
     DofficeIngestionService,
     DofficeIngestOptions,
     EmptyDofficeDocumentError,
 )
-from app.services.elasticsearch_keyword_search import get_elasticsearch_keyword_store
-from app.services.embeddings.base import EmbeddingProvider
-from app.services.embeddings.factory import get_embedding_provider
-from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
+from app.services.retrieval.retrieval_elasticsearch_keyword_search import get_elasticsearch_keyword_store
+from app.services.embeddings.embedding_base import EmbeddingProvider
+from app.services.embeddings.embedding_factory import get_embedding_provider
+from app.services.embeddings.embedding_sparse_factory import get_sparse_embedding_provider
 from app.services.graph import (
     GraphDocumentChunksMissingError,
     GraphIndexingDisabledError,
@@ -120,28 +121,28 @@ from app.services.graph import (
     Neo4jClient,
     get_neo4j_client,
 )
-from app.services.graph.extractors.factory import build_graph_extractor
-from app.services.ingestion_queue import IngestionJob, IngestionQueue, get_ingestion_queue
-from app.services.llms import LLMProvider
-from app.services.llms.factory import build_llm_provider_or_error, get_llm_provider
-from app.services.permissions import (
+from app.services.graph.extractors.extractor_factory import build_graph_extractor
+from app.services.ingestion.ingestion_queue import IngestionJob, IngestionQueue, get_ingestion_queue
+from app.services.knowledge.knowledge_artifact_indexing_service import KnowledgeArtifactIndexingService
+from app.services.llm_gateway import LLMGateway, build_llm_gateway_or_error, get_llm_gateway
+from app.services.security.security_permissions import (
     can_assign_upload_organization,
     can_manage_document,
     can_upload_document,
     can_upload_to_knowledge_base,
     can_view_document,
 )
-from app.services.storage import StorageClient, get_storage_client
-from app.services.vector_indexing_service import (
+from app.services.documents.document_storage import StorageClient, get_storage_client
+from app.services.vector.vector_indexing_service import (
     DocumentChunksNotFoundError,
     DocumentVectorIndexStatusError,
     VectorIndexingError,
     VectorIndexingService,
 )
-from app.services.vector_indexing_service import (
+from app.services.vector.vector_indexing_service import (
     DocumentNotFoundError as VectorDocumentNotFoundError,
 )
-from app.services.vector_store import QdrantVectorStore, get_vector_store
+from app.services.vector.vector_store import QdrantVectorStore, get_artifact_vector_store, get_vector_store
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 DOCUMENT_DETAIL_PREVIEW_LIMIT = 50_000
@@ -176,6 +177,12 @@ def get_knowledge_base_repository(
     return KnowledgeBaseRepository(session)
 
 
+def get_knowledge_artifact_repository(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> KnowledgeArtifactRepository:
+    return KnowledgeArtifactRepository(session)
+
+
 def get_document_service(
     repository: Annotated[DocumentRepository, Depends(get_document_repository)],
     storage: Annotated[StorageClient, Depends(get_storage_client)],
@@ -199,7 +206,7 @@ def get_chunking_service(
 
 def get_chunk_enrichment_service(
     repository: Annotated[DocumentRepository, Depends(get_document_repository)],
-    llm_provider: Annotated[LLMProvider, Depends(get_llm_provider)],
+    llm_provider: Annotated[LLMGateway, Depends(get_llm_gateway)],
 ) -> ChunkEnrichmentService:
     return ChunkEnrichmentService(repository=repository, llm_provider=llm_provider)
 
@@ -222,6 +229,21 @@ def get_vector_indexing_service(
     )
 
 
+def get_knowledge_artifact_indexing_service(
+    repository: Annotated[
+        KnowledgeArtifactRepository,
+        Depends(get_knowledge_artifact_repository),
+    ],
+    embedding_provider: Annotated[EmbeddingProvider, Depends(get_embedding_provider)],
+) -> KnowledgeArtifactIndexingService:
+    return KnowledgeArtifactIndexingService(
+        repository=repository,
+        embedding_provider=embedding_provider,
+        vector_store=get_artifact_vector_store(),
+        sparse_embedding_provider=get_sparse_embedding_provider(),
+    )
+
+
 def get_doffice_source() -> DofficeElasticsearchSource:
     return DofficeElasticsearchSource()
 
@@ -238,6 +260,14 @@ def get_doffice_ingestion_service(
         ChunkEnrichmentService,
         Depends(get_chunk_enrichment_service),
     ],
+    knowledge_artifact_repository: Annotated[
+        KnowledgeArtifactRepository,
+        Depends(get_knowledge_artifact_repository),
+    ],
+    artifact_indexing_service: Annotated[
+        KnowledgeArtifactIndexingService,
+        Depends(get_knowledge_artifact_indexing_service),
+    ],
 ) -> DofficeIngestionService:
     return DofficeIngestionService(
         repository=repository,
@@ -246,6 +276,8 @@ def get_doffice_ingestion_service(
         vector_indexing_service=vector_indexing_service,
         vector_store=vector_store,
         enrichment_service=enrichment_service,
+        knowledge_artifact_repository=knowledge_artifact_repository,
+        artifact_indexing_service=artifact_indexing_service,
         keyword_index_store=(
             get_elasticsearch_keyword_store()
             if settings.elasticsearch_enabled
@@ -256,7 +288,7 @@ def get_doffice_ingestion_service(
 def get_graph_indexing_service(
     repository: Annotated[DocumentRepository, Depends(get_document_repository)],
     graph_repository: Annotated[GraphRepository, Depends(get_graph_repository)],
-    llm_provider: Annotated[LLMProvider, Depends(get_llm_provider)],
+    llm_provider: Annotated[LLMGateway, Depends(get_llm_gateway)],
     neo4j_client: Annotated[Neo4jClient, Depends(get_neo4j_client)],
 ) -> GraphIndexingService:
     extractor = build_graph_extractor(llm_provider=llm_provider)
@@ -1024,7 +1056,7 @@ async def enrich_document_chunks(
     ) or base_enrichment_version
     service = ChunkEnrichmentService(
         repository=repository,
-        llm_provider=build_llm_provider_or_error(
+        llm_provider=build_llm_gateway_or_error(
             provider=chunk_enrichment_provider,
             base_url=chunk_enrichment_base_url,
             model=chunk_enrichment_model,

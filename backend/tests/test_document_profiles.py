@@ -10,7 +10,7 @@ from app.api.routes.chat import _resolve_profile_settings
 from app.api.routes.documents import get_document_repository
 from app.main import app
 from app.repositories.documents import ChunkCreate
-from app.services.document_profiles import (
+from app.services.documents.document_profiles import (
     FALLBACK_CONFIG,
     PROFILE_CONFIGS,
     detect_profile,
@@ -18,7 +18,7 @@ from app.services.document_profiles import (
     resolve_profile,
     resolve_profile_with_evidence,
 )
-from app.services.ingestion_queue import IngestionQueue
+from app.services.ingestion.ingestion_queue import IngestionQueue
 
 DOCUMENT_ID = UUID("55555555-5555-5555-5555-555555555555")
 
@@ -157,6 +157,7 @@ def test_resolve_profile_auto_uses_detection() -> None:
     assert resolve_profile("auto", text=LEGAL_TEXT) == "legal_admin"
     assert resolve_profile("catalog_table", text=LEGAL_TEXT) == "catalog_table"
     assert resolve_profile("unknown", text=LEGAL_TEXT) == "general"
+    assert resolve_profile("doffice_admin", text=LEGAL_TEXT) == "legal_admin"
 
 
 def test_profile_config_returns_fallback_for_unknown() -> None:

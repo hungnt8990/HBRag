@@ -1,4 +1,4 @@
-import inspect
+﻿import inspect
 from typing import Annotated
 from uuid import UUID
 
@@ -23,27 +23,26 @@ from app.schemas.documents import (
     VectorSearchRequest,
     VectorSearchResponse,
 )
-from app.services.access_control import build_access_filter, build_subject_context
-from app.services.document_profiles import resolve_profile
-from app.services.elasticsearch_keyword_search import (
+from app.services.security.security_access_control import build_access_filter, build_subject_context
+from app.services.documents.document_profiles import resolve_profile
+from app.services.retrieval.retrieval_elasticsearch_keyword_search import (
     ElasticsearchKeywordSearchService,
     get_elasticsearch_keyword_store,
 )
-from app.services.embeddings.base import EmbeddingProvider
-from app.services.embeddings.factory import get_embedding_provider
-from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
+from app.services.embeddings.embedding_base import EmbeddingProvider
+from app.services.embeddings.embedding_factory import get_embedding_provider
+from app.services.embeddings.embedding_sparse_factory import get_sparse_embedding_provider
 from app.services.graph import GraphRetrievalService, Neo4jClient, get_neo4j_client
-from app.services.graph.extractors.factory import build_graph_extractor
-from app.services.hybrid_search import HybridSearchError, HybridSearchService
-from app.services.keyword_search import KeywordSearchError, KeywordSearchService
-from app.services.llms import LLMProvider
-from app.services.llms.factory import get_llm_provider
-from app.services.permissions import can_view_document, can_view_knowledge_base
+from app.services.graph.extractors.extractor_factory import build_graph_extractor
+from app.services.retrieval.retrieval_hybrid_search import HybridSearchError, HybridSearchService
+from app.services.retrieval.retrieval_keyword_search import KeywordSearchError, KeywordSearchService
+from app.services.llm_gateway import LLMGateway, get_llm_gateway
+from app.services.security.security_permissions import can_view_document, can_view_knowledge_base
 from app.services.rerankers import Reranker
-from app.services.rerankers.factory import get_reranker
-from app.services.reranking_service import RerankingError, RerankingService
-from app.services.vector_indexing_service import VectorIndexingService, VectorSearchError
-from app.services.vector_store import QdrantVectorStore, get_vector_store
+from app.services.rerankers.reranker_factory import get_reranker
+from app.services.rerankers.reranker_service import RerankingError, RerankingService
+from app.services.vector.vector_indexing_service import VectorIndexingService, VectorSearchError
+from app.services.vector.vector_store import QdrantVectorStore, get_vector_store
 
 router = APIRouter(prefix="/api/search", tags=["search"])
 
@@ -103,7 +102,7 @@ def get_retrieval_log_repository(
 
 def get_graph_retrieval_service(
     neo4j_client: Annotated[Neo4jClient, Depends(get_neo4j_client)],
-    llm_provider: Annotated[LLMProvider, Depends(get_llm_provider)],
+    llm_provider: Annotated[LLMGateway, Depends(get_llm_gateway)],
 ) -> GraphRetrievalService:
     extractor = build_graph_extractor(llm_provider=llm_provider)
     return GraphRetrievalService(neo4j_client=neo4j_client, extractor=extractor)

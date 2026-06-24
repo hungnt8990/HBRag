@@ -1,4 +1,4 @@
-from app.services.document_sources.doffice_elasticsearch_source import (
+﻿from app.services.document_sources.document_source_doffice_elasticsearch_source import (
     DOFFICE_SOURCE_TYPE,
     DofficeDocument,
     DofficeDocumentNotFoundError,

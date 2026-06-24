@@ -240,3 +240,38 @@ alembic upgrade head
 The migration that adds this layer is `0012_knowledge_artifacts`.
 
 Nếu dùng Qdrant integration thật, chạy Qdrant/Postgres/MinIO trước khi chạy nhóm integration test.
+
+## 13. DOffice Enterprise RAG Pipeline
+
+DOffice ingestion now uses a deterministic-first pipeline for enterprise retrieval:
+
+```text
+DOffice source
+-> normalize HTML/text/table structure
+-> document_header chunk
+-> sanitized document_summary chunk
+-> legal_clause chunks
+-> table_parent chunks
+-> table_row chunks
+-> knowledge artifacts
+-> QA packet artifacts
+-> chunk embedding + artifact embedding
+```
+
+Chunk rules:
+
+- `document_summary` contains only the document purpose, main subject, main time, main location, and final decision/result. It is capped at 200 words and strips phone numbers, email addresses, document codes, ID_VB values, long lists, and table details. PII remains in metadata or table-row chunks, not in the summary embedding text.
+- `legal_clause` carries a clause-scoped `summary` such as `Điều 1 quy định: ...`; it no longer inherits the whole-document summary.
+- `document_header`, `document_summary`, `legal_clause`, `table_parent`, and `table_row` chunks carry `source_span`. When exact text cannot be located, ingestion logs a warning and uses a document-scope fallback span.
+- `table_parent` stores table name, row count, columns, table headers, table identifiers, and source span.
+- `table_row` is a retrievable row-level chunk. Personnel-style columns are normalized into fields such as `person_name`, `position`, `department`, `phone`, `email`, `row_key`, `row_cells`, and `row_entities` so exact lookup questions can resolve from one row.
+- Enrichment and graph extraction deduplicate entities and drop extracted entities that do not appear in the source chunk text.
+
+Knowledge artifacts:
+
+- Artifacts are compiled after chunks are created and indexed in the artifact collection separately from chunk vectors.
+- Existing generic artifacts remain: `document_profile`, `document_summary_artifact`, `identifier_lookup`, `table_row_artifact`, `table_evidence_artifact`, `person_assignment_artifact`, `assignment_artifact`, `procedure_artifact`, `policy_rule_artifact`, and `legal_evidence_artifact`.
+- DOffice training decisions can additionally produce `training_decision` with fields like document code, course name, provider, start/end dates, location, participant count, and funding source.
+- Each indexable chunk can produce a `qa_packet` artifact with question, answer, and evidence back to the source chunk/span. Table rows produce lookup questions such as person-to-department and email-to-person.
+
+Schema/migration note: no new database migration is required for this refactor. New fields are stored in existing JSONB chunk metadata and the new artifact types use the existing `knowledge_artifacts.artifact_type` string column.

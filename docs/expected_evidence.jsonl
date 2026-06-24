@@ -1,0 +1,7 @@
+{"question_type":"doc_code_lookup","expected_evidence":["document_summary_artifact","document_header"]}
+{"question_type":"doc_date_lookup","expected_evidence":["document_header","document_summary_artifact"]}
+{"question_type":"person_assignment_lookup","expected_evidence":["table_row","assignment_artifact","entity_profile_artifact"]}
+{"question_type":"table_row_lookup","expected_evidence":["table_row","table_artifact","table_summary"]}
+{"question_type":"legal_clause_lookup","expected_evidence":["legal_clause","legal_evidence_artifact"]}
+{"question_type":"summary","expected_evidence":["document_summary_artifact","assignment_artifact","deadline_artifact"]}
+

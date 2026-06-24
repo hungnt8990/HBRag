@@ -1,9 +1,9 @@
-import asyncio
+﻿import asyncio
 
 from app.core.config import Settings
-from app.services.llms import factory as llm_factory
-from app.services.llms.fake_llm import FakeLLM
-from app.services.llms.openai_llm import OpenAICompatibleLLM
+from app.services.llms import llm_factory
+from app.services.llms.llm_fake_llm import FakeLLM
+from app.services.llms.llm_openai_llm import OpenAICompatibleLLM
 
 
 def test_build_llm_provider_uses_profile_model_for_openai_compatible(monkeypatch) -> None:

@@ -1,0 +1,7 @@
+{"question":"3113/EVN-KDMBD là văn bản gì?","question_type":"doc_code_lookup","expected_answer":"Tra cứu đúng văn bản theo số hiệu.","expected_doc_code":"3113/EVN-KDMBD","expected_evidence":["document_summary_artifact","document_header"]}
+{"question":"Văn bản 3113/EVN-KDMBD ban hành ngày nào?","question_type":"doc_date_lookup","expected_answer":"Tra cứu đúng ngày ban hành.","expected_doc_code":"3113/EVN-KDMBD","expected_evidence":["document_header","document_summary_artifact"]}
+{"question":"Nguyễn Quang Lâm tham gia mảng nào?","question_type":"person_assignment_lookup","expected_answer":"Tra cứu đúng các mảng công nghệ của người được hỏi.","expected_evidence":["table_row","assignment_artifact","entity_profile_artifact"]}
+{"question":"STT 3 trong bảng phân công là nội dung gì?","question_type":"table_row_lookup","expected_answer":"Tra cứu đúng dòng bảng tương ứng với STT 3.","expected_evidence":["table_row","table_artifact","table_summary"]}
+{"question":"Điều 10 quy định nội dung gì?","question_type":"legal_clause_lookup","expected_answer":"Tra cứu đúng điều khoản và giữ nguyên điều/khoản/điểm.","expected_evidence":["legal_clause","legal_evidence_artifact"]}
+{"question":"Tóm tắt nội dung chính của văn bản này.","question_type":"summary","expected_answer":"Tóm tắt nội dung chính ở mức tài liệu.","expected_evidence":["document_summary_artifact","assignment_artifact","deadline_artifact"]}
+

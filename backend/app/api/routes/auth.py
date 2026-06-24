@@ -1,4 +1,4 @@
-from typing import Annotated
+﻿from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +18,7 @@ from app.schemas.auth import (
     TokenResponse,
     UserResponse,
 )
-from app.services.permissions import can_assign_upload_organization, can_view_document
+from app.services.security.security_permissions import can_assign_upload_organization, can_view_document
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 

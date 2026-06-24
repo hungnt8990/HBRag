@@ -1,0 +1,64 @@
+chunking:
+  default_strategy: structure_aware
+  fallback_strategy: recursive
+
+default:
+  max_tokens: 700
+  overlap_tokens: 80
+  min_tokens: 80
+
+fixed_size:
+  enabled: true
+  variants:
+    - name: S1_fixed_512_overlap_100
+      chunk_size: 512
+      overlap: 100
+    - name: S2_fixed_1024_overlap_150
+      chunk_size: 1024
+      overlap: 150
+
+recursive:
+  chunk_size: 700
+  overlap: 80
+  separators:
+    - "\n## "
+    - "\n### "
+    - "\n\n"
+    - ". "
+    - " "
+
+table:
+  strategy: row_level_with_context
+  include_document_preamble: true
+  include_table_title: true
+  include_header: true
+  include_row_index: true
+  max_rows_per_chunk: 1
+  overlap_rows: 0
+  create_table_summary: true
+  create_table_artifacts: true
+  merge_continued_tables: true
+
+legal:
+  strategy: article_clause_aware
+  keep_article_title: true
+  keep_clause_context: true
+  split_long_article: true
+  max_tokens: 900
+
+report:
+  strategy: semantic_section
+  fallback: recursive
+  max_tokens: 800
+
+artifact:
+  enabled: true
+  index_first: true
+  fallback_to_raw_chunk: true
+
+quality_gate:
+  enabled: true
+  block_table_placeholders: true
+  require_doc_metadata: true
+  require_chunk_type: true
+  require_source_span: true

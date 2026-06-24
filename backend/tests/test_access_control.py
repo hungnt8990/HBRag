@@ -1,10 +1,10 @@
-from types import SimpleNamespace
+﻿from types import SimpleNamespace
 from uuid import UUID
 
 import pytest
 
 from app.core.config import settings
-from app.services.access_control import (
+from app.services.security.security_access_control import (
     AccessAction,
     access_payload_for_chunk,
     build_resource_context,

@@ -1,4 +1,4 @@
-from app.services.query_contract_service import QueryContractService
+from app.services.queries.query_contract_service import QueryContractService
 
 
 def test_query_contract_detects_identifier_lookup() -> None:

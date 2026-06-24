@@ -1,59 +1,86 @@
-import asyncio
+﻿import asyncio
+import json
 from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 from app.core.config import Settings
 from app.schemas.documents import GraphIndexRequest, HybridSearchResponse, HybridSearchResult
-from app.services.graph.extractors.fake_extractor import FakeGraphExtractor
+from app.services.graph.extractors.extractor_fake_extractor import FakeGraphExtractor
+from app.services.graph.extractors.extractor_llm_extractor import LLMGraphExtractor
 from app.services.graph.graph_indexing_service import GraphIndexingService
 from app.services.graph.graph_merge_service import GraphMergeService
-from app.services.graph.models import GraphChunkCandidate
-from app.services.rerankers.base import RerankScore
-from app.services.reranking_service import RerankingService
+from app.services.graph.graph_models import GraphChunkCandidate
+from app.services.rerankers.reranker_base import RerankScore
+from app.services.rerankers.reranker_service import RerankingService
 
 
 def test_fake_graph_extractor_returns_deterministic_entities() -> None:
     async def run_test() -> None:
         extractor = FakeGraphExtractor()
         result = await extractor.extract(
-            content="Điều 10 quy định EVNCPC và NLĐ.",
+            content="Äiá»u 10 quy Ä‘á»‹nh EVNCPC vÃ  NLÄ.",
             max_entities=10,
             max_relations=10,
         )
 
         names = [(entity.name, entity.type) for entity in result.entities]
-        assert ("Điều 10", "legal_article") in names
+        assert ("Äiá»u 10", "legal_article") in names
         assert ("EVNCPC", "organization") in names
         assert any(relation.type == "lien_quan_den" for relation in result.relationships)
 
     asyncio.run(run_test())
 
 
+
+def test_llm_graph_extractor_deduplicates_and_validates_entities() -> None:
+    class FakeLLM:
+        async def generate(self, *, system_prompt: str, user_prompt: str) -> str:
+            return json.dumps(
+                {
+                    "entities": [
+                        {"name": "CPCIT", "normalized_name": "cpcit", "type": "organization", "confidence": 0.9, "evidence": "CPCIT"},
+                        {"name": "CPCIT", "normalized_name": "cpcit", "type": "organization", "confidence": 0.8, "evidence": "CPCIT"},
+                        {"name": "ThÆ° Viá»‡n Quá»‘c Gia HÃ  Ná»™i", "normalized_name": "thu vien quoc gia ha noi", "type": "organization", "confidence": 0.9, "evidence": ""},
+                    ],
+                    "relationships": [],
+                },
+                ensure_ascii=False,
+            )
+
+    result = asyncio.run(
+        LLMGraphExtractor(FakeLLM()).extract(
+            content="CPCIT ban hÃ nh quyáº¿t Ä‘á»‹nh Ä‘Ã o táº¡o.",
+            max_entities=10,
+            max_relations=10,
+        )
+    )
+
+    assert [entity.name for entity in result.entities] == ["CPCIT"]
 def test_graph_merge_service_deduplicates_aliases() -> None:
-    from app.services.graph.models import ExtractedEntity
+    from app.services.graph.graph_models import ExtractedEntity
 
     service = GraphMergeService()
     merged = service.merge_entities(
         [
             ExtractedEntity(
-                name="NLĐ",
-                normalized_name="NLĐ",
+                name="NLÄ",
+                normalized_name="NLÄ",
                 type="person",
                 confidence=0.6,
-                evidence="NLĐ",
+                evidence="NLÄ",
             ),
             ExtractedEntity(
-                name="người lao động",
-                normalized_name="người lao động",
+                name="ngÆ°á»i lao Ä‘á»™ng",
+                normalized_name="ngÆ°á»i lao Ä‘á»™ng",
                 type="person",
                 confidence=0.9,
-                evidence="người lao động",
+                evidence="ngÆ°á»i lao Ä‘á»™ng",
             ),
         ]
     )
 
     assert len(merged) == 1
-    assert merged[0].normalized_name == "người lao động"
+    assert merged[0].normalized_name == "ngÆ°á»i lao Ä‘á»™ng"
     assert merged[0].confidence == 0.9
 
 
@@ -79,7 +106,7 @@ def test_graph_indexing_service_updates_status_and_logs(monkeypatch) -> None:
                     id=chunk_id,
                     document_id=document_id,
                     chunk_index=0,
-                    content="Điều 10 quy định EVNCPC và NLĐ.",
+                    content="Äiá»u 10 quy Ä‘á»‹nh EVNCPC vÃ  NLÄ.",
                     chunk_metadata={"article_number": "10"},
                 )
             ]

@@ -1,4 +1,4 @@
-"""Re-index Qdrant vectors after changing embedding input/payload metadata.
+﻿"""Re-index Qdrant vectors after changing embedding input/payload metadata.
 
 Usage examples:
   python scripts/maintenance/reindex_vectors.py --document-id <uuid>
@@ -20,10 +20,10 @@ from sqlalchemy import select
 from app.db.session import AsyncSessionLocal
 from app.models.document import Document
 from app.repositories.documents import DocumentRepository
-from app.services.embeddings.factory import get_embedding_provider
-from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
-from app.services.vector_indexing_service import VectorIndexingService
-from app.services.vector_store import get_vector_store
+from app.services.embeddings.embedding_factory import get_embedding_provider
+from app.services.embeddings.embedding_sparse_factory import get_sparse_embedding_provider
+from app.services.vector.vector_indexing_service import VectorIndexingService
+from app.services.vector.vector_store import get_vector_store
 
 
 async def _candidate_document_ids(*, all_indexable: bool, document_id: str | None, limit: int | None) -> list[UUID]:

@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 from app.services import ingestion_queue as ingestion_queue_module
-from app.services.ingestion_queue import PIPELINE_STEPS, IngestionJob, IngestionQueue
+from app.services.ingestion.ingestion_queue import PIPELINE_STEPS, IngestionJob, IngestionQueue
 
 DOCUMENT_ID = UUID("99999999-9999-9999-9999-999999999999")
 

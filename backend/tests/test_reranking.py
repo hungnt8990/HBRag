@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 from types import SimpleNamespace
 from uuid import UUID
 
@@ -16,9 +16,9 @@ from app.schemas.documents import (
     VectorSearchResponse,
     VectorSearchResult,
 )
-from app.services.hybrid_search import HybridSearchRun
+from app.services.retrieval.retrieval_hybrid_search import HybridSearchRun
 from app.services.rerankers import FakeReranker
-from app.services.reranking_service import RerankingService
+from app.services.rerankers.reranker_service import RerankingService
 
 DOCUMENT_ID = UUID("99999999-9999-9999-9999-999999999999")
 RELEVANT_CHUNK_ID = UUID("11111111-1111-1111-1111-111111111111")

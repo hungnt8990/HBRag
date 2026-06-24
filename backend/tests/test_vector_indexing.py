@@ -1,4 +1,4 @@
-from types import SimpleNamespace
+﻿from types import SimpleNamespace
 from uuid import UUID
 
 from fastapi.testclient import TestClient
@@ -15,9 +15,9 @@ from app.api.routes.search import (
     get_vector_store as get_search_vector_store,
 )
 from app.main import app
-from app.services.embeddings.fake_provider import FakeEmbeddingProvider
-from app.services.embeddings.sparse import HashingSparseEmbeddingProvider
-from app.services.vector_store import VectorSearchResult
+from app.services.embeddings.embedding_fake_provider import FakeEmbeddingProvider
+from app.services.embeddings.embedding_sparse import HashingSparseEmbeddingProvider
+from app.services.vector.vector_store import VectorSearchResult
 
 DOCUMENT_ID = UUID("44444444-4444-4444-4444-444444444444")
 CHUNK_ID = UUID("55555555-5555-5555-5555-555555555555")
@@ -36,7 +36,7 @@ class FakeDocumentRepository:
     ) -> None:
         self.document = SimpleNamespace(
             id=DOCUMENT_ID,
-            title="Kế hoạch GIS",
+            title="Káº¿ hoáº¡ch GIS",
             status=status,
             organization_id=ORGANIZATION_ID,
             knowledge_base_id=KNOWLEDGE_BASE_ID,
@@ -85,14 +85,14 @@ class FakeDocumentRepository:
             id=CHUNK_ID,
             document_id=DOCUMENT_ID,
             chunk_index=0,
-            content="1.1. GIS 110kV, GIS trung thế:\n- Hiệu chỉnh PMISToGIS.",
+            content="1.1. GIS 110kV, GIS trung tháº¿:\n- Hiá»‡u chá»‰nh PMISToGIS.",
             token_count=40,
             chunk_metadata={
                 "chunk_id": "chunk_002",
                 "chunk_type": "assignment_section",
-                "headings": ["1. CPCIT", "1.1. GIS 110kV, GIS trung thế"],
+                "headings": ["1. CPCIT", "1.1. GIS 110kV, GIS trung tháº¿"],
                 "unit": "CPCIT",
-                "scope": ["GIS 110kV", "GIS trung thế"],
+                "scope": ["GIS 110kV", "GIS trung tháº¿"],
                 "pages": [1],
                 "indexable": True,
                 "embedding_enabled": True,
@@ -200,7 +200,7 @@ def test_vector_index_endpoint_stores_one_chunk_per_qdrant_point() -> None:
     assert point.payload["feature_name"] == "Dashboard"
     assert point.payload["change_content"] == "Y 1 Y 2 Y 3 Y 4"
     assert point.payload["phase"] == "Giai doan 2"
-    assert "Tài liệu: Kế hoạch GIS" in provider.embedded_texts[0]
+    assert "TÃ i liá»‡u: Káº¿ hoáº¡ch GIS" in provider.embedded_texts[0]
     assert repository.document.document_metadata["chunk_count_indexed"] == 1
 
 
@@ -209,18 +209,18 @@ def test_vector_index_uses_enriched_content_for_embedding_payload_keeps_original
     chunk.enriched_content = (
         f"{chunk.content}\n\n"
         "LLM enrichment:\n"
-        "Tóm tắt: Chunk nói về hiệu chỉnh PMISToGIS.\n"
-        "Từ khóa: PMISToGIS; GIS"
+        "TÃ³m táº¯t: Chunk nÃ³i vá» hiá»‡u chá»‰nh PMISToGIS.\n"
+        "Tá»« khÃ³a: PMISToGIS; GIS"
     )
     chunk.chunk_metadata = {
         **chunk.chunk_metadata,
         "enrichment": {
             "status": "success",
-            "summary": "Chunk nói về hiệu chỉnh PMISToGIS.",
+            "summary": "Chunk nÃ³i vá» hiá»‡u chá»‰nh PMISToGIS.",
             "keywords": ["PMISToGIS", "GIS"],
-            "document_code": "123/QĐ-CPCIT",
+            "document_code": "123/QÄ-CPCIT",
             "issued_date": "01/02/2024",
-            "document_type": "quyết định",
+            "document_type": "quyáº¿t Ä‘á»‹nh",
             "structure_path": "1. CPCIT > 1.1. GIS",
         },
     }
@@ -241,15 +241,15 @@ def test_vector_index_uses_enriched_content_for_embedding_payload_keeps_original
 
     assert response.status_code == 200
     assert "LLM enrichment" in provider.embedded_texts[0]
-    assert "Tóm tắt: Chunk nói về hiệu chỉnh PMISToGIS" in provider.embedded_texts[0]
+    assert "TÃ³m táº¯t: Chunk nÃ³i vá» hiá»‡u chá»‰nh PMISToGIS" in provider.embedded_texts[0]
     point = vector_store.upserted_points[0]
     assert point.payload["text"] == chunk.content
     assert point.payload["enriched"] is True
-    assert point.payload["enrichment_summary"] == "Chunk nói về hiệu chỉnh PMISToGIS."
+    assert point.payload["enrichment_summary"] == "Chunk nÃ³i vá» hiá»‡u chá»‰nh PMISToGIS."
     assert point.payload["enrichment_keywords"] == ["PMISToGIS", "GIS"]
-    assert point.payload["document_code"] == "123/QĐ-CPCIT"
+    assert point.payload["document_code"] == "123/QÄ-CPCIT"
     assert point.payload["issued_date"] == "01/02/2024"
-    assert point.payload["document_type"] == "quyết định"
+    assert point.payload["document_type"] == "quyáº¿t Ä‘á»‹nh"
     assert point.payload["structure_path"] == "1. CPCIT > 1.1. GIS"
     assert "embedding_text" not in point.payload
 
@@ -300,14 +300,14 @@ def test_vector_payload_excludes_heavy_document_and_debug_fields() -> None:
 
 def test_vector_index_can_disable_enriched_content_for_embedding() -> None:
     chunk = FakeDocumentRepository._chunk()
-    chunk.enriched_content = f"{chunk.content}\n\nLLM enrichment:\nTừ khóa: enriched-only"
+    chunk.enriched_content = f"{chunk.content}\n\nLLM enrichment:\nTá»« khÃ³a: enriched-only"
     chunk.chunk_metadata = {
         **chunk.chunk_metadata,
         "enrichment": {
             "status": "success",
-            "summary": "Bản làm giàu.",
+            "summary": "Báº£n lÃ m giÃ u.",
             "keywords": ["enriched-only"],
-            "document_code": "123/QĐ-CPCIT",
+            "document_code": "123/QÄ-CPCIT",
         },
     }
     repository = FakeDocumentRepository(chunks=[chunk])
@@ -339,7 +339,7 @@ def test_vector_index_filters_administrative_footer() -> None:
         id=FOOTER_ID,
         document_id=DOCUMENT_ID,
         chunk_index=1,
-        content="Nơi nhận: ...",
+        content="NÆ¡i nháº­n: ...",
         token_count=10,
         chunk_metadata={
             "chunk_id": "chunk_009",
@@ -363,7 +363,7 @@ def test_vector_index_filters_administrative_footer() -> None:
     assert response.status_code == 200
     assert response.json()["indexed_chunk_count"] == 1
     assert len(vector_store.upserted_points) == 1
-    assert "Nơi nhận" not in vector_store.upserted_points[0].payload["text"]
+    assert "NÆ¡i nháº­n" not in vector_store.upserted_points[0].payload["text"]
 
 
 def test_vector_index_is_idempotent_for_same_chunk_content() -> None:

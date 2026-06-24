@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 from uuid import UUID
 
-from app.services.rag_chunk import (
+from app.services.rag.rag_chunk import (
     RagChunk,
     build_embedding_text,
     qdrant_payload,
@@ -88,6 +88,7 @@ def test_footer_and_disabled_chunks_are_not_indexable() -> None:
     assert should_index_chunk(_chunk(indexable=False)) is False
     assert should_index_chunk(_chunk(embedding_enabled=False)) is False
     assert should_index_chunk(_chunk(quality_status="rejected")) is False
+    assert should_index_chunk(_chunk(text="[[TABLE_1]]")) is False
 
 
 def test_docling_record_maps_headings_pages_and_table_metadata() -> None:

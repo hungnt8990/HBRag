@@ -18,9 +18,9 @@ from app.db.session import AsyncSessionLocal
 from app.repositories.ingestion_profiles import IngestionProfileRepository
 from app.repositories.rag_runtime_config import RagRuntimeConfigRepository
 from app.services.graph import get_neo4j_client
-from app.services.ingestion_profiles import load_profile_configs
-from app.services.rag_runtime_config import load_rag_runtime_config
-from app.services.vector_store import get_vector_store
+from app.services.ingestion.ingestion_profiles import load_profile_configs
+from app.services.rag.rag_runtime_config import load_rag_runtime_config
+from app.services.vector.vector_store import get_vector_store
 
 logger = logging.getLogger(__name__)
 

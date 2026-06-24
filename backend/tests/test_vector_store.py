@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 import logging
 from types import SimpleNamespace
 from uuid import UUID
@@ -6,9 +6,9 @@ from uuid import UUID
 from qdrant_client.models import Distance, PointStruct, SparseVector
 
 from app.core.config import settings
-from app.services.access_control import AccessFilter
-from app.services.embeddings.sparse import SparseEmbedding
-from app.services.vector_store import QdrantVectorStore
+from app.services.security.security_access_control import AccessFilter
+from app.services.embeddings.embedding_sparse import SparseEmbedding
+from app.services.vector.vector_store import QdrantVectorStore
 
 
 class FakeQdrantClient:

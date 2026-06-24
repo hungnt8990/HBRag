@@ -1,4 +1,4 @@
-from app.services.query_strategy import classify_query_strategy
+from app.services.queries.query_strategy import classify_query_strategy
 
 
 def test_overview_count_query_is_multi_hop_strategy() -> None:

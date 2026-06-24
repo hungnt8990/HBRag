@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import re
 import unicodedata
@@ -10,9 +10,9 @@ from app.core.config import settings
 from app.repositories.documents import DocumentRepository
 from app.repositories.graph import GraphRepository
 from app.schemas.documents import GraphIndexRequest, GraphIndexResponse
-from app.services.graph.extractors.base import GraphExtractor
+from app.services.graph.extractors.extractor_base import GraphExtractor
 from app.services.graph.graph_merge_service import GraphMergeService
-from app.services.graph.neo4j_client import Neo4jClient
+from app.services.graph.graph_neo4j_client import Neo4jClient
 
 
 class GraphIndexingDisabledError(RuntimeError):
@@ -435,7 +435,7 @@ def _entity_key(name: Any, entity_type: Any) -> str:
 def _normalize_entity_name(value: str) -> str:
     normalized = unicodedata.normalize("NFD", value or "")
     normalized = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
-    normalized = normalized.replace("Đ", "D").replace("đ", "d")
+    normalized = normalized.replace("Ä", "D").replace("Ä‘", "d")
     normalized = re.sub(r"\s+", " ", normalized.casefold()).strip()
     return normalized
 

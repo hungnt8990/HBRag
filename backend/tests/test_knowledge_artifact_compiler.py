@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 
 from app.models.chunk import Chunk
 from app.models.document import Document
-from app.services.knowledge_artifact_compiler import KnowledgeArtifactCompiler
+from app.services.knowledge.knowledge_artifact_compiler import KnowledgeArtifactCompiler
 
 DOCUMENT_ID = UUID("11111111-1111-1111-1111-111111111111")
 
@@ -76,6 +76,51 @@ def test_compiler_creates_policy_rule_from_structured_row_without_neighbor_bleed
     assert policy_artifacts[0].source_chunk_ids == [str(chunk.id)]
 
 
+
+def test_compiler_creates_training_decision_and_qa_packets() -> None:
+    document = Document(
+        id=DOCUMENT_ID,
+        title="Quyết định đào tạo Python ArcGIS",
+        source_type="doffice_elasticsearch",
+        status="chunked",
+        document_metadata={
+            "document_code": "608/QĐ-IT",
+            "trich_yeu": "Cử cán bộ tham gia khóa đào tạo Ứng dụng Python trên nền tảng ArcGIS",
+        },
+    )
+    summary = Chunk(
+        id=uuid4(),
+        document_id=DOCUMENT_ID,
+        chunk_index=0,
+        content="Quyết định cử cán bộ tham gia khóa đào tạo Ứng dụng Python trên nền tảng ArcGIS từ ngày 17/06/2026 đến ngày 19/06/2026 tại Hà Nội. Đơn vị đào tạo: ESRI Việt Nam. Kinh phí do CPCIT chi trả.",
+        chunk_metadata={"chunk_type": "document_summary", "source_span": {"start": 0, "end": 120}},
+    )
+    row = Chunk(
+        id=uuid4(),
+        document_id=DOCUMENT_ID,
+        chunk_index=1,
+        content="Họ tên: Nguyễn Thanh Phú\nPhòng/Đơn vị: VH\nEmail: phunt3@cpc.vn",
+        chunk_metadata={
+            "chunk_type": "table_row",
+            "person_name": "Nguyễn Thanh Phú",
+            "department": "VH",
+            "email": "phunt3@cpc.vn",
+            "row_key": "Nguyễn Thanh Phú",
+            "source_span": {"start": 121, "end": 220},
+        },
+    )
+
+    artifacts = KnowledgeArtifactCompiler().compile_document(document=document, chunks=[summary, row])
+
+    training = next(artifact for artifact in artifacts if artifact.artifact_type == "training_decision")
+    assert training.structured_data["document_code"] == "608/QĐ-IT"
+    assert training.structured_data["start_date"] == "2026-06-17"
+    assert training.structured_data["end_date"] == "2026-06-19"
+    assert training.structured_data["funding_source"] == "CPCIT"
+
+    qa_packets = [artifact for artifact in artifacts if artifact.artifact_type == "qa_packet"]
+    assert any(packet.structured_data["question"] == "Nguyễn Thanh Phú thuộc phòng/đơn vị nào?" and packet.structured_data["answer"] == "VH" for packet in qa_packets)
+    assert all(packet.citation_map["chunks"][0].get("source_span") for packet in qa_packets)
 def test_compiler_source_does_not_hardcode_sample_entities() -> None:
     source = inspect.getsource(KnowledgeArtifactCompiler)
     assert "Nguyen Quang Lam" not in source

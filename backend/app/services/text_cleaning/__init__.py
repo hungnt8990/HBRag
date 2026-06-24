@@ -1,4 +1,4 @@
-from app.services.text_cleaning.markdown_html_to_plain_text import (
+﻿from app.services.text_cleaning.text_cleaning_markdown_html_to_plain_text import (
     clean_doffice_markdown_to_text,
     split_doffice_pages,
 )

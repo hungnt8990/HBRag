@@ -17,7 +17,7 @@ from app.core.config import settings
 from app.main import app
 from app.repositories.documents import DocumentListRow
 from app.schemas.documents import DocumentUploadResponse
-from app.services.document_service import UnsupportedDocumentTypeError
+from app.services.documents.document_service import UnsupportedDocumentTypeError
 
 ORG_ID = UUID("10000000-0000-0000-0000-000000000001")
 OTHER_ORG_ID = UUID("10000000-0000-0000-0000-000000000002")

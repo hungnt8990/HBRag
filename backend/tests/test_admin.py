@@ -8,8 +8,8 @@ from app.api.routes import admin as admin_routes
 from app.api.routes.admin import get_document_repository, get_ingestion_queue, get_vector_store
 from app.core.config import Settings
 from app.main import app
-from app.services.ingestion_queue import IngestionJob
-from app.services.vector_store import VectorStoreCollectionInfo
+from app.services.ingestion.ingestion_queue import IngestionJob
+from app.services.vector.vector_store import VectorStoreCollectionInfo
 
 
 class FakeVectorStore:

@@ -1,10 +1,10 @@
-from app.services.embeddings.base import EmbeddingProvider
-from app.services.embeddings.fake_provider import FakeEmbeddingProvider
-from app.services.embeddings.openai_provider import (
+﻿from app.services.embeddings.embedding_base import EmbeddingProvider
+from app.services.embeddings.embedding_fake_provider import FakeEmbeddingProvider
+from app.services.embeddings.embedding_openai_provider import (
     OpenAICompatibleEmbeddingProvider,
     OpenAIEmbeddingProvider,
 )
-from app.services.embeddings.sparse import (
+from app.services.embeddings.embedding_sparse import (
     HashingSparseEmbeddingProvider,
     SparseEmbedding,
     SparseEmbeddingProvider,

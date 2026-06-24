@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from types import SimpleNamespace
 
-from app.services.rag_runtime_config import load_rag_runtime_config, save_rag_runtime_config
+from app.services.rag.rag_runtime_config import load_rag_runtime_config, save_rag_runtime_config
 
 
 def test_rag_runtime_config_db_values_override_settings_defaults() -> None:
