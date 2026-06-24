@@ -9,11 +9,12 @@ from typing import Any
 
 FOOTER_MARKER_PATTERN = re.compile(r"(?im)^\s*(Nơi nhận|KT\.\s*GIÁM ĐỐC|PHÓ GIÁM ĐỐC|Lưu:\s*VT)\b")
 PAGE_MARKER_PATTERN = re.compile(r"(?im)^\s*---\s*Page\s+\d+\s*---\s*$")
-APPENDIX_MARKER_PATTERN = re.compile(r"(?im)^\s*(PHá»¤\s*Lá»¤C|PHU\s*LUC)\b")
+APPENDIX_MARKER_PATTERN = re.compile(r"(?im)^\s*(PHỤ\s*LỤC|PHU\s*LUC|PHá»¤\s*Lá»¤C)\b")
 ASCII_FOOTER_MARKER_PATTERN = re.compile(
     r"(?im)^\s*(Noi\s+nhan|N[ơo]i\s+nhận|KT\.\s*GIAM\s+DOC|PHO\s+GIAM\s+DOC|Luu:\s*VT)\b"
 )
 TABLE_PATTERN = re.compile(r"(?is)<table\b.*?</table>")
+MARKDOWN_TABLE_SEPARATOR_CELL_PATTERN = re.compile(r"^:?-{3,}:?$")
 DOC_CODE_PATTERN = re.compile(r"\b(?!\d{1,2}/\d{1,2}/\d{2,4}\b)(\d{1,6}/[A-ZÀ-ỸĐ0-9][A-ZÀ-ỸĐ0-9+._\-]{1,}(?:/[A-ZÀ-ỸĐ0-9+._\-]+)*)\b", re.UNICODE)
 DATE_PATTERN = re.compile(r"\b\d{1,2}/\d{1,2}/\d{2,4}\b")
 MONTH_YEAR_PATTERN = re.compile(r"\b\d{1,2}/\d{4}\b")
@@ -42,6 +43,36 @@ SPACING_FIXES = {
     "bÃ¡oc Ã¡o": "bÃ¡o cÃ¡o",
     "Ä‘á»ƒp/h": "Ä‘á»ƒ p/h",
 }
+
+MOJIBAKE_TEXT_FIXES = {
+    "DÃ²ng": "Dòng",
+    "Ngá»¯ cáº£nh hÃ ng": "Ngữ cảnh hàng",
+    "Ná»™i dung cá»™t": "Nội dung cột",
+    "Cá»™t báº£ng": "Cột bảng",
+    "Báº£ng dá»¯ liá»‡u DOffice": "Bảng dữ liệu",
+    "Ch\u053c\u0575 đổi sang GIS": "Chuyển đổi sang GIS",
+    "Ch\u053c\u0575 đổi": "Chuyển đổi",
+    "Ðiều": "Điều",
+    "ÐIỀU": "ĐIỀU",
+}
+
+TABLE_GROUP_MAX_ROWS = 10
+TABLE_PARENT_PREVIEW_ROWS = 5
+TEXT_SECTION_MAX_CHARS = 3500
+PARENT_SECTION_STANDALONE_MIN_CHARS = 300
+
+SECTION_HEADING_PATTERN = re.compile(
+    r"(?iu)^\s*(?:#{1,6}\s*)?"
+    r"("
+    r"(?:[IVXLCDM]{1,8}|[A-Z])\s*[\.\)]"
+    r"|(?:\d+(?:\.\d+)*)(?:[\.\)]|\s)"
+    r"|(?:Điều|Dieu)\s+\d+[.:]?"
+    r"|Khoản\s+\d+[.:]?"
+    r"|Mục\s+\d+[.:]?"
+    r"|Phụ\s*lục\s*[0-9IVXLCDM]*[.:]?"
+    r")"
+    r"(?:\s+.+)?$"
+)
 
 
 @dataclass(frozen=True)
@@ -205,7 +236,12 @@ class TextHTMLParser(HTMLParser):
 def normalize_doffice_source(source: dict[str, Any]) -> NormalizedDofficeDocument:
     raw_text = str(source.get("noi_dung") or "")
     summary_text = compact_source_summary(str(source.get("tom_tat") or "").strip()) or None
-    tables = parse_html_tables(raw_text)
+    html_tables = parse_html_tables(raw_text)
+    markdown_tables = parse_markdown_tables(raw_text, start_index=len(html_tables))
+    tables = sorted(
+        [*html_tables, *markdown_tables],
+        key=lambda table: int(table.metadata.get("source_start", table.table_index)),
+    )
     base_markdown_text = replace_tables(raw_text, tables, replacement="markdown")
     base_plain_text = html_to_plain_text(replace_tables(raw_text, tables, replacement="placeholder"))
     body_text, footer_text = split_footer_signature(base_plain_text)
@@ -292,6 +328,7 @@ def parse_html_tables(raw_text: str) -> list[NormalizedTable]:
         headers = [clean_inline_text(value) for value in matrix[0]] if any(header_flags[0]) or len(matrix) > 1 else []
         data_rows = matrix[1:] if headers and len(matrix) > 1 else matrix
         rows = [NormalizedTableRow(row_index=index + 1, values=[clean_inline_text(value) for value in row], metadata=row_metadata(headers, row, table_name=table_name)) for index, row in enumerate(data_rows)]
+        table_context = infer_table_context(raw_text or "", match.start())
         tables.append(
             NormalizedTable(
                 table_index=table_index,
@@ -303,23 +340,202 @@ def parse_html_tables(raw_text: str) -> list[NormalizedTable]:
                     "table_index": table_index,
                     "table_name": table_name,
                     "section_title": table_name,
+                    "table_context": table_context,
+                    "source_start": match.start(),
+                    "source_end": match.end(),
+                    "source_format": "html_table",
                     "row_count": len(rows),
                     "column_count": max((len(row) for row in matrix), default=0),
+                    "columns": headers,
                 },
             )
         )
     return tables
+
+
+def parse_markdown_tables(raw_text: str, *, start_index: int = 0) -> list[NormalizedTable]:
+    text = raw_text or ""
+    html_ranges = [(match.start(), match.end()) for match in TABLE_PATTERN.finditer(text)]
+    lines = text.splitlines(keepends=True)
+    offsets: list[int] = []
+    cursor = 0
+    for line in lines:
+        offsets.append(cursor)
+        cursor += len(line)
+
+    tables: list[NormalizedTable] = []
+    index = 0
+    while index + 1 < len(lines):
+        line_start = offsets[index]
+        if _position_in_ranges(line_start, html_ranges):
+            index += 1
+            continue
+
+        first = lines[index].strip()
+        second = lines[index + 1].strip()
+        if not (_is_markdown_table_line(first) and _is_markdown_table_separator(second)):
+            index += 1
+            continue
+
+        start_line = index
+        index += 2
+        while index < len(lines):
+            next_start = offsets[index]
+            next_line = lines[index].strip()
+            if _position_in_ranges(next_start, html_ranges) or not _is_markdown_table_line(next_line):
+                break
+            index += 1
+
+        block = "".join(lines[start_line:index])
+        headers, data_rows = _parse_markdown_table_block(block)
+        if not headers and not data_rows:
+            continue
+
+        table_index = start_index + len(tables)
+        source_start = offsets[start_line]
+        source_end = offsets[index] if index < len(offsets) else len(text)
+        table_name = infer_table_name(text, source_start, table_index=table_index)
+        table_context = infer_table_context(text, source_start)
+        rows = [
+            NormalizedTableRow(
+                row_index=row_index + 1,
+                values=[clean_inline_text(value) for value in row],
+                metadata=row_metadata(headers, row, table_name=table_name),
+            )
+            for row_index, row in enumerate(data_rows)
+        ]
+        tables.append(
+            NormalizedTable(
+                table_index=table_index,
+                headers=headers,
+                rows=inherit_table_context(rows),
+                markdown=table_to_markdown(headers, data_rows),
+                text=table_to_text(headers, data_rows),
+                metadata={
+                    "table_index": table_index,
+                    "table_name": table_name,
+                    "section_title": table_name,
+                    "table_context": table_context,
+                    "source_start": source_start,
+                    "source_end": source_end,
+                    "source_format": "markdown_table",
+                    "row_count": len(rows),
+                    "column_count": max([len(headers), *(len(row) for row in data_rows)], default=0),
+                    "columns": headers,
+                },
+            )
+        )
+    return tables
+
+
+def _parse_markdown_table_block(table_markdown: str) -> tuple[list[str], list[list[str]]]:
+    raw_lines = [line.strip() for line in table_markdown.splitlines() if _is_markdown_table_line(line.strip())]
+    if len(raw_lines) < 2:
+        return [], []
+    header_line = raw_lines[0]
+    body_lines = [line for line in raw_lines[2:] if not _is_markdown_table_separator(line)]
+    headers = [clean_inline_text(cell) for cell in _split_markdown_table_row(header_line)]
+    rows = [
+        [clean_inline_text(cell) for cell in _split_markdown_table_row(line)]
+        for line in body_lines
+    ]
+    width = max([len(headers), *(len(row) for row in rows)], default=0)
+    headers = headers + [""] * max(0, width - len(headers))
+    rows = [row + [""] * max(0, width - len(row)) for row in rows]
+    return headers, rows
+
+
+def _split_markdown_table_row(line: str) -> list[str]:
+    stripped = line.strip()
+    if stripped.startswith("|"):
+        stripped = stripped[1:]
+    if stripped.endswith("|"):
+        stripped = stripped[:-1]
+    return [cell.strip() for cell in stripped.split("|")]
+
+
+def _is_markdown_table_line(line: str) -> bool:
+    stripped = line.strip()
+    return "|" in stripped and stripped.count("|") >= 2 and not stripped.casefold().startswith("<table")
+
+
+def _is_markdown_table_separator(line: str) -> bool:
+    cells = [cell.strip() for cell in _split_markdown_table_row(line) if cell.strip()]
+    return bool(cells) and all(MARKDOWN_TABLE_SEPARATOR_CELL_PATTERN.fullmatch(cell) for cell in cells)
+
+
+def _position_in_ranges(position: int, ranges: list[tuple[int, int]]) -> bool:
+    return any(start <= position < end for start, end in ranges)
+
 
 def infer_table_name(raw_text: str, table_start: int, *, table_index: int) -> str:
     before = html_to_plain_text((raw_text or "")[:table_start])
     lines = [line.strip(" :-") for line in before.splitlines() if line.strip(" :-")]
     for line in reversed(lines[-8:]):
         lowered = line.casefold()
+        normalized = strip_vietnamese_accents(lowered)
+        if normalized.startswith("bang ") or normalized.startswith("phu luc"):
+            return clean_inline_text(line)
         if "danh" in lowered and ("chuc" in lowered or "chức" in lowered):
             return clean_inline_text(line)
         if "giao" in lowered and "man" in lowered:
             return clean_inline_text(line)
-    return f"Bảng DOffice {table_index + 1}"
+    return f"Bảng {table_index + 1}"
+
+
+def infer_table_context(raw_text: str, table_start: int, *, max_chars: int = 2500) -> str | None:
+    before = html_to_plain_text((raw_text or "")[:table_start])
+    lines: list[str] = []
+    for line in before.splitlines():
+        clean = clean_inline_text(line).strip(" :-")
+        if not clean:
+            continue
+        if _is_markdown_table_line(clean) or _is_markdown_table_separator(clean):
+            continue
+        if clean.startswith("[[TABLE_"):
+            continue
+        lines.append(clean)
+    context = normalize_lines("\n".join(table_context_lines(lines, max_chars=max_chars)))
+    if not context:
+        return None
+    return context
+
+
+def table_context_lines(lines: list[str], *, max_chars: int) -> list[str]:
+    if not lines:
+        return []
+    start_index = nearest_context_start_index(lines)
+    selected = lines[start_index:]
+    context = normalize_lines("\n".join(selected))
+    if len(context) <= max_chars:
+        return selected
+
+    prefix: list[str] = []
+    prefix_chars = 0
+    for line in selected:
+        prefix.append(line)
+        prefix_chars += len(line) + 1
+        if prefix_chars >= max_chars // 2:
+            break
+
+    suffix: list[str] = []
+    suffix_chars = 0
+    for line in reversed(selected[len(prefix) :]):
+        suffix.insert(0, line)
+        suffix_chars += len(line) + 1
+        if prefix_chars + suffix_chars >= max_chars:
+            break
+    return [*prefix, "...", *suffix] if suffix else prefix
+
+
+def nearest_context_start_index(lines: list[str]) -> int:
+    appendix_indexes = [index for index, line in enumerate(lines) if is_appendix_heading(line)]
+    if appendix_indexes:
+        return appendix_indexes[-1]
+    heading_indexes = [index for index, line in enumerate(lines) if is_section_heading(line)]
+    if heading_indexes:
+        return heading_indexes[-1]
+    return max(0, len(lines) - 20)
 
 
 def expand_table_matrix(raw_rows: list[list[dict[str, Any]]]) -> tuple[list[list[str]], list[list[bool]]]:
@@ -421,7 +637,33 @@ def row_metadata(headers: list[str], values: list[str], *, table_name: str | Non
         if platform:
             metadata["platform"] = platform
     metadata = _compact_table_row_metadata(headers=headers, values=values, metadata=metadata)
+    row_data = _row_data_from_headers(headers, values)
+    if row_data:
+        metadata["row_data"] = row_data
+    field_name = _field_name_from_row_data(row_data) or metadata.get("feature_name")
+    if field_name:
+        metadata["field_name"] = field_name
     return {key: value for key, value in metadata.items() if value not in (None, "", [])}
+
+
+def _row_data_from_headers(headers: list[str], values: list[str]) -> dict[str, str]:
+    row_data: dict[str, str] = {}
+    width = max(len(headers), len(values))
+    for index in range(width):
+        header = clean_inline_text(headers[index]) if index < len(headers) else ""
+        key = header or f"column_{index + 1}"
+        value = clean_inline_text(values[index]) if index < len(values) else ""
+        if value:
+            row_data[key] = value
+    return row_data
+
+
+def _field_name_from_row_data(row_data: dict[str, str]) -> str | None:
+    for key, value in row_data.items():
+        normalized_key = _normalize_key(key)
+        if normalized_key in {"ten_truong", "field", "field_name", "ten_thuoc_tinh", "chuc_nang", "man_hinh"}:
+            return _optional_string(value)
+    return None
 
 
 def _compact_table_row_metadata(*, headers: list[str], values: list[str], metadata: dict[str, Any]) -> dict[str, Any]:
@@ -566,7 +808,7 @@ def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[Norm
         elements.append(NormalizedElement("document_header", header_text, {"chunk_type": "document_header", "indexable": True}))
     body_without_tables = _body_without_tables_or_appendix(clean_text)
     if body_without_tables.strip():
-        elements.append(NormalizedElement("document_body", body_without_tables.strip(), {"chunk_type": "document_body", "indexable": True}))
+        elements.extend(section_elements_from_body(body_without_tables))
     for table in tables:
         elements.append(
             NormalizedElement(
@@ -575,7 +817,6 @@ def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[Norm
                 {**table.metadata, "chunk_type": "table_parent", "table_index": table.table_index, "indexable": True},
             )
         )
-        groups: dict[tuple[str | None, str | None], list[NormalizedTableRow]] = {}
         for row in table.rows:
             if row.metadata.get("is_table_marker"):
                 continue
@@ -594,11 +835,10 @@ def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[Norm
                     },
                 )
             )
-            groups.setdefault((row.metadata.get("platform"), row.metadata.get("phase")), []).append(row)
-        for (platform, phase), group_rows in groups.items():
+        for group_metadata, group_rows in table_group_entries(table):
             if len(group_rows) < 2:
                 continue
-            group_text = table_group_text(table=table, platform=platform, phase=phase, rows=group_rows)
+            group_text = table_group_text(table=table, rows=group_rows, group_name=group_metadata.get("group_name"), platform=group_metadata.get("platform"), phase=group_metadata.get("phase"))
             elements.append(
                 NormalizedElement(
                     "table_group",
@@ -607,10 +847,25 @@ def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[Norm
                         "chunk_type": "table_group",
                         **table.metadata,
                         "table_index": table.table_index,
-                        "platform": platform,
-                        "phase": phase,
-                        "group_name": " - ".join(str(value) for value in (platform, phase) if value),
+                        **group_metadata,
                         "row_count": len(group_rows),
+                        "indexable": True,
+                    },
+                )
+            )
+        for column_metadata, column_rows in table_column_entries(table):
+            column_text = table_column_text(table=table, column_metadata=column_metadata, rows=column_rows)
+            elements.append(
+                NormalizedElement(
+                    "table_column",
+                    column_text,
+                    {
+                        "chunk_type": "table_column",
+                        **table.metadata,
+                        "table_index": table.table_index,
+                        **column_metadata,
+                        "row_count": len(column_rows),
+                        "is_table_column": True,
                         "indexable": True,
                     },
                 )
@@ -618,6 +873,294 @@ def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[Norm
     if footer_text:
         elements.append(NormalizedElement("footer_signature", footer_text, {"chunk_type": "footer_signature", "is_footer_or_signature": True, "indexable": False, "embedding_enabled": False}))
     return elements
+
+
+def section_elements_from_body(body_text: str) -> list[NormalizedElement]:
+    sections = fold_short_parent_sections(split_body_into_sections(body_text))
+    if not sections:
+        return [
+            NormalizedElement(
+                "document_body",
+                body_text.strip(),
+                {"chunk_type": "document_body", "indexable": True},
+            )
+        ]
+
+    elements: list[NormalizedElement] = []
+    for section_index, section in enumerate(sections, start=1):
+        section_text = ensure_parent_headings_in_section_text(section)
+        parts = split_long_section(section_text, max_chars=TEXT_SECTION_MAX_CHARS)
+        for part_index, part in enumerate(parts, start=1):
+            metadata: dict[str, Any] = {
+                "chunk_type": "document_body",
+                "indexable": True,
+                "section_index": section_index,
+                "section_title": section.get("title"),
+                "heading_path": section.get("heading_path") or [],
+            }
+            if len(parts) > 1:
+                metadata["section_part"] = part_index
+            elements.append(NormalizedElement("document_body", part, metadata))
+    return elements
+
+
+def ensure_parent_headings_in_section_text(section: dict[str, Any]) -> str:
+    text = normalize_lines(str(section.get("text") or ""))
+    heading_path = [str(value).strip() for value in section.get("heading_path") or [] if str(value).strip()]
+    if len(heading_path) <= 1:
+        return text
+    missing_ancestors = [heading for heading in heading_path[:-1] if heading not in text.splitlines()[: len(heading_path)]]
+    if not missing_ancestors:
+        return text
+    return normalize_lines("\n".join([*missing_ancestors, text]))
+
+
+def split_body_into_sections(body_text: str) -> list[dict[str, Any]]:
+    lines = normalize_lines(body_text).splitlines()
+    sections: list[dict[str, Any]] = []
+    current_lines: list[str] = []
+    current_title: str | None = None
+    heading_stack: list[str] = []
+    saw_heading = False
+
+    def flush() -> None:
+        nonlocal current_lines, current_title
+        text = normalize_lines("\n".join(current_lines))
+        if text.strip():
+            sections.append(
+                {
+                    "title": current_title,
+                    "heading_path": list(heading_stack),
+                    "text": text,
+                }
+            )
+        current_lines = []
+
+    for raw_line in lines:
+        line = raw_line.strip()
+        if not line:
+            if current_lines:
+                current_lines.append("")
+            continue
+        if is_section_heading(line):
+            saw_heading = True
+            if current_lines:
+                flush()
+            current_title = line
+            heading_stack = update_heading_stack(heading_stack, line)
+            current_lines = [line]
+            continue
+        if not current_lines:
+            current_title = "Mở đầu"
+        current_lines.append(raw_line)
+
+    if current_lines:
+        flush()
+
+    if not saw_heading:
+        return []
+    return sections
+
+
+def fold_short_parent_sections(sections: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if not sections:
+        return []
+
+    folded: list[dict[str, Any]] = []
+    pending_parents: list[dict[str, Any]] = []
+    for index, section in enumerate(sections):
+        next_section = sections[index + 1] if index + 1 < len(sections) else None
+        heading_path = [str(value) for value in section.get("heading_path") or [] if value]
+        next_heading_path = [str(value) for value in next_section.get("heading_path") or [] if value] if next_section else []
+        has_child_after = bool(next_heading_path[: len(heading_path)] == heading_path and len(next_heading_path) > len(heading_path))
+
+        if has_child_after and not parent_section_has_standalone_content(section):
+            pending_parents.append(section)
+            continue
+
+        if pending_parents and heading_path:
+            pending_parents = [
+                parent
+                for parent in pending_parents
+                if _heading_path_startswith(heading_path, [str(value) for value in parent.get("heading_path") or [] if value])
+            ]
+            inherited = list(pending_parents)
+            if inherited:
+                section = with_parent_context(section, inherited)
+        if pending_parents and not heading_path:
+            folded.extend(pending_parents)
+            pending_parents = []
+        folded.append(section)
+
+    return folded
+
+
+def with_parent_context(section: dict[str, Any], parents: list[dict[str, Any]]) -> dict[str, Any]:
+    parent_blocks = [parent_context_text(parent) for parent in parents]
+    parent_blocks = [block for block in parent_blocks if block]
+    if not parent_blocks:
+        return section
+    section_text = str(section.get("text") or "").strip()
+    separator = "\n" if all(is_compact_parent_context(block) for block in parent_blocks) else "\n\n"
+    text = separator.join([*parent_blocks, section_text])
+    return {**section, "text": normalize_lines(text)}
+
+
+def is_compact_parent_context(value: str) -> bool:
+    text = normalize_lines(value)
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if lines and is_article_heading(lines[0]):
+        return True
+    return len(lines) <= 2 and len(text) <= 120
+
+
+def parent_context_text(section: dict[str, Any]) -> str:
+    text = normalize_lines(str(section.get("text") or ""))
+    lines = text.splitlines()
+    title = str(section.get("title") or "").strip()
+    if not lines:
+        return title
+    if title and lines[0].strip() == title:
+        body = normalize_lines("\n".join(lines[1:]))
+        if body:
+            return normalize_lines(f"{title}\n{body}")
+        return title
+    return text
+
+
+def parent_section_has_standalone_content(section: dict[str, Any]) -> bool:
+    text = normalize_lines(str(section.get("text") or ""))
+    title = str(section.get("title") or "").strip()
+    content = text
+    if title and content.startswith(title):
+        content = normalize_lines(content[len(title) :])
+    content = content.strip()
+    if not content:
+        return False
+    if len(content) >= PARENT_SECTION_STANDALONE_MIN_CHARS:
+        return True
+    paragraphs = [part for part in re.split(r"\n{2,}", content) if part.strip()]
+    if len(paragraphs) >= 2:
+        return True
+    lines = [line.strip() for line in content.splitlines() if line.strip()]
+    if any(re.match(r"^[-+*•]\s+", line) for line in lines):
+        return True
+    if re.search(r"\b\d{1,2}/\d{1,2}/\d{2,4}\b|\b\d{1,4}(?:[.,]\d{3})+\b|\b\d+\s*(?:ngày|tháng|năm|VNĐ|%)\b", content, flags=re.IGNORECASE):
+        return True
+    if re.search(r"(?iu)\b(phải|yêu cầu|điều kiện|thời hạn|hoàn thành|trước ngày|chậm nhất)\b", content):
+        return True
+    return False
+
+
+def _heading_path_startswith(path: list[str], prefix: list[str]) -> bool:
+    return bool(prefix) and path[: len(prefix)] == prefix
+
+
+def split_long_section(text: str, *, max_chars: int) -> list[str]:
+    clean = normalize_lines(text)
+    if len(clean) <= max_chars:
+        return [clean]
+
+    paragraphs = re.split(r"\n{2,}", clean)
+    parts: list[str] = []
+    current: list[str] = []
+    current_length = 0
+    for paragraph in paragraphs:
+        paragraph = paragraph.strip()
+        if not paragraph:
+            continue
+        if len(paragraph) > max_chars:
+            if current:
+                parts.append("\n\n".join(current).strip())
+                current = []
+                current_length = 0
+            parts.extend(split_oversized_paragraph(paragraph, max_chars=max_chars))
+            continue
+        projected = current_length + len(paragraph) + (2 if current else 0)
+        if current and projected > max_chars:
+            parts.append("\n\n".join(current).strip())
+            current = [paragraph]
+            current_length = len(paragraph)
+        else:
+            current.append(paragraph)
+            current_length = projected
+    if current:
+        parts.append("\n\n".join(current).strip())
+    return [part for part in parts if part.strip()] or [clean]
+
+
+def split_oversized_paragraph(paragraph: str, *, max_chars: int) -> list[str]:
+    sentences = re.split(r"(?<=[.!?。！？])\s+", paragraph)
+    if len(sentences) <= 1:
+        return [paragraph[index : index + max_chars].strip() for index in range(0, len(paragraph), max_chars)]
+    parts: list[str] = []
+    current = ""
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        if current and len(current) + len(sentence) + 1 > max_chars:
+            parts.append(current.strip())
+            current = sentence
+        else:
+            current = f"{current} {sentence}".strip()
+    if current:
+        parts.append(current.strip())
+    return parts
+
+
+def is_section_heading(line: str) -> bool:
+    clean = clean_inline_text(line).strip()
+    if not clean or len(clean) > 220:
+        return False
+    if clean.startswith(("-", "+", "*", "|")):
+        return False
+    return bool(SECTION_HEADING_PATTERN.match(normalize_heading_for_matching(clean)))
+
+
+def update_heading_stack(current: list[str], heading: str) -> list[str]:
+    level = heading_level(heading)
+    if current and is_appendix_heading(current[0]) and level == 1 and not is_appendix_heading(heading):
+        level = 2
+    clean = clean_inline_text(heading).strip()
+    is_simple_numeric = bool(re.match(r"^\d+[\.\)]", clean))
+    has_dieu_ancestor = any(is_article_heading(h) for h in current)
+    if is_simple_numeric and has_dieu_ancestor and level == 1:
+        level = 2
+    stack = list(current)
+    if level <= 0:
+        return [heading]
+    stack = stack[: max(0, level - 1)]
+    stack.append(heading)
+    return stack
+
+
+def is_appendix_heading(heading: str) -> bool:
+    normalized = strip_vietnamese_accents(clean_inline_text(heading).strip()).casefold()
+    return normalized.startswith("phu luc")
+
+
+def is_article_heading(heading: str) -> bool:
+    clean = normalize_heading_for_matching(clean_inline_text(heading).strip())
+    return bool(re.match(r"(?iu)^(?:Điều|Dieu)\s+\d+", clean))
+
+
+def normalize_heading_for_matching(value: str) -> str:
+    return str(value or "").replace("Ð", "Đ").replace("ð", "đ")
+
+
+def heading_level(heading: str) -> int:
+    clean = normalize_heading_for_matching(clean_inline_text(heading).strip())
+    if re.match(r"(?iu)^(?:#{1,6}\s*)?(?:Phụ\s*lục|[IVXLCDM]{1,8}\s*[\.\)]|[A-Z]\s*[\.\)])", clean):
+        return 1
+    numeric = re.match(r"^\s*(\d+(?:\.\d+)*)", clean)
+    if numeric:
+        return numeric.group(1).count(".") + 1
+    if is_article_heading(clean):
+        return 1
+    if re.match(r"(?iu)^(Khoản|Mục)\s+\d+", clean):
+        return 2
+    return 1
 
 
 def build_rule_metadata(*, source: dict[str, Any], clean_text: str, tables: list[NormalizedTable]) -> dict[str, Any]:
@@ -658,9 +1201,6 @@ def build_rule_metadata(*, source: dict[str, Any], clean_text: str, tables: list
 
 def _body_without_tables_or_appendix(clean_text: str) -> str:
     body = re.sub(r"\[\[TABLE_\d+]]", "\n", clean_text or "")
-    appendix_match = APPENDIX_MARKER_PATTERN.search(body)
-    if appendix_match:
-        body = body[: appendix_match.start()]
     return normalize_lines(body)
 
 def table_parent_text(table: NormalizedTable) -> str:
@@ -673,27 +1213,138 @@ def table_parent_text(table: NormalizedTable) -> str:
     )
     columns = _canonical_table_columns(table.headers)
     lines = [
-        f"Bảng: {table.metadata.get('table_name') or 'Bảng dữ liệu DOffice'}",
+        f"Bảng: {table.metadata.get('table_name') or f'Bảng {table.table_index + 1}'}",
         f"Số dòng: {sum(1 for row in table.rows if not row.metadata.get('is_table_marker'))}",
     ]
+    table_context = table.metadata.get("table_context")
+    if table_context:
+        lines.append("Ngữ cảnh bảng: " + str(table_context))
     if columns:
         lines.append("Các cột chuẩn hóa: " + ", ".join(columns))
     if groups:
         lines.append("Nhóm chính: " + "; ".join(groups))
+    preview_rows = [row for row in table.rows if not row.metadata.get("is_table_marker")][:TABLE_PARENT_PREVIEW_ROWS]
+    if preview_rows:
+        lines.append("Bảng Markdown xem trước:")
+        lines.append(table_rows_to_markdown(table=table, rows=preview_rows))
+        if len([row for row in table.rows if not row.metadata.get("is_table_marker")]) > len(preview_rows):
+            lines.append(f"Chỉ hiển thị {len(preview_rows)} dòng đầu trong bảng tổng quan.")
     return "\n".join(lines)
 
-def table_group_text(*, table: NormalizedTable, platform: str | None, phase: str | None, rows: list[NormalizedTableRow]) -> str:
+def table_group_entries(table: NormalizedTable) -> list[tuple[dict[str, Any], list[NormalizedTableRow]]]:
+    rows = [row for row in table.rows if not row.metadata.get("is_table_marker")]
+    if not rows:
+        return []
+
+    has_logical_groups = any(row.metadata.get("platform") or row.metadata.get("phase") for row in rows)
+    if has_logical_groups:
+        grouped: dict[tuple[str | None, str | None], list[NormalizedTableRow]] = {}
+        for row in rows:
+            grouped.setdefault((row.metadata.get("platform"), row.metadata.get("phase")), []).append(row)
+        return [
+            (
+                {
+                    "platform": platform,
+                    "phase": phase,
+                    "group_name": " - ".join(str(value) for value in (platform, phase) if value),
+                    "row_start": group_rows[0].row_index,
+                    "row_end": group_rows[-1].row_index,
+                },
+                group_rows,
+            )
+            for (platform, phase), group_rows in grouped.items()
+        ]
+
+    ranged_groups: list[tuple[dict[str, Any], list[NormalizedTableRow]]] = []
+    for start in range(0, len(rows), TABLE_GROUP_MAX_ROWS):
+        group_rows = rows[start : start + TABLE_GROUP_MAX_ROWS]
+        row_start = group_rows[0].row_index
+        row_end = group_rows[-1].row_index
+        ranged_groups.append(
+            (
+                {
+                    "group_name": f"Rows {row_start}-{row_end}",
+                    "row_start": row_start,
+                    "row_end": row_end,
+                },
+                group_rows,
+            )
+        )
+    return ranged_groups
+
+
+def table_group_text(*, table: NormalizedTable, rows: list[NormalizedTableRow], group_name: str | None = None, platform: str | None = None, phase: str | None = None) -> str:
     features = unique_strings([str(row.metadata.get("feature_name") or "") for row in rows if not row.metadata.get("is_table_marker")])
     changes = unique_strings([str(row.metadata.get("change_content") or "") for row in rows if row.metadata.get("change_content") and not isinstance(row.metadata.get("change_content"), list)])
+    resolved_group_name = group_name or " - ".join(str(value) for value in (platform, phase) if value)
     lines = [
-        "Nhóm: " + " - ".join(str(value) for value in (platform, phase) if value),
-        f"Bảng: {table.metadata.get('table_name') or 'Bảng dữ liệu DOffice'}",
+        "Nhóm: " + (resolved_group_name or f"Dòng {rows[0].row_index}-{rows[-1].row_index}"),
+        f"Bảng: {table.metadata.get('table_name') or f'Bảng {table.table_index + 1}'}",
     ]
+    table_context = table.metadata.get("table_context")
+    if table_context:
+        lines.append("Ngữ cảnh bảng: " + str(table_context))
     if changes:
         lines.append("Nội dung hiệu chỉnh: " + "; ".join(changes[:3]))
     if features:
         lines.append("Các chức năng: " + "; ".join(features[:20]))
+    lines.append("Các dòng trong nhóm (Markdown table):")
+    lines.append(table_rows_to_markdown(table=table, rows=rows))
     return "\n".join(line for line in lines if line.strip())
+
+
+def table_column_entries(table: NormalizedTable) -> list[tuple[dict[str, Any], list[NormalizedTableRow]]]:
+    rows = [row for row in table.rows if not row.metadata.get("is_table_marker")]
+    headers = [clean_inline_text(header) for header in table.headers]
+    if not headers or not rows:
+        return []
+
+    entries: list[tuple[dict[str, Any], list[NormalizedTableRow]]] = []
+    for index, header in enumerate(headers):
+        if not header:
+            continue
+        column_rows = [row for row in rows if index < len(row.values) and clean_inline_text(row.values[index])]
+        if not column_rows:
+            continue
+        context_indexes = _row_context_column_indexes(headers, target_index=index)
+        context_headers = [headers[item] for item in context_indexes if item != index and item < len(headers)]
+        entries.append(
+            (
+                {
+                    "column_name": header,
+                    "column_index": index + 1,
+                    "column_value_count": len(column_rows),
+                    "column_context_headers": context_headers,
+                },
+                column_rows,
+            )
+        )
+    return entries
+
+
+def table_column_text(*, table: NormalizedTable, column_metadata: dict[str, Any], rows: list[NormalizedTableRow]) -> str:
+    column_name = str(column_metadata.get("column_name") or "").strip()
+    column_index = int(column_metadata.get("column_index") or 0) - 1
+    lines = [
+        f"Cột bảng: {column_name}",
+        f"Bảng: {table.metadata.get('table_name') or f'Bảng {table.table_index + 1}'}",
+    ]
+    table_context = table.metadata.get("table_context")
+    if table_context:
+        lines.append("Ngữ cảnh bảng: " + str(table_context))
+    context_headers = column_metadata.get("column_context_headers")
+    if context_headers:
+        lines.append("Cột dùng làm ngữ cảnh hàng: " + ", ".join(str(value) for value in context_headers if value))
+    lines.append("Nội dung cột theo từng dòng (Markdown table):")
+    lines.append(table_column_to_markdown(table=table, rows=rows, column_index=column_index))
+    return "\n".join(line for line in lines if line.strip())
+
+
+def _row_context_column_indexes(headers: list[str], *, target_index: int) -> list[int]:
+    if target_index <= 0:
+        return [1] if len(headers) > 1 else []
+    return list(range(min(target_index, 2)))
+
 
 def _canonical_table_columns(headers: list[str]) -> list[str]:
     normalized = {_normalize_key(header) for header in headers}
@@ -704,11 +1355,10 @@ def _canonical_table_columns(headers: list[str]) -> list[str]:
 
 def table_row_text(*, source: dict[str, Any], table: NormalizedTable, row: NormalizedTableRow) -> str:
     metadata = row.metadata
-    lines = [
-        f"Văn bản: {source.get('ky_hieu') or source.get('id_vb') or ''} - {source.get('trich_yeu') or ''}".strip(" -"),
-        f"Phụ lục: {metadata.get('section_title') or table.metadata.get('section_title') or table.metadata.get('table_name') or ''}".strip(" :"),
-        f"Bảng: {table.metadata.get('table_name') or 'Bảng dữ liệu DOffice'}",
-    ]
+    lines: list[str] = []
+    table_context = table.metadata.get("table_context")
+    if table_context:
+        lines.append("Ngữ cảnh bảng: " + str(table_context))
     for label, key in (
         ("Nền tảng", "platform"),
         ("STT", "row_number"),
@@ -725,28 +1375,55 @@ def table_row_text(*, source: dict[str, Any], table: NormalizedTable, row: Norma
         else:
             lines.append(f"{label}: {value}")
     if table.headers and row.values:
-        details = " | ".join(f"{table.headers[index]}: {value}" for index, value in enumerate(row.values) if value and index < len(table.headers))
+        details = row_to_key_value_markdown(headers=table.headers, values=row.values)
         if details:
-            lines.append("Chi tiết: " + details)
+            lines.append("Dữ liệu dòng (Markdown table):")
+            lines.append(details)
     return "\n".join(line for line in lines if line.strip())
 
 
 def replace_tables(raw_text: str, tables: list[NormalizedTable], *, replacement: str) -> str:
+    ranged_tables = sorted(
+        [
+            table
+            for table in tables
+            if table.metadata.get("source_start") is not None and table.metadata.get("source_end") is not None
+        ],
+        key=lambda table: int(table.metadata.get("source_start") or 0),
+    )
+    if ranged_tables:
+        output: list[str] = []
+        cursor = 0
+        text = raw_text or ""
+        for table in ranged_tables:
+            start = int(table.metadata.get("source_start") or 0)
+            end = int(table.metadata.get("source_end") or start)
+            if start < cursor:
+                continue
+            output.append(text[cursor:start])
+            output.append("\n" + _table_replacement_text(table, replacement=replacement) + "\n")
+            cursor = max(cursor, end)
+        output.append(text[cursor:])
+        return "".join(output)
+
     iterator = iter(tables)
 
     def _replace(_match: re.Match[str]) -> str:
         table = next(iterator, None)
         if table is None:
             return "\n"
-        if replacement == "markdown":
-            content = table.markdown
-        elif replacement == "text":
-            content = table.text
-        else:
-            content = f"[[TABLE_{table.table_index + 1}]]"
+        content = _table_replacement_text(table, replacement=replacement)
         return "\n" + content + "\n"
 
     return TABLE_PATTERN.sub(_replace, raw_text or "")
+
+
+def _table_replacement_text(table: NormalizedTable, *, replacement: str) -> str:
+    if replacement == "markdown":
+        return table.markdown
+    if replacement == "text":
+        return table.text
+    return f"[[TABLE_{table.table_index + 1}]]"
 
 
 def html_to_plain_text(value: str) -> str:
@@ -761,7 +1438,7 @@ def clean_light_text(value: str) -> str:
     return normalize_lines(apply_spacing_fixes(strip_markdown_noise(html.unescape(str(value or "")).replace("\\n", "\n"))))
 
 
-def compact_source_summary(value: str, *, max_chars: int = 900) -> str | None:
+def compact_source_summary(value: str, *, max_chars: int = 3000) -> str | None:
     text = clean_light_text(value)
     if not text:
         return None
@@ -802,6 +1479,8 @@ def apply_spacing_fixes(value: str) -> str:
     text = str(value or "")
     for broken, fixed in SPACING_FIXES.items():
         text = re.sub(re.escape(broken), fixed, text, flags=re.IGNORECASE)
+    for broken, fixed in MOJIBAKE_TEXT_FIXES.items():
+        text = text.replace(broken, fixed)
     text = re.sub(r"\b([A-Z])\s+(?=[^\W\d_])", r"\1", text, flags=re.UNICODE)
     return text
 
@@ -816,9 +1495,8 @@ def split_footer_signature(value: str) -> tuple[str, str | None]:
         or re.search(r"(?im)^\s*(Noi\s*nhan|KT\.\s*GIAM\s+DOC|PHO\s+GIAM\s+DOC)\b", footer_search_text)
     )
     if not match:
-        body = text[: appendix_match.start()] if appendix_match else text
-        return body.strip(), None
-    body_end = min(position for position in (match.start(), appendix_match.start() if appendix_match else None) if position is not None)
+        return text.strip(), None
+    body_end = match.start()
     footer_end = appendix_match.start() if appendix_match and appendix_match.start() > match.start() else len(text)
     body = text[:body_end].strip()
     footer = text[match.start() : footer_end].strip() or None
@@ -842,10 +1520,10 @@ def normalize_lines(value: str) -> str:
 
 def table_to_markdown(headers: list[str], rows: list[list[str]]) -> str:
     if not headers:
-        return "\n".join(" | ".join(row) for row in rows)
+        return "\n".join(" | ".join(_markdown_table_cell(value) for value in row) for row in rows)
     canonical_headers = _canonical_table_columns(headers)
     if canonical_headers != [clean_inline_text(header) for header in headers if clean_inline_text(header)] and len(canonical_headers) == 5:
-        output = ["| " + " | ".join(canonical_headers) + " |", "| " + " | ".join("---" for _ in canonical_headers) + " |"]
+        output = ["| " + " | ".join(_markdown_table_cell(header) for header in canonical_headers) + " |", "| " + " | ".join("---" for _ in canonical_headers) + " |"]
         for row in rows:
             metadata = _compact_table_row_metadata(headers=headers, values=row, metadata={})
             if metadata.get("is_table_marker"):
@@ -853,15 +1531,79 @@ def table_to_markdown(headers: list[str], rows: list[list[str]]) -> str:
             output.append(
                 "| "
                 + " | ".join(
-                    str(metadata.get(key) or "")
+                    _markdown_table_cell(metadata.get(key) or "")
                     for key in ("row_number", "platform", "feature_name", "change_content", "phase")
                 )
                 + " |"
             )
         return "\n".join(output)
-    output = ["| " + " | ".join(headers) + " |", "| " + " | ".join("---" for _ in headers) + " |"]
-    output.extend("| " + " | ".join(row[: len(headers)] + [""] * max(0, len(headers) - len(row))) + " |" for row in rows)
+    output = ["| " + " | ".join(_markdown_table_cell(header) for header in headers) + " |", "| " + " | ".join("---" for _ in headers) + " |"]
+    output.extend(
+        "| " + " | ".join(_markdown_table_cell(value) for value in row[: len(headers)] + [""] * max(0, len(headers) - len(row))) + " |"
+        for row in rows
+    )
     return "\n".join(output)
+
+
+def table_rows_to_markdown(*, table: NormalizedTable, rows: list[NormalizedTableRow]) -> str:
+    return table_to_markdown(table.headers, [row.values for row in rows if not row.metadata.get("is_table_marker")])
+
+
+def table_column_to_markdown(*, table: NormalizedTable, rows: list[NormalizedTableRow], column_index: int) -> str:
+    headers = [clean_inline_text(header) for header in table.headers]
+    context_indexes = [index for index in _row_context_column_indexes(headers, target_index=column_index) if index != column_index]
+    output = ["| Dòng | Ngữ cảnh hàng | Nội dung cột |", "| --- | --- | --- |"]
+    for row in rows:
+        if row.metadata.get("is_table_marker") or column_index >= len(row.values):
+            continue
+        value = clean_inline_text(row.values[column_index])
+        if not value:
+            continue
+        context_parts = []
+        for context_index in context_indexes:
+            if context_index >= len(row.values):
+                continue
+            header = headers[context_index] if context_index < len(headers) else ""
+            context_value = clean_inline_text(row.values[context_index])
+            if header and context_value:
+                context_parts.append(f"{header}: {context_value}")
+            elif context_value:
+                context_parts.append(context_value)
+        row_label = row.metadata.get("row_number") or row.row_index
+        output.append(
+            "| "
+            + " | ".join(
+                (
+                    _markdown_table_cell(row_label),
+                    _markdown_table_cell("; ".join(context_parts)),
+                    _markdown_table_cell(value),
+                )
+            )
+            + " |"
+        )
+    return "\n".join(output) if len(output) > 2 else ""
+
+
+def row_to_key_value_markdown(*, headers: list[str], values: list[str]) -> str:
+    rows: list[str] = ["| Cột | Nội dung |", "| --- | --- |"]
+    for index, value in enumerate(values):
+        if index >= len(headers):
+            continue
+        header = clean_inline_text(headers[index])
+        clean_value = clean_inline_text(value)
+        if not header or not clean_value:
+            continue
+        rows.append(f"| {_markdown_table_cell(header)} | {_markdown_table_cell(clean_value)} |")
+    return "\n".join(rows) if len(rows) > 2 else ""
+
+
+def _markdown_table_cell(value: Any) -> str:
+    if isinstance(value, list):
+        text = "<br>".join(clean_inline_text(item) for item in value if clean_inline_text(item))
+    else:
+        text = clean_inline_text(str(value or ""))
+    text = text.replace("|", "\\|")
+    return re.sub(r"\s*\n\s*", "<br>", text)
 
 
 def table_to_text(headers: list[str], rows: list[list[str]]) -> str:

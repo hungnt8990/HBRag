@@ -256,6 +256,8 @@ class KeywordSearchService:
                 "doc_code",
                 "source_name",
                 "trich_yeu",
+                "nguoi_ky",
+                "signer",
             )
         ]
 

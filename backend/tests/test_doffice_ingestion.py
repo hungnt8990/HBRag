@@ -24,6 +24,16 @@ ORG_ID = UUID("dddddddd-4444-4444-4444-dddddddddddd")
 KB_ID = UUID("eeeeeeee-5555-5555-5555-eeeeeeeeeeee")
 
 
+def test_doffice_known_mojibake_repairs_are_targeted() -> None:
+    broken = "Ch\u053c\u0575 đổi sang GIS"
+    assert apply_spacing_fixes(broken) == "Chuyển đổi sang GIS"
+    assert apply_spacing_fixes("Chuyển đổi sang GIS") == "Chuyển đổi sang GIS"
+    assert apply_spacing_fixes("Trường dữ liệu") == "Trường dữ liệu"
+    assert apply_spacing_fixes("DÃ²ng | Ngá»¯ cáº£nh hÃ ng | Ná»™i dung cá»™t") == (
+        "Dòng | Ngữ cảnh hàng | Nội dung cột"
+    )
+
+
 def test_clean_doffice_markdown_to_text_preserves_table_content() -> None:
     raw = """
 --- Page 1 ---
@@ -490,7 +500,7 @@ def test_doffice_chunk_builder_keeps_table_rows_structured() -> None:
 
     body = next(chunk for chunk in chunks if chunk.metadata["chunk_type"] == "document_body")
     assert "Tóm tắt nguồn" not in body.content
-    assert "PHU LUC" not in body.content
+    assert "Phu luc danh sach chi tiet chuc nang hieu chinh" in body.content
     assert "[[TABLE_1]]" not in body.content
 
     table_parent = next(chunk for chunk in chunks if chunk.metadata["chunk_type"] == "table_parent")
@@ -501,8 +511,9 @@ def test_doffice_chunk_builder_keeps_table_rows_structured() -> None:
     assert "chức năng/màn hình" in table_parent.content
     assert "nội dung hiệu chỉnh/bổ sung" in table_parent.content
     assert "Nhóm chính:" in table_parent.content
+    assert "Bảng Markdown xem trước:" in table_parent.content
+    assert "| STT | nền tảng | chức năng/màn hình | nội dung hiệu chỉnh/bổ sung | giai đoạn |" in table_parent.content
     assert not any(marker in table_parent.content for marker in ("Báº", "Sá»", "CÃ", "NhÃ", "dÃ²ng", "cá»"))
-    assert "Cap dien moi ha ap" not in table_parent.content
 
     cap_dien = next(chunk for chunk in chunks if chunk.metadata.get("feature_name") == "Cap dien moi ha ap")
     assert cap_dien.metadata["platform"] == "App cham soc khach hang"
@@ -514,6 +525,9 @@ def test_doffice_chunk_builder_keeps_table_rows_structured() -> None:
     assert cap_dien.metadata["trich_yeu"] == "Cap nhat ung dung EVN CSKH"
     assert cap_dien.metadata["is_table_row"] is True
     assert cap_dien.metadata["indexable"] is True
+    assert "Dữ liệu dòng (Markdown table):" in cap_dien.content
+    assert "| Cột | Nội dung |" in cap_dien.content
+    assert "| Chuc nang man hinh | Cap dien moi ha ap |" in cap_dien.content
 
     footer = next(chunk for chunk in chunks if chunk.metadata["chunk_type"] == "footer_signature")
     assert "PHU LUC" not in footer.content
@@ -521,6 +535,345 @@ def test_doffice_chunk_builder_keeps_table_rows_structured() -> None:
     assert footer.metadata["is_footer_or_signature"] is True
     assert footer.metadata["indexable"] is False
     assert footer.metadata["embedding_enabled"] is False
+
+
+def test_doffice_text_body_is_split_by_sections_with_document_preamble() -> None:
+    source = {
+        "id_vb": "1479034",
+        "ky_hieu": "6515/EVNCPC-VTCNTT+KD+KT",
+        "trich_yeu": "Kế hoạch xây dựng hệ thống GIS chuẩn hóa cơ sở dữ liệu lưới điện của EVNCPC",
+        "noi_ban_hanh": "Tổng công ty Điện lực miền Trung",
+        "ngay_vb": "2025-08-21",
+        "noi_dung": """
+1. Mục tiêu
+Triển khai chuẩn hóa dữ liệu GIS.
+
+1.1. Phạm vi thực hiện
+Thực hiện trên các đơn vị được phân công.
+
+1.2. Yêu cầu dữ liệu
+Dữ liệu phải được rà soát và cập nhật.
+
+2. Tổ chức thực hiện
+CPCIT phối hợp với các đơn vị liên quan.
+""",
+    }
+
+    normalized = normalize_doffice_source(source)
+    chunks = build_doffice_chunks(normalized)
+    body_chunks = [chunk for chunk in chunks if chunk.metadata.get("chunk_type") == "document_body"]
+
+    assert len(body_chunks) == 3
+    assert [chunk.metadata.get("section_title") for chunk in body_chunks] == [
+        "1.1. Phạm vi thực hiện",
+        "1.2. Yêu cầu dữ liệu",
+        "2. Tổ chức thực hiện",
+    ]
+    first_body = body_chunks[0]
+    assert first_body.content.startswith(
+        "Văn bản: 6515/EVNCPC-VTCNTT+KD+KT - Kế hoạch xây dựng hệ thống GIS chuẩn hóa cơ sở dữ liệu lưới điện của EVNCPC\n"
+        "Ngày ban hành: 21/08/2025\n"
+        "Cơ quan ban hành: Tổng công ty Điện lực miền Trung"
+    )
+    assert "1. Mục tiêu" in first_body.content
+    assert "Triển khai chuẩn hóa dữ liệu GIS." in first_body.content
+    assert "1.1. Phạm vi thực hiện" in first_body.content
+    assert "Triển khai chuẩn hóa dữ liệu GIS.\n1.1. Phạm vi thực hiện" in first_body.content
+    assert "Triển khai chuẩn hóa dữ liệu GIS.\n\n1.1. Phạm vi thực hiện" not in first_body.content
+    assert first_body.metadata["heading_path"] == ["1. Mục tiêu", "1.1. Phạm vi thực hiện"]
+    assert body_chunks[1].metadata["heading_path"] == ["1. Mục tiêu", "1.2. Yêu cầu dữ liệu"]
+
+
+def test_doffice_parent_section_with_significant_content_keeps_own_chunk() -> None:
+    parent_content = (
+        "Các đơn vị phải hoàn thành việc rà soát dữ liệu trước ngày 30/09/2025. "
+        "Nội dung phối hợp bao gồm chuẩn hóa dữ liệu, kiểm tra định kỳ, lập báo cáo "
+        "và cập nhật kết quả theo đúng yêu cầu của Tổng công ty. "
+        "Trường hợp phát sinh vướng mắc, đơn vị phải phản hồi bằng văn bản để xử lý."
+    )
+    source = {
+        "id_vb": "1479035",
+        "ky_hieu": "6516/EVNCPC-VTCNTT+KD+KT",
+        "trich_yeu": "Kế hoạch phối hợp dữ liệu GIS",
+        "noi_ban_hanh": "Tổng công ty Điện lực miền Trung",
+        "ngay_vb": "2025-08-22",
+        "noi_dung": f"""
+3. Tổ chức thực hiện
+{parent_content}
+
+3.1. CPCIT
+CPCIT chuẩn bị nền tảng và hướng dẫn kỹ thuật.
+
+3.2. Các đơn vị
+Các đơn vị rà soát và gửi dữ liệu.
+""",
+    }
+
+    normalized = normalize_doffice_source(source)
+    chunks = build_doffice_chunks(normalized)
+    body_chunks = [chunk for chunk in chunks if chunk.metadata.get("chunk_type") == "document_body"]
+
+    assert [chunk.metadata.get("section_title") for chunk in body_chunks] == [
+        "3. Tổ chức thực hiện",
+        "3.1. CPCIT",
+        "3.2. Các đơn vị",
+    ]
+    assert parent_content in body_chunks[0].content
+    assert "3. Tổ chức thực hiện" in body_chunks[1].content
+    assert parent_content not in body_chunks[1].content
+
+
+def test_doffice_article_heading_ocr_variant_is_parent_of_numbered_items() -> None:
+    source = {
+        "id_vb": "1479038",
+        "ky_hieu": "660/QD-IT",
+        "trich_yeu": "Phê duyệt kết quả lựa chọn nhà thầu",
+        "noi_ban_hanh": "Công ty Công nghệ thông tin Điện lực miền Trung",
+        "ngay_vb": "2025-08-25",
+        "noi_dung": """
+Ðiều 1 . Phê duyệt kết quả lựa chọn nhà thầu gói thầu: 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình: Cung cấp dịch vụ bản đồ nền, bao gồm:
+
+1. Tên gói thầu: 06.PTV: Cung cấp dịch vụ bản đồ nền.
+
+2. Giá gói thầu: 615.752.500 VNĐ.
+""",
+    }
+
+    normalized = normalize_doffice_source(source)
+    chunks = build_doffice_chunks(normalized)
+    body_chunks = [chunk for chunk in chunks if chunk.metadata.get("chunk_type") == "document_body"]
+
+    assert [chunk.metadata.get("section_title") for chunk in body_chunks] == [
+        "1. Tên gói thầu: 06.PTV: Cung cấp dịch vụ bản đồ nền.",
+        "2. Giá gói thầu: 615.752.500 VNĐ.",
+    ]
+    assert body_chunks[0].metadata["heading_path"] == [
+        "Điều 1 . Phê duyệt kết quả lựa chọn nhà thầu gói thầu: 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình: Cung cấp dịch vụ bản đồ nền, bao gồm:",
+        "1. Tên gói thầu: 06.PTV: Cung cấp dịch vụ bản đồ nền.",
+    ]
+    assert "Điều 1 . Phê duyệt kết quả lựa chọn nhà thầu" in body_chunks[0].content
+    assert "1. Tên gói thầu" in body_chunks[0].content
+    assert "bao gồm:\n1. Tên gói thầu" in body_chunks[0].content
+    assert "bao gồm:\n\n1. Tên gói thầu" not in body_chunks[0].content
+    assert "Điều 1 . Phê duyệt kết quả lựa chọn nhà thầu" in body_chunks[1].content
+    assert "2. Giá gói thầu" in body_chunks[1].content
+    assert "bao gồm:\n2. Giá gói thầu" in body_chunks[1].content
+    assert "bao gồm:\n\n2. Giá gói thầu" not in body_chunks[1].content
+
+
+def test_doffice_appendix_sections_are_kept_with_child_goals() -> None:
+    source = {
+        "id_vb": "1479036",
+        "ky_hieu": "6517/EVNCPC-VTCNTT+KD+KT",
+        "trich_yeu": "Kế hoạch mô tả dữ liệu GIS hạ thế",
+        "noi_ban_hanh": "Tổng công ty Điện lực miền Trung",
+        "ngay_vb": "2025-08-23",
+        "noi_dung": """
+Phụ lục 02
+MÔ TẢ DỮ LIỆU KHỞI TẠO VÀ CHUYỂN ĐỔI TỪ CÁC HỆ THỐNG, PHẦN MỀM HIỆN CÓ CỦA EVNCPC SANG DỮ LIỆU GIS HẠ THẾ
+
+1. Mục tiêu
+- Khởi tạo khung CSDL GIS lưới điện hạ thế bao gồm 10 đối tượng thiết bị.
+- Chuyển đổi dữ liệu ban đầu cho 07 đối tượng có độ ưu tiên cao.
+
+2. Nội dung thực hiện
+Các đơn vị phối hợp rà soát dữ liệu.
+""",
+    }
+
+    normalized = normalize_doffice_source(source)
+    chunks = build_doffice_chunks(normalized)
+    body_chunks = [chunk for chunk in chunks if chunk.metadata.get("chunk_type") == "document_body"]
+    goal_chunk = next(chunk for chunk in body_chunks if chunk.metadata.get("section_title") == "1. Mục tiêu")
+
+    assert "Phụ lục 02" in goal_chunk.content
+    assert "MÔ TẢ DỮ LIỆU KHỞI TẠO" in goal_chunk.content
+    assert "1. Mục tiêu" in goal_chunk.content
+    assert "Khởi tạo khung CSDL GIS lưới điện hạ thế" in goal_chunk.content
+    assert goal_chunk.metadata["heading_path"] == ["Phụ lục 02", "1. Mục tiêu"]
+
+
+def test_doffice_table_context_keeps_appendix_and_goal_context() -> None:
+    normalized = normalize_doffice_source(
+        {
+            "id_vb": "1479037",
+            "ky_hieu": "6518/EVNCPC-VTCNTT+KD+KT",
+            "trich_yeu": "Kế hoạch bảng trong phụ lục GIS",
+            "noi_ban_hanh": "Tổng công ty Điện lực miền Trung",
+            "ngay_vb": "2025-08-24",
+            "noi_dung": """
+Phụ lục 02
+MÔ TẢ DỮ LIỆU KHỞI TẠO VÀ CHUYỂN ĐỔI TỪ CÁC HỆ THỐNG, PHẦN MỀM HIỆN CÓ CỦA EVNCPC SANG DỮ LIỆU GIS HẠ THẾ
+
+1. Mục tiêu
+- Khởi tạo khung CSDL GIS lưới điện hạ thế bao gồm 10 đối tượng thiết bị.
+- Chuyển đổi dữ liệu ban đầu cho 07 đối tượng có độ ưu tiên cao, bao gồm:
+(1) F08_CotDien_HT – Lớp cột điện;
+(2) F09_DuongDay-HT – Lớp đường dây;
+(3) F05_CongToKhachHang-HT – Lớp công tơ khách hàng;
+(4) F01_DiemDo-HT – Lớp điểm đo;
+(5) F03_ThietBiDoDem-HT – Lớp thiết bị đo đếm;
+(6) F02_ThietBiDongCat_HT – Lớp thiết bị đóng cắt;
+(7) F10_TuPhanPhoi_HT – Lớp tủ phân phối.
+Các lớp dữ liệu GIS còn lại (03 lớp), sẽ xem xét chuyển đổi ở giai đoạn sau.
+
+| TT | Tên trường | Mô tả |
+| --- | --- | --- |
+| 1 | ID | Mã định danh |
+""",
+        }
+    )
+
+    table = normalized.tables[0]
+    table_context = table.metadata["table_context"]
+    assert "Phụ lục 02" in table_context
+    assert "MÔ TẢ DỮ LIỆU KHỞI TẠO" in table_context
+    assert "1. Mục tiêu" in table_context
+    assert "(1) F08_CotDien_HT" in table_context
+    assert "(7) F10_TuPhanPhoi_HT" in table_context
+
+    chunks = build_doffice_chunks(normalized)
+    table_parent = next(chunk for chunk in chunks if chunk.metadata.get("chunk_type") == "table_parent")
+    assert "Phụ lục 02" in table_parent.content
+    assert "(1) F08_CotDien_HT" in table_parent.content
+
+
+def test_doffice_markdown_tables_are_normalized_and_chunked() -> None:
+    normalized = normalize_doffice_source(
+        {
+            "id_vb": "1068586",
+            "ky_hieu": "123/CPCIT",
+            "trich_yeu": "Kiem tra markdown table",
+            "noi_ban_hanh": "CPCIT",
+            "nguoi_ky": "Nguyen Van A",
+            "ten_file": "markdown-table.md",
+            "duong_dan": "/doffice/markdown-table.md",
+            "ngay_vb": "2026-06-10",
+            "nam": 2026,
+            "thang": 6,
+            "tom_tat": "Tai lieu co bang markdown.",
+            "noi_dung": """
+--- Page 1 ---
+# PHU LUC
+Can cu van ban so 123/CPCIT.
+Bang danh muc truong du lieu GIS
+
+| TT | Ten truong | Mo ta | Kieu du lieu |
+| --- | --- | --- | --- |
+| 1 | ID | Ma dinh danh | String |
+| 2 | MaTram | Ma tram bien ap | String |
+
+Noi nhan:
+KT. GIAM DOC
+""",
+        }
+    )
+
+    assert len(normalized.tables) == 1
+    assert normalized.tables[0].metadata["source_format"] == "markdown_table"
+    assert normalized.tables[0].metadata["table_name"] == "Bang danh muc truong du lieu GIS"
+    assert normalized.tables[0].metadata["table_context"]
+    assert "|" not in normalized.clean_text
+    assert "PHU LUC" in normalized.clean_text
+    assert "Can cu van ban" in normalized.clean_text
+
+    chunks = build_doffice_chunks(normalized)
+    chunk_types = [chunk.metadata["chunk_type"] for chunk in chunks]
+    assert "table_parent" in chunk_types
+    assert chunk_types.count("table_row") == 2
+    assert "table_group" in chunk_types
+    assert chunk_types.count("table_column") == 4
+
+    first_row = next(chunk for chunk in chunks if chunk.metadata.get("row_number") == "1")
+    assert first_row.metadata["row_data"]["Ten truong"] == "ID"
+    assert first_row.metadata["field_name"] == "ID"
+    assert first_row.metadata["table_context"]
+    assert first_row.metadata["source_format"] == "markdown_table"
+
+    group = next(chunk for chunk in chunks if chunk.metadata["chunk_type"] == "table_group")
+    assert group.metadata["group_name"] == "Rows 1-2"
+    assert group.metadata["row_start"] == 1
+    assert group.metadata["row_end"] == 2
+    assert "Các dòng trong nhóm (Markdown table):" in group.content
+    assert "| TT | Ten truong | Mo ta | Kieu du lieu |" in group.content
+    assert "Bảng DOffice" not in group.content
+
+    mo_ta_column = next(
+        chunk
+        for chunk in chunks
+        if chunk.metadata.get("chunk_type") == "table_column"
+        and chunk.metadata.get("column_name") == "Mo ta"
+    )
+    assert "Ten truong: ID" in mo_ta_column.content
+    assert "Ma dinh danh" in mo_ta_column.content
+
+
+def test_doffice_table_fallback_name_does_not_expose_internal_source_label() -> None:
+    normalized = normalize_doffice_source(
+        {
+            "id_vb": "1068589",
+            "ky_hieu": "126/CPCIT",
+            "trich_yeu": "Kiem tra ten bang fallback",
+            "noi_ban_hanh": "CPCIT",
+            "ngay_vb": "2026-06-12",
+            "noi_dung": """
+Noi dung truoc bang khong co tieu de.
+
+| TT | Noi dung |
+| --- | --- |
+| 1 | Kiem tra |
+""",
+        }
+    )
+    chunks = build_doffice_chunks(normalized)
+    table_parent = next(chunk for chunk in chunks if chunk.metadata.get("chunk_type") == "table_parent")
+
+    assert normalized.tables[0].metadata["table_name"] == "Bảng 1"
+    assert "Bảng: Bảng 1" in table_parent.content
+    assert "Bảng DOffice" not in table_parent.content
+
+
+def test_doffice_comparison_tables_add_column_chunks() -> None:
+    normalized = normalize_doffice_source(
+        {
+            "id_vb": "1068587",
+            "ky_hieu": "124/CPCIT",
+            "trich_yeu": "Kiem tra bang so sanh",
+            "noi_ban_hanh": "CPCIT",
+            "nguoi_ky": "Nguyen Van A",
+            "ten_file": "comparison-table.md",
+            "duong_dan": "/doffice/comparison-table.md",
+            "ngay_vb": "2026-06-11",
+            "nam": 2026,
+            "thang": 6,
+            "tom_tat": "Tai lieu co bang so sanh.",
+            "noi_dung": """
+Phu luc phan cong xu ly du lieu
+
+| TT | Du lieu | CPCIT | Cac CTDL |
+| --- | --- | --- | --- |
+| 1 | GIS 110kV | Chuan bi du lieu, chuyen doi cau truc va gui CSDL offline | Kiem tra, hieu chinh du lieu va gui lai ket qua |
+| 2 | GIS trung the | Lap tai lieu huong dan va ho tro sap nhap du lieu | Sap nhap du lieu theo huong dan va kiem tra CSDL |
+""",
+        }
+    )
+
+    chunks = build_doffice_chunks(normalized)
+    column_chunks = [chunk for chunk in chunks if chunk.metadata.get("chunk_type") == "table_column"]
+    assert {chunk.metadata.get("column_name") for chunk in column_chunks} == {"TT", "Du lieu", "CPCIT", "Cac CTDL"}
+    assert all(chunk.metadata.get("is_table_column") is True for chunk in column_chunks)
+    assert all(chunk.metadata.get("column_value_count") == 2 for chunk in column_chunks)
+
+    cpcit_column = next(chunk for chunk in column_chunks if chunk.metadata.get("column_name") == "CPCIT")
+    assert "CPCIT" in cpcit_column.content
+    assert "| Dòng | Ngữ cảnh hàng | Nội dung cột |" in cpcit_column.content
+    assert "Du lieu: GIS 110kV" in cpcit_column.content
+    assert "Chuan bi du lieu" in cpcit_column.content
+    assert "Kiem tra, hieu chinh" not in cpcit_column.content
+
+    row_chunks = [chunk for chunk in chunks if chunk.metadata.get("chunk_type") == "table_row"]
+    assert len(row_chunks) == 2
+
 
 def test_doffice_html_tables_keep_rowspan_context_and_chunk_rows() -> None:
     normalized = normalize_doffice_source(_sample_doffice_source_with_realistic_tables())

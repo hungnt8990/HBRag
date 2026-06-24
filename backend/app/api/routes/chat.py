@@ -24,6 +24,7 @@ from app.schemas.chat import RagChatRequest, RagChatResponse, RagChatStreamReque
 from app.services.access_control import build_access_filter, build_subject_context
 from app.services.artifact_first_retrieval import ArtifactFirstRetrievalService
 from app.services.document_profiles import profile_config, resolve_profile
+from app.services.document_scope_service import DocumentScopeService
 from app.services.embeddings.factory import get_embedding_provider
 from app.services.embeddings.sparse_factory import get_sparse_embedding_provider
 from app.services.knowledge_artifact_indexing_service import KnowledgeArtifactIndexingService
@@ -95,6 +96,7 @@ def get_rag_runtime_config_repository(
 
 async def get_rag_answer_service(
     chat_repository: Annotated[ChatRepository, Depends(get_chat_repository)],
+    document_repository: Annotated[DocumentRepository, Depends(get_document_repository)],
     reranking_service: Annotated[RerankingService, Depends(get_reranking_service)],
     llm_provider: Annotated[LLMProvider, Depends(get_llm_provider)],
     document_log_repository: Annotated[
@@ -134,6 +136,7 @@ async def get_rag_answer_service(
         reranking_service=reranking_service,
         llm_provider=llm_provider,
         document_log_repository=document_log_repository,
+        document_scope_service=DocumentScopeService(document_repository),
         artifact_first_retrieval_service=artifact_first_retrieval_service,
     )
 

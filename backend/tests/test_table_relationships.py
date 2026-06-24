@@ -165,3 +165,5 @@ def test_rag_prompt_membership_answer_no_role_hallucination() -> None:
     assert "proposed/assigned/listed role" in prompt
     assert "do not infer" in prompt
     assert "table_row or entity_profile" in prompt
+    assert "business/technical tables named inside the prose" in prompt
+    assert "Do not count Markdown tables" in prompt

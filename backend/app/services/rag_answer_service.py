@@ -4,6 +4,7 @@ import inspect
 import json
 import logging
 import re
+import time
 import unicodedata
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, replace
@@ -29,14 +30,22 @@ from app.services.access_control import (
     can_access_resource,
 )
 from app.services.artifact_first_retrieval import ArtifactFirstRetrievalResult, ArtifactFirstRetrievalService
+from app.services.document_scope_service import DocumentScopeResult, DocumentScopeService
 from app.services.hybrid_search import is_identifier_lookup_query
 from app.services.llms import LLMProvider
+from app.services.llm_query_router import (
+    SemanticQueryRouterService,
+    SemanticRoute,
+    empty_semantic_route,
+    query_strategy_from_semantic_route,
+)
 from app.services.memory.base import MemoryResult
 from app.services.query_contract_service import QueryContract, QueryContractService
 from app.services.query_intent_rules import is_field_detail_schema_query
 from app.services.query_rewrite_service import QueryRewriteResult, QueryRewriteService
 from app.services.query_scope_router import classify_query_scope, scoped_direct_answer
 from app.services.query_strategy import QueryStrategy, classify_query_strategy
+from app.services.rag_interaction_logger import log_rag_interaction
 from app.services.reranking_service import RerankingService
 from app.services.table_aware_chunking import extract_entities_from_text
 from app.services.table_relationships import (
@@ -127,6 +136,23 @@ IDENTIFIER_LOOKUP_STYLE = (
 TABLE_QA_STYLE = (
     "Answer style: Table QA. "
     "You are a document QA assistant. Answer only from the provided document text. "
+    "When Document Text contains Markdown tables, read them as structured tables: "
+    "first identify the header row, then map each cell to the header directly above "
+    "or beside it. "
+    "When the user asks about a particular column, field, party, stage, unit, or "
+    "category, answer only from the cells under the matching label and use the "
+    "other cells in the same row only as row context. "
+    "When TABLE_COLUMN context is available and its label matches the user's "
+    "requested column, party, unit, stage, or category, use it to identify the "
+    "target object, then cross-check with same-row TABLE_ROW context before answering. "
+    "Do not merge neighboring columns or compare columns unless the question asks "
+    "for all columns, both sides, differences, or a comparison. "
+    "Distinguish between document-layout tables and business/technical tables named "
+    "inside the prose. If the user asks how many tables there are and the document "
+    "text says phrases like 'bao gồm N table/bảng', 'trong đó có M table/bảng dữ liệu', "
+    "or lists items named 'Table X', answer from that prose/list. Do not count Markdown "
+    "tables, TABLE_ROW records, table_parent chunks, or table labels such as 'Bảng 1' "
+    "unless the question explicitly asks about tables appearing in the document layout. "
     "When the question asks for a list, all rows, who, total, amount, or complete "
     "table coverage, list every TABLE_ROW present in ENTITY_MATCHED_ROWS or Document Text "
     "as separate records. "
@@ -140,6 +166,8 @@ TABLE_QA_STYLE = (
     "When the question asks about an entity, find every TABLE_ROW containing that entity "
     "and answer from fields in the same row. "
     "Do not assume fixed column names. Use the original field labels from the document text. "
+    "If multiple labels look similar, prefer the exact label requested by the user; "
+    "only broaden to related labels when the exact label is absent and say that you did so. "
     "Preserve proper names, addresses, dates, and money amounts exactly as written. "
     "If a total row is present, state the total. "
     "Use TABLE_TITLE and TABLE_HEADER text when available to explain the row. "
@@ -260,6 +288,8 @@ class RagAnswerService:
         llm_provider: LLMProvider,
         document_log_repository: DocumentLogRepository | None = None,
         query_rewrite_service: QueryRewriteService | None = None,
+        semantic_query_router: SemanticQueryRouterService | None = None,
+        document_scope_service: DocumentScopeService | None = None,
         artifact_first_retrieval_service: ArtifactFirstRetrievalService | None = None,
     ) -> None:
         self._chat_repository = chat_repository
@@ -267,6 +297,8 @@ class RagAnswerService:
         self._llm_provider = llm_provider
         self._document_log_repository = document_log_repository
         self._query_rewrite_service = query_rewrite_service or QueryRewriteService(llm_provider)
+        self._semantic_query_router = semantic_query_router or SemanticQueryRouterService(llm_provider)
+        self._document_scope_service = document_scope_service
         self._artifact_first_retrieval_service = artifact_first_retrieval_service
 
     async def answer(
@@ -292,6 +324,7 @@ class RagAnswerService:
         retrieval_enrichment_enabled: bool = False,
         query_intent_rules: dict[str, Any] | None = None,
     ) -> RagChatResponse:
+        started_at = time.perf_counter()
         if current_user is not None and document_ids is None:
             raise RagAnswerError("Scoped document ids are required for authenticated RAG.")
         try:
@@ -309,6 +342,22 @@ class RagAnswerService:
                     session_id=chat_session.id,
                     role="assistant",
                     content=direct_answer,
+                )
+                log_rag_interaction(
+                    question=query,
+                    answer=direct_answer,
+                    session_id=chat_session.id,
+                    user_message_id=user_message.id,
+                    assistant_message_id=assistant_message.id,
+                    user_id=getattr(current_user, "id", None),
+                    organization_id=getattr(current_user, "organization_id", None),
+                    document_ids=document_ids,
+                    top_k=top_k,
+                    candidate_k=candidate_k,
+                    answer_mode=answer_mode,
+                    answer_style=answer_style,
+                    latency_ms=(time.perf_counter() - started_at) * 1000,
+                    answer_status="direct_answer",
                 )
                 await self._chat_repository.commit()
                 return RagChatResponse(
@@ -330,7 +379,12 @@ class RagAnswerService:
                 query=query,
                 rewrite_result=rewrite_result,
             )
-            query_strategy = classify_query_strategy(evidence_query)
+            semantic_route = await self._route_query_with_llm(
+                query=query,
+                retrieval_query=evidence_query,
+                session_context=session_context,
+            )
+            query_strategy = query_strategy_from_semantic_route(semantic_route)
             retrieval_query = self._strategy_enriched_query(
                 retrieval_query,
                 query_strategy=query_strategy,
@@ -349,12 +403,22 @@ class RagAnswerService:
             if subject_context is not None and access_filter is None:
                 access_filter = build_access_filter(subject_context)
 
+            document_scope_result = await self._resolve_document_first_scope(
+                semantic_route=semantic_route,
+                document_ids=document_ids,
+                session_context=session_context,
+            )
+            retrieval_document_ids = self._document_ids_for_retrieval(
+                document_ids=document_ids,
+                document_scope_result=document_scope_result,
+            )
+
             artifact_result = await self._retrieve_artifact_first_or_rerank(
                 query=retrieval_query,
                 top_k=effective_top_k,
                 candidate_k=effective_candidate_k,
                 session_id=chat_session.id,
-                document_ids=document_ids,
+                document_ids=retrieval_document_ids,
                 use_graph=use_graph,
                 graph_expansion_depth=graph_expansion_depth,
                 graph_expansion_limit=graph_expansion_limit,
@@ -369,16 +433,22 @@ class RagAnswerService:
             context_chunks = await self._load_context_chunks(
                 rerank_results=rerank_response.results if rerank_response is not None else [],
             )
-            artifact_context_chunks = await self._load_artifact_source_context_chunks(
-                selected_artifacts=selected_artifacts,
-                existing_context_chunks=context_chunks,
-            )
-            context_chunks = [*artifact_context_chunks, *context_chunks]
+            context_augmentation_enabled = bool(getattr(settings, "enable_context_augmentation", True))
+            if context_augmentation_enabled:
+                artifact_context_chunks = await self._load_artifact_source_context_chunks(
+                    selected_artifacts=selected_artifacts,
+                    existing_context_chunks=context_chunks,
+                )
+                context_chunks = [*artifact_context_chunks, *context_chunks]
             context_chunks = self._filter_accessible_context_chunks(
                 context_chunks,
                 subject_context=subject_context,
             )
-            if getattr(settings, "enable_context_expansion", True) and query_contract.allow_neighbor_expansion:
+            if (
+                context_augmentation_enabled
+                and getattr(settings, "enable_context_expansion", True)
+                and query_contract.allow_neighbor_expansion
+            ):
                 context_chunks = await self._expand_with_neighbors(
                     query=evidence_query,
                     context_chunks=context_chunks,
@@ -394,24 +464,25 @@ class RagAnswerService:
                 query=evidence_query,
                 context_chunks=context_chunks,
             )
-            context_chunks = await self._augment_person_area_context(
-                query=evidence_query,
-                context_chunks=context_chunks,
-                scoped_document_ids=document_ids,
-            )
-            context_chunks = self._filter_accessible_context_chunks(
-                context_chunks,
-                subject_context=subject_context,
-            )
-            context_chunks = await self._augment_legal_leave_context(
-                query=evidence_query,
-                context_chunks=context_chunks,
-                scoped_document_ids=document_ids,
-            )
-            context_chunks = self._filter_accessible_context_chunks(
-                context_chunks,
-                subject_context=subject_context,
-            )
+            if context_augmentation_enabled:
+                context_chunks = await self._augment_person_area_context(
+                    query=evidence_query,
+                    context_chunks=context_chunks,
+                    scoped_document_ids=document_ids,
+                )
+                context_chunks = self._filter_accessible_context_chunks(
+                    context_chunks,
+                    subject_context=subject_context,
+                )
+                context_chunks = await self._augment_legal_leave_context(
+                    query=evidence_query,
+                    context_chunks=context_chunks,
+                    scoped_document_ids=document_ids,
+                )
+                context_chunks = self._filter_accessible_context_chunks(
+                    context_chunks,
+                    subject_context=subject_context,
+                )
             requires_direct_evidence = self._query_requires_direct_entity_evidence(
                 query=evidence_query,
                 context_chunks=context_chunks,
@@ -421,18 +492,9 @@ class RagAnswerService:
                 selected_artifacts=selected_artifacts,
             ):
                 requires_direct_evidence = False
-            relevance_query = evidence_query if len(self._topical_query_terms(query)) < 2 else query
+            requires_direct_evidence = False  # Disabled per user request
             relevance_failed = False
-            if not self._context_is_topically_relevant(
-                query=relevance_query,
-                context_chunks=context_chunks,
-            ) and not self._artifacts_are_topically_relevant(
-                query=relevance_query,
-                selected_artifacts=selected_artifacts,
-            ):
-                relevance_failed = True
-                context_chunks = []
-                selected_artifacts = []
+            # Relevance gate disabled per user request
             if relevance_failed and requires_direct_evidence:
                 answer = self._insufficient_direct_evidence_answer(query)
             elif not context_chunks and not selected_artifacts:
@@ -478,6 +540,41 @@ class RagAnswerService:
                     for context_chunk in context_chunks
                 ],
             )
+            citation_responses = [
+                self._build_citation_response(context_chunk=context_chunk, quote=citation.quote)
+                for context_chunk, citation in zip(context_chunks, citation_records, strict=True)
+            ]
+            log_rag_interaction(
+                question=query,
+                answer=answer,
+                session_id=chat_session.id,
+                user_message_id=user_message.id,
+                assistant_message_id=assistant_message.id,
+                user_id=getattr(current_user, "id", None),
+                organization_id=getattr(current_user, "organization_id", None),
+                document_ids=retrieval_document_ids,
+                retrieval_query=retrieval_query,
+                evidence_query=evidence_query,
+                document_scope=document_scope_result,
+                semantic_route=semantic_route,
+                top_k=top_k,
+                candidate_k=candidate_k,
+                effective_top_k=effective_top_k,
+                effective_candidate_k=effective_candidate_k,
+                max_context_chars=max_context_chars,
+                effective_max_context_chars=effective_max_context_chars,
+                answer_mode=answer_mode,
+                answer_style=answer_style,
+                query_strategy=query_strategy,
+                query_contract=query_contract,
+                rewrite_result=rewrite_result,
+                rerank_response=rerank_response,
+                context_chunks=context_chunks,
+                selected_artifacts=selected_artifacts,
+                artifact_result=artifact_result,
+                citations=citation_responses,
+                latency_ms=(time.perf_counter() - started_at) * 1000,
+            )
             if current_user is not None and self._document_log_repository is not None:
                 cited_document_ids = {context_chunk.chunk.document_id for context_chunk in context_chunks}
                 for document_id in cited_document_ids:
@@ -491,6 +588,12 @@ class RagAnswerService:
                             "query": query,
                             "retrieval_query": retrieval_query,
                             "evidence_query": evidence_query,
+                            "document_scope": (
+                                document_scope_result.model_dump()
+                                if document_scope_result is not None
+                                else None
+                            ),
+                            "semantic_route": semantic_route.model_dump(),
                             "query_strategy": list(query_strategy.strategies),
                             "query_contract": query_contract.detected_intent,
                             "selected_artifact_count": len(selected_artifacts),
@@ -512,7 +615,7 @@ class RagAnswerService:
             user_message_id=user_message.id,
             assistant_message_id=assistant_message.id,
             answer=answer,
-            citations=[self._build_citation_response(context_chunk=context_chunk, quote=citation.quote) for context_chunk, citation in zip(context_chunks, citation_records, strict=True)],
+            citations=citation_responses,
         )
 
     async def answer_stream(
@@ -538,6 +641,7 @@ class RagAnswerService:
         retrieval_enrichment_enabled: bool = False,
         query_intent_rules: dict[str, Any] | None = None,
     ) -> AsyncIterator[RagStreamEvent]:
+        started_at = time.perf_counter()
         if current_user is not None and document_ids is None:
             yield RagStreamEvent(
                 event="error",
@@ -574,6 +678,22 @@ class RagAnswerService:
                     role="assistant",
                     content=direct_answer,
                 )
+                log_rag_interaction(
+                    question=query,
+                    answer=direct_answer,
+                    session_id=chat_session.id,
+                    user_message_id=user_message.id,
+                    assistant_message_id=assistant_message.id,
+                    user_id=getattr(current_user, "id", None),
+                    organization_id=getattr(current_user, "organization_id", None),
+                    document_ids=document_ids,
+                    top_k=top_k,
+                    candidate_k=candidate_k,
+                    answer_mode=answer_mode,
+                    answer_style=answer_style,
+                    latency_ms=(time.perf_counter() - started_at) * 1000,
+                    answer_status="direct_answer_stream",
+                )
                 await self._chat_repository.commit()
                 yield RagStreamEvent(event="citations", data=[])
                 yield RagStreamEvent(
@@ -593,7 +713,12 @@ class RagAnswerService:
                 query=query,
                 rewrite_result=rewrite_result,
             )
-            query_strategy = classify_query_strategy(evidence_query)
+            semantic_route = await self._route_query_with_llm(
+                query=query,
+                retrieval_query=evidence_query,
+                session_context=session_context,
+            )
+            query_strategy = query_strategy_from_semantic_route(semantic_route)
             retrieval_query = self._strategy_enriched_query(
                 retrieval_query,
                 query_strategy=query_strategy,
@@ -612,12 +737,22 @@ class RagAnswerService:
             if subject_context is not None and access_filter is None:
                 access_filter = build_access_filter(subject_context)
 
+            document_scope_result = await self._resolve_document_first_scope(
+                semantic_route=semantic_route,
+                document_ids=document_ids,
+                session_context=session_context,
+            )
+            retrieval_document_ids = self._document_ids_for_retrieval(
+                document_ids=document_ids,
+                document_scope_result=document_scope_result,
+            )
+
             artifact_result = await self._retrieve_artifact_first_or_rerank(
                 query=retrieval_query,
                 top_k=effective_top_k,
                 candidate_k=effective_candidate_k,
                 session_id=chat_session.id,
-                document_ids=document_ids,
+                document_ids=retrieval_document_ids,
                 use_graph=use_graph,
                 graph_expansion_depth=graph_expansion_depth,
                 graph_expansion_limit=graph_expansion_limit,
@@ -632,16 +767,22 @@ class RagAnswerService:
             context_chunks = await self._load_context_chunks(
                 rerank_results=rerank_response.results if rerank_response is not None else [],
             )
-            artifact_context_chunks = await self._load_artifact_source_context_chunks(
-                selected_artifacts=selected_artifacts,
-                existing_context_chunks=context_chunks,
-            )
-            context_chunks = [*artifact_context_chunks, *context_chunks]
+            context_augmentation_enabled = bool(getattr(settings, "enable_context_augmentation", True))
+            if context_augmentation_enabled:
+                artifact_context_chunks = await self._load_artifact_source_context_chunks(
+                    selected_artifacts=selected_artifacts,
+                    existing_context_chunks=context_chunks,
+                )
+                context_chunks = [*artifact_context_chunks, *context_chunks]
             context_chunks = self._filter_accessible_context_chunks(
                 context_chunks,
                 subject_context=subject_context,
             )
-            if getattr(settings, "enable_context_expansion", True) and query_contract.allow_neighbor_expansion:
+            if (
+                context_augmentation_enabled
+                and getattr(settings, "enable_context_expansion", True)
+                and query_contract.allow_neighbor_expansion
+            ):
                 context_chunks = await self._expand_with_neighbors(
                     query=evidence_query,
                     context_chunks=context_chunks,
@@ -657,24 +798,25 @@ class RagAnswerService:
                 query=evidence_query,
                 context_chunks=context_chunks,
             )
-            context_chunks = await self._augment_person_area_context(
-                query=evidence_query,
-                context_chunks=context_chunks,
-                scoped_document_ids=document_ids,
-            )
-            context_chunks = self._filter_accessible_context_chunks(
-                context_chunks,
-                subject_context=subject_context,
-            )
-            context_chunks = await self._augment_legal_leave_context(
-                query=evidence_query,
-                context_chunks=context_chunks,
-                scoped_document_ids=document_ids,
-            )
-            context_chunks = self._filter_accessible_context_chunks(
-                context_chunks,
-                subject_context=subject_context,
-            )
+            if context_augmentation_enabled:
+                context_chunks = await self._augment_person_area_context(
+                    query=evidence_query,
+                    context_chunks=context_chunks,
+                    scoped_document_ids=document_ids,
+                )
+                context_chunks = self._filter_accessible_context_chunks(
+                    context_chunks,
+                    subject_context=subject_context,
+                )
+                context_chunks = await self._augment_legal_leave_context(
+                    query=evidence_query,
+                    context_chunks=context_chunks,
+                    scoped_document_ids=document_ids,
+                )
+                context_chunks = self._filter_accessible_context_chunks(
+                    context_chunks,
+                    subject_context=subject_context,
+                )
             requires_direct_evidence = self._query_requires_direct_entity_evidence(
                 query=evidence_query,
                 context_chunks=context_chunks,
@@ -684,18 +826,9 @@ class RagAnswerService:
                 selected_artifacts=selected_artifacts,
             ):
                 requires_direct_evidence = False
-            relevance_query = evidence_query if len(self._topical_query_terms(query)) < 2 else query
+            requires_direct_evidence = False  # Disabled per user request
             relevance_failed = False
-            if not self._context_is_topically_relevant(
-                query=relevance_query,
-                context_chunks=context_chunks,
-            ) and not self._artifacts_are_topically_relevant(
-                query=relevance_query,
-                selected_artifacts=selected_artifacts,
-            ):
-                relevance_failed = True
-                context_chunks = []
-                selected_artifacts = []
+            # Relevance gate disabled per user request
             yield RagStreamEvent(
                 event="metadata",
                 data={
@@ -704,6 +837,12 @@ class RagAnswerService:
                     "retrieval_query": retrieval_query,
                     "evidence_query": evidence_query,
                     "query_strategy": list(query_strategy.strategies),
+                    "semantic_route": semantic_route.model_dump(),
+                    "document_scope": (
+                        document_scope_result.model_dump()
+                        if document_scope_result is not None
+                        else None
+                    ),
                     "query_contract": query_contract.detected_intent,
                     "selected_artifact_count": len(selected_artifacts),
                     "used_chunk_fallback": artifact_result.used_chunk_fallback,
@@ -767,6 +906,45 @@ class RagAnswerService:
                     for context_chunk in context_chunks
                 ],
             )
+            citation_responses = [
+                self._build_citation_response(
+                    context_chunk=context_chunk,
+                    quote=citation.quote,
+                )
+                for context_chunk, citation in zip(context_chunks, citation_records, strict=True)
+            ]
+            log_rag_interaction(
+                question=query,
+                answer=answer,
+                session_id=chat_session.id,
+                user_message_id=user_message.id,
+                assistant_message_id=assistant_message.id,
+                user_id=getattr(current_user, "id", None),
+                organization_id=getattr(current_user, "organization_id", None),
+                document_ids=retrieval_document_ids,
+                retrieval_query=retrieval_query,
+                evidence_query=evidence_query,
+                document_scope=document_scope_result,
+                semantic_route=semantic_route,
+                top_k=top_k,
+                candidate_k=candidate_k,
+                effective_top_k=effective_top_k,
+                effective_candidate_k=effective_candidate_k,
+                max_context_chars=max_context_chars,
+                effective_max_context_chars=effective_max_context_chars,
+                answer_mode=answer_mode,
+                answer_style=answer_style,
+                query_strategy=query_strategy,
+                query_contract=query_contract,
+                rewrite_result=rewrite_result,
+                rerank_response=rerank_response,
+                context_chunks=context_chunks,
+                selected_artifacts=selected_artifacts,
+                artifact_result=artifact_result,
+                citations=citation_responses,
+                latency_ms=(time.perf_counter() - started_at) * 1000,
+                answer_status="answered_stream",
+            )
             if current_user is not None and self._document_log_repository is not None:
                 cited_document_ids = {context_chunk.chunk.document_id for context_chunk in context_chunks}
                 for document_id in cited_document_ids:
@@ -780,6 +958,12 @@ class RagAnswerService:
                             "query": query,
                             "retrieval_query": retrieval_query,
                             "evidence_query": evidence_query,
+                            "document_scope": (
+                                document_scope_result.model_dump()
+                                if document_scope_result is not None
+                                else None
+                            ),
+                            "semantic_route": semantic_route.model_dump(),
                             "query_strategy": list(query_strategy.strategies),
                             "query_contract": query_contract.detected_intent,
                             "selected_artifact_count": len(selected_artifacts),
@@ -803,13 +987,7 @@ class RagAnswerService:
 
         yield RagStreamEvent(
             event="citations",
-            data=[
-                self._build_citation_response(
-                    context_chunk=context_chunk,
-                    quote=citation.quote,
-                ).model_dump(mode="json")
-                for context_chunk, citation in zip(context_chunks, citation_records, strict=True)
-            ],
+            data=[citation.model_dump(mode="json") for citation in citation_responses],
         )
         yield RagStreamEvent(
             event="done",
@@ -835,6 +1013,86 @@ class RagAnswerService:
         accepts_var_kwargs = any(parameter.kind is inspect.Parameter.VAR_KEYWORD for parameter in parameters.values())
         supported = kwargs if accepts_var_kwargs else {key: value for key, value in kwargs.items() if key in parameters}
         return await self._reranking_service.search(**supported)
+
+    async def _route_query_with_llm(
+        self,
+        *,
+        query: str,
+        retrieval_query: str,
+        session_context: RagSessionContext | None,
+    ) -> SemanticRoute:
+        try:
+            return await self._semantic_query_router.route(
+                query=query,
+                retrieval_query=retrieval_query,
+                session_hint=self._semantic_route_session_hint(session_context),
+            )
+        except Exception:
+            logger.exception("LLM semantic query routing failed; using empty retrieval route.")
+            return empty_semantic_route(reason="llm_semantic_query_routing_failed")
+
+    async def _resolve_document_first_scope(
+        self,
+        *,
+        semantic_route: SemanticRoute,
+        document_ids: set[UUID] | None,
+        session_context: RagSessionContext | None,
+    ) -> DocumentScopeResult | None:
+        if self._document_scope_service is None:
+            return None
+        try:
+            current_document_id = None
+            if session_context is not None and session_context.current_document_id is not None:
+                current_document_id = UUID(str(session_context.current_document_id))
+            return await self._document_scope_service.resolve_from_semantic_route(
+                semantic_route,
+                allowed_document_ids=document_ids,
+                current_document_id=current_document_id,
+            )
+        except Exception:
+            logger.exception("Document-first scope resolution failed; using original document scope.")
+            return DocumentScopeResult.none(reason="Document-first scope resolution failed.")
+
+    @staticmethod
+    def _semantic_route_session_hint(session_context: RagSessionContext | None) -> str | None:
+        if session_context is None:
+            return None
+        parts: list[str] = []
+        if session_context.current_document_id is not None:
+            parts.append(f"current_document_id: {session_context.current_document_id}")
+        if session_context.last_document_ids:
+            parts.append("last_document_ids: " + ", ".join(str(value) for value in session_context.last_document_ids))
+        if session_context.last_topic:
+            parts.append(f"last_topic: {session_context.last_topic}")
+        if session_context.current_scope:
+            parts.append(f"current_scope: {session_context.current_scope}")
+        if session_context.recent_messages:
+            recent_lines = [
+                f"{message.role}: {message.content}"
+                for message in session_context.recent_messages[-4:]
+                if message.content
+            ]
+            if recent_lines:
+                parts.append("recent_messages:\n" + "\n".join(recent_lines))
+        return "\n".join(parts) or None
+
+    @staticmethod
+    def _document_ids_for_retrieval(
+        *,
+        document_ids: set[UUID] | None,
+        document_scope_result: DocumentScopeResult | None,
+    ) -> set[UUID] | None:
+        if (
+            document_scope_result is None
+            or document_scope_result.mode != "hard"
+            or not document_scope_result.document_ids
+        ):
+            return document_ids
+        scoped_ids = set(document_scope_result.document_ids)
+        if document_ids is None:
+            return scoped_ids
+        narrowed = document_ids & scoped_ids
+        return narrowed or document_ids
 
     async def _retrieve_artifact_first_or_rerank(self, **kwargs) -> ArtifactFirstRetrievalResult:
         artifact_service = self._artifact_first_retrieval_service
@@ -2662,6 +2920,13 @@ class RagAnswerService:
             "phrase, label, heading, or row field best matches the entity being counted "
             "in the question. If several counts could match, state the ambiguity and "
             "list the competing counts instead of choosing a broader total.\n"
+            "- If the question asks how many `table`/`bảng` are mentioned in the document "
+            "content, and Document Text or COUNT_EVIDENCE contains wording such as "
+            "`bao gồm N table/bảng`, `trong đó có M table/bảng dữ liệu`, or a prose "
+            "list of items named `Table ...`, answer from that wording. Do not count "
+            "the retrieved Markdown tables, table chunks, TABLE_ROW records, or generic "
+            "layout labels like `Bảng 1`, unless the user explicitly asks about tables "
+            "as document-layout objects.\n"
             "- For count questions about attributes, tables, columns, fields, layers, or "
             "objects, do not substitute a broader category total when COUNT_EVIDENCE "
             "contains a candidate that explicitly matches the narrower counted entity.\n"
@@ -2751,20 +3016,38 @@ class RagAnswerService:
         for context_chunk in context_chunks:
             for line in RagAnswerService._count_candidate_lines(context_chunk.chunk.content or ""):
                 normalized = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(line))
-                numbers = re.findall(r"\b\d{1,4}\b", normalized)
-                if not numbers:
+                number_matches = list(re.finditer(r"\b\d{1,4}\b", normalized))
+                if not number_matches:
                     continue
                 tokens = set(re.findall(r"[a-z0-9]+", normalized))
                 overlap = query_tokens & tokens
                 if not overlap:
                     continue
                 phrase_hits = sum(1 for phrase in query_phrases if phrase in normalized)
-                score = len(overlap) + (2.5 * phrase_hits)
-                key = normalize_metadata_value(line)
-                if key in seen:
-                    continue
-                seen.add(key)
-                candidates.append((score, context_chunk.citation_index, numbers[0], line))
+                for number_match in number_matches:
+                    start, end = number_match.span()
+                    local_window = normalized[max(0, start - 80) : end + 120]
+                    local_tokens = set(re.findall(r"[a-z0-9]+", local_window))
+                    local_overlap = query_tokens & local_tokens
+                    local_phrase_hits = sum(1 for phrase in query_phrases if phrase in local_window)
+                    phrase_distance_bonus = RagAnswerService._count_phrase_distance_bonus(
+                        normalized,
+                        number_start=start,
+                        number_end=end,
+                        query_phrases=query_phrases,
+                    )
+                    score = (
+                        len(overlap)
+                        + (2.5 * phrase_hits)
+                        + (1.5 * len(local_overlap))
+                        + (4 * local_phrase_hits)
+                        + phrase_distance_bonus
+                    )
+                    key = f"{normalize_metadata_value(line)}::{number_match.group(0)}::{start}"
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    candidates.append((score, context_chunk.citation_index, number_match.group(0), line))
 
         if not candidates:
             return None
@@ -2777,6 +3060,34 @@ class RagAnswerService:
         for score, citation, number, text in candidates[:8]:
             lines.append(f"- score={score:.2f}; citation=[{citation}]; count={number}; text={text}")
         return "\n".join(lines)
+
+    @staticmethod
+    def _count_phrase_distance_bonus(
+        normalized_line: str,
+        *,
+        number_start: int,
+        number_end: int,
+        query_phrases: list[str],
+    ) -> float:
+        if not query_phrases:
+            return 0.0
+        number_center = (number_start + number_end) / 2
+        best_distance: float | None = None
+        for phrase in query_phrases:
+            if not phrase:
+                continue
+            search_from = 0
+            while True:
+                phrase_index = normalized_line.find(phrase, search_from)
+                if phrase_index < 0:
+                    break
+                phrase_center = phrase_index + (len(phrase) / 2)
+                distance = abs(phrase_center - number_center)
+                best_distance = distance if best_distance is None else min(best_distance, distance)
+                search_from = phrase_index + 1
+        if best_distance is None:
+            return 0.0
+        return max(0.0, 8.0 - (best_distance / 6.0))
 
     @staticmethod
     def _structured_relationship_evidence_section(

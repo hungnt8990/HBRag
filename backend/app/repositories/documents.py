@@ -155,6 +155,52 @@ class DocumentRepository:
         result = await self._session.execute(statement)
         return result.scalar_one_or_none()
 
+    async def find_document_scope_candidates(
+        self,
+        *,
+        id_vb_values: Sequence[str] = (),
+        code_values: Sequence[str] = (),
+        limit: int = 25,
+    ) -> list[Document]:
+        """Return documents that may match explicit identifiers in a user query.
+
+        The final decision is made by the document scope service in Python, where
+        values can be normalized consistently. This query only narrows the
+        candidate set using exact id_vb and broad code/title matches.
+        """
+
+        ids = [str(value).strip() for value in id_vb_values if str(value).strip()]
+        codes = [str(value).strip() for value in code_values if str(value).strip()]
+        conditions = []
+        if ids:
+            conditions.append(cast(Document.document_metadata["id_vb"].astext, String).in_(ids))
+        code_fields = (
+            "document_code",
+            "ky_hieu",
+            "doc_code",
+            "so_ky_hieu",
+            "code",
+        )
+        for code in codes:
+            like_value = f"%{code}%"
+            for field in code_fields:
+                conditions.append(
+                    cast(Document.document_metadata[field].astext, String).ilike(like_value)
+                )
+            conditions.append(Document.title.ilike(like_value))
+
+        if not conditions:
+            return []
+
+        statement = (
+            select(Document)
+            .where(or_(*conditions))
+            .order_by(Document.updated_at.desc())
+            .limit(max(1, int(limit)))
+        )
+        result = await self._session.execute(statement)
+        return list(result.scalars().all())
+
     async def update_document_status(self, document: Document, status: str) -> Document:
         document.status = status
         await self._session.flush()

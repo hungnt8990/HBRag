@@ -1,3 +1,4 @@
+import base64
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -30,7 +31,7 @@ class Settings(BaseSettings):
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: str | None = None
     qdrant_collection_name: str = "hbrag_chunks_v2"
-    qdrant_artifact_collection_name: str = "hbrag_artifacts_v1"
+    qdrant_artifact_collection_name: str = "hbrag_artifacts_4096_v1"
     qdrant_upsert_batch_size: int = 64
     qdrant_upsert_retry_count: int = 2
     qdrant_hybrid_candidate_multiplier: int = 4
@@ -60,11 +61,14 @@ class Settings(BaseSettings):
     doffice_es_timeout_seconds: int = 30
 
     elasticsearch_enabled: bool = False
+    elasticsearch_cloud_id: str | None = None
+    elasticsearch_api_key: str | None = None
     elasticsearch_url: str = "http://localhost:9200"
     elasticsearch_index_name: str = "hbrag_chunks_bm25_v1"
     elasticsearch_timeout_seconds: int = 30
     elasticsearch_index_batch_size: int = 128
     elasticsearch_fallback_to_postgres: bool = True
+    elasticsearch_verify_ssl: bool = True
 
     memory_provider: str = "local"
     memory_enabled: bool = True
@@ -84,6 +88,7 @@ class Settings(BaseSettings):
     embedding_api_key: str | None = None
     embedding_model: str | None = None
     embedding_dimension: int = 384
+    embedding_endpoint_path: str = "/embeddings"
 
     reranker_provider: str = "fake"
     reranker_base_url: str | None = None
@@ -126,13 +131,14 @@ class Settings(BaseSettings):
     enable_offline_enrichment: bool = True
     enable_query_enrichment: bool = True
     enable_context_expansion: bool = True
+    enable_context_augmentation: bool = True
     enable_completeness_check: bool = False
     enable_second_retrieval: bool = False
     max_second_retrieval_rounds: int = 1
-    overview_top_k: int = 12
+    overview_top_k: int = 14
     raw_top_k: int = 0
-    summary_top_k: int = 6
-    table_top_k: int = 10
+    summary_top_k: int = 8
+    table_top_k: int = 12
     max_context_chars: int = 20_000
 
     enable_chunk_enrichment_at_ingest: bool = False
@@ -277,6 +283,24 @@ class Settings(BaseSettings):
             return self.database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
         return self.database_url
 
+    @property
+    def resolved_elasticsearch_url(self) -> str:
+        if self.elasticsearch_cloud_id:
+            return _elasticsearch_url_from_cloud_id(self.elasticsearch_cloud_id)
+        return self.elasticsearch_url
+
+
+def _elasticsearch_url_from_cloud_id(cloud_id: str) -> str:
+    encoded = cloud_id.split(":", 1)[-1].strip()
+    try:
+        decoded = base64.b64decode(encoded).decode("utf-8")
+        host, es_uuid, *_ = decoded.split("$")
+    except Exception as exc:
+        raise ValueError("Invalid ELASTICSEARCH_CLOUD_ID.") from exc
+    if not host or not es_uuid:
+        raise ValueError("Invalid ELASTICSEARCH_CLOUD_ID.")
+    return f"https://{es_uuid}.{host}"
+
 
 @lru_cache
 def get_settings() -> Settings:
@@ -284,3 +308,4 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+

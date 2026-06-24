@@ -17,6 +17,7 @@ def get_embedding_provider() -> EmbeddingProvider:
             api_key=settings.embedding_api_key,
             model=_required(settings.embedding_model, "EMBEDDING_MODEL"),
             dimension=settings.embedding_dimension,
+            endpoint_path=settings.embedding_endpoint_path,
         )
 
     raise ValueError(f"Unsupported embedding provider: {settings.embedding_provider}")

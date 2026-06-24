@@ -16,6 +16,25 @@ DOCUMENT_IDENTIFIER_PATTERN = re.compile(
 )
 DATE_PATTERN = re.compile(r"\b(?:[0-3]?\d[/-][01]?\d[/-](?:\d{2}|\d{4})|\d{4}-\d{2}-\d{2})\b")
 
+DOCUMENT_PROFILE_KEY_FRAGMENTS = {
+    "agency",
+    "code",
+    "date",
+    "issuer",
+    "number",
+    "signed",
+    "signer",
+    "subject",
+    "title",
+    "type",
+    "ky_hieu",
+    "ngay_vb",
+    "ngay_tao",
+    "nguoi_ky",
+    "noi_ban_hanh",
+    "trich_yeu",
+}
+
 
 @dataclass(frozen=True)
 class KnowledgeArtifactCompilerConfig:
@@ -300,7 +319,7 @@ class KnowledgeArtifactCompiler:
         for source in (metadata, dict(metadata.get("parsed_metadata") or {}), docling_metadata):
             for key, value in source.items():
                 normalized_key = str(key).casefold()
-                if any(fragment in normalized_key for fragment in ("number", "code", "date", "issuer", "agency", "type", "title", "subject")):
+                if any(fragment in normalized_key for fragment in DOCUMENT_PROFILE_KEY_FRAGMENTS):
                     profile[key] = value
         return profile
 

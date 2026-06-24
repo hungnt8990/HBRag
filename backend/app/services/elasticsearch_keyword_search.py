@@ -43,12 +43,14 @@ ROOT_KEYWORD_FIELDS = (
     "issuing_org",
     "issuer",
     "nguoi_ky",
+    "signer",
     "trich_yeu",
     "subject",
     "ngay_vb",
     "nam",
     "thang",
     "table_name",
+    "column_name",
     "section_id",
     "parent_section_id",
     "article_number",
@@ -58,6 +60,7 @@ ROOT_KEYWORD_FIELDS = (
     "unit",
     "platform",
     "feature_name",
+    "column_context_headers",
     "screen_name",
     "phase",
     "change_type",
@@ -96,6 +99,7 @@ TEXT_SEARCH_FIELDS = (
     "table_name^2",
     "section_path^2",
     "feature_name^2",
+    "column_name^3",
     "screen_name^2",
 )
 
@@ -126,7 +130,7 @@ class ElasticsearchKeywordStore:
         timeout_seconds: int | float | None = None,
         batch_size: int | None = None,
     ) -> None:
-        self.url = (url or settings.elasticsearch_url).rstrip("/")
+        self.url = (url or settings.resolved_elasticsearch_url).rstrip("/")
         self.index_name = (index_name or settings.elasticsearch_index_name).strip()
         self.timeout_seconds = float(
             timeout_seconds
@@ -134,6 +138,7 @@ class ElasticsearchKeywordStore:
             else settings.elasticsearch_timeout_seconds
         )
         self.batch_size = int(batch_size or settings.elasticsearch_index_batch_size)
+        self.headers = _auth_headers()
         self._index_ready = False
 
     async def ensure_index(self) -> None:
@@ -144,7 +149,7 @@ class ElasticsearchKeywordStore:
         if not self.url or not self.index_name:
             raise ElasticsearchKeywordError("Elasticsearch URL/index is not configured.")
 
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(timeout=self.timeout_seconds, verify=settings.elasticsearch_verify_ssl, headers=self.headers) as client:
             response = await client.head(f"{self.url}/{self.index_name}")
             if response.status_code == 404:
                 create_response = await client.put(
@@ -175,7 +180,7 @@ class ElasticsearchKeywordStore:
         await self.ensure_index()
         texts = embedding_texts or [None] * len(chunks)
         indexed = 0
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(timeout=self.timeout_seconds, verify=settings.elasticsearch_verify_ssl, headers=self.headers) as client:
             for batch_start in range(0, len(chunks), max(1, self.batch_size)):
                 batch_chunks = chunks[batch_start : batch_start + self.batch_size]
                 batch_texts = texts[batch_start : batch_start + self.batch_size]
@@ -197,7 +202,7 @@ class ElasticsearchKeywordStore:
                 response = await client.post(
                     f"{self.url}/_bulk",
                     content="\n".join(body_lines) + "\n",
-                    headers={"Content-Type": "application/x-ndjson"},
+                    headers={**self.headers, "Content-Type": "application/x-ndjson"},
                 )
                 if response.status_code >= 400:
                     raise ElasticsearchKeywordError(
@@ -231,7 +236,7 @@ class ElasticsearchKeywordStore:
         if tenant_id is not None:
             filters.append({"term": {"tenant_id": str(tenant_id)}})
         query = {"query": {"bool": {"filter": filters}}}
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(timeout=self.timeout_seconds, verify=settings.elasticsearch_verify_ssl, headers=self.headers) as client:
             response = await client.post(
                 f"{self.url}/{self.index_name}/_delete_by_query",
                 json=query,
@@ -366,7 +371,7 @@ class ElasticsearchKeywordSearchService:
         try:
             await self._store.ensure_index()
             payload = self._build_query(query=query, top_k=top_k, document_ids=document_ids)
-            async with httpx.AsyncClient(timeout=self._store.timeout_seconds) as client:
+            async with httpx.AsyncClient(timeout=self._store.timeout_seconds, verify=settings.elasticsearch_verify_ssl, headers=self._store.headers) as client:
                 response = await client.post(
                     f"{self._store.url}/{self._store.index_name}/_search",
                     json=payload,
@@ -504,7 +509,7 @@ def _normalize_for_exact(value: Any) -> str | list[str]:
 def _normalize_text(value: Any) -> str:
     normalized = unicodedata.normalize("NFD", str(value or ""))
     normalized = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
-    normalized = normalized.replace("Đ", "D").replace("đ", "d")
+    normalized = normalized.replace("\u0110", "D").replace("\u0111", "d")
     normalized = re.sub(r"\s+", " ", normalized.casefold()).strip()
     return normalized
 
@@ -539,6 +544,14 @@ def _matched_terms(terms: list[str], searchable_text: str) -> list[str]:
     return matched
 
 
+def _auth_headers() -> dict[str, str]:
+    if settings.elasticsearch_api_key:
+        return {"Authorization": f"ApiKey {settings.elasticsearch_api_key}"}
+    return {}
+
+
 @lru_cache
 def get_elasticsearch_keyword_store() -> ElasticsearchKeywordStore:
     return ElasticsearchKeywordStore()
+
+

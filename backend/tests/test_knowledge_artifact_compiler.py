@@ -76,6 +76,46 @@ def test_compiler_creates_policy_rule_from_structured_row_without_neighbor_bleed
     assert policy_artifacts[0].source_chunk_ids == [str(chunk.id)]
 
 
+def test_document_profile_artifact_keeps_doffice_admin_metadata() -> None:
+    document = Document(
+        id=DOCUMENT_ID,
+        title="6515/EVNCPC-VTCNTT+KD+KT - Ke hoach GIS",
+        source_type="doffice_elasticsearch",
+        status="chunked",
+        document_profile="doffice_admin",
+        document_metadata={
+            "id_vb": "6515",
+            "ky_hieu": "6515/EVNCPC-VTCNTT+KD+KT",
+            "trich_yeu": "Ke hoach xay dung he thong GIS",
+            "noi_ban_hanh": "EVNCPC",
+            "nguoi_ky": "Nguyen Van A",
+            "signer": "Nguyen Van A",
+            "ngay_vb": "2026-06-01",
+        },
+    )
+    chunk = Chunk(
+        id=uuid4(),
+        document_id=DOCUMENT_ID,
+        chunk_index=1,
+        content="Nguoi ky: Nguyen Van A",
+        chunk_metadata={"chunk_type": "document_header"},
+    )
+
+    artifacts = KnowledgeArtifactCompiler().compile_document(
+        document=document,
+        chunks=[chunk],
+        docling_metadata={},
+    )
+
+    profile_artifact = next(
+        artifact for artifact in artifacts if artifact.artifact_type == "document_profile"
+    )
+    assert profile_artifact.structured_data["nguoi_ky"] == "Nguyen Van A"
+    assert profile_artifact.structured_data["signer"] == "Nguyen Van A"
+    assert profile_artifact.structured_data["ky_hieu"] == "6515/EVNCPC-VTCNTT+KD+KT"
+    assert "Nguyen Van A" in profile_artifact.canonical_text
+
+
 def test_compiler_source_does_not_hardcode_sample_entities() -> None:
     source = inspect.getsource(KnowledgeArtifactCompiler)
     assert "Nguyen Quang Lam" not in source
@@ -108,4 +148,3 @@ def _assignment_chunks() -> list[Chunk]:
         )
         for index, (stt, task_area, department) in enumerate(rows, start=1)
     ]
-

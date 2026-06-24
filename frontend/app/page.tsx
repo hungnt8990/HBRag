@@ -2023,7 +2023,7 @@ function DocumentDetailModal({
                         </span>
                       </div>
                       <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                        {chunk.content}
+                        {formatChunkContentForDisplay(document, chunk)}
                       </p>
                       {Object.keys(chunk.metadata).length > 0 ? (
                         <pre className="mt-3 overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
@@ -3911,6 +3911,23 @@ function formatDocumentSource(document: DocumentListItem): string {
     return "AI DO";
   }
   return document.source_type ? document.source_type.toUpperCase() : "Upload";
+}
+
+function formatChunkContentForDisplay(
+  document: DocumentDetailResponse,
+  chunk: DocumentDetailResponse["chunks"][number],
+): string {
+  if (!isDofficeSource(document)) {
+    return chunk.content;
+  }
+  const chunkType = String(chunk.metadata?.chunk_type ?? "");
+  if (!chunkType.startsWith("table_")) {
+    return chunk.content;
+  }
+  return chunk.content.replace(
+    /^(Phụ lục\/Bảng|Bảng):\s+Bảng\s+(\d+)\s*$/gm,
+    "$1: Bảng DOffice $2",
+  );
 }
 
 function formatDocumentSecondaryLabel(document: DocumentListItem): string {

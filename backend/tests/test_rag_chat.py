@@ -1604,6 +1604,55 @@ def test_count_prompt_separates_evidence_categories_without_domain_template() ->
     assert "GIS/spatial" not in prompt
 
 
+def test_table_count_prompt_distinguishes_business_tables_from_layout_tables() -> None:
+    from uuid import uuid4
+
+    from app.services.rag_answer_service import ContextChunk, RagAnswerService
+
+    document_id = uuid4()
+    narrative_chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=3,
+        content=(
+            "Từ tháng 06/2025, toàn bộ dữ liệu DMS đã được cập nhật và gửi thường xuyên "
+            "qua ứng dụng SYNSQL OT cho Tổng Công ty bao gồm 07 table trong đó có 04 "
+            "table dữ liệu, cụ thể:\n"
+            "1. Table MV_FUSE: 13.298 rows các thiết bị đóng cắt là cầu chì trạm và phân đoạn.\n"
+            "2. Table CIRCUIT_BREAKER: 699 rows bao gồm toàn bộ các thiết bị là máy cắt đầu nguồn.\n"
+            "3. Table DISCONNECTOR: 1.381 rows là các thiết bị DCL và LBS trên lưới.\n"
+            "4. Table SwitchingComponent: 11.118 rows là số liệu tổng hợp."
+        ),
+        chunk_metadata={"chunk_type": "document_body"},
+    )
+    layout_table_chunk = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        chunk_index=4,
+        content=(
+            "Văn bản: 6515/EVNCPC-VTCNTT+KD+KT - Kế hoạch GIS\n"
+            "Phụ lục/Bảng: Bảng 1\n"
+            "Bảng: Bảng 1\n"
+            "| Cột | Nội dung |\n| --- | --- |\n| TT | 1 |"
+        ),
+        chunk_metadata={"chunk_type": "table_parent", "table_name": "Bảng 1"},
+    )
+
+    prompt = RagAnswerService._build_user_prompt(
+        query="Có bao nhiêu table dữ liệu?",
+        context_chunks=[
+            ContextChunk(citation_index=1, chunk=narrative_chunk),
+            ContextChunk(citation_index=2, chunk=layout_table_chunk),
+        ],
+    )
+
+    assert "bao gồm 07 table trong đó có 04 table dữ liệu" in prompt
+    assert "count=04" in prompt
+    assert prompt.index("count=04") < prompt.index("count=07")
+    assert "Do not count the retrieved Markdown tables" in prompt
+    assert "layout labels like `Bảng 1`" in prompt
+
+
 def test_overview_prompt_omits_field_level_schema_when_structural_context_exists() -> None:
     from uuid import uuid4
 

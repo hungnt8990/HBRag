@@ -13,11 +13,13 @@ class OpenAICompatibleEmbeddingProvider:
         api_key: str | None,
         model: str,
         dimension: int,
+        endpoint_path: str = "/embeddings",
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
         self.dimension = dimension
+        self.endpoint_path = endpoint_path if endpoint_path.startswith("/") else f"/{endpoint_path}"
 
     async def embed_texts(self, texts: list[str]) -> list[list[float]]:
         if not texts:
@@ -41,7 +43,7 @@ class OpenAICompatibleEmbeddingProvider:
     async def _post_embeddings(self, payload: dict[str, Any]) -> dict[str, Any]:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                f"{self.base_url}/embeddings",
+                f"{self.base_url}{self.endpoint_path}",
                 headers=self._headers(),
                 json=payload,
             )
