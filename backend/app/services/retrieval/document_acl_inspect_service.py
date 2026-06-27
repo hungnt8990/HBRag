@@ -118,7 +118,8 @@ async def _from_es(id_vb: str) -> dict[str, Any] | None:
         "acl_subjects": list(src.get("acl_subjects") or []),
         "acl_deny_pb": list(src.get("acl_deny_pb") or []),
         "acl_deny_nv": list(src.get("acl_deny_nv") or []),
-        "raw": {k: src.get(k) for k in ("acl_subjects", "acl_deny_pb", "acl_deny_nv")},
+        # ES: KHÔNG echo lại 3 field ACL vào raw (top-level đã đủ) -> gọn response.
+        "raw": None,
     }
 
 
