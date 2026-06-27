@@ -453,6 +453,7 @@ class HybridSearchService:
         save_log: bool = True,
         document_ids: set[UUID] | None = None,
         access_filter: AccessFilter | None = None,
+        acl_subject: "AclSubject | None" = None,
         retrieval_enrichment_enabled: bool = False,
         query_intent_rules: dict[str, Any] | None = None,
     ) -> HybridSearchResponse:
@@ -464,6 +465,7 @@ class HybridSearchService:
             save_log=save_log,
             document_ids=document_ids,
             access_filter=access_filter,
+            acl_subject=acl_subject,
             retrieval_enrichment_enabled=retrieval_enrichment_enabled,
             query_intent_rules=query_intent_rules,
         )
@@ -479,6 +481,7 @@ class HybridSearchService:
         save_log: bool = True,
         document_ids: set[UUID] | None = None,
         access_filter: AccessFilter | None = None,
+        acl_subject: "AclSubject | None" = None,
         retrieval_enrichment_enabled: bool = False,
         query_intent_rules: dict[str, Any] | None = None,
     ) -> HybridSearchRun:
@@ -492,6 +495,7 @@ class HybridSearchService:
                         query=query,
                         top_k=depth,
                         access_filter=access_filter,
+                        acl_subject=acl_subject,
                     )
                 else:
                     vector_response = await self._call_search_service(
@@ -500,6 +504,7 @@ class HybridSearchService:
                         top_k=depth,
                         document_ids={str(document_id) for document_id in document_ids},
                         access_filter=access_filter,
+                        acl_subject=acl_subject,
                     )
             except Exception:
                 logger.exception(
@@ -517,6 +522,7 @@ class HybridSearchService:
                     query=query,
                     top_k=depth,
                     access_filter=access_filter,
+                    acl_subject=acl_subject,
                     retrieval_enrichment_enabled=retrieval_enrichment_enabled,
                 )
             else:
@@ -526,6 +532,7 @@ class HybridSearchService:
                     top_k=depth,
                     document_ids=document_ids,
                     access_filter=access_filter,
+                    acl_subject=acl_subject,
                     retrieval_enrichment_enabled=retrieval_enrichment_enabled,
                 )
             hybrid_results = self.fuse_results(

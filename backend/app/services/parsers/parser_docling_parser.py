@@ -145,7 +145,7 @@ class DoclingParser(DocumentParser):
             if not tokens:
                 return -100.0
             single = sum(1 for token in tokens if len(token) == 1 and token.isalpha())
-            broken = len(re.findall(r"\b[A-Za-zÃ€-á»¹]{1,3}\s+[Ã€-á»¹]\b", value))
+            broken = len(re.findall(r"\b[A-Za-z\u00C0-\u1EF9]{1,3}\s+[\u00C0-\u1EF9]\b", value))
             return float(len(tokens)) - single * 3.0 - broken * 2.5
 
         count = max(len(pdfplumber_pages), len(pypdf_pages))

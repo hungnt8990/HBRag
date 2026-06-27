@@ -22,7 +22,8 @@ from app.services.security.security_access_control import (
 from app.services.graph.graph_retrieval_service import GraphRetrievalService
 from app.services.graph.graph_models import GraphChunkCandidate
 from app.services.retrieval.retrieval_hybrid_search import HybridSearchService, is_identifier_lookup_query
-from app.services.rerankers.reranker_base import RerankCandidate, Reranker
+from app.services.rerankers.reranker_base import RerankCandidate
+from app.services.llm_gateway import LLMGateway
 
 DEFAULT_VECTOR_WEIGHT = 1.0
 DEFAULT_KEYWORD_WEIGHT = 1.0
@@ -39,13 +40,13 @@ class RerankingService:
         self,
         *,
         hybrid_search_service: HybridSearchService,
-        reranker: Reranker,
+        llm_gateway: LLMGateway,
         retrieval_log_repository: RetrievalLogRepository,
         chunk_repository: DocumentRepository,
         graph_retrieval_service: GraphRetrievalService | None = None,
     ) -> None:
         self._hybrid_search_service = hybrid_search_service
-        self._reranker = reranker
+        self._llm_gateway = llm_gateway
         self._retrieval_log_repository = retrieval_log_repository
         self._chunk_repository = chunk_repository
         self._graph_retrieval_service = graph_retrieval_service
@@ -135,7 +136,7 @@ class RerankingService:
                 for result in hybrid_results
             ]
             try:
-                scores = await self._reranker.rerank(query=query, candidates=candidates)
+                scores = await self._llm_gateway.rerank(query=query, candidates=candidates)
                 score_by_chunk_id = {score.chunk_id: score.score for score in scores}
             except Exception:
                 logger.exception(

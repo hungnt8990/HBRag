@@ -9,9 +9,20 @@ from fastapi.testclient import TestClient
 from app.api.routes.documents import get_document_log_repository, get_doffice_ingestion_service
 from app.main import app
 from app.schemas.documents import ChunkPreview, DocumentChunkResponse, DocumentVectorIndexResponse, DofficeIngestResponse
+from app.services.chunkers.chunker_doffice_chunking import (
+    TABLE_CHUNK_MAX_CHARS,
+    _is_section_title_only_chunk,
+    _merge_tiny_last_table_piece,
+    _table_chunks,
+    build_doffice_chunks,
+)
 from app.services.document_sources import DOFFICE_SOURCE_TYPE, DofficeDocument, DofficeElasticsearchSource
-from app.services.chunkers.chunker_doffice_chunking import build_doffice_chunks
-from app.services.ingestion.ingestion_doffice_content_normalizer import apply_spacing_fixes, normalize_doffice_source
+from app.services.ingestion.ingestion_doffice_content_normalizer import (
+    NormalizedDofficeDocument,
+    NormalizedTable,
+    apply_spacing_fixes,
+    normalize_doffice_source,
+)
 from app.services.ingestion.ingestion_doffice_ingestion_service import DofficeIngestionService, DofficeIngestOptions
 from app.services.retrieval.retrieval_hybrid_search import IDENTIFIER_EXACT_BOOST, identifier_exact_match_boost
 from app.services.retrieval.retrieval_keyword_search import KeywordSearchService
@@ -30,11 +41,11 @@ def test_clean_doffice_markdown_to_text_preserves_table_content() -> None:
 ## 1. CPCIT:
 [Image]
 <table>
-  <tr><th>TT</th><th>TrÆ°á»ng dá»¯ liá»‡u</th><th>Nguá»“n dá»¯ liá»‡u</th><th>Chuyá»ƒn Ä‘á»•i sang GIS</th></tr>
+  <tr><th>TT</th><th>Trường dữ liệu</th><th>Nguồn dữ liệu</th><th>Chuyển đổi sang GIS</th></tr>
   <tr><td>1</td><td><strong>MaTramBienAp</strong></td><td>CPCIT</td><td>GIS 110kV</td></tr>
 </table>
 <br>
-- - NhÆ° trÃªn;
+- - Như trên;
 """
 
     cleaned = clean_doffice_markdown_to_text(raw)
@@ -47,22 +58,22 @@ def test_clean_doffice_markdown_to_text_preserves_table_content() -> None:
     assert "--- Page" not in cleaned
     assert "1. CPCIT:" in cleaned
     assert "MaTramBienAp" in cleaned
-    assert "Chuyá»ƒn Ä‘á»•i sang GIS" in cleaned
+    assert "Chuyển đổi sang GIS" in cleaned
     assert "CPCIT" in cleaned
     assert "GIS 110kV" in cleaned
-    assert "- NhÆ° trÃªn;" in cleaned
+    assert "- Như trên;" in cleaned
 
 
 def test_vietnamese_ocr_spacing_cleaner_repairs_common_splits() -> None:
     cases = {
-        "Li ÃƒÂªn kÃ¡ÂºÂ¿t khÃƒÂ¡ch hÃƒÂ ng": "LiÃƒÂªn kÃ¡ÂºÂ¿t khÃƒÂ¡ch hÃƒÂ ng",
-        "TÃƒÂ  i khoÃ¡ÂºÂ£n": "TÃƒÂ i khoÃ¡ÂºÂ£n",
-        "Th anh toÃƒÂ¡n": "Thanh toÃƒÂ¡n",
-        "H ÃƒÂ³a Ã„â€˜Ã†Â¡n": "HÃƒÂ³a Ã„â€˜Ã†Â¡n",
-        "D anh mÃ¡Â»Â¥c Ã„â€˜iÃ¡Â»Æ’m thu": "Danh mÃ¡Â»Â¥c Ã„â€˜iÃ¡Â»Æ’m thu",
-        "Q uÃ¡ÂºÂ£n lÃƒÂ½ ngÃ†Â°Ã¡Â»Âi dÃƒÂ¹ng": "QuÃ¡ÂºÂ£n lÃƒÂ½ ngÃ†Â°Ã¡Â»Âi dÃƒÂ¹ng",
+        "Li ên kết khách hàng": "Liên kết khách hàng",
+        "Tà i khoản": "Tài khoản",
+        "Th anh toán": "Thanh toán",
+        "H óa đơn": "Hóa đơn",
+        "D anh mục Ä‘iểm thu": "Danh mục Ä‘iểm thu",
+        "Q uản lý người dùng": "Quản lý người dùng",
         "D ashboard": "Dashboard",
-        "bÃƒÂ¡oc ÃƒÂ¡o": "bÃƒÂ¡o cÃƒÂ¡o",
+        "báoc áo": "báo cáo",
     }
 
     for broken, fixed in cases.items():
@@ -85,12 +96,12 @@ def test_fetch_document_by_id_vb_parses_elasticsearch_response(monkeypatch) -> N
                             "_source": {
                                 "id_vb": 1068586,
                                 "ky_hieu": "6515/EVNCPC-VTCNTT+KD+KT",
-                                "trich_yeu": "Triá»ƒn khai GIS",
+                                "trich_yeu": "Triển khai GIS",
                                 "noi_ban_hanh": "EVNCPC",
                                 "nguoi_ky": "Nguyen Van A",
                                 "ten_file": "6515.pdf",
                                 "duong_dan": "/doffice/6515.pdf",
-                                "noi_dung": "--- Page 1 ---\n## CPCIT\nNá»™i dung vÄƒn báº£n",
+                                "noi_dung": "--- Page 1 ---\n## CPCIT\nNội dung văn bản",
                             }
                         },
                     ]
@@ -98,8 +109,10 @@ def test_fetch_document_by_id_vb_parses_elasticsearch_response(monkeypatch) -> N
             }
 
     class FakeAsyncClient:
-        def __init__(self, *, timeout: float) -> None:
+        def __init__(self, *, timeout: float, auth=None, verify=True) -> None:
             self.timeout = timeout
+            self.auth = auth
+            self.verify = verify
 
         async def __aenter__(self):
             return self
@@ -120,7 +133,7 @@ def test_fetch_document_by_id_vb_parses_elasticsearch_response(monkeypatch) -> N
     assert requests[0]["method"] == "GET"
     assert document.id_vb == "1068586"
     assert document.ky_hieu == "6515/EVNCPC-VTCNTT+KD+KT"
-    assert document.trich_yeu == "Triá»ƒn khai GIS"
+    assert document.trich_yeu == "Triển khai GIS"
     assert "--- Page" not in document.clean_text
     assert "CPCIT" in document.clean_text
 
@@ -211,7 +224,7 @@ class FakeSource:
         return DofficeDocument(
             id_vb="1068586",
             ky_hieu="6515/EVNCPC-VTCNTT+KD+KT",
-            trich_yeu="Giao nhiá»‡m vá»¥ GIS cho CPCIT",
+            trich_yeu="Giao nhiệm vụ GIS cho CPCIT",
             id_dv_ban_hanh=1,
             noi_ban_hanh="EVNCPC",
             nguoi_ky="Nguyen Van A",
@@ -240,8 +253,8 @@ class FakeSource:
                 "tom_tat": "Tom tat van ban GIS.",
                 "noi_dung": "--- Page 1 ---\n## CPCIT\nCPCIT thuc hien GIS 110kV.",
             },
-            raw_noi_dung="--- Page 1 ---\n## CPCIT\nCPCIT thá»±c hiá»‡n GIS 110kV.",
-            clean_text="CPCIT\nCPCIT thá»±c hiá»‡n GIS 110kV.",
+            raw_noi_dung="--- Page 1 ---\n## CPCIT\nCPCIT thực hiện GIS 110kV.",
+            clean_text="CPCIT\nCPCIT thực hiện GIS 110kV.",
         )
 
 
@@ -328,7 +341,7 @@ Phu luc danh sach chi tiet chuc nang hieu chinh &nbsp;
   <tbody>
     <tr>
       <td>1</td><td rowspan="3">App cham soc khach hang</td>
-      <td>Li ÃƒÂªn ket khach hang</td><td rowspan="2">Cap nhat giao dien moi</td>
+      <td>Li ên ket khach hang</td><td rowspan="2">Cap nhat giao dien moi</td>
       <td rowspan="2">Giai doan 1</td>
     </tr>
     <tr><td>2</td><td>Th anh toan</td></tr>
@@ -351,7 +364,7 @@ PHO GIAM DOC
 def _sample_doffice_source_with_realistic_tables() -> dict[str, object]:
     phase1 = [
         "Man hinh trang chu ung dung",
-        "Li ÃƒÂªn ket khach hang",
+        "Li ên ket khach hang",
         "Tai khoan",
         "Thanh toan",
         "Hoa don",
@@ -389,7 +402,7 @@ def _sample_doffice_source_with_realistic_tables() -> dict[str, object]:
         (29, "Quan ly nguoi dung", "Hieu chinh phan quyen"),
         (30, "D ashboard", "Y 1<br>Y 2<br>Y 3<br>Y 4"),
         (31, "Q uan ly nhom quyen", "p<br>Bo sung tao nhom quyen theo phan cap"),
-        (32, "Bao cao", "Hieu chinh bÃƒÂ¡oc ÃƒÂ¡o"),
+        (32, "Bao cao", "Hieu chinh báoc áo"),
         (33, "Danh muc cau hoi", "Cap nhat noi dung"),
         (34, "Quan ly log", "Bo sung tra cuu"),
     ]:
@@ -446,7 +459,7 @@ def test_doffice_normalizer_parses_tables_metadata_and_footer() -> None:
     assert normalized.tables
 
     rows = {row.metadata.get("feature_name"): row for row in normalized.tables[0].rows}
-    lien_ket = rows["LiÃƒÂªn ket khach hang"]
+    lien_ket = rows["Liên ket khach hang"]
     assert lien_ket.metadata["platform"] == "App cham soc khach hang"
     assert lien_ket.metadata["change_content"] == "Cap nhat giao dien moi"
     assert lien_ket.metadata["phase"] == "Giai doan 1"
@@ -480,8 +493,11 @@ def test_doffice_chunk_builder_keeps_table_rows_structured() -> None:
     assert "document_summary" in chunk_types
     assert "document_header" in chunk_types
     assert "document_body" in chunk_types
-    assert "table_parent" in chunk_types
-    assert chunk_types.count("table_row") == 4
+    # Builder v2: mỗi bảng chỉ còn 1 chunk_type="table" (không nổ table_parent/table_row).
+    assert "table" in chunk_types
+    assert chunk_types.count("table") == 1
+    assert "table_parent" not in chunk_types
+    assert "table_row" not in chunk_types
     assert all(forbidden.isdisjoint(chunk.metadata) for chunk in chunks)
 
     summary = next(chunk for chunk in chunks if chunk.metadata["chunk_type"] == "document_summary")
@@ -489,35 +505,28 @@ def test_doffice_chunk_builder_keeps_table_rows_structured() -> None:
     assert "|" not in summary.content
 
     body = next(chunk for chunk in chunks if chunk.metadata["chunk_type"] == "document_body")
-    assert "TÃ³m táº¯t nguá»“n" not in body.content
+    assert "Tóm tắt nguồn" not in body.content
     assert "PHU LUC" not in body.content
     assert "[[TABLE_1]]" not in body.content
 
-    table_parent = next(chunk for chunk in chunks if chunk.metadata["chunk_type"] == "table_parent")
-    assert table_parent.metadata["row_count"] == 4
-    assert "Báº£ng:" in table_parent.content
-    assert "Sá»‘ dÃ²ng: 4" in table_parent.content
-    assert "CÃ¡c cá»™t chuáº©n hÃ³a:" in table_parent.content
-    assert "chá»©c nÄƒng/mÃ n hÃ¬nh" in table_parent.content
-    assert "ná»™i dung hiá»‡u chá»‰nh/bá»• sung" in table_parent.content
-    assert "NhÃ³m chÃ­nh:" in table_parent.content
-    assert not any(marker in table_parent.content for marker in ("BÃ¡Âº", "SÃ¡Â»", "CÃƒ", "NhÃƒ", "dÃƒÂ²ng", "cÃ¡Â»"))
-    assert "Cap dien moi ha ap" not in table_parent.content
-    assert table_parent.metadata["table_title"] == table_parent.metadata["table_name"]
-    assert table_parent.metadata["table_headers"]
-
-    cap_dien = next(chunk for chunk in chunks if chunk.metadata.get("feature_name") == "Cap dien moi ha ap")
-    assert cap_dien.metadata["platform"] == "App cham soc khach hang"
-    assert cap_dien.metadata["change_content"] == "Bo sung chuc nang moi"
-    assert cap_dien.metadata["phase"] == "Giai doan 2"
-    assert cap_dien.metadata["table_title"] == cap_dien.metadata["table_name"]
-    assert cap_dien.metadata["table_headers"]
-    assert cap_dien.metadata["source_type"] == DOFFICE_SOURCE_TYPE
-    assert cap_dien.metadata["id_vb"] == "1459570"
-    assert cap_dien.metadata["document_code"] == "907/EVNICT-TTPM"
-    assert cap_dien.metadata["trich_yeu"] == "Cap nhat ung dung EVN CSKH"
-    assert cap_dien.metadata["is_table_row"] is True
-    assert cap_dien.metadata["indexable"] is True
+    table = next(chunk for chunk in chunks if chunk.metadata["chunk_type"] == "table")
+    assert table.metadata["row_count"] == 4
+    # Dòng ngữ cảnh đầu chunk: tên bảng + ký hiệu văn bản.
+    assert "Bảng:" in table.content
+    assert "Văn bản: 907/EVNICT-TTPM" in table.content
+    assert "chức năng/màn hình" in table.content
+    assert "nội dung hiệu chỉnh/bổ sung" in table.content
+    assert not any(marker in table.content for marker in ("Báº", "Sá»", "CÃ", "NhÃ", "dÃ²ng", "cá»"))
+    # Bảng giờ là 1 chunk chứa ĐẦY ĐỦ dữ liệu dòng (markdown), không còn nổ table_row.
+    assert "Cap dien moi ha ap" in table.content
+    assert "Bo sung chuc nang moi" in table.content
+    assert table.metadata["table_title"] == table.metadata["table_name"]
+    assert table.metadata["table_headers"]
+    assert table.metadata["source_type"] == DOFFICE_SOURCE_TYPE
+    assert table.metadata["id_vb"] == "1459570"
+    assert table.metadata["document_code"] == "907/EVNICT-TTPM"
+    assert table.metadata["trich_yeu"] == "Cap nhat ung dung EVN CSKH"
+    assert table.metadata["indexable"] is True
 
     footer = next(chunk for chunk in chunks if chunk.metadata["chunk_type"] == "footer_signature")
     assert "PHU LUC" not in footer.content
@@ -529,45 +538,43 @@ def test_doffice_chunk_builder_keeps_table_rows_structured() -> None:
 def test_doffice_summary_filters_pii_and_table_rows_are_lookup_ready() -> None:
     source = {
         "id_vb": "608",
-        "ky_hieu": "608/QÄ-IT",
-        "trich_yeu": "Quyáº¿t Ä‘á»‹nh cá»­ cÃ¡n bá»™ tham gia khÃ³a Ä‘Ã o táº¡o á»¨ng dá»¥ng Python trÃªn ná»n táº£ng ArcGIS",
+        "ky_hieu": "608/QĐ-IT",
+        "trich_yeu": "Quyết định cử cán bộ tham gia khóa đào tạo Ứng dụng Python trên nền tảng ArcGIS",
         "noi_ban_hanh": "CPCIT",
         "ngay_vb": "2026-06-10",
-        "tom_tat": "Quyáº¿t Ä‘á»‹nh cá»­ 06 cÃ¡n bá»™ Ä‘i Ä‘Ã o táº¡o. Nguyá»…n Thanh PhÃº 0983129374 phunt3@cpc.vn; danh sÃ¡ch cÃ¡n bá»™ PM kÃ¨m theo.",
+        "tom_tat": "Quyết định cử 06 cán bộ đi đào tạo. Nguyễn Thanh Phú 0983129374 phunt3@cpc.vn; danh sách cán bộ PM kèm theo.",
         "noi_dung": """
-Äiá»u 1. Cá»­ cÃ¡n bá»™ tham gia khÃ³a Ä‘Ã o táº¡o á»¨ng dá»¥ng Python trÃªn ná»n táº£ng ArcGIS.
-Thá»i gian Ä‘Ã o táº¡o tá»« ngÃ y 17/06/2026 Ä‘áº¿n ngÃ y 19/06/2026.
-Äá»‹a Ä‘iá»ƒm Ä‘Ã o táº¡o: HÃ  Ná»™i.
-ÄÆ¡n vá»‹ Ä‘Ã o táº¡o: ESRI Viá»‡t Nam.
-Kinh phÃ­ do CPCIT chi tráº£.
-Danh sÃ¡ch cÃ¡n bá»™ tham gia
+Điều 1. Cử cán bộ tham gia khóa đào tạo Ứng dụng Python trên nền tảng ArcGIS.
+Thời gian đào tạo từ ngày 17/06/2026 đến ngày 19/06/2026.
+Địa điểm đào tạo: Hà Nội.
+Đơn vị đào tạo: ESRI Việt Nam.
+Kinh phí do CPCIT chi trả.
+Danh sách cán bộ tham gia
 <table>
-<tr><th>STT</th><th>Há» tÃªn</th><th>Chá»©c vá»¥</th><th>PhÃ²ng</th><th>Äiá»‡n thoáº¡i</th><th>Email</th></tr>
-<tr><td>1</td><td>Nguyá»…n Thanh PhÃº</td><td>ChuyÃªn viÃªn</td><td>VH</td><td>0983129374</td><td>phunt3@cpc.vn</td></tr>
-<tr><td>2</td><td>Tráº§n VÄƒn B</td><td>ChuyÃªn viÃªn</td><td>PM</td><td>0912345678</td><td>b@cpc.vn</td></tr>
+<tr><th>STT</th><th>Họ tên</th><th>Chức vụ</th><th>Phòng</th><th>Điện thoại</th><th>Email</th></tr>
+<tr><td>1</td><td>Nguyễn Thanh Phú</td><td>Chuyên viên</td><td>VH</td><td>0983129374</td><td>phunt3@cpc.vn</td></tr>
+<tr><td>2</td><td>Trần Văn B</td><td>Chuyên viên</td><td>PM</td><td>0912345678</td><td>b@cpc.vn</td></tr>
 </table>
 """,
     }
 
     chunks = build_doffice_chunks(normalize_doffice_source(source))
     summary = next(chunk for chunk in chunks if chunk.metadata["chunk_type"] == "document_summary")
-    row = next(chunk for chunk in chunks if chunk.metadata.get("person_name") == "Nguyá»…n Thanh PhÃº")
+    table = next(chunk for chunk in chunks if chunk.metadata["chunk_type"] == "table")
 
     assert "0983129374" not in summary.content
     assert "phunt3@cpc.vn" not in summary.content
-    assert "Nguyá»…n Thanh PhÃº" not in summary.content
+    assert "Nguyễn Thanh Phú" not in summary.content
     assert len(summary.content.split()) <= 200
     for chunk in chunks:
-        if chunk.metadata.get("chunk_type") in {"document_summary", "document_header", "legal_clause", "table_parent", "table_row"}:
+        if chunk.metadata.get("chunk_type") in {"document_summary", "document_header", "legal_clause", "table"}:
             assert chunk.metadata["source_span"]["start"] <= chunk.metadata["source_span"]["end"]
 
-    assert row.metadata["row_key"] == "Nguyá»…n Thanh PhÃº"
-    assert row.metadata["position"] == "ChuyÃªn viÃªn"
-    assert row.metadata["department"] == "VH"
-    assert row.metadata["phone"] == "0983129374"
-    assert row.metadata["email"] == "phunt3@cpc.vn"
-    assert "Há» tÃªn: Nguyá»…n Thanh PhÃº" in row.content
-    assert "PhÃ²ng/ÄÆ¡n vá»‹: VH" in row.content
+    # Danh sách cán bộ (kể cả PII) nằm đầy đủ trong chunk bảng để tra cứu.
+    assert "Nguyễn Thanh Phú" in table.content
+    assert "Chuyên viên" in table.content
+    assert "0983129374" in table.content
+    assert "phunt3@cpc.vn" in table.content
 def test_doffice_html_tables_keep_rowspan_context_and_chunk_rows() -> None:
     normalized = normalize_doffice_source(_sample_doffice_source_with_realistic_tables())
 
@@ -579,7 +586,7 @@ def test_doffice_html_tables_keep_rowspan_context_and_chunk_rows() -> None:
     assert len(normalized.table_rows) == 43
 
     rows = {row.metadata["row_number"]: row for row in normalized.tables[0].rows}
-    assert rows["2"].metadata["feature_name"] == "LiÃƒÂªn ket khach hang"
+    assert rows["2"].metadata["feature_name"] == "Liên ket khach hang"
     assert rows["2"].metadata["change_content"] == "Cap nhat giao dien moi"
     assert rows["2"].metadata["phase"] == "Giai doan 1"
     assert rows["17"].metadata["feature_name"] == "Cap dien moi ha ap"
@@ -600,11 +607,20 @@ def test_doffice_html_tables_keep_rowspan_context_and_chunk_rows() -> None:
     assert next(element for element in normalized.elements if element.element_type == "footer_signature").metadata["indexable"] is False
 
     chunks = build_doffice_chunks(normalized)
-    assert any(chunk.metadata.get("chunk_type") == "table_row" and chunk.metadata.get("feature_name") == "Dashboard" and chunk.content.count("- Y ") == 4 for chunk in chunks)
-    assert any(chunk.metadata.get("chunk_type") == "table_row" and chunk.metadata.get("feature_name") == "Cap dien moi ha ap" and chunk.metadata.get("phase") == "Giai doan 2" for chunk in chunks)
-    assert any(chunk.metadata.get("chunk_type") == "table_group" and chunk.metadata.get("group_name") == "App cham soc khach hang - Giai doan 1" for chunk in chunks)
-    assert any(chunk.metadata.get("chunk_type") == "table_group" and chunk.metadata.get("group_name") == "App cham soc khach hang - Giai doan 2" for chunk in chunks)
-    assert any(chunk.metadata.get("chunk_type") == "table_group" and chunk.metadata.get("platform") == "Website Quan tri noi dung (CMS)" for chunk in chunks)
+    # Builder v2: bảng -> chunk_type="table" (không còn table_row/table_group/table_column).
+    table_chunks = [chunk for chunk in chunks if chunk.metadata.get("chunk_type") == "table"]
+    assert table_chunks
+    assert not any(
+        chunk.metadata.get("chunk_type") in {"table_row", "table_group", "table_column", "table_parent"}
+        for chunk in chunks
+    )
+    combined = "\n".join(chunk.content for chunk in table_chunks)
+    # Dữ liệu các dòng/nhóm vẫn nằm đầy đủ trong nội dung markdown của chunk bảng.
+    assert "Dashboard" in combined
+    assert "Cap dien moi ha ap" in combined
+    assert "Tra cuu dien nang, chi so" in combined
+    assert all(chunk.metadata.get("table_name") for chunk in table_chunks)
+    assert all(chunk.metadata.get("source_span") for chunk in table_chunks)
 
 
 def test_ingest_doffice_document_creates_document_metadata() -> None:
@@ -625,7 +641,7 @@ def test_ingest_doffice_document_creates_document_metadata() -> None:
     assert response.status == "success"
     assert response.chunks_created == 2
     assert repository.document is not None
-    assert not repository.document.parsed_text.startswith("TÃ³m táº¯t nguá»“n:")
+    assert not repository.document.parsed_text.startswith("Tóm tắt nguồn:")
     assert "CPCIT" in repository.document.parsed_text
     metadata = repository.document.document_metadata
     assert metadata["source_type"] == DOFFICE_SOURCE_TYPE
@@ -739,7 +755,7 @@ def test_doffice_ingest_endpoint_uses_service_override() -> None:
                 status="success",
                 id_vb="1068586",
                 ky_hieu="6515/EVNCPC-VTCNTT+KD+KT",
-                trich_yeu="Giao nhiá»‡m vá»¥ GIS",
+                trich_yeu="Giao nhiệm vụ GIS",
                 noi_ban_hanh="EVNCPC",
                 chunks_created=2,
                 document_id=DOCUMENT_ID,
@@ -766,3 +782,152 @@ def test_doffice_ingest_endpoint_uses_service_override() -> None:
     assert log_repository.pipeline_logs[0]["action"] == "parse"
     assert log_repository.pipeline_logs[0]["status"] == "success"
     assert log_repository.pipeline_logs[0]["metadata"]["pipeline_action"] == "doffice_ingest"
+
+
+# ===========================================================================
+# Chunking fixes — DOffice pipeline (Fix 1/2/3)
+# ===========================================================================
+
+def _minimal_normalized_doc(tables: list[NormalizedTable]) -> NormalizedDofficeDocument:
+    return NormalizedDofficeDocument(
+        id_vb="1068586",
+        document_code="6515/EVNCPC",
+        title="Kế hoạch GIS",
+        issued_date="11/08/2025",
+        issuer="Tổng công ty Điện lực miền Trung",
+        signer=None,
+        raw_text="",
+        clean_text="",
+        markdown_text="",
+        plain_text="",
+        summary_text=None,
+        elements=[],
+        tables=tables,
+        metadata={"document_code": "6515/EVNCPC", "ky_hieu": "6515/EVNCPC", "id_vb": "1068586"},
+        content_hash="hash",
+        metadata_hash="mhash",
+    )
+
+
+def _big_table_markdown(rows: int) -> str:
+    header = "| TT | Tên trường | Mô tả | Kiểu dữ liệu | Nguồn |\n| --- | --- | --- | --- | --- |"
+    body = "\n".join(
+        f"| {i} | Truong_{i} | Mo ta chi tiet cua truong du lieu so {i} | Text | Bien tap |"
+        for i in range(1, rows + 1)
+    )
+    return f"{header}\n{body}"
+
+
+# --- FIX 1: bỏ chunk chỉ là tiêu đề mục rỗng -------------------------------
+
+def test_is_section_title_only_chunk_detects_empty_heading() -> None:
+    content = (
+        "Văn bản: 6515/EVNCPC - Kế hoạch GIS\n"
+        "Ngày ban hành: 11/08/2025\n"
+        "Cơ quan ban hành: Tổng công ty Điện lực miền Trung\n"
+        "Mục: 1. CPCIT:\n"
+        "1. CPCIT:"
+    )
+    metadata = {"chunk_type": "document_section", "section_title": "1. CPCIT:"}
+    assert _is_section_title_only_chunk(content, metadata) is True
+
+
+def test_is_section_title_only_chunk_keeps_section_with_body() -> None:
+    content = (
+        "Văn bản: 6515/EVNCPC - Kế hoạch GIS\n"
+        "Mục: 1.1. GIS 110kV:\n"
+        "1.1. GIS 110kV:\n"
+        "- Hiệu chỉnh phần mềm PMISToGIS hoàn thành trong tháng 10/2025.\n"
+        "- Tổ chức hướng dẫn sử dụng công cụ cho các đơn vị liên quan."
+    )
+    metadata = {"chunk_type": "document_section", "section_title": "1.1. GIS 110kV:"}
+    assert _is_section_title_only_chunk(content, metadata) is False
+
+
+def test_is_section_title_only_chunk_ignores_other_chunk_types() -> None:
+    content = "Số/ký hiệu: 6515/EVNCPC\nTrích yếu: Kế hoạch GIS"
+    metadata = {"chunk_type": "document_header"}
+    assert _is_section_title_only_chunk(content, metadata) is False
+
+
+# --- FIX 2: bảng lớn — continuation context + gộp mảnh cuối quá ngắn --------
+
+def test_table_chunks_add_part_suffix_when_split() -> None:
+    markdown = _big_table_markdown(80)
+    assert len(markdown) > TABLE_CHUNK_MAX_CHARS
+    table = NormalizedTable(
+        table_index=0,
+        headers=["TT", "Tên trường", "Mô tả", "Kiểu dữ liệu", "Nguồn"],
+        rows=[],
+        markdown=markdown,
+        text="",
+        metadata={"table_name": "Bảng 1", "table_index": 0},
+    )
+    results = _table_chunks(_minimal_normalized_doc([table]), table)
+    assert len(results) > 1
+    assert "(phần 1/" in results[0][0]
+    assert "(phần 2/" in results[1][0]
+    assert results[1][1]["subchunk_index"] == 1
+    assert results[1][1]["chunk_strategy"] == "table_chunker_split"
+
+
+def test_table_chunks_single_when_small() -> None:
+    table = NormalizedTable(
+        table_index=0,
+        headers=["TT", "Tên trường", "Mô tả", "Kiểu dữ liệu", "Nguồn"],
+        rows=[],
+        markdown=_big_table_markdown(3),
+        text="",
+        metadata={"table_name": "Bảng 1"},
+    )
+    results = _table_chunks(_minimal_normalized_doc([table]), table)
+    assert len(results) == 1
+    assert "(phần" not in results[0][0]
+    assert results[0][1]["chunk_strategy"] == "table_single"
+
+
+def test_merge_tiny_last_table_piece_merges_single_row_tail() -> None:
+    header = "| TT | Tên |\n| --- | --- |"
+    p1 = f"{header}\n| 1 | A |\n| 2 | B |\n| 3 | C |"
+    p2 = f"{header}\n| 4 | D |"
+    merged = _merge_tiny_last_table_piece([p1, p2])
+    assert len(merged) == 1
+    assert "| 4 | D |" in merged[0]
+    assert merged[0].count("| --- |") == 1
+
+
+def test_merge_tiny_last_table_piece_keeps_large_tail() -> None:
+    header = "| TT | Tên |\n| --- | --- |"
+    p1 = f"{header}\n| 1 | A |\n| 2 | B |"
+    p2 = f"{header}\n| 3 | C |\n| 4 | D |\n| 5 | E |"
+    merged = _merge_tiny_last_table_piece([p1, p2])
+    assert len(merged) == 2
+
+
+# --- FIX 3: issued_date dạng số có tiền tố "ngày" --------------------------
+
+def test_normalizer_extracts_numeric_issued_date() -> None:
+    source = {
+        "id_vb": "1068586",
+        "ky_hieu": "6515/EVNCPC-VTCNTT",
+        "trich_yeu": "Kế hoạch xây dựng hệ thống GIS",
+        "noi_ban_hanh": "Tổng công ty Điện lực miền Trung",
+        "ngay_vb": None,
+        "noi_dung": "<p>Ngày 11/8/2025, HĐTV EVNCPC đã ban hành Nghị quyết số 720/NQ-HĐTV.</p>",
+    }
+    normalized = normalize_doffice_source(source)
+    assert normalized.issued_date == "11/08/2025"
+
+
+def test_normalizer_issued_date_propagates_to_chunks() -> None:
+    source = {
+        "id_vb": "1068586",
+        "ky_hieu": "6515/EVNCPC-VTCNTT",
+        "trich_yeu": "Kế hoạch xây dựng hệ thống GIS",
+        "noi_ban_hanh": "Tổng công ty Điện lực miền Trung",
+        "ngay_vb": None,
+        "noi_dung": "<p>Ngày 11/8/2025, HĐTV EVNCPC đã ban hành Nghị quyết số 720.</p>",
+    }
+    chunks = build_doffice_chunks(normalize_doffice_source(source))
+    assert chunks
+    assert any(c.metadata.get("issued_date") == "11/08/2025" for c in chunks)

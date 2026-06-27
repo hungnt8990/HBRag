@@ -4,7 +4,7 @@ from app.services.parsers.parser_base import DocumentParser, ParsedDocument, Par
 
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.+)$")
 TEXT_HEADING_RE = re.compile(
-    r"^(CHÆ¯Æ NG\s+\S+|Äiá»u\s+\d+\b|[IVXLCDM]+\.|[A-Z0-9][A-Z0-9\s\-/]{3,80})"
+    r"^(CHƯƠNG\s+\S+|Điều\s+\d+\b|[IVXLCDM]+\.|[A-Z0-9][A-Z0-9\s\-/]{3,80})"
 )
 
 

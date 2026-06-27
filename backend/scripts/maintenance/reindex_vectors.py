@@ -20,8 +20,8 @@ from sqlalchemy import select
 from app.db.session import AsyncSessionLocal
 from app.models.document import Document
 from app.repositories.documents import DocumentRepository
-from app.services.embeddings.embedding_factory import get_embedding_provider
 from app.services.embeddings.embedding_sparse_factory import get_sparse_embedding_provider
+from app.services.llm_gateway import get_llm_gateway
 from app.services.vector.vector_indexing_service import VectorIndexingService
 from app.services.vector.vector_store import get_vector_store
 
@@ -48,7 +48,7 @@ async def _reindex_one(document_id: UUID) -> None:
         repository = DocumentRepository(session)
         service = VectorIndexingService(
             repository=repository,
-            embedding_provider=get_embedding_provider(),
+            llm_gateway=get_llm_gateway(),
             vector_store=get_vector_store(),
             sparse_embedding_provider=get_sparse_embedding_provider(),
         )

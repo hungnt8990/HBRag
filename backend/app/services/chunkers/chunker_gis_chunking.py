@@ -7,7 +7,7 @@ from app.services.parsers import ParsedElement
 from app.services.chunkers.chunker_table_relationships import normalize_metadata_value
 
 GIS_OBJECT_RE = re.compile(
-    r"^\s*\((?P<order>\d+)\)\s+(?P<object_code>F\d+_[A-Za-z0-9_]+)\s*[â€“-]\s*(?P<object_name>.+?)\s*[.;]?\s*$"
+    r"^\s*\((?P<order>\d+)\)\s+(?P<object_code>F\d+_[A-Za-z0-9_]+)\s*[–-]\s*(?P<object_name>.+?)\s*[.;]?\s*$"
 )
 OBJECT_CODE_RE = re.compile(r"\bF\d{2}_[A-Za-z0-9_]+\b")
 ATTRIBUTE_TABLE_NAMES = ("HinhAnhCotDien", "HinhAnhKhachHang", "HinhAnhHoSoKhachHang")
@@ -37,9 +37,9 @@ DATA_TYPE_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Text", ("text",)),
 )
 SOURCE_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("ID tá»± sinh cá»§a GIS", ("id", "tu", "sinh", "cua", "gis")),
-    ("PMIS/BiÃªn táº­p", ("pmis", "bien", "tap")),
-    ("BiÃªn táº­p", ("bien", "tap")),
+    ("ID tự sinh của GIS", ("id", "tu", "sinh", "cua", "gis")),
+    ("PMIS/Biên tập", ("pmis", "bien", "tap")),
+    ("Biên tập", ("bien", "tap")),
     ("TTHT", ("ttht",)),
     ("CMIS", ("cmis",)),
     ("PMIS", ("pmis",)),
@@ -49,32 +49,32 @@ SOURCE_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
 def robust_normalize(value: str) -> str:
     text = normalize_metadata_value(value)
     replacements = {
-        "phÃ¡Â»Â¥": "phu",
-        "lÃ¡Â»Â¥c": "luc",
-        "dÃ¡Â»Â¯": "du",
-        "liÃ¡Â»â€¡u": "lieu",
-        "trÃ†Â°Ã¡Â»Âng": "truong",
-        "mÃƒÂ´": "mo",
-        "tÃ¡ÂºÂ£": "ta",
-        "kiÃ¡Â»Æ’u": "kieu",
-        "miÃ¡Â»Ân": "mien",
-        "giÃƒÂ¡": "gia",
-        "trÃ¡Â»â€¹": "tri",
-        "Ã„â€˜Ã¡Â»â„¢": "do",
-        "rÃ¡Â»â„¢ng": "rong",
-        "nguÃ¡Â»â€œn": "nguon",
-        "chuyÃ¡Â»Æ’n": "chuyen",
-        "Ã„â€˜Ã¡Â»â€¢i": "doi",
+        "phụ": "phu",
+        "lục": "luc",
+        "dữ": "du",
+        "liệu": "lieu",
+        "trường": "truong",
+        "mô": "mo",
+        "tả": "ta",
+        "kiểu": "kieu",
+        "miền": "mien",
+        "giá": "gia",
+        "trị": "tri",
+        "độ": "do",
+        "rá»™ng": "rong",
+        "nguồn": "nguon",
+        "chuyển": "chuyen",
+        "đổi": "doi",
         "sang": "sang",
-        "thÃƒÂ¡ng": "thang",
-        "quÃƒÂ½": "quy",
-        "trÃ†Â°Ã¡Â»â€ºc": "truoc",
-        "ngÃƒÂ y": "ngay",
-        "biÃƒÂªn": "bien",
-        "tÃ¡ÂºÂ­p": "tap",
-        "hÃ¡ÂºÂ¡": "ha",
-        "thÃ¡ÂºÂ¿": "the",
-        "trung thÃ¡ÂºÂ¿": "trung the",
+        "tháng": "thang",
+        "quý": "quy",
+        "trước": "truoc",
+        "ngày": "ngay",
+        "biên": "bien",
+        "tập": "tap",
+        "hạ": "ha",
+        "thế": "the",
+        "trung thế": "trung the",
     }
     for bad, good in replacements.items():
         text = text.replace(bad, good)
@@ -87,12 +87,12 @@ def normalize_code(value: str) -> str:
 
 def extract_deadlines(text: str) -> list[str]:
     patterns = (
-        r"thÃ¡ng\s+0?\d{1,2}/\d{4}",
-        r"trÆ°á»›c\s+ngÃ y\s+\d{1,2}/\d{1,2}/\d{4}",
-        r"quÃ½\s+0?\d{1,2}/\d{4}",
-        r"thÃƒÂ¡ng\s+0?\d{1,2}/\d{4}",
-        r"trÃ†Â°Ã¡Â»â€ºc\s+ngÃƒÂ y\s+\d{1,2}/\d{1,2}/\d{4}",
-        r"quÃƒÂ½\s+0?\d{1,2}/\d{4}",
+        r"tháng\s+0?\d{1,2}/\d{4}",
+        r"trước\s+ngày\s+\d{1,2}/\d{1,2}/\d{4}",
+        r"quý\s+0?\d{1,2}/\d{4}",
+        r"tháng\s+0?\d{1,2}/\d{4}",
+        r"trước\s+ngày\s+\d{1,2}/\d{1,2}/\d{4}",
+        r"quý\s+0?\d{1,2}/\d{4}",
     )
     seen: set[str] = set()
     deadlines: list[str] = []
@@ -240,7 +240,7 @@ def _procedure_rows_from_text_state_machine(
         if match.group("tt") == "1":
             data_type = "GIS 110kV"
         else:
-            data_type = "GIS trung tháº¿"
+            data_type = "GIS trung thế"
         rows.append(_procedure_row(match.group("tt"), data_type, body, body, page_range))
     return rows
 
@@ -265,8 +265,8 @@ def _clean_data_type(value: str) -> str:
     if "gis 110kv" in normalized:
         return "GIS 110kV"
     if "gis trung" in normalized:
-        return "GIS trung tháº¿"
-    return re.sub(r"^(Dá»¯ liá»‡u|DÃ¡Â»Â¯ liÃ¡Â»â€¡u)\s+", "", text, flags=re.IGNORECASE)
+        return "GIS trung thế"
+    return re.sub(r"^(Dữ liệu|Dữ liệu)\s+", "", text, flags=re.IGNORECASE)
 
 
 def _schema_objects_from_text(text: str, page_range: list[int]) -> list[dict[str, Any]]:
@@ -298,7 +298,7 @@ def _schema_objects_from_text(text: str, page_range: list[int]) -> list[dict[str
         if current is None:
             continue
         count_match = re.search(
-            r"(Sá»‘ lÆ°á»£ng trÆ°á»ng|SÃ¡Â»â€˜ lÃ†Â°Ã¡Â»Â£ng trÃ†Â°Ã¡Â»Âng)\s*[:ï¼š]?\s*(\d{1,3})",
+            r"(Số lượng trường|Số lượng trường)\s*[:：]?\s*(\d{1,3})",
             line,
             flags=re.IGNORECASE,
         )

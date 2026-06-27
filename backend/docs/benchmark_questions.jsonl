@@ -1,5 +1,0 @@
-{"id":"doc_code_001","question_type":"doc_code","question":"Văn bản 6515/EVNCPC-VTCNTT ban hành ngày nào?","expected_doc_code":"6515/EVNCPC-VTCNTT","expected_evidence":["document_summary_artifact","document_header"]}
-{"id":"person_001","question_type":"person_assignment","question":"Nguyễn Văn A phụ trách nhiệm vụ gì?","expected_evidence":["assignment_artifact","table_row"],"expected_row_index":"1"}
-{"id":"table_001","question_type":"table_lookup","question":"Dòng STT 2 trong bảng phân công nhiệm vụ là gì?","expected_evidence":["table_evidence_artifact","table_row"],"expected_row_index":"2"}
-{"id":"legal_001","question_type":"legal_clause","question":"Điều 10 quy định chế độ gì?","expected_evidence":["legal_evidence_artifact","legal_clause"],"expected_article_number":"10"}
-{"id":"summary_001","question_type":"summary","question":"Tóm tắt nội dung chính của văn bản.","expected_evidence":["document_summary_artifact","evidence_chunk"]}

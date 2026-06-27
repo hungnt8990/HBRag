@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
+from app.core.config import settings
 from app.repositories.documents import DocumentRepository
 from app.repositories.knowledge_artifacts import KnowledgeArtifactRepository
 from app.schemas.documents import DofficeIngestResponse
@@ -25,6 +26,12 @@ from app.services.ingestion.ingestion_doffice_content_normalizer import (
 from app.services.retrieval.retrieval_elasticsearch_keyword_search import ElasticsearchKeywordStore
 from app.services.knowledge.knowledge_artifact_compiler import KnowledgeArtifactCompiler
 from app.services.knowledge.knowledge_artifact_indexing_service import KnowledgeArtifactIndexingService
+from app.services.security.security_acl_compressor import OrgCatalog
+from app.services.security.security_acl_payload import to_chunk_payload_flat
+from app.services.security.security_acl_resolver import (
+    UnitTree,
+    resolve_doffice_and_compress,
+)
 from app.services.vector.vector_indexing_service import VectorIndexingService
 from app.services.vector.vector_store import QdrantVectorStore
 
@@ -62,6 +69,8 @@ class DofficeIngestionService:
         keyword_index_store: ElasticsearchKeywordStore | None = None,
         knowledge_artifact_repository: KnowledgeArtifactRepository | None = None,
         artifact_indexing_service: KnowledgeArtifactIndexingService | None = None,
+        document_index_store: Any = None,
+        llm_gateway: Any = None,
     ) -> None:
         self._repository = repository
         self._source = source
@@ -72,6 +81,8 @@ class DofficeIngestionService:
         self._keyword_index_store = keyword_index_store
         self._knowledge_artifact_repository = knowledge_artifact_repository
         self._artifact_indexing_service = artifact_indexing_service
+        self._document_index_store = document_index_store
+        self._llm_gateway = llm_gateway
 
     async def ingest_doffice_document(
         self,
@@ -129,7 +140,7 @@ class DofficeIngestionService:
                 chunks_created=chunk_count,
                 document_id=existing.id,
                 source_type=DOFFICE_SOURCE_TYPE,
-                message="VÄƒn báº£n Ä‘Ã£ cÃ³ trong há»‡ thá»‘ng. Báº­t Force refresh náº¿u cáº§n láº¥y vÃ  xá»­ lÃ½ láº¡i.",
+                message="Văn bản đã có trong hệ thống. Bật Force refresh nếu cần lấy và xá»­ lý lại.",
             )
 
         if existing is not None:
@@ -300,6 +311,10 @@ class DofficeIngestionService:
                 embedding_status="indexed",
                 sync_status="indexed",
             )
+            await self._attach_acl_from_source(
+                document_id=document_id,
+                source_document=source_document,
+            )
             logger.info(
                 "Indexed DOffice document id_vb=%s document=%s indexed_chunks=%s duration_ms=%s",
                 clean_id,
@@ -333,7 +348,7 @@ class DofficeIngestionService:
             chunks_created=chunk_response.chunk_count,
             document_id=document_id,
             source_type=DOFFICE_SOURCE_TYPE,
-            message="ÄÃ£ láº¥y thÃ´ng tin vÄƒn báº£n DOffice; pipeline phÃ­a sau Ä‘Ã£ convert, chunk, enrich náº¿u báº­t vÃ  index.",
+            message="Đã lấy thông tin văn bản DOffice; pipeline phía sau đã convert, chunk, enrich nếu bật và index.",
         )
 
     async def _update_raw_status(
@@ -348,6 +363,89 @@ class DofficeIngestionService:
             await updater_by_id(raw_record_id, **statuses)
             return
         await self._repository.update_doffice_raw_status(raw_record, **statuses)
+
+    async def _attach_acl_from_source(self, *, document_id: Any, source_document: Any) -> None:
+        """Tính ACL từ 3 list DOffice (đơn vị/phòng ban/cá nhân) và gắn vào payload chunk.
+
+        Mô hình ĐỘNG: chỉ ghi bộ quyền rút gọn ``acl_*`` lên point Qdrant + doc ES
+        (không lưu list input, không lưu danh sách cá nhân dài). Người mới vào phòng/đơn vị
+        tự được xem theo ``acl_allow_pb``/``acl_allow_dv``.
+        """
+        raw = getattr(source_document, "raw_source", None) or {}
+        don_vi = raw.get("don_vi_list")
+        phong_ban = raw.get("phong_ban_list")
+        ca_nhan = raw.get("ca_nhan_list")
+        if not (don_vi or phong_ban or ca_nhan) and settings.doffice_synthetic_acl_enabled:
+            # API DOffice hiện chưa trả ACL -> dùng giá trị giả định để bộ quyền vẫn chạy.
+            don_vi = settings.doffice_synthetic_don_vi_list
+            phong_ban = settings.doffice_synthetic_phong_ban_list
+            ca_nhan = settings.doffice_synthetic_ca_nhan_list
+            logger.info("Văn bản %s thiếu ACL DOffice -> dùng ACL giả định (synthetic)", document_id)
+        if not (don_vi or phong_ban or ca_nhan):
+            logger.info("Văn bản %s không có thông tin phân quyền DOffice -> bỏ qua gắn ACL", document_id)
+            return
+
+        session = getattr(self._repository, "_session", None)
+        if session is None:
+            logger.warning("Không lấy được session để dựng danh mục -> bỏ qua gắn ACL")
+            return
+
+        catalog = await OrgCatalog.from_session(session)
+        unit_tree = await UnitTree.from_session(session)
+        acl, _assignment, warnings = resolve_doffice_and_compress(
+            don_vi_list=don_vi,
+            phong_ban_list=phong_ban,
+            ca_nhan_list=ca_nhan,
+            catalog=catalog,
+            unit_tree=unit_tree,
+        )
+        for warning in warnings:
+            logger.warning("ACL validate document=%s: %s", document_id, warning)
+
+        payload = to_chunk_payload_flat(acl)  # dynamic + acl_subjects (flatten)
+        await self._vector_store.set_acl_payload_for_document(document_id, payload)
+        if self._keyword_index_store is not None:
+            await self._keyword_index_store.set_acl_payload_for_document(document_id, payload)
+        logger.info("Đã gắn ACL document=%s: %s", document_id, acl.to_dict())
+
+        # Two-stage: ghi 1 record vào ES document index (Stage 1). Embed trich_yeu +
+        # tom_tat nếu bật BBQ. Backward compat: chỉ chạy khi two-stage + có store.
+        if settings.two_stage_retrieval_enabled and self._document_index_store is not None:
+            from app.services.security.security_acl_payload import acl_keys_from_acl
+
+            trich_yeu = _optional_string(raw.get("trich_yeu"))
+            tom_tat = _optional_string(raw.get("tom_tat"))
+            embedding: list[float] | None = None
+            if settings.two_stage_document_embedding_enabled and self._llm_gateway is not None:
+                embed_text = " ".join(filter(None, [trich_yeu, tom_tat])).strip()
+                if embed_text:
+                    try:
+                        embedding = await self._llm_gateway.embed_query(embed_text)
+                    except Exception:
+                        logger.warning(
+                            "Embed document index thất bại document=%s -> bỏ qua vector",
+                            document_id,
+                            exc_info=True,
+                        )
+            await self._document_index_store.upsert_document(
+                document_id=str(document_id),
+                id_vb=_optional_string(raw.get("id_vb")),
+                ky_hieu=_optional_string(raw.get("ky_hieu")),
+                trich_yeu=trich_yeu,
+                tom_tat=tom_tat,
+                keywords=None,
+                nam=raw.get("nam") if isinstance(raw.get("nam"), int) else None,
+                ngay_vb=_optional_string(raw.get("ngay_vb")),
+                acl_subjects=acl_keys_from_acl(acl),
+                acl_deny_pb=sorted(acl.deny_department_ids),
+                acl_deny_nv=sorted(acl.deny_user_ids),
+                embedding=embedding,
+            )
+            logger.info(
+                "Đã ghi document index document=%s (vector=%s)",
+                document_id,
+                embedding is not None,
+            )
 
     async def _compile_and_index_artifacts(
         self,

@@ -5,10 +5,10 @@ import re
 from app.services.graph.graph_models import ExtractedEntity, ExtractedRelation
 
 ALIAS_MAP = {
-    "nlÄ‘": "ngÆ°á»i lao Ä‘á»™ng",
-    "nsdlÄ‘": "ngÆ°á»i sá»­ dá»¥ng lao Ä‘á»™ng",
-    "tÆ°lÄ‘tt": "thá»a Æ°á»›c lao Ä‘á»™ng táº­p thá»ƒ",
-    "evncpc": "tá»•ng cÃ´ng ty Ä‘iá»‡n lá»±c miá»n trung",
+    "nlđ": "người lao động",
+    "nsdlđ": "người sử dụng lao động",
+    "tưlđtt": "thỏa ước lao động tập thể",
+    "evncpc": "tổng công ty điện lực miền trung",
 }
 
 

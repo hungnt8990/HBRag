@@ -24,7 +24,6 @@ from app.schemas.chat import RagChatRequest, RagChatResponse, RagChatStreamReque
 from app.services.security.security_access_control import build_access_filter, build_subject_context
 from app.services.retrieval.retrieval_artifact_first_retrieval import ArtifactFirstRetrievalService
 from app.services.documents.document_profiles import profile_config, resolve_profile
-from app.services.embeddings.embedding_factory import get_embedding_provider
 from app.services.embeddings.embedding_sparse_factory import get_sparse_embedding_provider
 from app.services.knowledge.knowledge_artifact_indexing_service import KnowledgeArtifactIndexingService
 from app.services.llm_gateway import LLMGateway, get_llm_gateway
@@ -117,7 +116,7 @@ async def get_rag_answer_service(
         rag_config = default_rag_runtime_config()
     artifact_indexing_service = KnowledgeArtifactIndexingService(
         repository=artifact_repository,
-        embedding_provider=get_embedding_provider(),
+        llm_gateway=get_llm_gateway(),
         vector_store=get_artifact_vector_store(),
         sparse_embedding_provider=get_sparse_embedding_provider(),
     )

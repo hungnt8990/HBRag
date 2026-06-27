@@ -697,15 +697,15 @@ def test_pdf_parser_cleans_presentation_overlay_lines(monkeypatch) -> None:
     class FakePage:
         def extract_text(self):
             return (
-                "\x00QuÃ¡ trÃ¬nh triá»ƒn khai\n"
-                "QQuuÃ¡Ã¡ ttrrÃ¬Ã¬nnhh ttrriiá»ƒá»ƒnn kkhhaaii\n"
-                "CÃ´ng cá»¥ chuyá»ƒn Ä‘á»•i dá»¯ liá»‡u GIS 110kV\n"
+                "\x00Quá trình triển khai\n"
+                "QQuuáá ttrrììnnhh ttrriiểểnn kkhhaaii\n"
+                "Công cụ chuyển đổi dữ liệu GIS 110kV\n"
             )
 
         def extract_tables(self, *, table_settings):
             return [[
                 [
-                    "NhÃ³m, lá»›p dá»¯ liá»‡u Sá»• tay bao gá»“m nhÃ³m lá»›p",
+                    "Nhóm, lớp dữ liệu Sổ tay bao gồm nhóm lớp",
                     "",
                     "01",
                 ]
@@ -731,9 +731,9 @@ def test_pdf_parser_cleans_presentation_overlay_lines(monkeypatch) -> None:
     parsed = PdfParserImpl().parse(b"%PDF-1.4 fake")
 
     assert "\x00" not in parsed.text
-    assert "QQuuÃ¡Ã¡" not in parsed.text
-    assert parsed.text.count("QuÃ¡ trÃ¬nh triá»ƒn khai") == 1
-    assert "CÃ´ng cá»¥ chuyá»ƒn Ä‘á»•i dá»¯ liá»‡u GIS 110kV" in parsed.text
+    assert "QQuuáá" not in parsed.text
+    assert parsed.text.count("Quá trình triển khai") == 1
+    assert "Công cụ chuyển đổi dữ liệu GIS 110kV" in parsed.text
     assert "TABLE_ROW" not in parsed.text
 
 def test_pdf_parser_prefers_page_fallback_for_orphan_diacritics() -> None:
@@ -771,13 +771,13 @@ def test_pdf_parser_does_not_emit_invalid_staff_table_rows(monkeypatch) -> None:
     class FakePage:
         def extract_text(self, extraction_mode=None):
             return (
-                "MÃ´ táº£ cÃ¡c máº£ng cÃ´ng nghá»‡ lÃµi trÆ°á»›c pháº§n báº£ng.\n"
-                "DANH SÃCH NHÃ‚N Sá»° PHá»¤ TRÃCH Tá»ªNG Máº¢NG CÃ”NG NGHá»† LÃ•I\n"
-                "6 PTUD 6. Nguyá»…n Huá»³nh ÄÄƒng Khoa Platform AI 7. Nguyá»…n Quang LÃ¢m "
-                "8. Nguyá»…n Trá»ng HÃ¹ng 9. VÃµ VÄƒn PhÃºc 10. VÃµ VÄƒn HÃ²a 11. ÄoÃ n Gia Hy "
-                "12. Nguyá»…n Há»¯u Thiá»‡n Äá»©c 13. Trá»‹nh Tháº¿ Phong "
-                "á»¨ng dá»¥ng AI vÃ o cÃ¡c "
-                "pháº§n má»m PhÃ²ng P.\n"
+                "Mô tả các mảng công nghệ lõi trước phần bảng.\n"
+                "DANH SÁCH NHÂN SỰ PHỤ TRÁCH TỪNG MẢNG CÔNG NGHỆ LÕI\n"
+                "6 PTUD 6. Nguyễn Huỳnh Đăng Khoa Platform AI 7. Nguyễn Quang Lâm "
+                "8. Nguyễn Trọng Hùng 9. Võ Văn Phúc 10. Võ Văn Hòa 11. Đoàn Gia Hy "
+                "12. Nguyễn Hữu Thiện Đức 13. Trịnh Thế Phong "
+                "Ứng dụng AI vào các "
+                "phần mềm Phòng P.\n"
             )
 
     class FakeReader:
@@ -792,7 +792,7 @@ def test_pdf_parser_does_not_emit_invalid_staff_table_rows(monkeypatch) -> None:
 
     assert table_rows == []
     assert any(element.element_type == "page" for element in parsed.elements)
-    assert "MÃ´ táº£ cÃ¡c máº£ng cÃ´ng nghá»‡ lÃµi" in parsed.text
+    assert "Mô tả các mảng công nghệ lõi" in parsed.text
 
 
 def test_docling_parser_uses_lossless_json_serializer() -> None:

@@ -95,14 +95,14 @@ def test_keyword_search_service_builds_query_safely() -> None:
 
 
 def test_keyword_search_extracts_unicode_entity_terms_for_exact_matching() -> None:
-    terms = KeywordSearchService._extract_exact_terms("Nguyá»…n Quang LÃ¢m tham gia máº£ng nÃ o?")
+    terms = KeywordSearchService._extract_exact_terms("Nguyễn Quang Lâm tham gia mảng nào?")
 
-    assert any(term == "Nguyá»…n Quang LÃ¢m" for term in terms)
+    assert any(term == "Nguyễn Quang Lâm" for term in terms)
 
 
 def test_keyword_search_statement_includes_exact_match_clause() -> None:
     statement = KeywordSearchService.build_statement(
-        query="Nguyá»…n Quang LÃ¢m tham gia máº£ng nÃ o?",
+        query="Nguyễn Quang Lâm tham gia mảng nào?",
         top_k=5,
     )
     compiled = statement.compile(dialect=postgresql.dialect())
@@ -111,7 +111,7 @@ def test_keyword_search_statement_includes_exact_match_clause() -> None:
     assert "ILIKE" in sql
 
 def test_keyword_search_disables_enrichment_matching_by_default() -> None:
-    statement = KeywordSearchService.build_statement(query="123/QÄ-CPCIT", top_k=5)
+    statement = KeywordSearchService.build_statement(query="123/QĐ-CPCIT", top_k=5)
     compiled = statement.compile(dialect=postgresql.dialect())
     sql = str(compiled)
 
@@ -120,7 +120,7 @@ def test_keyword_search_disables_enrichment_matching_by_default() -> None:
 
 def test_keyword_search_can_match_enrichment_metadata_when_enabled() -> None:
     statement = KeywordSearchService.build_statement(
-        query="123/QÄ-CPCIT",
+        query="123/QĐ-CPCIT",
         top_k=5,
         retrieval_enrichment_enabled=True,
     )

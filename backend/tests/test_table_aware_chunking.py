@@ -11,16 +11,18 @@ from app.services.chunkers.chunker_table_aware_chunking import (
     extract_entities_from_text,
     generate_entity_summary_chunks,
     table_aware_chunk_text,
+    table_to_column_chunks,
+    table_to_group_chunks,
     table_to_row_chunks,
 )
 
 VIETNAMESE_TABLE = (
-    "STT | Ná»™i dung | ÄÆ¡n vá»‹ | NgÆ°á»i thá»±c hiá»‡n\n"
-    "1 | XÃ¢y dá»±ng há»‡ thá»‘ng | PhÃ²ng CNTT | Nguyá»…n Quang LÃ¢m\n"
-    "2 | Quáº£n lÃ½ dá»¯ liá»‡u | PhÃ²ng CNTT | Nguyá»…n Quang LÃ¢m\n"
-    "3 | ÄÃ o táº¡o nhÃ¢n sá»± | PhÃ²ng NhÃ¢n sá»± | Tráº§n VÄƒn An\n"
-    "4 | Báº£o trÃ¬ háº¡ táº§ng | PhÃ²ng CNTT | Nguyá»…n Quang LÃ¢m\n"
-    "5 | Kiá»ƒm tra cháº¥t lÆ°á»£ng | PhÃ²ng QA | Nguyá»…n Quang LÃ¢m\n"
+    "STT | Nội dung | Đơn vị | Người thực hiện\n"
+    "1 | Xây dựng hệ thống | Phòng CNTT | Nguyễn Quang Lâm\n"
+    "2 | Quản lý dữ liệu | Phòng CNTT | Nguyễn Quang Lâm\n"
+    "3 | Đào tạo nhân sự | Phòng Nhân sự | Trần Văn An\n"
+    "4 | Bảo trì hạ tầng | Phòng CNTT | Nguyễn Quang Lâm\n"
+    "5 | Kiểm tra chất lượng | Phòng QA | Nguyễn Quang Lâm\n"
 )
 
 ENGLISH_TABLE = (
@@ -32,75 +34,75 @@ ENGLISH_TABLE = (
 )
 
 PDF_STAFF_AREA_LAYOUT = """
-NHIá»†M Vá»¤ CÃC Máº¢NG CÃ”NG NGHá»† Ná»€N Táº¢NG AI
-1. Háº¡ táº§ng tÃ­nh toÃ¡n vÃ  triá»ƒn khai
-Má»¥c tiÃªu: Báº£o Ä‘áº£m nÄƒng lá»±c tÃ­nh toÃ¡n dÃ¹ng chung.
+NHIỆM VỤ CÁC MẢNG CÔNG NGHỆ NỀN TẢNG AI
+1. Hạ tầng tính toán và triển khai
+Mục tiêu: Bảo đảm năng lực tính toán dùng chung.
 
-DANH SÃCH NHÃ‚N Sá»° PHá»¤ TRÃCH Tá»ªNG Máº¢NG CÃ”NG NGHá»† LÃ•I
-(Äá»€ XUáº¤T)
-PhÃ²ng
-STT Máº£ng cÃ´ng nghá»‡ NhÃ¢n sá»± Ä‘á» xuáº¥t
-chá»§ trÃ¬
-1. Tráº§n Huy
-2. Phan Anh Tuáº¥n
-1 Háº¡ táº§ng tÃ­nh toÃ¡n vÃ  triá»ƒn khai KTMVT
-3. Nguyá»…n VÅ© ThÃ nh
-1. Nguyá»…n Thá»‹ TÃ¹ng
-XÃ¢y dá»±ng nÄƒng lá»±c mÃ´ hÃ¬nh
-2 PTUD 2. Nguyá»…n Huá»³nh ÄÄƒng Khoa
-ngÃ´n ngá»¯ ná»™i bá»™
-3. VÃµ VÄƒn PhÃºc
-1. Tá»‘ng PhÆ°á»›c LÃ¢m
-2. Nguyá»…n Quang LÃ¢m
-XÃ¢y dá»±ng ná»n táº£ng RAG trÃªn dá»¯
-3 PTUD 3. Nguyá»…n Trá»ng HÃ¹ng
-liá»‡u ná»™i bá»™
-4. VÃµ VÄƒn HÃ²a
-5. ÄoÃ n Gia Hy (kiá»ƒm thá»­)
-1. TrÃ¬nh Thanh Tá»‹nh
-XÃ¢y dá»±ng dá»‹ch vá»¥ OCR dÃ¹ng
-4 PM 2. DÆ°Æ¡ng Sinh Sinh
+DANH SÁCH NHÂN SỰ PHỤ TRÁCH TỪNG MẢNG CÔNG NGHỆ LÕI
+(ĐỀ XUẤT)
+Phòng
+STT Mảng công nghệ Nhân sự đề xuất
+chủ trì
+1. Trần Huy
+2. Phan Anh Tuấn
+1 Hạ tầng tính toán và triển khai KTMVT
+3. Nguyễn Vũ Thành
+1. Nguyễn Thị Tùng
+Xây dựng năng lực mô hình
+2 PTUD 2. Nguyễn Huỳnh Đăng Khoa
+ngôn ngữ nội bộ
+3. Võ Văn Phúc
+1. Tống Phước Lâm
+2. Nguyễn Quang Lâm
+Xây dựng nền tảng RAG trên dữ
+3 PTUD 3. Nguyễn Trọng Hùng
+liệu nội bộ
+4. Võ Văn Hòa
+5. Đoàn Gia Hy (kiểm thử)
+1. Trình Thanh Tịnh
+Xây dựng dịch vụ OCR dùng
+4 PM 2. Dương Sinh Sinh
 chung
-3. Nguyá»…n Quang LÃ¢m
-1. ÄoÃ n Gia Hy
-2. VÃµ VÄƒn PhÃºc
-3. VÃµ VÄƒn HÃ²a
-4. Nguyá»…n Ngá»c Thá»‹nh
-5 Kho dá»¯ liá»‡u AI dÃ¹ng chung VH
-5. Nguyá»…n Trá»ng HÃ¹ng
-6. Nguyá»…n Huá»³nh ÄÄƒng Khoa
-7. Nguyá»…n Thá»‹ TÃ¹ng
-8. Nguyá»…n Quang LÃ¢m
-CÃ¡c nhÃ¢n sá»± trong káº¿ hoáº¡ch
+3. Nguyễn Quang Lâm
+1. Đoàn Gia Hy
+2. Võ Văn Phúc
+3. Võ Văn Hòa
+4. Nguyễn Ngọc Thịnh
+5 Kho dữ liệu AI dùng chung VH
+5. Nguyễn Trọng Hùng
+6. Nguyễn Huỳnh Đăng Khoa
+7. Nguyễn Thị Tùng
+8. Nguyễn Quang Lâm
+Các nhân sự trong kế hoạch
 PoC ThinkLabs:
-1. Phan Anh Tuáº¥n
-2. Tráº§n Huy
-3. Nguyá»…n VÅ© ThÃ nh
-4. Nguyá»…n Thá»‹ TÃ¹ng
-5. Tá»‘ng PhÆ°á»›c LÃ¢m
-6 PTUD 6. Nguyá»…n Huá»³nh ÄÄƒng Khoa
+1. Phan Anh Tuấn
+2. Trần Huy
+3. Nguyễn Vũ Thành
+4. Nguyễn Thị Tùng
+5. Tống Phước Lâm
+6 PTUD 6. Nguyễn Huỳnh Đăng Khoa
 Platform AI
-7. Nguyá»…n Quang LÃ¢m
-8. Nguyá»…n Trá»ng HÃ¹ng
-9. VÃµ VÄƒn PhÃºc
-10. VÃµ VÄƒn HÃ²a
-11. ÄoÃ n Gia Hy
-12. Nguyá»…n Há»¯u Thiá»‡n Äá»©c
-13. Trá»‹nh Tháº¿ Phong
-á»¨ng dá»¥ng AI vÃ o cÃ¡c pháº§n má»m PhÃ²ng P.PM vÃ  cÃ¡c nhÃ¢n sá»±
+7. Nguyễn Quang Lâm
+8. Nguyễn Trọng Hùng
+9. Võ Văn Phúc
+10. Võ Văn Hòa
+11. Đoàn Gia Hy
+12. Nguyễn Hữu Thiện Đức
+13. Trịnh Thế Phong
+Ứng dụng AI vào các phần mềm Phòng P.PM và các nhân sự
 7 PM
-nghiá»‡p vá»¥ EVN/EVNCPC khÃ¡c do P.PM Ä‘á» xuáº¥t
-PhÃ²ng
-STT Máº£ng cÃ´ng nghá»‡ NhÃ¢n sá»± Ä‘á» xuáº¥t
-chá»§ trÃ¬
-Triá»ƒn khai vÃ  tá»± Ä‘á»™ng hÃ³a nghiá»‡p PhÃ²ng P.VH vÃ  cÃ¡c nhÃ¢n sá»±
+nghiệp vụ EVN/EVNCPC khác do P.PM đề xuất
+Phòng
+STT Mảng công nghệ Nhân sự đề xuất
+chủ trì
+Triển khai và tự động hóa nghiệp Phòng P.VH và các nhân sự
 8 VH
-vá»¥ khÃ¡c do P.VH Ä‘á» xuáº¥t
-1. Nguyá»…n Há»¯u Thiá»‡n Äá»©c
-9 An toÃ n thÃ´ng tin cho AI ATTT 2. Trá»‹nh Tháº¿ Phong
-3. ÄoÃ n Gia Hy
-Äiá»ƒm cáº§n lÆ°u Ã½ & Ä‘á» xuáº¥t
-- CÃ¡c phÃ²ng xem xÃ©t vÃ  bá»‘ trÃ­ nhÃ¢n sá»± phÃ¹ há»£p.
+vụ khác do P.VH đề xuất
+1. Nguyễn Hữu Thiện Đức
+9 An toàn thông tin cho AI ATTT 2. Trịnh Thế Phong
+3. Đoàn Gia Hy
+Điểm cần lưu ý & đề xuất
+- Các phòng xem xét và bố trí nhân sự phù hợp.
 """
 
 
@@ -147,15 +149,15 @@ def test_entity_summary_for_multi_row_entity() -> None:
     entity_index = build_entity_index(row_chunks)
     summaries = generate_entity_summary_chunks(row_chunks, entity_index)
 
-    # Nguyá»…n Quang LÃ¢m appears in 4 rows â†’ should get a summary.
+    # Nguyễn Quang Lâm appears in 4 rows → should get a summary.
     lam_summaries = [
         s for s in summaries
-        if s["metadata"].get("entity_name") == "Nguyá»…n Quang LÃ¢m"
+        if s["metadata"].get("entity_name") == "Nguyễn Quang Lâm"
     ]
     assert len(lam_summaries) >= 1
     summary = lam_summaries[0]
     assert summary["metadata"]["chunk_type"] == "entity_summary"
-    assert summary["metadata"]["entity_name"] == "Nguyá»…n Quang LÃ¢m"
+    assert summary["metadata"]["entity_name"] == "Nguyễn Quang Lâm"
     assert summary["metadata"]["row_count"] >= 4
 
 
@@ -164,30 +166,30 @@ def test_entity_retrieval_finds_all_related_rows() -> None:
     all_chunks, entity_index = table_aware_chunk_text(VIETNAMESE_TABLE)
 
     # Simulate entity lookup.
-    assert "Nguyá»…n Quang LÃ¢m" in entity_index.entities
-    related_indices = entity_index.entities["Nguyá»…n Quang LÃ¢m"]
+    assert "Nguyễn Quang Lâm" in entity_index.entities
+    related_indices = entity_index.entities["Nguyễn Quang Lâm"]
     assert len(related_indices) >= 4
 
     # The entity_summary chunk must exist.
     summaries = [
         c for c in all_chunks
-        if c.get("metadata", {}).get("entity_name") == "Nguyá»…n Quang LÃ¢m"
+        if c.get("metadata", {}).get("entity_name") == "Nguyễn Quang Lâm"
     ]
     assert summaries
     # Summary contains all related tasks.
     summary_text = summaries[0]["content"]
-    assert "XÃ¢y dá»±ng há»‡ thá»‘ng" in summary_text
-    assert "Quáº£n lÃ½ dá»¯ liá»‡u" in summary_text
-    assert "Báº£o trÃ¬ háº¡ táº§ng" in summary_text
-    assert "Kiá»ƒm tra cháº¥t lÆ°á»£ng" in summary_text
+    assert "Xây dựng hệ thống" in summary_text
+    assert "Quản lý dữ liệu" in summary_text
+    assert "Bảo trì hạ tầng" in summary_text
+    assert "Kiểm tra chất lượng" in summary_text
 
 
 def test_generic_entity_extraction_no_hardcoding() -> None:
     """Entity extraction uses patterns, not hard-coded names."""
-    text = "Tráº§n Minh Äá»©c quáº£n lÃ½ dá»± Ã¡n ABC táº¡i PhÃ²ng KHCN"
+    text = "Trần Minh Đức quản lý dự án ABC tại Phòng KHCN"
     entities = extract_entities_from_text(text)
-    # Should find "Tráº§n Minh Äá»©c" and "KHCN" via patterns.
-    assert any("Tráº§n Minh Äá»©c" in e for e in entities)
+    # Should find "Trần Minh Đức" and "KHCN" via patterns.
+    assert any("Trần Minh Đức" in e for e in entities)
     assert any("KHCN" in e for e in entities)
 
 def test_entity_extraction_stops_at_context_boundary_words() -> None:
@@ -232,9 +234,9 @@ def test_entity_summary_chunks_are_bounded_by_chunk_size() -> None:
 def test_table_aware_full_pipeline_produces_all_chunk_types() -> None:
     """Full pipeline produces table_row, entity_summary, and text chunks."""
     text = (
-        "ÄÃ¢y lÃ  ná»™i dung má»Ÿ Ä‘áº§u trÆ°á»›c báº£ng.\n\n"
+        "Đây là nội dung mở đầu trước bảng.\n\n"
         + VIETNAMESE_TABLE
-        + "\nÄÃ¢y lÃ  ná»™i dung sau báº£ng."
+        + "\nĐây là nội dung sau bảng."
     )
     all_chunks, _ = table_aware_chunk_text(text, chunk_size=500)
 
@@ -268,11 +270,11 @@ def test_row_chunk_keeps_full_row_together() -> None:
     tables = detect_tables_in_text(VIETNAMESE_TABLE)
     chunks = table_to_row_chunks(tables[0])
 
-    # Row 1: XÃ¢y dá»±ng há»‡ thá»‘ng | PhÃ²ng CNTT | Nguyá»…n Quang LÃ¢m
+    # Row 1: Xây dựng hệ thống | Phòng CNTT | Nguyễn Quang Lâm
     row1 = chunks[0]["content"]
-    assert "XÃ¢y dá»±ng há»‡ thá»‘ng" in row1
+    assert "Xây dựng hệ thống" in row1
     assert "CNTT" in row1
-    assert "Nguyá»…n Quang LÃ¢m" in row1
+    assert "Nguyễn Quang Lâm" in row1
 
 def test_table_aware_keeps_header_and_row_metadata() -> None:
     chunks, _ = table_aware_chunk_text(VIETNAMESE_TABLE, chunk_size=500)
@@ -283,6 +285,31 @@ def test_table_aware_keeps_header_and_row_metadata() -> None:
     assert row_chunk["metadata"]["headers"]
     assert row_chunk["metadata"]["row_index"] >= 1
     assert row_chunk["metadata"]["table_id"]
+
+
+def test_table_aware_emits_group_and_column_chunks() -> None:
+    text = (
+        "No | System | Owner | Status\n"
+        "1 | CRM | Team A | Build\n"
+        "2 | ERP | Team B | Review\n"
+        "3 | GIS | Team A | Done\n"
+    )
+    table = detect_tables_in_text(text)[0]
+
+    groups = table_to_group_chunks(table, group_size=2)
+    columns = table_to_column_chunks(table, chunk_size=400)
+
+    assert groups
+    assert groups[0]["metadata"]["chunk_type"] == "table_group"
+    assert groups[0]["metadata"]["row_start"] == 1
+    assert groups[0]["metadata"]["row_end"] == 2
+    assert "Header: No | System | Owner | Status" in groups[0]["content"]
+
+    owner_column = next(chunk for chunk in columns if chunk["metadata"]["column_name"] == "Owner")
+    assert owner_column["metadata"]["chunk_type"] == "table_column"
+    assert owner_column["metadata"]["row_context_headers"]
+    assert "| 1 |" in owner_column["content"]
+    assert "Team A" in owner_column["content"]
 
 def test_pdf_staff_area_layout_rebuilds_rows_and_person_profiles() -> None:
     chunks, _entity_index = table_aware_chunk_text(PDF_STAFF_AREA_LAYOUT, chunk_size=1200)
@@ -303,22 +330,22 @@ def test_pdf_staff_area_layout_rebuilds_rows_and_person_profiles() -> None:
     ]
 
     row_5 = next(chunk for chunk in row_chunks if chunk["metadata"]["stt"] == "5")
-    assert row_5["metadata"]["area"] == "Kho dá»¯ liá»‡u AI dÃ¹ng chung"
+    assert row_5["metadata"]["area"] == "Kho dữ liệu AI dùng chung"
     assert row_5["metadata"]["area_normalized"] == "kho du lieu ai dung chung"
     assert row_5["metadata"]["lead_department"] == "VH"
     assert row_5["metadata"]["lead_department_normalized"] == "vh"
     assert row_5["metadata"]["staff_names"] == [
-        "ÄoÃ n Gia Hy",
-        "VÃµ VÄƒn PhÃºc",
-        "VÃµ VÄƒn HÃ²a",
-        "Nguyá»…n Ngá»c Thá»‹nh",
-        "Nguyá»…n Trá»ng HÃ¹ng",
-        "Nguyá»…n Huá»³nh ÄÄƒng Khoa",
-        "Nguyá»…n Thá»‹ TÃ¹ng",
-        "Nguyá»…n Quang LÃ¢m",
+        "Đoàn Gia Hy",
+        "Võ Văn Phúc",
+        "Võ Văn Hòa",
+        "Nguyễn Ngọc Thịnh",
+        "Nguyễn Trọng Hùng",
+        "Nguyễn Huỳnh Đăng Khoa",
+        "Nguyễn Thị Tùng",
+        "Nguyễn Quang Lâm",
     ]
-    assert "CÃ¡c nhÃ¢n sá»± trong káº¿ hoáº¡ch PoC ThinkLabs" not in row_5["content"]
-    assert "CÃ¡c nhÃ¢n sá»± trong káº¿ hoáº¡ch PoC ThinkLabs" not in row_5["metadata"]["raw_text_clean"]
+    assert "Các nhân sự trong kế hoạch PoC ThinkLabs" not in row_5["content"]
+    assert "Các nhân sự trong kế hoạch PoC ThinkLabs" not in row_5["metadata"]["raw_text_clean"]
     assert row_5["metadata"]["chunk_overlap"] == 0
     assert row_5["metadata"]["overlap_applied"] is False
     assert row_5["metadata"]["parse_warning"] == "raw_text_contains_next_row_fragment"
@@ -327,19 +354,19 @@ def test_pdf_staff_area_layout_rebuilds_rows_and_person_profiles() -> None:
     assert platform["metadata"]["area"] == "Platform AI"
     assert platform["metadata"]["lead_department"] == "PTUD"
     assert platform["metadata"]["staff_names"] == [
-        "Phan Anh Tuáº¥n",
-        "Tráº§n Huy",
-        "Nguyá»…n VÅ© ThÃ nh",
-        "Nguyá»…n Thá»‹ TÃ¹ng",
-        "Tá»‘ng PhÆ°á»›c LÃ¢m",
-        "Nguyá»…n Huá»³nh ÄÄƒng Khoa",
-        "Nguyá»…n Quang LÃ¢m",
-        "Nguyá»…n Trá»ng HÃ¹ng",
-        "VÃµ VÄƒn PhÃºc",
-        "VÃµ VÄƒn HÃ²a",
-        "ÄoÃ n Gia Hy",
-        "Nguyá»…n Há»¯u Thiá»‡n Äá»©c",
-        "Trá»‹nh Tháº¿ Phong",
+        "Phan Anh Tuấn",
+        "Trần Huy",
+        "Nguyễn Vũ Thành",
+        "Nguyễn Thị Tùng",
+        "Tống Phước Lâm",
+        "Nguyễn Huỳnh Đăng Khoa",
+        "Nguyễn Quang Lâm",
+        "Nguyễn Trọng Hùng",
+        "Võ Văn Phúc",
+        "Võ Văn Hòa",
+        "Đoàn Gia Hy",
+        "Nguyễn Hữu Thiện Đức",
+        "Trịnh Thế Phong",
     ]
 
     row_7 = next(chunk for chunk in row_chunks if chunk["metadata"]["stt"] == "7")
@@ -356,22 +383,22 @@ def test_pdf_staff_area_layout_rebuilds_rows_and_person_profiles() -> None:
         for chunk in chunks
         if chunk.get("metadata", {}).get("chunk_type") == "entity_profile"
     }
-    assert "PhÃ²ng P.PM" not in profile_names
-    assert "PhÃ²ng P.VH" not in profile_names
-    assert "CÃ¡c nhÃ¢n sá»± khÃ¡c do P.PM Ä‘á» xuáº¥t" not in profile_names
+    assert "Phòng P.PM" not in profile_names
+    assert "Phòng P.VH" not in profile_names
+    assert "Các nhân sự khác do P.PM đề xuất" not in profile_names
 
     lam_profile = next(
         chunk
         for chunk in chunks
         if chunk.get("metadata", {}).get("chunk_type") == "entity_profile"
-        and chunk.get("metadata", {}).get("person_name") == "Nguyá»…n Quang LÃ¢m"
+        and chunk.get("metadata", {}).get("person_name") == "Nguyễn Quang Lâm"
     )
     assert lam_profile["metadata"]["person_name_normalized"] == "nguyen quang lam"
     lam_areas = {area["stt"]: area["area"] for area in lam_profile["metadata"]["areas"]}
     assert lam_areas == {
-        "3": "XÃ¢y dá»±ng ná»n táº£ng RAG trÃªn dá»¯ liá»‡u ná»™i bá»™",
-        "4": "XÃ¢y dá»±ng dá»‹ch vá»¥ OCR dÃ¹ng chung",
-        "5": "Kho dá»¯ liá»‡u AI dÃ¹ng chung",
+        "3": "Xây dựng nền tảng RAG trên dữ liệu nội bộ",
+        "4": "Xây dựng dịch vụ OCR dùng chung",
+        "5": "Kho dữ liệu AI dùng chung",
         "6": "Platform AI",
     }
     assert lam_profile["metadata"]["areas"][0]["area_normalized"] == (
@@ -379,7 +406,7 @@ def test_pdf_staff_area_layout_rebuilds_rows_and_person_profiles() -> None:
     )
     assert lam_profile["metadata"]["areas"][0]["lead_department_normalized"] == "ptud"
     assert lam_profile["metadata"]["areas"][0]["source_row_id"] == "staff_area_layout_row_3"
-    assert "Nguyá»…n Quang LÃ¢m Ä‘Æ°á»£c Ä‘á» xuáº¥t tham gia 04 máº£ng cÃ´ng nghá»‡" in lam_profile[
+    assert "Nguyễn Quang Lâm được đề xuất tham gia 04 mảng công nghệ" in lam_profile[
         "metadata"
     ]["answer_text"]
 
@@ -387,15 +414,15 @@ def test_pdf_staff_area_layout_rebuilds_rows_and_person_profiles() -> None:
         chunk
         for chunk in chunks
         if chunk.get("metadata", {}).get("chunk_type") == "entity_profile"
-        and chunk.get("metadata", {}).get("person_name") == "Nguyá»…n Trá»ng HÃ¹ng"
+        and chunk.get("metadata", {}).get("person_name") == "Nguyễn Trọng Hùng"
     )
     hung_areas = [
         (area["area"], area["lead_department"])
         for area in hung_profile["metadata"]["areas"]
     ]
     assert hung_areas == [
-        ("XÃ¢y dá»±ng ná»n táº£ng RAG trÃªn dá»¯ liá»‡u ná»™i bá»™", "PTUD"),
-        ("Kho dá»¯ liá»‡u AI dÃ¹ng chung", "VH"),
+        ("Xây dựng nền tảng RAG trên dữ liệu nội bộ", "PTUD"),
+        ("Kho dữ liệu AI dùng chung", "VH"),
         ("Platform AI", "PTUD"),
     ]
 
@@ -403,19 +430,19 @@ def test_pdf_staff_area_layout_rebuilds_rows_and_person_profiles() -> None:
         chunk
         for chunk in chunks
         if chunk.get("metadata", {}).get("chunk_type") == "entity_profile"
-        and chunk.get("metadata", {}).get("person_name") == "ÄoÃ n Gia Hy"
+        and chunk.get("metadata", {}).get("person_name") == "Đoàn Gia Hy"
     )
     hy_areas = [
         (area["area"], area["lead_department"])
         for area in hy_profile["metadata"]["areas"]
     ]
     assert hy_areas == [
-        ("XÃ¢y dá»±ng ná»n táº£ng RAG trÃªn dá»¯ liá»‡u ná»™i bá»™", "PTUD"),
-        ("Kho dá»¯ liá»‡u AI dÃ¹ng chung", "VH"),
+        ("Xây dựng nền tảng RAG trên dữ liệu nội bộ", "PTUD"),
+        ("Kho dữ liệu AI dùng chung", "VH"),
         ("Platform AI", "PTUD"),
-        ("An toÃ n thÃ´ng tin cho AI", "ATTT"),
+        ("An toàn thông tin cho AI", "ATTT"),
     ]
-    assert hy_profile["metadata"]["areas"][0]["role_note"] == "kiá»ƒm thá»­"
+    assert hy_profile["metadata"]["areas"][0]["role_note"] == "kiểm thử"
 
     summary_names = {
         chunk["metadata"].get("entity_name")
@@ -423,7 +450,7 @@ def test_pdf_staff_area_layout_rebuilds_rows_and_person_profiles() -> None:
         if chunk.get("metadata", {}).get("chunk_type") == "entity_summary"
     }
     assert "AI" not in summary_names
-    assert "PM NhÃ¢n" not in summary_names
+    assert "PM Nhân" not in summary_names
     assert summary_names <= {"PTUD", "PM", "VH", "ATTT", "KTMVT", *profile_names}
 
     overview = next(
@@ -435,8 +462,8 @@ def test_pdf_staff_area_layout_rebuilds_rows_and_person_profiles() -> None:
     note = next(
         chunk for chunk in chunks if chunk.get("metadata", {}).get("chunk_type") == "note"
     )
-    assert overview["metadata"]["section_title"] == "NHIá»†M Vá»¤ CÃC Máº¢NG CÃ”NG NGHá»† Ná»€N Táº¢NG AI"
+    assert overview["metadata"]["section_title"] == "NHIỆM VỤ CÁC MẢNG CÔNG NGHỆ NỀN TẢNG AI"
     assert [chunk["metadata"]["section_id"] for chunk in sections] == ["1"]
-    assert sections[0]["metadata"]["section_title"] == "Háº¡ táº§ng tÃ­nh toÃ¡n vÃ  triá»ƒn khai"
-    assert "DANH SÃCH NHÃ‚N Sá»°" not in "\n".join(chunk["content"] for chunk in chunks)
-    assert "Äiá»ƒm cáº§n lÆ°u Ã½" in note["content"]
+    assert sections[0]["metadata"]["section_title"] == "Hạ tầng tính toán và triển khai"
+    assert "DANH SÁCH NHÂN SỰ" not in "\n".join(chunk["content"] for chunk in chunks)
+    assert "Điểm cần lưu ý" in note["content"]

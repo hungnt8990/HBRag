@@ -1,13 +1,38 @@
 ﻿from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
+from app.core.config import settings
 from app.repositories.documents import ChunkCreate
 from app.services.chunkers.chunker_adaptive_chunking import (
     apply_chunk_quality_gate,
     build_body_evidence_chunks,
 )
-from app.services.ingestion.ingestion_doffice_content_normalizer import NormalizedDofficeDocument, NormalizedElement
+from app.services.chunkers.chunker_text_cleaning import clean_for_chunking
+from app.services.ingestion.ingestion_doffice_content_normalizer import (
+    NormalizedDofficeDocument,
+    NormalizedElement,
+    NormalizedTable,
+)
+
+# Các element "view" do normalizer sinh ra từ mỗi bảng. Builder v2 BỎ HẲN việc
+# tạo chunk từ chúng (tránh table-explosion ~4x/bảng); bảng được xử lý riêng từ
+# ``normalized.tables``.
+TABLE_VIEW_CHUNK_TYPES = {"table_parent", "table_row", "table_group", "table_column"}
+
+# Ngưỡng ký tự để quyết định 1 bảng có cần cắt nhỏ hay không.
+TABLE_CHUNK_MAX_CHARS = 3500  # tránh cắt vụn các bảng 30-40 hàng vừa phải
+
+# Nhận diện chunk "chỉ là tiêu đề mục" (document_section không có nội dung thực).
+_SECTION_TITLE_ONLY_MAX_CHARS = 120
+_SECTION_CONTEXT_PREFIXES = (
+    "Văn bản:",
+    "Ngày ban hành:",
+    "Ngày văn bản:",
+    "Cơ quan ban hành:",
+    "Mục:",
+)
 
 CHUNK_METADATA_ALLOWLIST = {
     "id_vb",
@@ -29,6 +54,7 @@ CHUNK_METADATA_ALLOWLIST = {
     "table_title",
     "table_kind",
     "table_headers",
+    "table_column",
     "table_index",
     "physical_table_index",
     "physical_tables",
@@ -43,8 +69,14 @@ CHUNK_METADATA_ALLOWLIST = {
     "phone",
     "email",
     "row_count",
+    "row_start",
+    "row_end",
     "column_count",
     "columns",
+    "column_name",
+    "column_index",
+    "column_values",
+    "row_context_headers",
     "group_name",
     "features",
     "platform",
@@ -96,7 +128,114 @@ CHUNK_METADATA_ALLOWLIST = {
 }
 
 
+def _is_section_title_only_chunk(content: str, metadata: dict[str, Any]) -> bool:
+    """True nếu chunk chỉ là tiêu đề mục (document_section) mà không có nội dung thực.
+
+    Văn bản DOffice đôi khi đánh dấu một ``document_section`` chỉ chứa tên mục (vd
+    "1. CPCIT:"), nội dung thực nằm ở các mục con. Chunk như vậy gần như vô nghĩa
+    khi embed và gây nhiễu retrieval. Heuristic: sau khi loại bỏ các dòng ngữ cảnh
+    ("Văn bản:", "Cơ quan ban hành:", "Mục:"), phần còn lại quá ngắn VÀ trùng với
+    tiêu đề mục.
+    """
+
+    if str(metadata.get("chunk_type") or "") != "document_section":
+        return False
+
+    lines = [line.strip() for line in content.strip().splitlines() if line.strip()]
+    body_lines = [line for line in lines if not line.startswith(_SECTION_CONTEXT_PREFIXES)]
+    if not body_lines:
+        return True
+
+    body = "\n".join(body_lines)
+    if len(body) >= _SECTION_TITLE_ONLY_MAX_CHARS:
+        return False
+
+    section_title = str(metadata.get("section_title") or "")
+    if not section_title:
+        # Suy ra tiêu đề từ dòng "Mục: <title>" nếu metadata thiếu.
+        for line in lines:
+            if line.startswith("Mục:"):
+                section_title = line[len("Mục:") :].strip()
+                break
+
+    title_norm = section_title.strip(" :-\n").casefold()
+    body_norm = body.strip(" :-\n").casefold()
+    if not title_norm:
+        # Không xác định được tiêu đề mà body lại rất ngắn -> coi là tiêu đề rỗng.
+        return True
+    return (
+        body_norm == title_norm
+        or body_norm.startswith(title_norm)
+        or title_norm.startswith(body_norm)
+    )
+
+
 def build_doffice_chunks(normalized: NormalizedDofficeDocument) -> list[ChunkCreate]:
+    """Sinh chunk cho văn bản DOffice.
+
+    Builder v2 (mặc định): giữ NGUYÊN cách xử lý phần prose, nhưng BỎ table-
+    explosion — mỗi bảng chỉ thành 1 (hoặc vài) chunk ``chunk_type="table"`` lấy
+    từ ``normalized.tables``. Đặt env ``DOFFICE_CHUNKER_V2_ENABLED=false`` để quay
+    lại builder cũ :func:`build_doffice_chunks_legacy`.
+    """
+
+    if not settings.doffice_chunker_v2_enabled:
+        return build_doffice_chunks_legacy(normalized)
+
+    chunks: list[ChunkCreate] = []
+
+    # --- PROSE: giữ nguyên hành vi cũ, chỉ thêm bước làm sạch cho document_body --
+    for element in normalized.elements:
+        chunk_type = str(element.metadata.get("chunk_type") or element.element_type)
+        if chunk_type in TABLE_VIEW_CHUNK_TYPES:
+            # Bỏ các "view" bảng; bảng được xử lý riêng ở dưới.
+            continue
+        prose_element = element
+        if chunk_type == "document_body":
+            # Làm sạch text body trước khi chunk (bỏ marker phân trang, ký tự lạ).
+            prose_element = replace(element, text=clean_for_chunking(element.text))
+        for content, metadata in _expanded_element_chunks(normalized, prose_element):
+            if not content.strip():
+                continue
+            metadata = _compact_chunk_metadata(metadata)
+            # FIX 1: bỏ chunk chỉ là tiêu đề mục rỗng (chỉ trong builder v2).
+            if _is_section_title_only_chunk(content, metadata):
+                continue
+            quality = apply_chunk_quality_gate(content, metadata)
+            metadata = _compact_chunk_metadata(quality.metadata)
+            chunks.append(
+                ChunkCreate(
+                    chunk_index=len(chunks),
+                    content=content,
+                    metadata=metadata,
+                )
+            )
+
+    # --- BẢNG: mỗi bảng -> 1 (hoặc vài) chunk gọn, đủ ngữ cảnh cho RAG ----------
+    for table in normalized.tables:
+        for content, metadata in _table_chunks(normalized, table):
+            if not content.strip():
+                continue
+            metadata = _compact_chunk_metadata(metadata)
+            quality = apply_chunk_quality_gate(content, metadata)
+            metadata = _compact_chunk_metadata(quality.metadata)
+            chunks.append(
+                ChunkCreate(
+                    chunk_index=len(chunks),
+                    content=content,
+                    metadata=metadata,
+                )
+            )
+
+    return chunks
+
+
+def build_doffice_chunks_legacy(normalized: NormalizedDofficeDocument) -> list[ChunkCreate]:
+    """Builder cũ: nổ mỗi bảng thành các element view (table_row/group/column...).
+
+    Giữ y nguyên hành vi trước đây để dùng làm fallback khi tắt cờ v2.
+    """
+
     chunks: list[ChunkCreate] = []
     for element in normalized.elements:
         for content, metadata in _expanded_element_chunks(normalized, element):
@@ -115,6 +254,153 @@ def build_doffice_chunks(normalized: NormalizedDofficeDocument) -> list[ChunkCre
     return chunks
 
 
+def _table_document_metadata(normalized: NormalizedDofficeDocument) -> dict[str, Any]:
+    """Metadata cấp văn bản mà chunk bảng cần mang theo (giống chunk prose)."""
+
+    return {
+        **_document_chunk_metadata(normalized),
+        "source_type": "doffice_elasticsearch",
+        "document_code": normalized.document_code,
+        "doc_code": normalized.document_code,
+        "ky_hieu": normalized.document_code,
+        "issued_date": normalized.issued_date,
+        "issuer": normalized.issuer,
+        "issuing_org": normalized.issuer,
+        "noi_ban_hanh": normalized.issuer,
+        "document_title": normalized.title,
+        "content_hash": normalized.content_hash,
+    }
+
+
+def _table_context_line(normalized: NormalizedDofficeDocument, table: NormalizedTable) -> str:
+    """Dòng ngữ cảnh đầu mỗi chunk bảng: tên bảng + ký hiệu văn bản."""
+
+    table_name = table.metadata.get("table_name") or table.metadata.get("table_title")
+    document_code = normalized.document_code
+    parts: list[str] = []
+    if table_name:
+        parts.append(f"Bảng: {table_name}")
+    else:
+        parts.append("Bảng")
+    if document_code:
+        parts.append(f"Văn bản: {document_code}")
+    return " | ".join(parts)
+
+
+def _table_chunks(
+    normalized: NormalizedDofficeDocument,
+    table: NormalizedTable,
+) -> list[tuple[str, dict[str, Any]]]:
+    """Sinh các chunk cho một bảng (1 chunk nếu ngắn, cắt theo dòng nếu dài)."""
+
+    markdown = clean_for_chunking(table.markdown or "")
+    if not markdown.strip():
+        return []
+
+    context_line = _table_context_line(normalized, table)
+    base_metadata = {
+        **_table_document_metadata(normalized),
+        "chunk_type": "table",
+        "table_id": table.metadata.get("table_id"),
+        "logical_table_id": table.metadata.get("logical_table_id"),
+        "table_name": table.metadata.get("table_name"),
+        "table_title": table.metadata.get("table_title") or table.metadata.get("table_name"),
+        "table_kind": table.metadata.get("table_kind"),
+        "table_index": table.metadata.get("table_index"),
+        "table_headers": list(table.headers) if table.headers else None,
+        "section_title": table.metadata.get("section_title"),
+        "row_count": table.metadata.get("row_count"),
+        "column_count": table.metadata.get("column_count"),
+        "source_span": table.metadata.get("source_span"),
+        "indexable": True,
+        "embedding_enabled": True,
+    }
+
+    pieces: list[str]
+    if len(markdown) <= TABLE_CHUNK_MAX_CHARS:
+        pieces = [markdown]
+    else:
+        pieces = _split_table_markdown(markdown)
+
+    results: list[tuple[str, dict[str, Any]]] = []
+    total = len(pieces)
+    for index, piece in enumerate(pieces):
+        # FIX 2A: chunk phần 2+ vốn không có dòng tên bảng -> thêm "(phần X/Y)" để
+        # mỗi mảnh vẫn đủ ngữ cảnh khi retrieval độc lập.
+        if total > 1:
+            chunk_context_line = f"{context_line} (phần {index + 1}/{total})"
+        else:
+            chunk_context_line = context_line
+        content = f"{chunk_context_line}\n{piece}".strip()
+        metadata = dict(base_metadata)
+        if total > 1:
+            metadata["subchunk_index"] = index
+            metadata["subchunk_total"] = total
+            metadata["chunk_strategy"] = "table_chunker_split"
+        else:
+            metadata["chunk_strategy"] = "table_single"
+        results.append((content, metadata))
+    return results
+
+
+def _split_table_markdown(markdown: str) -> list[str]:
+    """Cắt markdown bảng dài theo dòng bằng chonkie.TableChunker (giữ header)."""
+
+    from chonkie import TableChunker
+
+    rows_per_chunk = _rows_per_chunk(markdown)
+    try:
+        chunker = TableChunker(chunk_size=rows_per_chunk)
+        pieces = [chunk.text.strip() for chunk in chunker(markdown) if chunk.text.strip()]
+    except Exception:
+        pieces = []
+    # FIX 2C: tránh mảnh cuối chỉ có 1-2 hàng dữ liệu (embedding rất kém) -> gộp
+    # phần dữ liệu của mảnh cuối vào mảnh liền trước.
+    pieces = _merge_tiny_last_table_piece(pieces)
+    # Phòng trường hợp TableChunker không cắt được (vd markdown không chuẩn) ->
+    # fallback giữ nguyên 1 mảnh để không mất dữ liệu.
+    return pieces or [markdown]
+
+
+# Số hàng dữ liệu tối thiểu để mảnh bảng cuối được đứng riêng.
+_TABLE_MIN_LAST_DATA_ROWS = 3
+
+
+def _merge_tiny_last_table_piece(pieces: list[str]) -> list[str]:
+    """Gộp mảnh bảng cuối vào mảnh trước nếu nó quá ngắn (< 3 hàng dữ liệu).
+
+    ``TableChunker`` lặp lại 2 dòng đầu (header + dòng phân cách ``| --- |``) ở mỗi
+    mảnh, nên hàng dữ liệu của mảnh = các dòng từ vị trí 3 trở đi.
+    """
+
+    if len(pieces) < 2:
+        return pieces
+
+    last_lines = [line for line in pieces[-1].splitlines() if line.strip()]
+    data_rows = last_lines[2:] if len(last_lines) > 2 else []
+    if len(data_rows) >= _TABLE_MIN_LAST_DATA_ROWS:
+        return pieces
+    if not data_rows:
+        # Mảnh cuối chỉ có header, không có dữ liệu -> bỏ hẳn.
+        return pieces[:-1]
+    merged = pieces[-2] + "\n" + "\n".join(data_rows)
+    return pieces[:-2] + [merged]
+
+
+def _rows_per_chunk(markdown: str) -> int:
+    """Ước lượng số dòng/chunk sao cho mỗi mảnh ~<= TABLE_CHUNK_MAX_CHARS."""
+
+    lines = [line for line in markdown.split("\n") if line.strip()]
+    if len(lines) <= 3:
+        return max(1, len(lines))
+    # Hai dòng đầu thường là header + dòng phân cách "| --- |".
+    header_len = sum(len(line) + 1 for line in lines[:2])
+    data_lines = lines[2:]
+    avg_row_len = max(1, sum(len(line) + 1 for line in data_lines) // max(1, len(data_lines)))
+    budget = max(1, TABLE_CHUNK_MAX_CHARS - header_len)
+    return max(1, budget // avg_row_len)
+
+
 def _expanded_element_chunks(
     normalized: NormalizedDofficeDocument,
     element: NormalizedElement,
@@ -128,7 +414,8 @@ def _expanded_element_chunks(
         "document_code": normalized.document_code,
         "doc_code": normalized.document_code,
         "ky_hieu": normalized.document_code,
-        "issued_date": normalized.issued_date,
+        # FIX 3B: ưu tiên issued_date cấp văn bản, fallback về element metadata.
+        "issued_date": normalized.issued_date or element.metadata.get("issued_date"),
         "issuer": normalized.issuer,
         "issuing_org": normalized.issuer,
         "noi_ban_hanh": normalized.issuer,
@@ -193,7 +480,7 @@ def _element_content(element: NormalizedElement) -> str:
         document_code = element.metadata.get("document_code") or element.metadata.get("ky_hieu")
         title = element.metadata.get("trich_yeu")
         if document_code or title:
-            lines.append(f"VÄƒn báº£n: {document_code or ''} - {title or ''}".strip(" -"))
+            lines.append(f"Văn bản: {document_code or ''} - {title or ''}".strip(" -"))
     lines.append(element.text.strip())
     return "\n".join(line for line in lines if line.strip())
 

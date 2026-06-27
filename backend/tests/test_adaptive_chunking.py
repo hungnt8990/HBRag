@@ -10,11 +10,11 @@ from app.services.ingestion.ingestion_doffice_content_normalizer import normaliz
 
 
 def test_normalize_text_for_chunking_keeps_vietnamese_and_normalizes_dashes() -> None:
-    text = "Quyá»n lá»£i\u00a0ngÆ°á»i lao Ä‘á»™ng â€“ Ã¡p dá»¥ng\r\n\r\n\r\nÄiá»u 1. Ná»™i dung"
+    text = "Quyền lợi\u00a0người lao động – áp dụng\r\n\r\n\r\nĐiều 1. Nội dung"
 
     normalized = normalize_text_for_chunking(text)
 
-    assert "Quyá»n lá»£i ngÆ°á»i lao Ä‘á»™ng - Ã¡p dá»¥ng" in normalized
+    assert "Quyền lợi người lao động - áp dụng" in normalized
     assert "\r" not in normalized
     assert "\n\n\n" not in normalized
 
@@ -22,17 +22,17 @@ def test_normalize_text_for_chunking_keeps_vietnamese_and_normalizes_dashes() ->
 def test_legal_clause_chunk_keeps_article_context() -> None:
     chunks = build_body_evidence_chunks(
         text="""
-ChÆ°Æ¡ng II. Cháº¿ Ä‘á»™
-Äiá»u 10. Cháº¿ Ä‘á»™ nghá»‰ viá»‡c riÃªng
-1. NgÆ°á»i lao Ä‘á»™ng Ä‘Æ°á»£c nghá»‰ 03 ngÃ y khi káº¿t hÃ´n.
-a) Äiá»u kiá»‡n Ã¡p dá»¥ng theo quy cháº¿.
-Äiá»u 11. Cháº¿ Ä‘á»™ khÃ¡c
-1. Ná»™i dung khÃ¡c.
+Chương II. Chế độ
+Điều 10. Chế độ nghỉ việc riêng
+1. Người lao động được nghỉ 03 ngày khi kết hôn.
+a) Điều kiện áp dụng theo quy chế.
+Điều 11. Chế độ khác
+1. Nội dung khác.
 """,
         base_metadata={
             "source_type": "doffice_elasticsearch",
             "document_code": "01/QD-CPC",
-            "trich_yeu": "Quy Ä‘á»‹nh cháº¿ Ä‘á»™",
+            "trich_yeu": "Quy định chế độ",
             "issued_date": "01/06/2026",
             "issuer": "EVNCPC",
         },
@@ -41,44 +41,65 @@ a) Äiá»u kiá»‡n Ã¡p dá»¥ng theo quy cháº¿.
     article_10 = next(chunk for chunk in chunks if chunk.metadata["article_number"] == "10")
 
     assert article_10.metadata["chunk_type"] == "legal_clause"
-    assert article_10.metadata["article_title"] == "Cháº¿ Ä‘á»™ nghá»‰ viá»‡c riÃªng"
+    assert article_10.metadata["article_title"] == "Chế độ nghỉ việc riêng"
     assert article_10.metadata["clause_number"] == "1"
     assert article_10.metadata["point_label"] == "a"
-    assert "VÄƒn báº£n: 01/QD-CPC - Quy Ä‘á»‹nh cháº¿ Ä‘á»™" in article_10.content
-    assert "Äiá»u 10. Cháº¿ Ä‘á»™ nghá»‰ viá»‡c riÃªng" in article_10.content
+    assert "Văn bản: 01/QD-CPC - Quy định chế độ" in article_10.content
+    assert "Điều 10. Chế độ nghỉ việc riêng" in article_10.content
 
 
 
 def test_legal_clause_summary_stays_clause_scoped() -> None:
     chunks = build_body_evidence_chunks(
         text="""
-Äiá»u 1. Ná»™i dung Ä‘Ã o táº¡o
-1. Thá»i gian Ä‘Ã o táº¡o tá»« ngÃ y 17/06/2026 Ä‘áº¿n ngÃ y 19/06/2026.
-2. Äá»‹a Ä‘iá»ƒm Ä‘Ã o táº¡o táº¡i HÃ  Ná»™i.
-3. Kinh phÃ­ do CPCIT chi tráº£.
-Äiá»u 2. Tá»• chá»©c thá»±c hiá»‡n
-1. CÃ¡c Ä‘Æ¡n vá»‹ liÃªn quan triá»ƒn khai thá»±c hiá»‡n.
+Điều 1. Nội dung đào tạo
+1. Thời gian đào tạo từ ngày 17/06/2026 đến ngày 19/06/2026.
+2. Địa điểm đào tạo tại Hà Nội.
+3. Kinh phí do CPCIT chi trả.
+Điều 2. Tổ chức thực hiện
+1. Các đơn vị liên quan triển khai thực hiện.
 """,
         base_metadata={
             "source_type": "doffice_elasticsearch",
-            "document_code": "608/QÄ-IT",
-            "trich_yeu": "Quyáº¿t Ä‘á»‹nh Ä‘Ã o táº¡o",
+            "document_code": "608/QĐ-IT",
+            "trich_yeu": "Quyết định đào tạo",
         },
     )
 
     article_1 = next(chunk for chunk in chunks if chunk.metadata["article_number"] == "1")
 
-    assert article_1.metadata["summary"].startswith("Äiá»u 1 quy Ä‘á»‹nh:")
-    assert "Thá»i gian Ä‘Ã o táº¡o" in article_1.metadata["summary"]
-    assert "Äá»‹a Ä‘iá»ƒm Ä‘Ã o táº¡o" in article_1.metadata["summary"]
-    assert "Tá»• chá»©c thá»±c hiá»‡n" not in article_1.metadata["summary"]
+    assert article_1.metadata["summary"].startswith("Điều 1 quy định:")
+    assert "Thời gian đào tạo" in article_1.metadata["summary"]
+    assert "Địa điểm đào tạo" in article_1.metadata["summary"]
+    assert "Tổ chức thực hiện" not in article_1.metadata["summary"]
+
+
+def test_structure_chunks_keep_hierarchical_heading_path() -> None:
+    chunks = build_body_evidence_chunks(
+        text="""
+PHU LUC 02
+1. Objective
+1.1. Scope
+Scope details.
+2. Delivery
+Delivery details.
+""",
+        base_metadata={"document_code": "01/PL", "chunk_type": "document_body"},
+    )
+
+    scoped = next(chunk for chunk in chunks if chunk.metadata.get("section_title") == "1.1. Scope")
+
+    assert scoped.metadata["heading_path"] == ["PHU LUC 02", "1. Objective", "1.1. Scope"]
+    assert scoped.metadata["section_path"] == ["PHU LUC 02", "1. Objective", "1.1. Scope"]
+
+
 def test_quality_gate_blocks_table_placeholders_and_bad_table_rows() -> None:
     placeholder = apply_chunk_quality_gate(
-        "Ná»™i dung cÃ³ [[TABLE_1]] chÆ°a Ä‘Æ°á»£c thay tháº¿.",
+        "Nội dung có [[TABLE_1]] chưa được thay thế.",
         {"source_type": "doffice_elasticsearch", "chunk_type": "document_section", "document_code": "01/QD"},
     )
     bad_row = apply_chunk_quality_gate(
-        "DÃ²ng 1: thiáº¿u header",
+        "Dòng 1: thiếu header",
         {"source_type": "doffice_elasticsearch", "chunk_type": "table_row", "document_code": "01/QD"},
     )
 
@@ -90,35 +111,41 @@ def test_quality_gate_blocks_table_placeholders_and_bad_table_rows() -> None:
     assert "missing_table_headers" in bad_row.metadata["quality_gate_reasons"]
 
 
-def test_doffice_table_rows_keep_context_cells_and_logical_table_id() -> None:
+def test_doffice_table_chunk_keeps_context_and_logical_table_id() -> None:
     source = {
         "id_vb": "1068586",
         "ky_hieu": "6515/EVNCPC-VTCNTT",
-        "trich_yeu": "Báº£ng phÃ¢n cÃ´ng nhiá»‡m vá»¥",
+        "trich_yeu": "Bảng phân công nhiệm vụ",
         "noi_ban_hanh": "EVNCPC",
         "ngay_vb": "2026-06-04",
         "noi_dung": """
-Danh sÃ¡ch phÃ¢n cÃ´ng nhiá»‡m vá»¥
+Danh sách phân công nhiệm vụ
 <table>
-  <tr><th>STT</th><th>NgÆ°á»i phá»¥ trÃ¡ch</th><th>Nhiá»‡m vá»¥</th><th>Thá»i háº¡n</th></tr>
-  <tr><td>1</td><td>Nguyá»…n VÄƒn A</td><td>Tá»•ng há»£p bÃ¡o cÃ¡o</td><td>30/06/2026</td></tr>
-  <tr><td>2</td><td>Tráº§n Thá»‹ B</td><td>RÃ  soÃ¡t dá»¯ liá»‡u</td><td>25/06/2026</td></tr>
+  <tr><th>STT</th><th>Người phụ trách</th><th>Nhiệm vụ</th><th>Thời hạn</th></tr>
+  <tr><td>1</td><td>Nguyễn Văn A</td><td>Tổng hợp báo cáo</td><td>30/06/2026</td></tr>
+  <tr><td>2</td><td>Trần Thị B</td><td>Rà soát dữ liệu</td><td>25/06/2026</td></tr>
 </table>
-NÆ¡i nháº­n:
-- NhÆ° trÃªn;
+Nơi nhận:
+- Như trên;
 """,
     }
 
     normalized = normalize_doffice_source(source)
     chunks = build_doffice_chunks(normalized)
-    table_rows = [chunk for chunk in chunks if chunk.metadata.get("chunk_type") == "table_row"]
+    # Builder v2: bảng -> 1 chunk_type="table" (không nổ thành nhiều table_row).
+    table_chunks = [chunk for chunk in chunks if chunk.metadata.get("chunk_type") == "table"]
 
-    assert len(table_rows) == 2
-    first = table_rows[0]
-    assert first.metadata["table_title"] == "Danh sÃ¡ch phÃ¢n cÃ´ng nhiá»‡m vá»¥"
-    assert first.metadata["table_headers"] == ["STT", "NgÆ°á»i phá»¥ trÃ¡ch", "Nhiá»‡m vá»¥", "Thá»i háº¡n"]
-    assert first.metadata["row_index"] == 1
-    assert first.metadata["row_cells"]["NgÆ°á»i phá»¥ trÃ¡ch"] == "Nguyá»…n VÄƒn A"
-    assert first.metadata["logical_table_id"].startswith("ltbl_")
-    assert first.metadata["source_span"]["start"] < first.metadata["source_span"]["end"]
-    assert "[[TABLE_" not in first.content
+    assert len(table_chunks) == 1
+    table = table_chunks[0]
+    assert table.metadata["table_title"] == "Danh sách phân công nhiệm vụ"
+    assert table.metadata["table_headers"] == ["STT", "Người phụ trách", "Nhiệm vụ", "Thời hạn"]
+    assert table.metadata["row_count"] == 2
+    # Dữ liệu các dòng vẫn nằm đầy đủ trong nội dung markdown.
+    assert "Nguyễn Văn A" in table.content
+    assert "Trần Thị B" in table.content
+    assert table.metadata["logical_table_id"].startswith("ltbl_")
+    assert table.metadata["source_span"]["start"] < table.metadata["source_span"]["end"]
+    assert "[[TABLE_" not in table.content
+    # Dòng ngữ cảnh giúp chunk tự đủ nghĩa cho RAG.
+    assert "Bảng:" in table.content
+    assert "Văn bản: 6515/EVNCPC-VTCNTT" in table.content

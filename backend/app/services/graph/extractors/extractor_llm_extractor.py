@@ -40,7 +40,7 @@ Rules:
 - Extract benefits, durations, money amounts, dates, article numbers, organizations.
 - For tables, extract row-level relationships.
 - Example:
-  "Káº¿t hÃ´n" -> "Nghá»‰ 03 ngÃ y hÆ°á»Ÿng nguyÃªn lÆ°Æ¡ng"
+  "Kết hôn" -> "Nghỉ 03 ngày hưởng nguyên lương"
   relation type: "duoc_huong"
 - Do not invent.
 - Do not include explanations outside JSON.

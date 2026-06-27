@@ -47,6 +47,7 @@ class KnowledgeArtifactCompiler:
         artifacts.append(self._document_summary_artifact(document_profile))
         artifacts.extend(self._identifier_artifacts(document=document, chunks=chunks))
         artifacts.extend(self._row_artifacts(document=document, chunks=chunks))
+        artifacts.extend(self._table_context_artifacts(document=document, chunks=chunks))
         artifacts.extend(self._training_decision_artifacts(document=document, chunks=chunks))
         artifacts.extend(self._qa_packet_artifacts(document=document, chunks=chunks))
         artifacts.extend(self._procedure_artifacts(document=document, chunks=chunks))
@@ -245,6 +246,16 @@ class KnowledgeArtifactCompiler:
             else:
                 question = f"Dòng {metadata.get('row_index') or chunk.chunk_index} của bảng chứa thông tin gì?"
                 answer = KnowledgeArtifactCompiler._snippet(chunk.content, 700)
+        elif chunk_type == "table_group":
+            table_name = metadata.get("table_name") or metadata.get("table_title") or "bảng này"
+            group_name = metadata.get("group_name") or f"Rows {metadata.get('row_start')}-{metadata.get('row_end')}"
+            question = f"Nhóm {group_name} của {table_name} gồm nội dung gì?"
+            answer = KnowledgeArtifactCompiler._snippet(chunk.content, 700)
+        elif chunk_type == "table_column":
+            table_name = metadata.get("table_name") or metadata.get("table_title") or "bảng này"
+            column_name = metadata.get("column_name") or metadata.get("table_column") or "cột này"
+            question = f"Cột {column_name} của {table_name} chứa thông tin gì?"
+            answer = KnowledgeArtifactCompiler._snippet(chunk.content, 700)
         elif chunk_type == "document_summary":
             question = "Văn bản này có mục đích chính là gì?"
             answer = KnowledgeArtifactCompiler._snippet(chunk.content, 700)
@@ -403,6 +414,63 @@ class KnowledgeArtifactCompiler:
                 )
             if len(artifacts) >= self._config.max_table_row_artifacts:
                 break
+        return artifacts
+
+    def _table_context_artifacts(
+        self,
+        *,
+        document: Document,
+        chunks: list[Chunk],
+    ) -> list[KnowledgeArtifactCreate]:
+        artifacts: list[KnowledgeArtifactCreate] = []
+        for chunk in chunks:
+            metadata = dict(chunk.chunk_metadata or {})
+            chunk_type = str(metadata.get("chunk_type") or "").casefold()
+            if chunk_type not in {"table_group", "table_column"}:
+                continue
+            table_data = {
+                key: value
+                for key, value in metadata.items()
+                if key
+                in {
+                    "chunk_type",
+                    "table_title",
+                    "table_name",
+                    "table_id",
+                    "logical_table_id",
+                    "table_headers",
+                    "column_name",
+                    "column_index",
+                    "row_context_headers",
+                    "row_start",
+                    "row_end",
+                    "row_count",
+                    "group_name",
+                    "source_span",
+                }
+                and value not in (None, "", [], {})
+            }
+            table_data["content"] = self._snippet(chunk.content, 1200)
+            label = metadata.get("column_name") or metadata.get("group_name") or metadata.get("table_title") or metadata.get("table_name")
+            canonical = f"Table context artifact from {document.title}: {self._render_value(table_data)}"
+            artifacts.append(
+                KnowledgeArtifactCreate(
+                    artifact_type=f"{chunk_type}_artifact",
+                    context_type="table",
+                    title=str(label or chunk_type)[:255],
+                    canonical_text=canonical,
+                    source_chunk_ids=[str(chunk.id)],
+                    structured_data=table_data,
+                    normalized_identifiers={
+                        "document_id": str(document.id),
+                        "identifiers": self._identifiers_from_text(chunk.content),
+                    },
+                    citation_map={"document_id": str(document.id), "chunks": [self._chunk_citation(chunk)]},
+                    confidence_score=0.8,
+                    extraction_method="deterministic",
+                    status="ready",
+                )
+            )
         return artifacts
 
     def _legal_evidence_artifacts(
@@ -586,12 +654,16 @@ class KnowledgeArtifactCompiler:
     @staticmethod
     def _is_table_row(metadata: dict[str, Any]) -> bool:
         chunk_type = str(metadata.get("chunk_type") or "").casefold()
-        if "row" in chunk_type:
+        if chunk_type in {"table_group", "table_column", "table_header", "table_title", "table_parent", "table_block"}:
+            return False
+        if chunk_type in {"table_row", "legal_table_row", "structured_fact_row", "catalog_row_chunk", "staff_matrix_row"}:
             return True
-        if metadata.get("row_start") is not None or metadata.get("row_end") is not None:
+        if chunk_type.endswith("_row") or chunk_type.endswith("_row_chunk"):
             return True
-        headers = metadata.get("headers")
-        return isinstance(headers, list) and bool(headers)
+        row_markers = ("row_key", "person_name", "email", "case_name")
+        return any(metadata.get(marker) for marker in row_markers) and (
+            metadata.get("table_id") is not None or metadata.get("table_title") is not None
+        )
 
     @staticmethod
     def _row_data(*, chunk: Chunk, metadata: dict[str, Any]) -> dict[str, Any]:

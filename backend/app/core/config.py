@@ -36,6 +36,20 @@ class Settings(BaseSettings):
     qdrant_hybrid_candidate_multiplier: int = 4
     auto_recreate_collection: bool = False
 
+    # Qdrant performance — mặc định TẮT/an toàn; chỉ có hiệu lực khi tạo/recreate
+    # collection mới (hnsw/quantization/on_disk) hoặc khi query (search_hnsw_ef).
+    qdrant_quantization_enabled: bool = False          # INT8 quantization (bật khi recreate)
+    qdrant_vector_on_disk: bool = False                # vector gốc trên đĩa (RAM < ~300GB)
+    qdrant_hnsw_m: int = 16                             # số neighbor HNSW
+    qdrant_hnsw_ef_construct: int = 100                # chất lượng dựng index
+    qdrant_hnsw_on_disk: bool = False                  # HNSW index trên đĩa
+    qdrant_search_hnsw_ef: int = 128                   # ef lúc query (accuracy vs speed)
+    qdrant_quantization_rescore: bool = True           # rescore sau khi search quantized
+    qdrant_quantization_oversampling: float = 2.0      # oversample trước rescore
+    qdrant_shard_number: int = 1                       # số shard (4-8 cho ~20M chunks)
+    qdrant_replication_factor: int = 1                 # replica (2 cho HA)
+    qdrant_memmap_threshold: int = 20000               # segment size -> dùng mmap
+
     dense_vector_name: str = "dense"
     sparse_vector_name: str = "sparse"
     sparse_embedding_enabled: bool = True
@@ -56,8 +70,23 @@ class Settings(BaseSettings):
     docling_strict_quality: bool = True
     enable_unstructured: bool = False
 
-    doffice_es_url: str = "http://10.72.2.42:9200/doffice_vanban/_search"
+    doffice_es_url: str = "https://10.72.121.232:9200/doffice_vanban/_search"
     doffice_es_timeout_seconds: int = 30
+    doffice_es_username: str | None = None
+    doffice_es_password: str | None = None
+    doffice_es_verify_ssl: bool = False  # ES nội bộ self-signed -> mặc định bỏ verify
+
+    # ACL giả định: API DOffice hiện CHƯA trả don_vi_list/phong_ban_list/ca_nhan_list.
+    # Khi bật, nếu bản ghi thiếu 3 list này thì dùng giá trị mẫu dưới để bộ quyền vẫn chạy
+    # (id phải có trong danh mục: đơn vị 269, phòng 43310 là ví dụ thật). Tắt khi API trả ACL.
+    doffice_synthetic_acl_enabled: bool = True
+    doffice_synthetic_don_vi_list: list[int] = Field(default_factory=lambda: [269])
+    doffice_synthetic_phong_ban_list: list[int] = Field(default_factory=lambda: [43310])
+    doffice_synthetic_ca_nhan_list: list[int] = Field(default_factory=list)
+
+    # Chunker DOffice v2: bỏ table-explosion (mỗi bảng 1 vài chunk thay vì 4 "view"),
+    # làm sạch text trước khi chunk. Tắt (False) để quay lại builder cũ (legacy).
+    doffice_chunker_v2_enabled: bool = True
 
     elasticsearch_enabled: bool = False
     elasticsearch_url: str = "http://localhost:9200"
@@ -65,6 +94,28 @@ class Settings(BaseSettings):
     elasticsearch_timeout_seconds: int = 30
     elasticsearch_index_batch_size: int = 128
     elasticsearch_fallback_to_postgres: bool = True
+    # ES index tuning — chỉ áp dụng khi tạo index MỚI; index cũ dùng
+    # scripts/maintenance/es_update_settings.py để cập nhật.
+    elasticsearch_number_of_shards: int = 8
+    elasticsearch_number_of_replicas: int = 1
+    elasticsearch_refresh_interval: str = "30s"
+
+    # Redis cache cho kết quả search (mặc định TẮT; bật khi redis_url có giá trị).
+    redis_url: str | None = None
+    search_cache_ttl_seconds: int = 300
+    search_cache_enabled: bool = False
+
+    # Two-stage retrieval (mặc định TẮT) — Stage1 tìm document, Stage2 search chunk.
+    two_stage_retrieval_enabled: bool = False
+    two_stage_document_index_url: str | None = None    # None = dùng cùng elasticsearch_url
+    two_stage_stage1_top_n: int = 50
+    two_stage_stage1_min_results: int = 3              # fallback full search khi stage1 < ngưỡng
+    two_stage_chunk_threshold: int = 5_000_000         # bật two-stage khi corpus đủ lớn
+    # Document index BBQ embedding (Stage 1 hybrid kNN + BM25)
+    two_stage_document_embedding_enabled: bool = False  # bật khi muốn dùng BBQ vector
+    two_stage_document_embedding_text: str = "trich_yeu_tom_tat"  # nguồn text để embed
+    # API tìm kiếm văn bản: API key tĩnh để chặn truy cập (rỗng = mở, cho dev).
+    document_search_api_key: str | None = None
 
     memory_provider: str = "local"
     memory_enabled: bool = True

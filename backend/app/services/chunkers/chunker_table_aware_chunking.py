@@ -6,11 +6,6 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from app.services.parsers.parser_table_serialization import (
-    build_table_row_record,
-    build_table_title_record,
-    infer_headers,
-)
 from app.services.chunkers.chunker_table_relationships import (
     ALLOWED_DEPARTMENTS,
     build_entity_profile_chunks,
@@ -19,6 +14,11 @@ from app.services.chunkers.chunker_table_relationships import (
     parse_staff_members,
     parse_technology_area_rows_from_text,
     row_to_chunk,
+)
+from app.services.parsers.parser_table_serialization import (
+    build_table_row_record,
+    build_table_title_record,
+    infer_headers,
 )
 
 _PIPE_LINE = re.compile(r"^[^|]+(?:\|[^|]+){1,}$")
@@ -31,10 +31,10 @@ _TABLE_ROW_LINE = re.compile(
 _ABBREV_PATTERN = re.compile(r"\b[A-Z0-9][A-Z0-9._/-]{1,}\b")
 _ENTITY_STOP_WORDS = {
     "Cac",
-    "Cï¿½c",
+    "C�c",
     "Danh",
     "ENTITY_SUMMARY",
-    "Phï¿½ng",
+    "Ph�ng",
     "Phong",
     "STT",
     "TABLE_HEADER",
@@ -43,7 +43,7 @@ _ENTITY_STOP_WORDS = {
     "M?ng",
     "Mang",
     "Nhom",
-    "Nhï¿½m",
+    "Nh�m",
 }
 
 _ALIGNED_SEGMENT_RE = re.compile(r'\S.*?(?=\s{2,}|\s*$)')
@@ -51,8 +51,9 @@ _ALIGNED_SEGMENT_RE = re.compile(r'\S.*?(?=\s{2,}|\s*$)')
 MIN_TABLE_ROWS = 2
 PIPE_SEPARATOR = " | "
 ENTITY_MIN_ROWS = 2
+TABLE_GROUP_SIZE = 10
 TABLE_HEADER_PREFIX = "TABLE_HEADER"
-STAFF_AREA_TABLE_TITLE = "Danh sÃ¡ch nhÃ¢n sá»± phá»¥ trÃ¡ch tá»«ng máº£ng cÃ´ng nghá»‡ lÃµi"
+STAFF_AREA_TABLE_TITLE = "Danh sách nhân sự phụ trách từng mảng công nghệ lõi"
 STAFF_AREA_LAYOUT_TABLE_ID = "staff_area_layout"
 STAFF_AREA_DEPARTMENTS = ("KTMVT", "PTUD", "PM", "VH", "ATTT")
 STAFF_AREA_ANCHOR_RE = re.compile(
@@ -66,7 +67,7 @@ STAFF_AREA_TABLE_MARKER_RE = re.compile(
     flags=re.IGNORECASE,
 )
 STAFF_AREA_NOTE_MARKER_RE = re.compile(
-    r"diem\s+can\s+luu\s+y|Ä‘iá»ƒm\s+cáº§n\s+lÆ°u\s+Ã½",
+    r"diem\s+can\s+luu\s+y|điểm\s+cần\s+lưu\s+ý|Ä‘iểm\s+cần\s+lưu\s+ý",
     flags=re.IGNORECASE,
 )
 SUMMARY_ENTITY_STOPLIST = {
@@ -600,7 +601,216 @@ def table_to_supporting_chunks(
             chunk_size=chunk_size,
         )
     )
+    chunks.extend(
+        table_to_group_chunks(
+            table,
+            start_index=start_index + len(chunks),
+            group_size=TABLE_GROUP_SIZE,
+        )
+    )
+    chunks.extend(
+        table_to_column_chunks(
+            table,
+            start_index=start_index + len(chunks),
+            chunk_size=chunk_size,
+        )
+    )
     return chunks
+
+
+def table_to_group_chunks(
+    table: TableBlock,
+    *,
+    start_index: int = 0,
+    group_size: int = TABLE_GROUP_SIZE,
+) -> list[dict[str, Any]]:
+    chunks: list[dict[str, Any]] = []
+    rows = table_to_row_chunks(table)
+    if len(rows) <= 1:
+        return chunks
+    safe_group_size = max(1, group_size)
+    for row_offset in range(0, len(rows), safe_group_size):
+        group_rows = rows[row_offset : row_offset + safe_group_size]
+        if not group_rows:
+            continue
+        row_start = row_offset + 1
+        row_end = row_start + len(group_rows) - 1
+        lines = [
+            f"Bảng: {table.title or table.table_id}",
+            f"Nhóm dòng: Rows {row_start}-{row_end}",
+        ]
+        if table.headers:
+            lines.append("Header: " + " | ".join(table.headers))
+        lines.append("Các dòng liên quan:")
+        lines.extend(f"- {chunk['content']}" for chunk in group_rows)
+        chunks.append(
+            {
+                "chunk_index": start_index + len(chunks),
+                "content": "\n".join(line for line in lines if line),
+                "metadata": {
+                    "chunk_type": "table_group",
+                    "chunk_mode": "table_aware",
+                    "table_id": table.table_id,
+                    "table_title": table.title,
+                    "table_headers": list(table.headers),
+                    "headers": list(table.headers),
+                    "page_number": table.page_number,
+                    "row_start": row_start,
+                    "row_end": row_end,
+                    "row_count": len(group_rows),
+                    "table_group_kind": "row_window",
+                    "source_span": {
+                        "start": table.start_char,
+                        "end": table.end_char,
+                    },
+                    "start_char": table.start_char,
+                    "end_char": table.end_char,
+                },
+            }
+        )
+    return chunks
+
+
+def table_to_column_chunks(
+    table: TableBlock,
+    *,
+    start_index: int = 0,
+    chunk_size: int = 1000,
+) -> list[dict[str, Any]]:
+    if not table.headers or not table.rows:
+        return []
+    chunks: list[dict[str, Any]] = []
+    row_context_indices = _table_column_context_indices(table.headers)
+    for column_index, column_name in enumerate(table.headers):
+        if not str(column_name or "").strip():
+            continue
+        row_lines = _table_column_row_lines(table, column_index, row_context_indices)
+        if not row_lines:
+            continue
+        current_lines: list[str] = []
+        row_start = 1
+        base_length = len(column_name) + len(str(table.title or table.table_id)) + 120
+        current_length = base_length
+        for line_index, line in enumerate(row_lines, start=1):
+            next_length = current_length + len(line) + 1
+            if current_lines and next_length > chunk_size:
+                chunks.append(
+                    _make_table_column_chunk(
+                        table=table,
+                        column_name=column_name,
+                        column_index=column_index,
+                        row_context_indices=row_context_indices,
+                        row_lines=current_lines,
+                        row_start=row_start,
+                        start_index=start_index + len(chunks),
+                    )
+                )
+                row_start = line_index
+                current_lines = []
+                current_length = base_length
+            current_lines.append(line)
+            current_length += len(line) + 1
+        if current_lines:
+            chunks.append(
+                _make_table_column_chunk(
+                    table=table,
+                    column_name=column_name,
+                    column_index=column_index,
+                    row_context_indices=row_context_indices,
+                    row_lines=current_lines,
+                    row_start=row_start,
+                    start_index=start_index + len(chunks),
+                )
+            )
+    return chunks
+
+
+def _table_column_context_indices(headers: list[str]) -> list[int]:
+    preferred = {"stt", "tt", "no", "id", "name", "tên", "họ tên", "nội dung", "dữ liệu"}
+    indices: list[int] = []
+    for index, header in enumerate(headers):
+        normalized = normalize_metadata_value(str(header or ""))
+        if normalized in preferred or any(term in normalized for term in ("ten", "noi dung", "du lieu", "name")):
+            indices.append(index)
+        if len(indices) >= 2:
+            break
+    if not indices and headers:
+        indices.append(0)
+    return indices
+
+
+def _table_column_row_lines(
+    table: TableBlock,
+    column_index: int,
+    row_context_indices: list[int],
+) -> list[str]:
+    lines: list[str] = []
+    for row_index, row in enumerate(table.rows, start=1):
+        value = row[column_index].strip() if column_index < len(row) else ""
+        if not value:
+            continue
+        context_parts = []
+        for context_index in row_context_indices:
+            if context_index == column_index or context_index >= len(row) or context_index >= len(table.headers):
+                continue
+            context_value = row[context_index].strip()
+            if context_value:
+                context_parts.append(f"{table.headers[context_index]}: {context_value}")
+        context = "; ".join(context_parts) if context_parts else f"Row {row_index}"
+        lines.append(f"| {row_index} | {context} | {value} |")
+    return lines
+
+
+def _make_table_column_chunk(
+    *,
+    table: TableBlock,
+    column_name: str,
+    column_index: int,
+    row_context_indices: list[int],
+    row_lines: list[str],
+    row_start: int,
+    start_index: int,
+) -> dict[str, Any]:
+    row_end = row_start + len(row_lines) - 1
+    context_headers = [
+        table.headers[index]
+        for index in row_context_indices
+        if index != column_index and index < len(table.headers)
+    ]
+    lines = [
+        f"Bảng: {table.title or table.table_id}",
+        f"Cột bảng: {column_name}",
+        "Cột dùng làm ngữ cảnh hàng: " + ", ".join(context_headers) if context_headers else "",
+        "| Dòng | Ngữ cảnh hàng | Nội dung cột |",
+        "| --- | --- | --- |",
+        *row_lines,
+    ]
+    return {
+        "chunk_index": start_index,
+        "content": "\n".join(line for line in lines if line),
+        "metadata": {
+            "chunk_type": "table_column",
+            "chunk_mode": "table_aware",
+            "table_id": table.table_id,
+            "table_title": table.title,
+            "table_headers": list(table.headers),
+            "headers": list(table.headers),
+            "page_number": table.page_number,
+            "column_name": column_name,
+            "table_column": column_name,
+            "column_index": column_index,
+            "row_context_headers": context_headers,
+            "row_start": row_start,
+            "row_end": row_end,
+            "row_count": len(row_lines),
+            "source_span": {
+                "start": table.start_char,
+                "end": table.end_char,
+            },
+            "start_char": table.start_char,
+            "end_char": table.end_char,
+        },
+    }
 
 
 def _table_to_block_chunks(
@@ -1058,7 +1268,7 @@ def _staff_area_semantic_text_chunks(part: str, *, offset: int) -> list[dict[str
     stripped = part.strip()
     if not stripped:
         return []
-    note_match = re.search(r"(?mi)^\s*Äiá»ƒm\s+cáº§n\s+lÆ°u\s+Ã½.*$", part)
+    note_match = re.search(r"(?mi)^\s*(?:Điểm\s+cần\s+lưu\s+ý|Diem\s+can\s+luu\s+y|Điểm\s+cần\s+lưu\s+ý).*$", part)
     if note_match:
         content = part[note_match.start() :].strip()
         return [
@@ -1295,7 +1505,9 @@ def _parse_staff_area_generic_row(
     next_line: str,
 ) -> dict[str, Any] | None:
     department_marker = f"P.{department}"
-    marker_index = previous_line.find("PhÃ²ng ")
+    marker_index = previous_line.find("Phòng ")
+    if marker_index < 0:
+        marker_index = previous_line.find("Phòng ")
     if marker_index < 0:
         return None
     area_prefix = previous_line[:marker_index].strip()
@@ -1305,7 +1517,7 @@ def _parse_staff_area_generic_row(
     area_suffix = next_line[:suffix_index].strip() if suffix_index >= 0 else next_line.strip()
     area = _clean_staff_area_cell(f"{area_prefix} {area_suffix}")
     generic_assignment_text = _clean_staff_area_cell(
-        f"PhÃ²ng {department_marker} vÃ  cÃ¡c nhÃ¢n sá»± khÃ¡c do {department_marker} Ä‘á» xuáº¥t"
+        f"Phòng {department_marker} và các nhân sự khác do {department_marker} đề xuất"
     )
     raw_text = " ".join(part for part in (previous_line, f"{stt} {department}", next_line) if part)
     if not area or not staff_prefix:
@@ -1346,9 +1558,9 @@ def _make_staff_area_row_chunk(row: dict[str, Any], *, chunk_index: int) -> dict
         assignment_text = str(row.get("generic_assignment_text") or "").strip()
     content = (
         f"STT: {row['stt']}\n"
-        f"Máº£ng cÃ´ng nghá»‡: {row['area']}\n"
-        f"PhÃ²ng chá»§ trÃ¬: {row['lead_department']}\n"
-        f"NhÃ¢n sá»± Ä‘á» xuáº¥t: {assignment_text}"
+        f"Mảng công nghệ: {row['area']}\n"
+        f"Phòng chủ trì: {row['lead_department']}\n"
+        f"Nhân sự đề xuất: {assignment_text}"
     )
     source_row_id = f"{STAFF_AREA_LAYOUT_TABLE_ID}_row_{row['stt']}"
     metadata: dict[str, Any] = {
@@ -1358,7 +1570,7 @@ def _make_staff_area_row_chunk(row: dict[str, Any], *, chunk_index: int) -> dict
         "overlap_applied": False,
         "table_id": STAFF_AREA_LAYOUT_TABLE_ID,
         "table_title": STAFF_AREA_TABLE_TITLE,
-        "headers": ["STT", "Máº£ng cÃ´ng nghá»‡", "PhÃ²ng chá»§ trÃ¬", "NhÃ¢n sá»± Ä‘á» xuáº¥t"],
+        "headers": ["STT", "Mảng công nghệ", "Phòng chủ trì", "Nhân sự đề xuất"],
         "row_index": int(row["stt"]),
         "row_start": int(row["stt"]),
         "row_end": int(row["stt"]),
@@ -1408,7 +1620,9 @@ def _is_staff_area_generic_anchor(line: str) -> bool:
     return re.match(r"^(7\s+PM|8\s+VH)$", line.strip()) is not None
 
 def _is_staff_area_generic_assignment_line(line: str) -> bool:
-    return "PhÃ²ng P." in line and "nhÃ¢n sá»±" in line
+    return ("Phòng P." in line or "Phòng P." in line) and (
+        "nhân sự" in line or "nhân sá»±" in line
+    )
 
 def _clean_staff_area_cell(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip(" -;:|/")
@@ -1418,7 +1632,8 @@ def _normalize_staff_area_layout_text(value: str) -> str:
 
     decomposed = unicodedata.normalize("NFD", value)
     stripped = "".join(char for char in decomposed if unicodedata.category(char) != "Mn")
-    stripped = stripped.replace("Ä", "D").replace("Ä‘", "d")
+    stripped = stripped.replace("Đ", "D").replace("đ", "d")
+    stripped = stripped.replace("Đ", "D").replace("Ä‘", "d")
     return re.sub(r"\s+", " ", stripped).strip().lower()
 
 def _staff_area_page_number(stt: str) -> int | None:

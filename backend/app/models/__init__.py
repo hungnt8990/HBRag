@@ -1,6 +1,7 @@
 from app.models.chat import ChatMessage, ChatSession
 from app.models.chunk import Chunk
 from app.models.citation import Citation
+from app.models.danh_muc import DonVi, NhanVien, PhongBan
 from app.models.document import Document, DocumentFile
 from app.models.document_log import DocumentAccessLog, DocumentPipelineLog
 from app.models.doffice import DofficeRawDocument
@@ -24,13 +25,16 @@ __all__ = [
     "DocumentFile",
     "DocumentPipelineLog",
     "DofficeRawDocument",
+    "DonVi",
     "GraphDocumentStatus",
     "GraphExtractionLog",
     "IngestionProfileConfig",
     "KnowledgeArtifact",
     "KnowledgeBase",
     "KnowledgeBaseMember",
+    "NhanVien",
     "Organization",
+    "PhongBan",
     "RagRuntimeConfig",
     "RetrievalLog",
     "Role",

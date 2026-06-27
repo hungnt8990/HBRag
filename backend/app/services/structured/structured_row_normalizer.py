@@ -25,7 +25,7 @@ def normalize_structured_row(
 
     fields: dict[str, Any] = {}
 
-    # Generic copy: khÃ´ng hiá»ƒu tiáº¿ng Viá»‡t, chá»‰ gom field cÃ³ sáºµn.
+    # Generic copy: không hiểu tiếng Việt, chỉ gom field có sẵn.
     for key, value in metadata.items():
         if value in (None, "", [], {}):
             continue

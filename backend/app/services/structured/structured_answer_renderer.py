@@ -7,14 +7,14 @@ from app.services.structured.structured_schemas import StructuredEvidence, Struc
 from app.services.chunkers.chunker_table_relationships import normalize_metadata_value
 
 PREFERRED_LABELS = {
-    "subject": "Ná»™i dung",
-    "topic": "Ná»™i dung",
-    "area": "Máº£ng/Ná»™i dung",
-    "department": "ÄÆ¡n vá»‹ phá»¥ trÃ¡ch",
-    "person": "NhÃ¢n sá»±",
-    "measure_value": "GiÃ¡ trá»‹",
-    "measure_text": "ThÃ´ng tin",
-    "condition": "Äiá»u kiá»‡n",
+    "subject": "Nội dung",
+    "topic": "Nội dung",
+    "area": "Mảng/Nội dung",
+    "department": "Đơn vị phụ trách",
+    "person": "Nhân sự",
+    "measure_value": "Giá trị",
+    "measure_text": "Thông tin",
+    "condition": "Điều kiện",
 }
 
 
@@ -29,8 +29,8 @@ def _clean_text(value: Any) -> str:
         text = ", ".join(_clean_text(item) for item in value if item not in (None, ""))
     else:
         text = str(value or "")
-    text = text.replace("NSDLÄ", "ngÆ°á»i sá»­ dá»¥ng lao Ä‘á»™ng")
-    text = re.sub(r"\bNSDLD\b", "ngÆ°á»i sá»­ dá»¥ng lao Ä‘á»™ng", text, flags=re.IGNORECASE)
+    text = text.replace("NSDLĐ", "người sử dụng lao động")
+    text = re.sub(r"\bNSDLD\b", "người sử dụng lao động", text, flags=re.IGNORECASE)
     return re.sub(r"\s+", " ", text).strip(" .;:")
 
 
@@ -54,11 +54,11 @@ def _row_subject(row: StructuredRow) -> str:
         value = _clean_text(row.fields.get(key))
         if value:
             return value
-    return _clean_text(row.raw_text[:160]) or "thÃ´ng tin Ä‘Æ°á»£c truy xuáº¥t"
+    return _clean_text(row.raw_text[:160]) or "thông tin được truy xuất"
 
 
 def _source_label(row: StructuredRow) -> str:
-    return _clean_text(row.source_title) or "dá»¯ liá»‡u Ä‘Æ°á»£c truy xuáº¥t"
+    return _clean_text(row.source_title) or "dữ liệu được truy xuất"
 
 
 def _subject_variants(subject: str) -> list[str]:
@@ -184,10 +184,10 @@ def _row_condition_suffix(row: StructuredRow) -> str:
     ]
     for candidate in candidates:
         text = _clean_text(candidate)
-        match = re.search(r"(?i)(pháº£i\s+thÃ´ng\s+bÃ¡o\b.*|phai\s+thong\s+bao\b.*)", text)
+        match = re.search(r"(?i)(phải\s+thông\s+báo\b.*|phai\s+thong\s+bao\b.*)", text)
         if match:
             condition = _clean_text(match.group(1))
-            return f" vÃ  {_lowercase_initial(condition)}"
+            return f" và {_lowercase_initial(condition)}"
     return ""
 
 
@@ -214,7 +214,7 @@ def _row_bullet(row: StructuredRow) -> str | None:
     condition = _row_condition_suffix(row)
     citation = f" [{row.citation}]" if row.citation else ""
     if days is not None:
-        return f"- **{subject}:** ÄÆ°á»£c hÆ°á»Ÿng **{days:02d} ngÃ y**{condition}.{citation}"
+        return f"- **{subject}:** Được hưởng **{days:02d} ngày**{condition}.{citation}"
     if detail:
         return f"- **{subject}:** {detail}{condition}.{citation}"
     return f"- **{subject}**{condition}.{citation}"
@@ -297,16 +297,16 @@ def render_structured_answer(
 
     if days is not None:
         lines = [
-            f"Theo {source_label}, trÆ°á»ng há»£p **{selected_display}** Ä‘Æ°á»£c ghi nháº­n trong dá»¯ liá»‡u Ä‘Æ°á»£c truy xuáº¥t.",
+            f"Theo {source_label}, trường hợp **{selected_display}** được ghi nhận trong dữ liệu được truy xuất.",
             "",
-            f"- **Tá»•ng sá»‘ ngÃ y:** **{days:02d} ngÃ y** hÆ°á»Ÿng nguyÃªn lÆ°Æ¡ng.{citation}",
+            f"- **Tổng số ngày:** **{days:02d} ngày** hưởng nguyên lương.{citation}",
         ]
         base_days, additional_days = _component_breakdown(best)
         if base_days is not None and additional_days is not None:
             lines.append(
-                "- **Chi tiáº¿t thÃ nh pháº§n:** Bao gá»“m "
-                f"**{base_days:02d} ngÃ y** theo quy Ä‘á»‹nh ná»n vÃ  "
-                f"**{additional_days:02d} ngÃ y** theo quy Ä‘á»‹nh bá»• sung trong tÃ i liá»‡u."
+                "- **Chi tiết thành phần:** Bao gồm "
+                f"**{base_days:02d} ngày** theo quy định nền và "
+                f"**{additional_days:02d} ngày** theo quy định bổ sung trong tài liệu."
             )
         else:
             condition = _row_condition_suffix(best)
@@ -317,14 +317,14 @@ def render_structured_answer(
             f"Theo {source_label}, khi **{selected_display}**: {detail}.{citation}"
         ]
     else:
-        lines = [f"Theo {source_label}, ná»™i dung phÃ¹ há»£p nháº¥t lÃ  **{subject}**.{citation}"]
+        lines = [f"Theo {source_label}, nội dung phù hợp nhất là **{subject}**.{citation}"]
 
     if alternatives and not selected_is_full_subject:
         alternatives_text = "; ".join(_lowercase_initial(item) for item in alternatives)
         lines.extend(
             [
                 "",
-                f"ThÃ´ng tin nÃ y cÅ©ng náº±m cÃ¹ng dÃ²ng dá»¯ liá»‡u vá»›i: {alternatives_text}.",
+                f"Thông tin này cũng nằm cùng dòng dữ liệu với: {alternatives_text}.",
             ]
         )
 
@@ -353,8 +353,8 @@ def render_structured_answer(
             [
                 "",
                 (
-                    f"NgoÃ i trÆ°á»ng há»£p **{_lowercase_initial(selected_subject)}**, "
-                    "tÃ i liá»‡u cÃ²n quy Ä‘á»‹nh cÃ¡c trÆ°á»ng há»£p liÃªn quan trong cÃ¹ng báº£ng nhÆ° sau:"
+                    f"Ngoài trường hợp **{_lowercase_initial(selected_subject)}**, "
+                    "tài liệu còn quy định các trường hợp liên quan trong cùng bảng như sau:"
                 ),
                 "",
                 *related_bullets,

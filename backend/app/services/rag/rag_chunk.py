@@ -260,7 +260,7 @@ def infer_table_metadata(
     combined = "\n".join([*section_path, text[:1000]])
     table_name: str | None = None
     for pattern in (
-        r"TÃªn báº£ng dá»¯ liá»‡u:\s*([A-Za-z][A-Za-z0-9_]+)",
+        r"Tên bảng dữ liệu:\s*([A-Za-z][A-Za-z0-9_]+)",
         r"\b(HinhAnh(?:CotDien|KhachHang|HoSoKhachHang))\b",
         r"\b(F\d+_[A-Za-z0-9_]+)\b",
     ):
@@ -275,7 +275,7 @@ def infer_table_metadata(
         if " - " in leaf:
             description = leaf.split(" - ", 1)[1].strip() or None
     if description is None:
-        match = re.search(r"MÃ´ táº£\s*:?\s*([^\n|]+)", text, flags=re.IGNORECASE)
+        match = re.search(r"Mô tả\s*:?\s*([^\n|]+)", text, flags=re.IGNORECASE)
         if match:
             description = " ".join(match.group(1).split()).strip() or None
 
@@ -296,7 +296,7 @@ def infer_table_metadata(
 
 
 DOC_CODE_PATTERN = re.compile(
-    r"\b(?P<number>\d{2,6})\s*/\s*(?P<suffix>[A-ZÄÆ Æ¯Ã‚ÃŠÃ”Ä‚ÃÃ€áº¢Ãƒáº Ã‰Ãˆáººáº¼áº¸ÃÃŒá»ˆÄ¨á»ŠÃ“Ã’á»ŽÃ•á»ŒÃšÃ™á»¦Å¨á»¤Ãá»²á»¶á»¸á»´0-9][A-ZÄÆ Æ¯Ã‚ÃŠÃ”Ä‚ÃÃ€áº¢Ãƒáº Ã‰Ãˆáººáº¼áº¸ÃÃŒá»ˆÄ¨á»ŠÃ“Ã’á»ŽÃ•á»ŒÃšÃ™á»¦Å¨á»¤Ãá»²á»¶á»¸á»´0-9+\-_/]{2,})\b",
+    r"\b(?P<number>\d{2,6})\s*/\s*(?P<suffix>[A-ZĐƠƯÂÊÔĂÁÀẢÃẠÉÈẺẼẸÍÌỈĨỊÓÒỎÕỌÚÙỦŨỤÝỲỶỸỴ0-9][A-ZĐƠƯÂÊÔĂÁÀẢÃẠÉÈẺẼẸÍÌỈĨỊÓÒỎÕỌÚÙỦŨỤÝỲỶỸỴ0-9+\-_/]{2,})\b",
     flags=re.IGNORECASE,
 )
 DATE_PATTERN = re.compile(r"\b\d{1,2}/\d{1,2}/\d{4}\b")
@@ -367,7 +367,7 @@ def extract_search_metadata(text: str, record: dict[str, Any]) -> dict[str, list
     for match in DOC_CODE_PATTERN.finditer(combined):
         number = match.group("number")
         suffix = match.group("suffix").replace(" ", "")
-        if not re.search(r"[A-ZÄÆ Æ¯Ã‚ÃŠÃ”Ä‚ÃÃ€áº¢Ãƒáº Ã‰Ãˆáººáº¼áº¸ÃÃŒá»ˆÄ¨á»ŠÃ“Ã’á»ŽÃ•á»ŒÃšÃ™á»¦Å¨á»¤Ãá»²á»¶á»¸á»´]", suffix, flags=re.IGNORECASE):
+        if not re.search(r"[A-ZĐƠƯÂÊÔĂÁÀẢÃẠÉÈẺẼẸÍÌỈĨỊÓÒỎÕỌÚÙỦŨỤÝỲỶỸỴ]", suffix, flags=re.IGNORECASE):
             continue
         code = f"{number}/{suffix}"
         doc_codes.append(code)
@@ -382,7 +382,7 @@ def extract_search_metadata(text: str, record: dict[str, Any]) -> dict[str, list
         if any(start <= match.start() < end for start, end in date_spans):
             continue
         window = combined[max(0, match.start() - 40) : match.end() + 80].casefold()
-        if any(token in window for token in ("sá»‘", "vÄƒn báº£n", "cÃ´ng vÄƒn", "quyáº¿t Ä‘á»‹nh")):
+        if any(token in window for token in ("số", "văn bản", "công văn", "quyết định")):
             identifiers.append(number)
 
     dates.extend(DATE_PATTERN.findall(combined))
@@ -401,11 +401,11 @@ def _join_search_values(values: list[str]) -> str | None:
 def _normalize_query_text(value: str) -> str:
     normalized = unicodedata.normalize("NFD", value or "")
     stripped = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
-    stripped = stripped.replace("Ä", "D").replace("Ä‘", "d")
+    stripped = stripped.replace("Đ", "D").replace("đ", "d")
     return re.sub(r"\s+", " ", stripped.casefold()).strip()
 
 def _technology_profile_metadata_from_text(text: str) -> dict[str, Any]:
-    person_match = re.search(r"(?im)^\s*NhÃ¢n sá»±\s*:\s*(?P<name>[^.\n]+)", text or "")
+    person_match = re.search(r"(?im)^\s*Nhân sự\s*:\s*(?P<name>[^.\n]+)", text or "")
     if person_match is None:
         return {}
 
@@ -416,8 +416,8 @@ def _technology_profile_metadata_from_text(text: str) -> dict[str, Any]:
     areas: list[dict[str, Any]] = []
     for line in (text or "").splitlines():
         match = re.match(
-            r"\s*-\s*(?P<area>.+?)\s*;\s*phÃ²ng chá»§ trÃ¬\s*:\s*"
-            r"(?P<department>[^.;\n]+)(?:\s*;\s*ghi chÃº\s*:\s*(?P<note>[^.\n]+))?\.??\s*$",
+            r"\s*-\s*(?P<area>.+?)\s*;\s*phòng chủ trì\s*:\s*"
+            r"(?P<department>[^.;\n]+)(?:\s*;\s*ghi chú\s*:\s*(?P<note>[^.\n]+))?\.??\s*$",
             line,
             flags=re.IGNORECASE,
         )
@@ -445,7 +445,7 @@ def _technology_profile_metadata_from_text(text: str) -> dict[str, Any]:
     if len(area_names) == 1:
         joined_areas = area_names[0]
     else:
-        joined_areas = ", ".join(area_names[:-1]) + " vÃ  " + area_names[-1]
+        joined_areas = ", ".join(area_names[:-1]) + " và " + area_names[-1]
 
     return {
         "chunk_type": "entity_profile",
@@ -455,9 +455,9 @@ def _technology_profile_metadata_from_text(text: str) -> dict[str, Any]:
         "areas": areas,
         "relationship_type": "technology_area_staff",
         "confidence": 0.95,
-        "source_table": "Danh sÃ¡ch nhÃ¢n sá»± phá»¥ trÃ¡ch tá»«ng máº£ng cÃ´ng nghá»‡ lÃµi",
+        "source_table": "Danh sách nhân sự phụ trách từng mảng công nghệ lõi",
         "answer_text": (
-            f"{person_name} Ä‘Æ°á»£c Ä‘á» xuáº¥t tham gia {len(areas):02d} máº£ng cÃ´ng nghá»‡: "
+            f"{person_name} được đề xuất tham gia {len(areas):02d} mảng công nghệ: "
             f"{joined_areas}."
         ),
     }
@@ -469,7 +469,7 @@ def _recover_technology_area_metadata(text: str, record: dict[str, Any]) -> dict
         return {}
 
     chunk_type = str(record.get("chunk_type") or "")
-    if chunk_type == "entity_profile" or re.search(r"(?im)^\s*NhÃ¢n sá»±\s*:", text or ""):
+    if chunk_type == "entity_profile" or re.search(r"(?im)^\s*Nhân sự\s*:", text or ""):
         return _technology_profile_metadata_from_text(text)
 
     if chunk_type != "table_row" and not re.search(r"(?im)^\s*STT\s*:\s*\d+", text or ""):
@@ -510,7 +510,7 @@ def build_query_embedding_text(query: str) -> str:
     if DOC_CODE_PATTERN.search(clean) or re.fullmatch(r"\d{2,8}", clean):
         return "\n".join(
             [
-                f"MÃ£ tra cá»©u / sá»‘ hiá»‡u vÄƒn báº£n: {clean}",
+                f"Mã tra cứu / số hiệu văn bản: {clean}",
                 f"Identifier exact lookup: {clean}",
                 clean,
             ]
@@ -548,14 +548,14 @@ def build_embedding_text(chunk: RagChunk) -> str:
         # Do not drop identifier/date lines just because they already appear in
         # body text; repeated exact tokens are useful for sparse/dense retrieval.
         force_keep_labels = {
-            "Sá»‘ hiá»‡u/mÃ£",
-            "VÄƒn báº£n",
-            "NgÃ y",
-            "MÃ n hÃ¬nh",
-            "Máº£ng cÃ´ng nghá»‡",
-            "NhÃ¢n sá»±",
-            "Há»“ sÆ¡ nhÃ¢n sá»±",
-            "CÃ¡c máº£ng cÃ´ng nghá»‡",
+            "Số hiệu/mã",
+            "Văn bản",
+            "Ngày",
+            "Màn hình",
+            "Mảng công nghệ",
+            "Nhân sự",
+            "Hồ sơ nhân sự",
+            "Các mảng công nghệ",
         }
         if label not in force_keep_labels and clean.casefold() in text_prefix:
             return
@@ -563,57 +563,57 @@ def build_embedding_text(chunk: RagChunk) -> str:
             context_lines.append(rendered)
 
     rule = chunk.rule_enrichment if isinstance(chunk.rule_enrichment, dict) else {}
-    add_context("TÃ i liá»‡u", _first_rule_value(rule, "document_title"))
-    add_context("CÆ¡ quan", _first_rule_value(rule, "issuer", "issuing_org"))
-    add_context("Sá»‘ hiá»‡u/mÃ£", _join_search_values(_as_string_list(rule.get("document_code"))))
-    add_context("NgÃ y", _join_search_values(_as_string_list(rule.get("issued_date"))))
-    add_context("Má»¥c", _first_rule_value(rule, "section_path", "structure_path"))
-    add_context("Äiá»u", _first_rule_value(rule, "article_number"))
-    add_context("Khoáº£n", _first_rule_value(rule, "clause_number"))
-    add_context("Äiá»ƒm", _first_rule_value(rule, "point_number"))
-    add_context("Phá»¥ lá»¥c", _first_rule_value(rule, "appendix"))
-    add_context("Báº£ng", _first_rule_value(rule, "table_name"))
-    add_context("Cá»™t báº£ng", _join_search_values(_as_string_list(rule.get("table_columns"))))
-    add_context("Pháº¡m vi hÃ ng", _first_rule_value(rule, "row_range"))
-    add_context("NhÃ¢n sá»±", _join_search_values(_as_string_list(rule.get("staff_names"))))
-    add_context("Máº£ng cÃ´ng nghá»‡", _first_rule_value(rule, "area"))
-    add_context("PhÃ²ng chá»§ trÃ¬", _first_rule_value(rule, "lead_department"))
-    add_context("Sá»‘ hiá»‡u/mÃ£", _join_search_values(_as_string_list(rule.get("identifiers"))))
-    add_context("Tham chiáº¿u Ä‘Ã£ giáº£i quyáº¿t", _first_rule_value(rule, "resolved_reference_text"))
+    add_context("Tài liệu", _first_rule_value(rule, "document_title"))
+    add_context("Cơ quan", _first_rule_value(rule, "issuer", "issuing_org"))
+    add_context("Số hiệu/mã", _join_search_values(_as_string_list(rule.get("document_code"))))
+    add_context("Ngày", _join_search_values(_as_string_list(rule.get("issued_date"))))
+    add_context("Mục", _first_rule_value(rule, "section_path", "structure_path"))
+    add_context("Điều", _first_rule_value(rule, "article_number"))
+    add_context("Khoản", _first_rule_value(rule, "clause_number"))
+    add_context("Điểm", _first_rule_value(rule, "point_number"))
+    add_context("Phụ lục", _first_rule_value(rule, "appendix"))
+    add_context("Bảng", _first_rule_value(rule, "table_name"))
+    add_context("Cột bảng", _join_search_values(_as_string_list(rule.get("table_columns"))))
+    add_context("Phạm vi hàng", _first_rule_value(rule, "row_range"))
+    add_context("Nhân sự", _join_search_values(_as_string_list(rule.get("staff_names"))))
+    add_context("Mảng công nghệ", _first_rule_value(rule, "area"))
+    add_context("Phòng chủ trì", _first_rule_value(rule, "lead_department"))
+    add_context("Số hiệu/mã", _join_search_values(_as_string_list(rule.get("identifiers"))))
+    add_context("Tham chiếu đã giải quyết", _first_rule_value(rule, "resolved_reference_text"))
 
-    add_context("TÃ i liá»‡u", chunk.document_title)
-    add_context("CÆ¡ quan", chunk.issuer)
-    add_context("ÄÆ¡n vá»‹", chunk.unit)
-    add_context("Pháº¡m vi", ", ".join(chunk.scope) if chunk.scope else None)
+    add_context("Tài liệu", chunk.document_title)
+    add_context("Cơ quan", chunk.issuer)
+    add_context("Đơn vị", chunk.unit)
+    add_context("Phạm vi", ", ".join(chunk.scope) if chunk.scope else None)
     add_context("DOffice id_vb", chunk.id_vb)
     add_context("Document code", chunk.ky_hieu or chunk.doc_code)
     add_context("Subject", chunk.subject or chunk.trich_yeu)
     add_context("Issuing org", chunk.issuing_org or chunk.noi_ban_hanh)
-    add_context("Sá»‘ hiá»‡u/mÃ£", _join_search_values(chunk.identifiers))
-    add_context("VÄƒn báº£n", _join_search_values(chunk.doc_codes))
-    add_context("NgÃ y", _join_search_values(chunk.dates))
-    add_context("Ná»n táº£ng", chunk.platform)
-    add_context("Giai Ä‘oáº¡n", chunk.phase)
-    add_context("Loáº¡i thay Ä‘á»•i", chunk.change_type)
-    add_context("Chá»§ Ä‘á» thay Ä‘á»•i", chunk.change_topic)
-    add_context("Loáº¡i ná»™i dung", chunk.content_type)
-    add_context("MÃ n hÃ¬nh", _join_search_values(chunk.screen_names))
+    add_context("Số hiệu/mã", _join_search_values(chunk.identifiers))
+    add_context("Văn bản", _join_search_values(chunk.doc_codes))
+    add_context("Ngày", _join_search_values(chunk.dates))
+    add_context("Nền tảng", chunk.platform)
+    add_context("Giai đoạn", chunk.phase)
+    add_context("Loại thay đổi", chunk.change_type)
+    add_context("Chủ đề thay đổi", chunk.change_topic)
+    add_context("Loại nội dung", chunk.content_type)
+    add_context("Màn hình", _join_search_values(chunk.screen_names))
 
     missing_headings = [
         heading
         for heading in chunk.section_path
         if " ".join(heading.split()).casefold() not in text_prefix
     ]
-    add_context("Má»¥c", " > ".join(missing_headings) if missing_headings else None)
-    add_context("Báº£ng", chunk.table_name)
-    add_context("MÃ´ táº£ báº£ng", chunk.table_description)
-    add_context("Cá»™t báº£ng", ", ".join(chunk.table_columns) if chunk.table_columns else None)
-    add_context("Thá»±c thá»ƒ", chunk.entity)
-    add_context("Quan há»‡", chunk.relationship_name)
-    add_context("Máº£ng cÃ´ng nghá»‡", chunk.area)
-    add_context("PhÃ²ng chá»§ trÃ¬", chunk.lead_department)
-    add_context("NhÃ¢n sá»±", _join_search_values(chunk.staff_names))
-    add_context("Há»“ sÆ¡ nhÃ¢n sá»±", chunk.person_name)
+    add_context("Mục", " > ".join(missing_headings) if missing_headings else None)
+    add_context("Bảng", chunk.table_name)
+    add_context("Mô tả bảng", chunk.table_description)
+    add_context("Cột bảng", ", ".join(chunk.table_columns) if chunk.table_columns else None)
+    add_context("Thực thể", chunk.entity)
+    add_context("Quan hệ", chunk.relationship_name)
+    add_context("Mảng công nghệ", chunk.area)
+    add_context("Phòng chủ trì", chunk.lead_department)
+    add_context("Nhân sự", _join_search_values(chunk.staff_names))
+    add_context("Hồ sơ nhân sự", chunk.person_name)
     if chunk.areas:
         area_labels = []
         for area_payload in chunk.areas:
@@ -624,14 +624,14 @@ def build_embedding_text(chunk: RagChunk) -> str:
             if not area:
                 continue
             area_labels.append(f"{area} - {department}" if department else area)
-        add_context("CÃ¡c máº£ng cÃ´ng nghá»‡", _join_search_values(area_labels))
-    add_context("Nguá»“n dá»¯ liá»‡u", ", ".join(chunk.source_systems) if chunk.source_systems else None)
-    add_context("Tham chiáº¿u Ä‘Ã£ giáº£i quyáº¿t", chunk.resolved_reference_text)
+        add_context("Các mảng công nghệ", _join_search_values(area_labels))
+    add_context("Nguồn dữ liệu", ", ".join(chunk.source_systems) if chunk.source_systems else None)
+    add_context("Tham chiếu đã giải quyết", chunk.resolved_reference_text)
 
     if chunk.row_start is not None or chunk.row_end is not None:
         start = chunk.row_start if chunk.row_start is not None else "?"
         end = chunk.row_end if chunk.row_end is not None else start
-        add_context("Pháº¡m vi hÃ ng", f"{start}-{end}")
+        add_context("Phạm vi hàng", f"{start}-{end}")
 
     body = chunk.text.strip()
     llm_enrichment = _llm_enrichment_text(

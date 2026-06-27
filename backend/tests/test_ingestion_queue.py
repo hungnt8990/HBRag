@@ -328,14 +328,14 @@ def _run_reingest_job_with_config(
     monkeypatch.setattr(ingestion_queue_module, "get_storage_client", lambda: object())
     monkeypatch.setattr(
         ingestion_queue_module,
-        "build_llm_provider_or_error",
+        "build_llm_gateway_or_error",
         lambda *, provider=None, base_url=None, model=None: SimpleNamespace(
             provider=provider,
             base_url=base_url,
             model=model,
         ),
     )
-    monkeypatch.setattr(ingestion_queue_module, "get_embedding_provider", lambda: object())
+    monkeypatch.setattr(ingestion_queue_module, "get_llm_gateway", lambda: object())
     monkeypatch.setattr(ingestion_queue_module, "get_sparse_embedding_provider", lambda: object())
     monkeypatch.setattr(ingestion_queue_module, "get_vector_store", lambda: object())
 

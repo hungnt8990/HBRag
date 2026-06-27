@@ -6,7 +6,9 @@ from fastapi.testclient import TestClient
 
 from app.api.dependencies.auth import get_current_user
 from app.api.routes.documents import (
+    get_artifact_vector_store,
     get_document_repository,
+    get_elasticsearch_keyword_store,
     get_knowledge_base_repository,
     get_storage_client,
     get_vector_store,
@@ -118,6 +120,15 @@ class FakeVectorStore:
 
     async def delete_points_for_document(self, document_id: UUID | str) -> None:
         self.deleted_document_ids.append(document_id)
+
+
+class FakeKeywordStore:
+    def __init__(self) -> None:
+        self.deleted_document_ids: list[UUID | str] = []
+
+    async def delete_points_for_document(self, document_id: UUID | str) -> None:
+        self.deleted_document_ids.append(document_id)
+
 
 class FakeKnowledgeBaseRepository:
     def __init__(self, *, owner_user_id: UUID = USER_ID) -> None:
@@ -347,9 +358,13 @@ def test_delete_document_removes_minio_qdrant_and_database_rows() -> None:
     repository.documents.append(document)
     storage = FakeStorageClient()
     vector_store = FakeVectorStore()
+    artifact_vector_store = FakeVectorStore()
+    keyword_store = FakeKeywordStore()
     app.dependency_overrides[get_document_repository] = lambda: repository
     app.dependency_overrides[get_storage_client] = lambda: storage
     app.dependency_overrides[get_vector_store] = lambda: vector_store
+    app.dependency_overrides[get_artifact_vector_store] = lambda: artifact_vector_store
+    app.dependency_overrides[get_elasticsearch_keyword_store] = lambda: keyword_store
 
     try:
         client = TestClient(app)
@@ -365,6 +380,8 @@ def test_delete_document_removes_minio_qdrant_and_database_rows() -> None:
         "vector_points_deleted": True,
     }
     assert vector_store.deleted_document_ids == [DOCUMENT_ID]
+    assert artifact_vector_store.deleted_document_ids == [DOCUMENT_ID]
+    assert keyword_store.deleted_document_ids == [DOCUMENT_ID]
     assert storage.deleted == ["documents/sample-1.pdf", "documents/sample-2.pdf"]
     assert repository.documents == []
     assert repository.committed is True

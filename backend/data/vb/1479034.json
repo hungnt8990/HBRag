@@ -1,0 +1,45 @@
+{
+    "took": 3,
+    "timed_out": false,
+    "_shards": {
+        "total": 3,
+        "successful": 3,
+        "skipped": 0,
+        "failed": 0
+    },
+    "hits": {
+        "total": {
+            "value": 1,
+            "relation": "eq"
+        },
+        "max_score": 1.0,
+        "hits": [
+            {
+                "_index": "doffice_vanban",
+                "_id": "1479034",
+                "_score": 1.0,
+                "_ignored": [
+                    "noi_dung.keyword",
+                    "tom_tat.keyword"
+                ],
+                "_source": {
+                    "id_vb": 1479034,
+                    "ky_hieu": "3730/EVNCPC-VTCNTT",
+                    "trich_yeu": "Triển khai chính thức hệ thống SSO-2FA",
+                    "id_dv_ban_hanh": 251,
+                    "noi_ban_hanh": "Tổng công ty Điện lực miền Trung",
+                    "nguoi_ky": "Trần Nguyễn Bảo An",
+                    "ten_file": "20260617-VB-van hanh chinh thuc SSO-2FA-v3.pdf",
+                    "duong_dan": "2026\\6\\251\\f88dc8af-192d-4b46-b174-ba416b7b6e18.pdf",
+                    "noi_dung": "TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM **CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM**\n\n**TỔNG CÔNG TY**  **Độc lập - Tự do - Hạnh phúc** **ĐIỆN LỰC MIỀN TRUNG**\n\nSố: 3730/EVNCPC-VTCNTT  Đà Nẵng, ngày 18 tháng 6 năm 2026 V/v triển khai chính thức hệ thống\n\nSSO-2FA.\n\nKính gửi: Các đơn vị thành viên\n\nEVNCPC nhận được văn bản số 602/IT-VH+PM ngày 10/6/2026 của CPCIT về việc báo cáo kế hoạch triển khai chính thức hệ thống SSO-2FA.\n\nQua rà soát kết quả UAT tại các đơn vị, nhằm nâng cao ATTT cho các phần mềm dùng chung của EVNCPC, Tổng công ty thống nhất triển khai chính thức hệ thống SSO-2FA cho 38 phần mềm tại phụ lục kèm theo và yêu cầu:\n\n- CPCIT: (i) Tổ chức hướng dẫn sử dụng cho người dùng trước ngày vận hành chính thức; (ii) Đảm bảo vận hành ổn định, an toàn hệ thống các phần mềm sau khi tính hợp SSO-2FA, hỗ trợ người dùng khi có vướng mắc phát sinh; (iii)\n\nRà soát, báo cáo Tổng công ty kế hoạch tích hợp SSO-2FA cho các phần mềm còn lại trước ngày 15/09/2026.\n\n- Các đơn vị: (i) Cử cán bộ tham gia buổi hướng dẫn sử dụng do CPCIT tổ chức; (ii) Phổ biến cho người dùng đơn vị áp dụng, cài đặt, kích hoạt tính năng 2FA; (iii) CPCEMEC, CPCCC phối hợp CPCIT triển khai chính thức phần mềm do đơn vị QLVH.\n\nĐơn vị căn cứ thực hiện, kịp thời báo cáo vướng mắc (nếu có) về EVNCPC để xem xét, giải quyết./.\n\n**Nơi nhận:**  **KT. TỔNG GIÁM ĐỐC**\n\n- Như trên;  **PHÓ TỔNG GIÁM ĐỐC**\n\n- HĐTV (b/cáo);\n\n- TGĐ (b/cáo);\n\n- Các PTGĐ;\n\n- Các đơn vị thành viên (thực hiện);\n\n- VP CĐ, VP và các Ban TCT (thực hiện);\n\n- Lưu: VT, VTCNTT.\n\n**Trần Nguyễn Bảo An**\n\n**Phụ lục: DANH SÁCH PHẦN MỀM TRIỂN KHAI TÍCH HỢP SSO-2FA**\n\n<table><thead><tr><td>STT</td><td>STT - Đợt 1</td><td>STT</td><td>&nbsp;</td><td>Mã phần - mềm - Từ ngày 15/7/2026</td><td>&nbsp;</td><td>Tên phần mềm</td><td>Tên phần mềm</td><td>&nbsp;</td><td>Đơn vị - QLVH</td><td>&nbsp;</td></tr></thead><tbody><tr><td>1</td><td>CB011</td><td>PM Kiểm hiện trường</td><td>CPCIT</td></tr><tr><td>2</td><td>CB012</td><td>PM Portal3</td><td>CPCIT</td></tr><tr><td>3</td><td>CB016</td><td>PM Giám sát sản lượng điện bất thường</td><td>CPCIT</td></tr><tr><td>4</td><td>CB018</td><td>PM Đo xa 2.0</td><td>CPCIT</td></tr><tr><td>5</td><td>CB020</td><td>PM Phân tích kinh tế - tài chính dự án đầu tư</td><td>CPCIT</td></tr><tr><td>6</td><td>CB021</td><td>PM Khai thác số liệu Kinh doanh</td><td>CPCIT</td></tr><tr><td>7</td><td>CB028</td><td>PM Lịch công tác</td><td>CPCIT</td></tr><tr><td>8</td><td>CB038</td><td>PM Quản lý công tác kiểm tra, thanh tra</td><td>CPCIT</td></tr><tr><td>9</td><td>CB039</td><td>PM Quản lý cáp viễn thông</td><td>CPCIT</td></tr><tr><td>10</td><td>CB040</td><td>PM Công tác Hội đồng thành viên</td><td>CPCIT</td></tr><tr><td>11</td><td>CB042</td><td>PM Quản lý trình chiếu TV</td><td>CPCIT</td></tr><tr><td>12</td><td>CB043</td><td>PM Quản lý kỹ thuật</td><td>CPCIT</td></tr><tr><td>13</td><td rowspan=\"26\">Đợt 2</td><td>CB044</td><td rowspan=\"26\">Từ ngày 30/7/2026</td><td>PM Quản lý kế hoạch</td><td>CPCIT</td></tr><tr><td>14</td><td>CB001</td><td>Website EVNCPC</td><td>CPCIT</td></tr><tr><td>15</td><td>CB002</td><td>Website khung các đơn vị</td><td>CPCIT</td></tr><tr><td>16</td><td>CB003</td><td>PM CPC-eOffice Chat</td><td>CPCIT</td></tr><tr><td>17</td><td>CB004</td><td>PM CPC-eOffice 7.1</td><td>CPCIT</td></tr><tr><td>18</td><td>CB007</td><td>PM KDDVKH</td><td>CPCIT</td></tr><tr><td>19</td><td>CB008</td><td>PM Quản lý An toàn lao động</td><td>CPCIT</td></tr><tr><td>20</td><td>CB009</td><td>PM Quản lý ĐMTMN</td><td>CPCIT</td></tr><tr><td>21</td><td>CB010</td><td>PM Thông tin hiện trường</td><td>CPCIT</td></tr><tr><td>22</td><td>CB015</td><td>PM Giao nhận điện năng đầu nguồn</td><td>CPCIT</td></tr><tr><td>23</td><td>CB019</td><td>PM Quản lý nhân sự CPC</td><td>CPCIT</td></tr><tr><td>24</td><td>CB024</td><td>PM Quản lý mua sắm thiết bị tập trung</td><td>CPCIT</td></tr><tr><td>25</td><td>CB025</td><td>PM Khai thác số liệu ERP phục vụ TCKT</td><td>CPCIT</td></tr><tr><td>26</td><td>CB029</td><td>PM Quản lý tiền lương đơn vị</td><td>CPCIT</td></tr><tr><td>27</td><td>CB030</td><td>PM KPI Core</td><td>CPCIT</td></tr><tr><td>28</td><td>CB036</td><td>PM Quản lý công tác Đảng</td><td>CPCIT</td></tr><tr><td>29</td><td>CB037</td><td>PM Quản lý công tác văn phòng công đoàn</td><td>CPCIT</td></tr><tr><td>30</td><td>CB041</td><td>PM Quản lý hồ sơ tuyển dụng trực tuyến</td><td>CPCIT</td></tr><tr><td>31</td><td>CB045</td><td>PM Quản lý quy hoạch</td><td>CPCIT</td></tr><tr><td>32</td><td>CB046</td><td>PM Quản lý kế hoạch sửa chữa lớn</td><td>CPCIT</td></tr><tr><td>33</td><td>CB047</td><td>PM Quản lý công tác kiểm định, chất lượng thiết bị đo đếm</td><td>CPCEMEC</td></tr><tr><td>34</td><td>CB048</td><td>PM Quản lý thông báo tập trung</td><td>CPCCC</td></tr><tr><td>35</td><td>CB009.CB01</td><td>PM Huy động ĐMTMN</td><td>CPCIT</td></tr><tr><td>36</td><td>CU002.CU02</td><td>PM Đọc dữ liệu thiết bị từ PMIS sang GIS Trung thế</td><td>CPCIT</td></tr><tr><td>37</td><td>CB058</td><td>PM Quản lý công tác giấy đi đường, VPP</td><td>CPCIT</td></tr><tr><td>38</td><td>CB062</td><td>PM Biên bản thí nghiệm</td><td>CPCIT</td></tr></tbody></table>",
+                    "tom_tat": "Tổng công ty Điện lực miền trung thống nhất triển khai chính thức hệ thống SSO-2FA cho 38 phần mềm tại phụ lục kèm theo nhằm nâng cao an toàn thông tin.\n\nYêu cầu cụ thể:\n- **CPCIT**: Tổ chức hướng dẫn người dùng trước ngày vận hành chính thức; đảm bảo hệ thống vận hành ổn định, an toàn sau khi tích hợp; rà soát và báo cáo kế hoạch tích hợp cho các phần mềm còn lại trước ngày 15/09/2026.\n- **Các đơn vị**: Cử cán bộ tham gia buổi hướng dẫn do CPCIT tổ chức; phổ biến, hướng dẫn người dùng cài đặt và kích hoạt tính năng 2FA.\n- **CPCEMEC, CPCCC**: Phối hợp với CPCIT triển khai chính thức phần mềm do đơn vị quản lý vận hành.\n\n**Danh sách 38 phần mềm triển khai:**\n1. PM Kiểm hiện trường (CPCIT)\n2. PM Portal3 (CPCIT)\n3. PM Giám sát sản lượng điện bất thường (CPCIT)\n4. PM Đo xa 2.0 (CPCIT)\n5. PM Phân tích kinh tế - tài chính dự án đầu tư (CPCIT)\n6. PM Khai thác số liệu Kinh doanh (CPCIT)\n7. PM Lịch công tác (CPCIT)\n8. PM Quản lý công tác kiểm tra, thanh tra (CPCIT)\n9. PM Quản lý cáp viễn thông (CPCIT)\n10. PM Công tác Hội đồng thành viên (CPCIT)\n11. PM Quản lý trình chiếu TV (CPCIT)\n12. PM Quản lý kỹ thuật (CPCIT)\n13. PM Quản lý kế hoạch (CPCIT)\n14. Website EVNCPC (CPCIT)\n15. Website khung các đơn vị (CPCIT)\n16. PM CPC-eOffice Chat (CPCIT)\n17. PM CPC-eOffice 7.1 (CPCIT)\n18. PM KDDVKH (CPCIT)\n19. PM Quản lý An toàn lao động (CPCIT)\n20. PM Quản lý ĐMTMN (CPCIT)\n21. PM Thông tin hiện trường (CPCIT)\n22. PM Giao nhận điện năng đầu nguồn (CPCIT)\n23. PM Quản lý nhân sự CPC (CPCIT)\n24. PM Quản lý mua sắm thiết bị tập trung (CPCIT)\n25. PM Khai thác số liệu ERP phục vụ TCKT (CPCIT)\n26. PM Quản lý tiền lương đơn vị (CPCIT)\n27. PM KPI Core (CPCIT)\n28. PM Quản lý công tác Đảng (CPCIT)\n29. PM Quản lý công tác văn phòng công đoàn (CPCIT)\n30. PM Quản lý hồ sơ tuyển dụng trực tuyến (CPCIT)\n31. PM Quản lý quy hoạch (CPCIT)\n32. PM Quản lý kế hoạch sửa chữa lớn (CPCIT)\n33. PM Quản lý công tác kiểm định, chất lượng thiết bị đo đếm (CPCEMEC)\n34. PM Quản lý thông báo tập trung (CPCCC)\n35. PM Huy động ĐMTMN (CPCIT)\n36. PM Đọc dữ liệu thiết bị từ PMIS sang GIS Trung thế (CPCIT)\n37. PM Quản lý công tác giấy đi đường, VPP (CPCIT)\n38. PM Biên bản thí nghiệm (CPCIT)",
+                    "ngay_tao": "2026-06-18 13:48:22",
+                    "type_ocr": "CPCIT",
+                    "ngay_capnhat": "2026-06-18 13:48:34",
+                    "nam": 2026,
+                    "thang": 6
+                }
+            }
+        ]
+    }
+}

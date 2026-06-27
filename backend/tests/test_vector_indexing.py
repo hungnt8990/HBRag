@@ -5,17 +5,15 @@ from fastapi.testclient import TestClient
 
 from app.api.routes.documents import (
     get_document_repository,
-    get_embedding_provider,
     get_vector_store,
-)
-from app.api.routes.search import (
-    get_embedding_provider as get_search_embedding_provider,
 )
 from app.api.routes.search import (
     get_vector_store as get_search_vector_store,
 )
 from app.main import app
 from app.services.embeddings.embedding_fake_provider import FakeEmbeddingProvider
+from app.services.llm_gateway import LLMGateway, get_llm_gateway
+from app.services.llms.llm_fake_llm import FakeLLM
 from app.services.embeddings.embedding_sparse import HashingSparseEmbeddingProvider
 from app.services.vector.vector_store import VectorSearchResult
 
@@ -36,7 +34,7 @@ class FakeDocumentRepository:
     ) -> None:
         self.document = SimpleNamespace(
             id=DOCUMENT_ID,
-            title="Káº¿ hoáº¡ch GIS",
+            title="Kế hoạch GIS",
             status=status,
             organization_id=ORGANIZATION_ID,
             knowledge_base_id=KNOWLEDGE_BASE_ID,
@@ -85,14 +83,14 @@ class FakeDocumentRepository:
             id=CHUNK_ID,
             document_id=DOCUMENT_ID,
             chunk_index=0,
-            content="1.1. GIS 110kV, GIS trung tháº¿:\n- Hiá»‡u chá»‰nh PMISToGIS.",
+            content="1.1. GIS 110kV, GIS trung thế:\n- Hiệu chỉnh PMISToGIS.",
             token_count=40,
             chunk_metadata={
                 "chunk_id": "chunk_002",
                 "chunk_type": "assignment_section",
-                "headings": ["1. CPCIT", "1.1. GIS 110kV, GIS trung tháº¿"],
+                "headings": ["1. CPCIT", "1.1. GIS 110kV, GIS trung thế"],
                 "unit": "CPCIT",
-                "scope": ["GIS 110kV", "GIS trung tháº¿"],
+                "scope": ["GIS 110kV", "GIS trung thế"],
                 "pages": [1],
                 "indexable": True,
                 "embedding_enabled": True,
@@ -169,7 +167,9 @@ def test_vector_index_endpoint_stores_one_chunk_per_qdrant_point() -> None:
     vector_store = FakeVectorStore()
     provider = RecordingEmbeddingProvider()
     app.dependency_overrides[get_document_repository] = lambda: repository
-    app.dependency_overrides[get_embedding_provider] = lambda: provider
+    app.dependency_overrides[get_llm_gateway] = lambda: LLMGateway(
+        FakeLLM(), embedding_provider=provider
+    )
     app.dependency_overrides[get_vector_store] = lambda: vector_store
 
     try:
@@ -200,7 +200,7 @@ def test_vector_index_endpoint_stores_one_chunk_per_qdrant_point() -> None:
     assert point.payload["feature_name"] == "Dashboard"
     assert point.payload["change_content"] == "Y 1 Y 2 Y 3 Y 4"
     assert point.payload["phase"] == "Giai doan 2"
-    assert "TÃ i liá»‡u: Káº¿ hoáº¡ch GIS" in provider.embedded_texts[0]
+    assert "Tài liệu: Kế hoạch GIS" in provider.embedded_texts[0]
     assert repository.document.document_metadata["chunk_count_indexed"] == 1
 
 
@@ -209,18 +209,18 @@ def test_vector_index_uses_enriched_content_for_embedding_payload_keeps_original
     chunk.enriched_content = (
         f"{chunk.content}\n\n"
         "LLM enrichment:\n"
-        "TÃ³m táº¯t: Chunk nÃ³i vá» hiá»‡u chá»‰nh PMISToGIS.\n"
-        "Tá»« khÃ³a: PMISToGIS; GIS"
+        "Tóm tắt: Chunk nói về hiệu chỉnh PMISToGIS.\n"
+        "Từ khóa: PMISToGIS; GIS"
     )
     chunk.chunk_metadata = {
         **chunk.chunk_metadata,
         "enrichment": {
             "status": "success",
-            "summary": "Chunk nÃ³i vá» hiá»‡u chá»‰nh PMISToGIS.",
+            "summary": "Chunk nói về hiệu chỉnh PMISToGIS.",
             "keywords": ["PMISToGIS", "GIS"],
-            "document_code": "123/QÄ-CPCIT",
+            "document_code": "123/QĐ-CPCIT",
             "issued_date": "01/02/2024",
-            "document_type": "quyáº¿t Ä‘á»‹nh",
+            "document_type": "quyết định",
             "structure_path": "1. CPCIT > 1.1. GIS",
         },
     }
@@ -228,7 +228,9 @@ def test_vector_index_uses_enriched_content_for_embedding_payload_keeps_original
     vector_store = FakeVectorStore()
     provider = RecordingEmbeddingProvider()
     app.dependency_overrides[get_document_repository] = lambda: repository
-    app.dependency_overrides[get_embedding_provider] = lambda: provider
+    app.dependency_overrides[get_llm_gateway] = lambda: LLMGateway(
+        FakeLLM(), embedding_provider=provider
+    )
     app.dependency_overrides[get_vector_store] = lambda: vector_store
 
     try:
@@ -241,15 +243,15 @@ def test_vector_index_uses_enriched_content_for_embedding_payload_keeps_original
 
     assert response.status_code == 200
     assert "LLM enrichment" in provider.embedded_texts[0]
-    assert "TÃ³m táº¯t: Chunk nÃ³i vá» hiá»‡u chá»‰nh PMISToGIS" in provider.embedded_texts[0]
+    assert "Tóm tắt: Chunk nói về hiệu chỉnh PMISToGIS" in provider.embedded_texts[0]
     point = vector_store.upserted_points[0]
     assert point.payload["text"] == chunk.content
     assert point.payload["enriched"] is True
-    assert point.payload["enrichment_summary"] == "Chunk nÃ³i vá» hiá»‡u chá»‰nh PMISToGIS."
+    assert point.payload["enrichment_summary"] == "Chunk nói về hiệu chỉnh PMISToGIS."
     assert point.payload["enrichment_keywords"] == ["PMISToGIS", "GIS"]
-    assert point.payload["document_code"] == "123/QÄ-CPCIT"
+    assert point.payload["document_code"] == "123/QĐ-CPCIT"
     assert point.payload["issued_date"] == "01/02/2024"
-    assert point.payload["document_type"] == "quyáº¿t Ä‘á»‹nh"
+    assert point.payload["document_type"] == "quyết định"
     assert point.payload["structure_path"] == "1. CPCIT > 1.1. GIS"
     assert "embedding_text" not in point.payload
 
@@ -272,7 +274,9 @@ def test_vector_payload_excludes_heavy_document_and_debug_fields() -> None:
     repository = FakeDocumentRepository(chunks=[chunk])
     vector_store = FakeVectorStore()
     app.dependency_overrides[get_document_repository] = lambda: repository
-    app.dependency_overrides[get_embedding_provider] = lambda: FakeEmbeddingProvider()
+    app.dependency_overrides[get_llm_gateway] = lambda: LLMGateway(
+        FakeLLM(), embedding_provider=FakeEmbeddingProvider()
+    )
     app.dependency_overrides[get_vector_store] = lambda: vector_store
 
     try:
@@ -300,21 +304,23 @@ def test_vector_payload_excludes_heavy_document_and_debug_fields() -> None:
 
 def test_vector_index_can_disable_enriched_content_for_embedding() -> None:
     chunk = FakeDocumentRepository._chunk()
-    chunk.enriched_content = f"{chunk.content}\n\nLLM enrichment:\nTá»« khÃ³a: enriched-only"
+    chunk.enriched_content = f"{chunk.content}\n\nLLM enrichment:\nTừ khóa: enriched-only"
     chunk.chunk_metadata = {
         **chunk.chunk_metadata,
         "enrichment": {
             "status": "success",
-            "summary": "Báº£n lÃ m giÃ u.",
+            "summary": "Bản làm giàu.",
             "keywords": ["enriched-only"],
-            "document_code": "123/QÄ-CPCIT",
+            "document_code": "123/QĐ-CPCIT",
         },
     }
     repository = FakeDocumentRepository(chunks=[chunk])
     vector_store = FakeVectorStore()
     provider = RecordingEmbeddingProvider()
     app.dependency_overrides[get_document_repository] = lambda: repository
-    app.dependency_overrides[get_embedding_provider] = lambda: provider
+    app.dependency_overrides[get_llm_gateway] = lambda: LLMGateway(
+        FakeLLM(), embedding_provider=provider
+    )
     app.dependency_overrides[get_vector_store] = lambda: vector_store
 
     try:
@@ -339,7 +345,7 @@ def test_vector_index_filters_administrative_footer() -> None:
         id=FOOTER_ID,
         document_id=DOCUMENT_ID,
         chunk_index=1,
-        content="NÆ¡i nháº­n: ...",
+        content="Nơi nhận: ...",
         token_count=10,
         chunk_metadata={
             "chunk_id": "chunk_009",
@@ -352,7 +358,9 @@ def test_vector_index_filters_administrative_footer() -> None:
     repository = FakeDocumentRepository(chunks=[FakeDocumentRepository._chunk(), footer])
     vector_store = FakeVectorStore()
     app.dependency_overrides[get_document_repository] = lambda: repository
-    app.dependency_overrides[get_embedding_provider] = lambda: FakeEmbeddingProvider()
+    app.dependency_overrides[get_llm_gateway] = lambda: LLMGateway(
+        FakeLLM(), embedding_provider=FakeEmbeddingProvider()
+    )
     app.dependency_overrides[get_vector_store] = lambda: vector_store
 
     try:
@@ -363,7 +371,7 @@ def test_vector_index_filters_administrative_footer() -> None:
     assert response.status_code == 200
     assert response.json()["indexed_chunk_count"] == 1
     assert len(vector_store.upserted_points) == 1
-    assert "NÆ¡i nháº­n" not in vector_store.upserted_points[0].payload["text"]
+    assert "Nơi nhận" not in vector_store.upserted_points[0].payload["text"]
 
 
 def test_vector_index_is_idempotent_for_same_chunk_content() -> None:
@@ -371,7 +379,9 @@ def test_vector_index_is_idempotent_for_same_chunk_content() -> None:
     vector_store = FakeVectorStore()
     provider = FakeEmbeddingProvider()
     app.dependency_overrides[get_document_repository] = lambda: repository
-    app.dependency_overrides[get_embedding_provider] = lambda: provider
+    app.dependency_overrides[get_llm_gateway] = lambda: LLMGateway(
+        FakeLLM(), embedding_provider=provider
+    )
     app.dependency_overrides[get_vector_store] = lambda: vector_store
 
     try:
@@ -393,7 +403,9 @@ def test_vector_index_rejects_document_without_chunks() -> None:
     repository = FakeDocumentRepository(chunks=[])
     vector_store = FakeVectorStore()
     app.dependency_overrides[get_document_repository] = lambda: repository
-    app.dependency_overrides[get_embedding_provider] = lambda: FakeEmbeddingProvider()
+    app.dependency_overrides[get_llm_gateway] = lambda: LLMGateway(
+        FakeLLM(), embedding_provider=FakeEmbeddingProvider()
+    )
     app.dependency_overrides[get_vector_store] = lambda: vector_store
 
     try:
@@ -409,7 +421,9 @@ def test_vector_index_rejects_non_chunked_document() -> None:
     repository = FakeDocumentRepository(status="parsed")
     vector_store = FakeVectorStore()
     app.dependency_overrides[get_document_repository] = lambda: repository
-    app.dependency_overrides[get_embedding_provider] = lambda: FakeEmbeddingProvider()
+    app.dependency_overrides[get_llm_gateway] = lambda: LLMGateway(
+        FakeLLM(), embedding_provider=FakeEmbeddingProvider()
+    )
     app.dependency_overrides[get_vector_store] = lambda: vector_store
 
     try:
@@ -422,7 +436,9 @@ def test_vector_index_rejects_non_chunked_document() -> None:
 
 def test_vector_search_endpoint_returns_text_source_metadata() -> None:
     vector_store = FakeVectorStore()
-    app.dependency_overrides[get_search_embedding_provider] = lambda: FakeEmbeddingProvider()
+    app.dependency_overrides[get_llm_gateway] = lambda: LLMGateway(
+        FakeLLM(), embedding_provider=FakeEmbeddingProvider()
+    )
     app.dependency_overrides[get_search_vector_store] = lambda: vector_store
 
     try:

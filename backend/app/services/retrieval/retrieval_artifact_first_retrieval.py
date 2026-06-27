@@ -10,11 +10,11 @@ from uuid import UUID
 from app.models.knowledge_artifact import KnowledgeArtifact
 from app.repositories.knowledge_artifacts import KnowledgeArtifactRepository
 from app.schemas.documents import RerankSearchResponse
-from app.services.security.security_access_control import AccessFilter, SubjectContext
 from app.services.knowledge.knowledge_artifact_indexing_service import KnowledgeArtifactIndexingService
 from app.services.queries.query_contract_service import QueryContract, QueryContractService
 from app.services.rag.rag_runtime_config import RagRuntimeConfigValues
 from app.services.rerankers.reranker_service import RerankingService
+from app.services.security.security_access_control import AccessFilter, SubjectContext
 
 logger = logging.getLogger(__name__)
 
@@ -216,7 +216,7 @@ class ArtifactFirstRetrievalService:
     @staticmethod
     def _query_phrases(query: str) -> list[str]:
         clean = " ".join((query or "").split()).strip(" ?!.,;:")
-        tokens = [token for token in re.findall(r"[\wÃ€-á»¹ÄÄ‘]+", clean, flags=re.UNICODE) if len(token) > 1]
+        tokens = [token for token in re.findall(r"\w+", clean, flags=re.UNICODE) if len(token) > 1]
         phrases: list[str] = []
         if clean:
             phrases.append(clean)

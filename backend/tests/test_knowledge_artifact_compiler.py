@@ -121,6 +121,55 @@ def test_compiler_creates_training_decision_and_qa_packets() -> None:
     qa_packets = [artifact for artifact in artifacts if artifact.artifact_type == "qa_packet"]
     assert any(packet.structured_data["question"] == "Nguyễn Thanh Phú thuộc phòng/đơn vị nào?" and packet.structured_data["answer"] == "VH" for packet in qa_packets)
     assert all(packet.citation_map["chunks"][0].get("source_span") for packet in qa_packets)
+
+
+def test_compiler_creates_table_group_and_column_artifacts_without_row_bleed() -> None:
+    document = Document(
+        id=DOCUMENT_ID,
+        title="Table plan",
+        source_type="txt",
+        status="chunked",
+        document_metadata={},
+    )
+    group = Chunk(
+        id=uuid4(),
+        document_id=DOCUMENT_ID,
+        chunk_index=0,
+        content="Bảng: Plan\nNhóm dòng: Rows 1-2\n- Dòng 1: CRM\n- Dòng 2: ERP",
+        chunk_metadata={
+            "chunk_type": "table_group",
+            "table_title": "Plan",
+            "table_headers": ["No", "System", "Owner"],
+            "row_start": 1,
+            "row_end": 2,
+            "source_span": {"start": 0, "end": 50},
+        },
+    )
+    column = Chunk(
+        id=uuid4(),
+        document_id=DOCUMENT_ID,
+        chunk_index=1,
+        content="Bảng: Plan\nCột bảng: Owner\n| 1 | CRM | Team A |",
+        chunk_metadata={
+            "chunk_type": "table_column",
+            "table_title": "Plan",
+            "table_headers": ["No", "System", "Owner"],
+            "column_name": "Owner",
+            "row_context_headers": ["No", "System"],
+            "source_span": {"start": 0, "end": 50},
+        },
+    )
+
+    artifacts = KnowledgeArtifactCompiler().compile_document(document=document, chunks=[group, column])
+
+    assert any(artifact.artifact_type == "table_group_artifact" for artifact in artifacts)
+    assert any(artifact.artifact_type == "table_column_artifact" for artifact in artifacts)
+    assert not any(artifact.artifact_type == "table_row_artifact" for artifact in artifacts)
+    assert any(
+        artifact.artifact_type == "qa_packet"
+        and "Owner" in artifact.structured_data["question"]
+        for artifact in artifacts
+    )
 def test_compiler_source_does_not_hardcode_sample_entities() -> None:
     source = inspect.getsource(KnowledgeArtifactCompiler)
     assert "Nguyen Quang Lam" not in source

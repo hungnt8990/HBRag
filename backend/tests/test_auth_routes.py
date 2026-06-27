@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from app.api.routes import auth
 from app.core.security import hash_password
 from app.main import app
-from tests.conftest import TEST_ORGANIZATION_ID, TEST_USER_ID
+from conftest import TEST_ORGANIZATION_ID, TEST_USER_ID
 
 
 class FakeAuthRepository:

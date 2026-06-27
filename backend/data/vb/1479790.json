@@ -1,0 +1,45 @@
+{
+    "took": 2,
+    "timed_out": false,
+    "_shards": {
+        "total": 3,
+        "successful": 3,
+        "skipped": 0,
+        "failed": 0
+    },
+    "hits": {
+        "total": {
+            "value": 1,
+            "relation": "eq"
+        },
+        "max_score": 1.0,
+        "hits": [
+            {
+                "_index": "doffice_vanban",
+                "_id": "1479790",
+                "_score": 1.0,
+                "_ignored": [
+                    "noi_dung.keyword",
+                    "tom_tat.keyword"
+                ],
+                "_source": {
+                    "id_vb": 1479790,
+                    "ky_hieu": "660/QĐ-IT",
+                    "trich_yeu": "Phê duyệt kết quả lựa chọn nhà thầu qua mạng Gói thầu số 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình Cung cấp dịch vụ bản đồ nền\n",
+                    "id_dv_ban_hanh": 256,
+                    "noi_ban_hanh": "Công ty CNTT Điện lực miền Trung",
+                    "nguoi_ky": "Trần Khắc Tuấn",
+                    "ten_file": "31 QD KQLCNT Bandonen 2026.pdf",
+                    "duong_dan": "2026\\6\\256\\eeb06b0a-21ff-40a7-98f6-e4dc546b27d9.pdf",
+                    "noi_dung": "TỔNG CÔNG TY  **CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM** ÐIỆN LỰC MIỀN TRUNG  **Ðộc lập - Tự do - Hạnh phúc** **CÔNG TY CÔNG NGHỆ THÔNG TIN** **ÐIỆN LỰC MIỀN TRUNG**\n\nĐà Nẵng, ngày 18 tháng 6 năm 2026\n\nSố: 660/QĐ-IT\n\n**QUYẾT ÐỊNH**\n\n**Về việc phê duyệt kết quả lựa chọn nhà thầu qua mạng** **Gói thầu số 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc** **Chương trình Cung cấp dịch vụ bản đồ nền**\n\n**GIÁM ÐỐC**\n\n**CÔNG TY CÔNG NGHỆ THÔNG TIN ÐIỆN LỰC MIỀN TRUNG**\n\nCăn cứ Quyết định số 633/QĐ-HĐTV ngày 10/11/2022 của Hội đồng thành viên Tổng công ty Điện lực miền Trung (EVNCPC) về việc ban hành Quy chế Tổ chức và hoạt động của Công ty Công nghệ thông tin Điện lực miền Trung;\n\nCăn cứ Luật Đấu thầu số 22/2023/QH15 ngày 23/6/2023; sửa đổi, bổ sung tại Luật số 57/2024/QH15, Luật số 90/2025/QH15;\n\nCăn cứ Nghị định 214/2025/NĐ-CP ngày 04/8/2025 của Chính phủ về việc quy định chi tiết một số điều và biện pháp thi hành Luật Đấu thầu về lựa chọn nhà thầu;\n\nCăn cứ Thông tư số 79/2025/TT-BTC ngày 04/8/2025 của Bộ Tài chính về việc Hướng dẫn việc cung cấp, đăng tải thông tin về đấu thầu và mẫu hồ sơ đấu thầu trên Hệ thống mạng đấu thầu quốc gia;\n\nCăn cứ Thông tư số 80/2025/TT-BTC ngày 08/8/2025 của Bộ Tài chính về việc quy định chi tiết mẫu Hồ sơ yêu cầu, báo cáo đánh giá, báo cáo thẩm định, kiểm tra, báo cáo tình hình thực hiện hoạt động đấu thầu;\n\nCăn cứ Quyết định số 243/QĐ-HĐTV ngày 14/4/2026 của Tổng công ty Điện lực miền Trung (EVNCPC) về việc ban hành Quy chế mua sắm trong Tổng công ty Điện lực miền Trung;\n\nCăn cứ Văn bản số 298/EVNCPC-KH+TCKT+KD+VTCNTT ngày 15/01/2026 của EVNCPC về việc mua sắm CCDC và dịch vụ VT&CNTT phục vụ SXKD năm 2026;\n\nCăn cứ Quyết định số 413/QĐ-IT ngày 25/4/2026 của CPCIT về việc phê duyệt Dự toán chi phí và kế hoạch lựa chọn nhà thầu chương trình nêu trên;\n\nCăn cứ Quyết định số 530/QĐ-IT ngày 26/5/2026 của Giám đốc Công ty về việc phê duyệt hồ sơ mời thầu (E-HSMT) gói thầu: 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc chương trình nêu trên;\n\nXét Báo cáo đánh giá E-HSDT số 02/BC-TCG ngày 10/6/2026 Gói thầu: 06.PTV:\n\nCung cấp dịch vụ bản đồ nền thuộc chương trình nêu trên của Tổ chuyên gia và Báo cáo thẩm định kết quả lựa chọn nhà thầu ngày 12/6/2026 của Tổ thẩm định;\n\nTheo đề nghị của Trưởng phòng Quản lý đầu tư.\n\n**QUYẾT ÐỊNH:**\n\n**Ðiều 1** . Phê duyệt kết quả lựa chọn nhà thầu gói thầu: 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình: Cung cấp dịch vụ bản đồ nền, bao gồm:\n\n**1. Thông tin về gói thầu:**\n\nSố E-TBMT: IB2600180073 - 00 thời điểm đăng tải 26/5/2026;\n\nTên gói thầu: 06.PTV: Cung cấp dịch vụ bản đồ nền;\n\nGiá gói thầu (Đã bao gồm thuế VAT): 615.752.500 VNĐ;\n\nTên Chủ đầu tư: Công ty Công nghệ thông tin Điện lực miền Trung - Tổng công ty Điện lực miền Trung;\n\nHình thức lựa chọn nhà thầu: Chào hàng cạnh tranh, trong nước, qua mạng, một giai đoạn một túi hồ sơ;\n\nLoại hợp đồng: Trọn gói;\n\nThời gian thực hiện gói thầu: 380 ngày được tính từ ngày hợp đồng có hiệu lực đến ngày nghiệm thu hoàn thành gói thầu (bao gồm cả dịch vụ liên quan, nếu có), trong đó:\n\n+ Thời gian chuẩn bị cung cấp dịch vụ: tính từ ngày hợp đồng có hiệu lực đến ngày nghiệm thu, bàn giao dịch vụ để đưa vào sử dụng trong thời gian tối đa 15 ngày.\n\n+ Thời gian cung cấp dịch vụ: Thời gian cung cấp Dịch vụ bản đồ nền và dịch vụ quản lý: tính từ ngày nghiệm thu, bàn giao dịch vụ đưa vào sử dụng là 365 ngày (01 năm).\n\nTùy chọn mua thêm: Không.\n\n**2. Thông tin nhà thầu trúng thầu:**\n\n<table><thead><tr><td>Stt</td><td>Tên nhà thầu</td><td>Mã số thuế</td><td>Giá dự thầu (VNĐ)</td><td>Giá dự thầu sau giảm giá (nếu có) (VNĐ)</td><td>Giá trúng thầu (VNĐ)</td><td>&nbsp;</td><td>Thời - gian - thực</td><td>&nbsp;</td><td>&nbsp;</td><td>Thời - gian - thực</td><td>&nbsp;</td><td>Nội dung khác (nếu có)</td></tr></thead><tbody><tr><td>hiện</td><td>hiện</td></tr><tr><td>gói</td><td>hợp</td></tr><tr><td>thầu</td><td>đồng</td></tr><tr><td rowspan=\"2\">(*)</td><td rowspan=\"2\">(**)</td></tr><tr><td>1</td><td>Công ty TNHH Giải pháp Công nghệ Trường Thịnh Phát</td><td>0315295332</td><td>579.348.000</td><td>579.348.000</td><td>579.348.000</td><td>380 ngày</td><td>380 ngày</td><td>-</td></tr></tbody></table>\n\n**(*) Thời gian thực hiện gói thầu:** 380 ngày được tính từ ngày hợp đồng có hiệu lực đến ngày nghiệm thu hoàn thành gói thầu (bao gồm cả dịch vụ liên quan, nếu có), trong đó:\n\n+ Thời gian chuẩn bị cung cấp dịch vụ: tính từ ngày hợp đồng có hiệu lực đến ngày nghiệm thu, bàn giao dịch vụ để đưa vào sử dụng trong thời gian tối đa 15 ngày.\n\n+ Thời gian cung cấp dịch vụ: Thời gian cung cấp dịch vụ bản đồ nền và dịch vụ quản lý: tính từ ngày nghiệm thu, bàn giao dịch vụ đưa vào sử dụng là 365 ngày (01 năm).\n\n**(**) Thời gian thực hiện hợp đồng:** Tính từ ngày hợp đồng có hiệu lực đến ngày các bên hoàn thành đầy đủ các nghĩa vụ theo thỏa thuận trong hợp đồng, trong đó thời gian thực hiện gói thầu quy định như trên.\n\n**3. Thông tin về nhà thầu không trúng thầu:**\n\n<table><thead><tr><td>STT</td><td>Tên nhà thầu</td><td>Mã số thuế</td><td>&nbsp;</td><td>Lý do nhà thầu không - trúng thầu</td><td>&nbsp;</td></tr></thead><tbody><tr><td>1</td><td>Công ty Cổ phần Công nghệ Qi</td><td>0305350288</td><td>Nhà thầu xếp hạng thứ 2</td></tr><tr><td>2</td><td>Công ty TNHH Công nghệ Tích hợp Hệ thống PH</td><td>0314577221</td><td>Nhà thầu xếp hạng thứ 3</td></tr><tr><td>3</td><td>Công ty Cổ phần Công nghệ Xnode</td><td>0313550121</td><td>Nhà thầu xếp hạng thứ 4</td></tr></tbody></table>\n\n**Ðiều 2.** Tổ chức thực hiện:\n\nGiao Tổ chuyên gia căn cứ nội dung được phê duyệt tại Điều 1 Quyết định này, tiến hành tổ chức hoàn thiện hợp đồng.\n\n**Ðiều 3.** Quyết định này có hiệu lực kể từ ngày ký. Tổ chuyên gia, Trưởng các phòng Công ty có liên quan chịu trách nhiệm thi hành Quyết định này./.\n\n**Nơi nhận:**  **GIÁM ĐỐC**\n\n- Như Điều 3;\n\n- EVNCPC (báo cáo);\n\n- Lưu: VT, ĐT.\n\n**Trần Khắc Tuấn**",
+                    "tom_tat": "**Nội dung chính:**\n\nQuyết định phê duyệt kết quả lựa chọn nhà thầu qua mạng cho gói thầu số 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình Cung cấp dịch vụ bản đồ nền.\n\n**1. Thông tin gói thầu:**\n*   **Số E-TBMT:** IB2600180073 - 00 (thời điểm đăng tải 26/5/2026).\n*   **Tên gói thầu:** 06.PTV: Cung cấp dịch vụ bản đồ nền.\n*   **Giá gói thầu:** 615.752.500 VNĐ (đã bao gồm thuế VAT).\n*   **Chủ đầu tư:** Công ty Công nghệ thông tin Điện lực miền Trung - Tổng công ty Điện lực miền Trung.\n*   **Hình thức lựa chọn nhà thầu:** Chào hàng cạnh tranh, trong nước, qua mạng, một giai đoạn một túi hồ sơ.\n*   **Loại hợp đồng:** Trọn gói.\n*   **Thời gian thực hiện:** 380 ngày (bao gồm tối đa 15 ngày chuẩn bị và 365 ngày cung cấp dịch vụ).\n*   **Tùy chọn mua thêm:** Không.\n\n**2. Thông tin nhà thầu trúng thầu:**\n*   **Tên nhà thầu:** Công ty TNHH Giải pháp Công nghệ Trường Thịnh Phát.\n*   **Mã số thuế:** 0315295332.\n*   **Giá dự thầu:** 579.348.000 VNĐ.\n*   **Giá trúng thầu:** 579.348.000 VNĐ.\n*   **Thời gian thực hiện:** 380 ngày.\n\n**3. Thông tin nhà thầu không trúng thầu:**\n*   **Công ty Cổ phần Công nghệ Qi** (Mã số thuế: 0305350288): Xếp hạng thứ 2.\n*   **Công ty TNHH Công nghệ Tích hợp Hệ thống PH** (Mã số thuế: 0314577221): Xếp hạng thứ 3.\n*   **Công ty Cổ phần Công nghệ Xnode** (Mã số thuế: 0313550121): Xếp hạng thứ 4.",
+                    "ngay_tao": "2026-06-18 21:55:13",
+                    "type_ocr": "CPCIT",
+                    "ngay_capnhat": "2026-06-18 21:55:21",
+                    "nam": 2026,
+                    "thang": 6
+                }
+            }
+        ]
+    }
+}

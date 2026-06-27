@@ -91,6 +91,9 @@ def test_model_metadata_contains_initial_tables() -> None:
         "rag_runtime_configs",
         "user_memories",
         "session_summaries",
+        "dm_don_vi",
+        "dm_phong_ban",
+        "dm_nhan_vien",
     }
 
 

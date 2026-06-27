@@ -5,9 +5,9 @@ import re
 from app.services.graph.extractors.extractor_base import ExtractionResult, GraphExtractor
 from app.services.graph.graph_models import ExtractedEntity, ExtractedRelation
 
-ARTICLE_PATTERN = re.compile(r"(Äiá»u\s+\d+)", flags=re.IGNORECASE)
+ARTICLE_PATTERN = re.compile(r"(Điều\s+\d+)", flags=re.IGNORECASE)
 ORG_PATTERN = re.compile(
-    r"\b(EVNCPC|NLÄ|NSDLÄ|TÆ¯LÄTT|tá»•ng cÃ´ng ty Ä‘iá»‡n lá»±c miá»n trung)\b",
+    r"\b(EVNCPC|NLĐ|NSDLĐ|TƯLĐTT|tổng công ty điện lực miền trung)\b",
     flags=re.IGNORECASE,
 )
 

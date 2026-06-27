@@ -11,8 +11,8 @@ def build_staff_area_records_from_page_texts(
     """Create semantic staff-area rows from raw page text.
 
     This is schema-aware, not person-name-specific. It only emits records created by
-    table_aware_chunk_text for tables headed by STT / Máº£ng cÃ´ng nghá»‡ / PhÃ²ng chá»§ trÃ¬ /
-    NhÃ¢n sá»± Ä‘á» xuáº¥t.
+    table_aware_chunk_text for tables headed by STT / Mảng công nghệ / Phòng chủ trì /
+    Nhân sự đề xuất.
     """
 
     if not page_texts:
@@ -68,8 +68,8 @@ def build_staff_area_records_from_page_texts(
             "contextualized_text": content,
             "raw_text": str(metadata.get("raw_text") or content),
             "source_raw_text": str(metadata.get("raw_text_original") or content),
-            "headings": [str(metadata.get("source_table") or "Danh sÃ¡ch nhÃ¢n sá»±")],
-            "section_path": [str(metadata.get("source_table") or "Danh sÃ¡ch nhÃ¢n sá»±")],
+            "headings": [str(metadata.get("source_table") or "Danh sách nhân sự")],
+            "section_path": [str(metadata.get("source_table") or "Danh sách nhân sự")],
             "pages": [int(page) for page in pages if str(page).isdigit()],
             "quality_status": "pass",
             "indexable": True,

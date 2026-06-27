@@ -23,9 +23,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.models.chunk import Chunk
 from app.schemas.documents import KeywordSearchResponse, KeywordSearchResult
-from app.services.security.security_access_control import AccessFilter
 from app.services.chunkers.chunker_table_aware_chunking import extract_entities_from_text
 from app.services.chunkers.chunker_table_relationships import analyze_person_area_membership_query
+from app.services.security.security_access_control import AccessFilter
 
 CONTENT_PREVIEW_LIMIT = 300
 KEYWORD_QUERY_PARAM = "keyword_query"
@@ -35,17 +35,17 @@ MAX_EXACT_TERMS = 6
 
 
 QUERY_CONTENT_STOPWORDS = {
-    "anh", "báº¡n", "cÃ¡c", "cho", "cÃ³", "cá»§a", "Ä‘ang", "Ä‘Ã¢y", "Ä‘Ã³",
-    "Ä‘Æ°á»£c", "gÃ¬", "hÃ£y", "há»i", "khÃ´ng", "khi", "lÃ ", "lÃ m", "nÃ o",
-    "nÃ y", "nÃªu", "náº¿u", "nhÃ©", "nhÆ°", "nÃ³i", "sao", "theo", "thÃ¬",
-    "tÃ´i", "trong", "vÃ ", "vá»", "vá»›i", "xin", "bao", "nhiÃªu", "máº¥y",
+    "anh", "bạn", "các", "cho", "có", "của", "đang", "đây", "đó",
+    "được", "gì", "hãy", "hỏi", "không", "khi", "là", "làm", "nào",
+    "này", "nêu", "nếu", "nhé", "như", "nói", "sao", "theo", "thì",
+    "tôi", "trong", "và", "về", "với", "xin", "bao", "nhiêu", "mấy",
 }
 
 
 def _strip_vietnamese_accents(value: str) -> str:
     normalized = unicodedata.normalize("NFD", value or "")
     stripped = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
-    return stripped.replace("Ä", "D").replace("Ä‘", "d")
+    return stripped.replace("Đ", "D").replace("đ", "d")
 
 
 def _content_exact_terms(query: str, *, max_terms: int = 6) -> list[str]:
@@ -57,7 +57,7 @@ def _content_exact_terms(query: str, *, max_terms: int = 6) -> list[str]:
     any corpus without adding code for each new document type.
     """
 
-    tokens = re.findall(r"[\wÃ€-á»¹ÄÄ‘]+", query or "", flags=re.UNICODE)
+    tokens = re.findall(r"\w+", query or "", flags=re.UNICODE)
     content_tokens: list[str] = []
     for token in tokens:
         normalized = _strip_vietnamese_accents(token).casefold()

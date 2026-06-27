@@ -1,0 +1,45 @@
+{
+    "took": 5,
+    "timed_out": false,
+    "_shards": {
+        "total": 3,
+        "successful": 3,
+        "skipped": 0,
+        "failed": 0
+    },
+    "hits": {
+        "total": {
+            "value": 1,
+            "relation": "eq"
+        },
+        "max_score": 1.0,
+        "hits": [
+            {
+                "_index": "doffice_vanban",
+                "_id": "1479029",
+                "_score": 1.0,
+                "_ignored": [
+                    "noi_dung.keyword",
+                    "tom_tat.keyword"
+                ],
+                "_source": {
+                    "id_vb": 1479029,
+                    "ky_hieu": "5255/GLPC-ĐĐ",
+                    "trich_yeu": "V/v Cập nhật, chuẩn hóa toàn bộ dữ liệu lưới điện trên DMS theo đúng cấu trúc dữ liệu của giải pháp kết nối SCADA-OMS ABB",
+                    "id_dv_ban_hanh": 262,
+                    "noi_ban_hanh": "Công ty Điện lực Gia Lai",
+                    "nguoi_ky": "Lê Quang Trường",
+                    "ten_file": "Bao cao OMS-DMS_Gui CPC 06_2026.pdf",
+                    "duong_dan": "2026\\6\\262\\e127bc99-8dc9-49e3-bc95-6514bfa23aec.pdf",
+                    "noi_dung": "TỔNG CÔNG TY **CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM** ĐIỆN LỰC MIỀN TRUNG **Độc lập - Tự do - Hạnh phúc** **CÔNG TY ĐIỆN LỰC GIA LAI**\n\nSố: 5255/GLPC-ĐĐ  Gia Lai, ngày 18 tháng 6 năm 2026 V/v cập nhật, chuẩn hóa toàn bộ dữ liệu lưới điện trên DMS theo đúng cấu trúc dữ liệu của giải pháp kết nối SCADA-OMS ABB\n\nKính gửi: Tổng Công ty Điện lực miền Trung\n\nThực hiện theo chỉ đạo của EVNCPC tại văn bản số 3138/EVNCPC-KT+VTCNTT ngày 26/05/2026 về việc \"khẩn trương triển khai giải pháp kết nối SCADA-OMS\".\n\nHiện tại, hầu hết các thiết bị phân đoạn (có/không kết nối SCADA), số lượng FCO trạm biến áp phụ tải ... đã được GLPC cập nhật vào chương trình DMS theo đúng cấu trúc hướng dẫn của Tổng Công ty tại văn bản số 1126/EVNCPC-KT+KD+VTCNTT ngày 20/02/2025. Từ tháng 06/2025, toàn bộ dữ liệu DMS đã được cập nhật và gửi thường xuyên qua ứng dụng SYNSQL OT cho Tổng Công ty bao gồm 07 table trong đó có 04 table dữ liệu, cụ thể:\n\n1. Table MV_FUSE: 13.298 rows các thiết bị đóng cắt là cầu chì trạm và phân đoạn.\n\n2. Table CIRCUIT_BREAKER: 699 rows bao gồm toàn bộ các thiết bị là máy cắt đầu nguồn và các Recloser phân đoạn.\n\n3. Table DISCONNECTOR: 1.381 rows là các thiết bị DCL và LBS trên lưới.\n\n4. Table SwitchingComponent: 11.118 rows là số liệu tổng hợp tất cả các thiết bị phân đoạn và máy cắt đầu nguồn các trạm 110kV trên địa bàn Tây Gia Lai.\n\nĐể đối chiếu, kiểm tra tính đầy đủ và chính xác của dữ liệu DMS theo bộ tiêu chí kiểm tra do CPCIT ban hành, GLPC có một số kiến nghị như sau:\n\n- Từ dữ liệu của DMS đã được gửi thường xuyên về cho CPCIT qua App SYNSQL OT, đề nghị có bảng phân tích đánh giá về độ chính xác dữ liệu của 2 chương DMS và OMS.\n\n- Phân quyền người dùng trên OMS để GLPC có thể thống kê về số lượng thiết bị, tính chính xác của dữ liệu trên lưới điện giữa 02 chương trình nêu trên.\n\n- CPCIT cần cử người phối hợp với GLPC để thực hiện kịch bản thử nghiệm kết nối và các nội dung khác theo đúng tinh thần chỉ đạo của EVNCPC tại văn bản số 1126/EVNCPC- KT+KD+VTCNTT ngày 20/02/2025.\n\nGLPC kính báo cáo Tổng Công ty để chỉ đạo thực hiện các bước tiếp theo./.\n\nTrân trọng!\n\n**Nơi nhận:**  **KT.GIÁM ĐỐC**\n\n- Như trên;  **PHÓ GIÁM ĐỐC**\n\n- CPCIT (để phối hợp)\n\n- KT, VTCNTT (để phối hợp);\n\n- Lưu: VT, ĐĐ NDK.\n\n**Lê Quang Trường**",
+                    "tom_tat": "**Nội dung chính:**\n\nCông ty Điện lực Gia Lai báo cáo Tổng Công ty Điện lực miền Trung về việc cập nhật, chuẩn hóa toàn bộ dữ liệu lưới điện trên DMS theo cấu trúc giải pháp SCADA-OMS ABB, cụ thể:\n\n*   **Dữ liệu đã cập nhật từ tháng 06/2025** qua ứng dụng SYNSQL OT gồm 07 bảng (trong đó có 04 bảng dữ liệu chính):\n    *   Table MV_FUSE: 13.298 dòng (thiết bị đóng cắt cầu chì trạm và phân đoạn).\n    *   Table CIRCUIT_BREAKER: 699 dòng (máy cắt đầu nguồn và Recloser phân đoạn).\n    *   Table DISCONNECTOR: 1.381 dòng (thiết bị DCL và LBS trên lưới).\n    *   Table SwitchingComponent: 11.118 dòng (thiết bị phân đoạn và máy cắt đầu nguồn trạm 110kV tại Tây Gia Lai).\n\n*   **Kiến nghị:**\n    *   Yêu cầu có bảng phân tích đánh giá độ chính xác dữ liệu giữa DMS và OMS.\n    *   Phân quyền người dùng trên OMS để GLPC thống kê số lượng thiết bị và tính chính xác dữ liệu.\n    *   CPCIT cử người phối hợp với GLPC thực hiện kịch bản thử nghiệm kết nối theo chỉ đạo của EVNCPC.",
+                    "ngay_tao": "2026-06-18 13:50:30",
+                    "type_ocr": "CPCIT",
+                    "ngay_capnhat": "2026-06-18 13:50:34",
+                    "nam": 2026,
+                    "thang": 6
+                }
+            }
+        ]
+    }
+}

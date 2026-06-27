@@ -8,8 +8,8 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 
 from app.models.knowledge_artifact import KnowledgeArtifact
 from app.repositories.knowledge_artifacts import KnowledgeArtifactRepository
-from app.services.embeddings import EmbeddingProvider
 from app.services.embeddings.embedding_sparse import SparseEmbeddingProvider
+from app.services.llm_gateway import LLMGateway
 from app.services.vector.vector_store import QdrantVectorStore
 
 
@@ -34,12 +34,12 @@ class KnowledgeArtifactIndexingService:
         self,
         *,
         repository: KnowledgeArtifactRepository,
-        embedding_provider: EmbeddingProvider,
+        llm_gateway: LLMGateway,
         vector_store: QdrantVectorStore,
         sparse_embedding_provider: SparseEmbeddingProvider | None = None,
     ) -> None:
         self._repository = repository
-        self._embedding_provider = embedding_provider
+        self._llm_gateway = llm_gateway
         self._vector_store = vector_store
         self._sparse_embedding_provider = sparse_embedding_provider
 
@@ -54,7 +54,7 @@ class KnowledgeArtifactIndexingService:
             )
 
         embedding_texts = [artifact.canonical_text for artifact in artifacts]
-        dense_vectors = await self._embedding_provider.embed_texts(embedding_texts)
+        dense_vectors = await self._llm_gateway.embed_texts(embedding_texts)
         if len(dense_vectors) != len(artifacts):
             raise ValueError("Dense embedding count does not match the number of artifacts.")
         for vector in dense_vectors:
@@ -100,7 +100,7 @@ class KnowledgeArtifactIndexingService:
     ) -> list[KnowledgeArtifactVectorHit]:
         if document_ids is not None and not document_ids:
             return []
-        query_vector = await self._embedding_provider.embed_query(query)
+        query_vector = await self._llm_gateway.embed_query(query)
         sparse_query = None
         if self._sparse_embedding_provider is not None:
             sparse_query = await self._sparse_embedding_provider.embed_query(query)

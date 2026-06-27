@@ -27,7 +27,7 @@ def normalize_rewrite_text(text: str) -> str:
     text = text.lower()
     text = unicodedata.normalize("NFD", text)
     text = "".join(char for char in text if unicodedata.category(char) != "Mn")
-    text = text.replace("Ä‘", "d").replace("Ä", "d")
+    text = text.replace("đ", "d").replace("Đ", "d")
     text = re.sub(r"[^a-z0-9\s]", " ", text)
     text = re.sub(r"\s+", " ", text)
     return text.strip()

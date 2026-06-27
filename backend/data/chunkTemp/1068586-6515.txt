@@ -1,0 +1,543 @@
+Chunk #0
+tokens --
+
+Kế hoạch xây dựng hệ thống GIS chuẩn hóa cơ sở dữ liệu lưới điện của EVNCPC. Tổng công ty Điện lực miền Trung.
+
+Chunk #1
+tokens --
+
+Số/ký hiệu: 6515/EVNCPC-VTCNTT+KD+KT
+Ngày văn bản: 21/08/2025
+Trích yếu: Kế hoạch xây dựng hệ thống GIS chuẩn hóa cơ sở dữ liệu lưới điện của EVNCPC
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Lê Hoàng Anh Dũng
+
+Chunk #2
+tokens --
+
+Văn bản: 6515/EVNCPC-VTCNTT+KD+KT - Kế hoạch xây dựng hệ thống GIS chuẩn hóa cơ sở dữ liệu lưới điện của EVNCPC
+Ngày ban hành: 21/08/2025
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Kính gửi: Các đơn vị thành viên.
+
+Ngày 11/8/2025, HĐTV EVNCPC đã ban hành Nghị quyết số 720/NQ-HĐTV về việc xây dựng hệ thống GIS chuẩn hóa cơ sở dữ liệu (CSDL) lưới điện của EVNCPC (đính kèm).
+
+Nhằm xây dựng hoàn thiện và đưa vào khai thác, sử dụng hiệu quả hệ thống GIS lưới điện của EVNCPC, Tổng công ty giao nhiệm vụ cho các đơn vị thực hiện các nội dung sau:
+
+Chunk #3
+tokens --
+
+Văn bản: 6515/EVNCPC-VTCNTT+KD+KT - Kế hoạch xây dựng hệ thống GIS chuẩn hóa cơ sở dữ liệu lưới điện của EVNCPC
+Ngày ban hành: 21/08/2025
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 1.1. GIS 110kV, GIS trung thế:
+1.1. GIS 110kV, GIS trung thế:
+
+- Hiệu chỉnh các phần mềm và dữ liệu PMISToGIS (110kV, trung thế), WebGIS 110kV, chia sẻ (publish) dữ liệu GIS (110kV, trung thế) để phù hợp với mô hình các CTĐL sau sáp nhập, trong đó:
+
++ PMISToGIS (110kV, trung thế): Hoàn thành trong tháng 10/2025.
+
++ WebGIS 110kV: Hoàn thành trong tháng 10/2025.
+
++ Chia sẻ (publish) dữ liệu GIS (110kV, trung thế): Hoàn thành trong tháng 11/2025.
+
+- Tổ chức hướng dẫn sử dụng các công cụ, phần mềm đã được hiệu chỉnh cho các CTĐL (trừ KHoPC) để sáp nhập dữ liệu và cho KHoPC để biên tập dữ liệu. Hoàn thành trong tháng 10/2025.
+
+- Phối hợp với các CTĐL (trừ KHoPC) sáp nhập dữ liệu theo phương án tại phụ lục 01 kèm theo. Hoàn thành trong tháng 10/2025.
+
+- Hỗ trợ KHoPC khởi tạo và chuyển đổi dữ liệu ban đầu. Hoàn thành trong tháng 10/2025.
+
+- Lập phương án xây dựng WebGIS trung thế. Đơn vị báo cáo phương án về EVNCPC trong tháng 10/2025 để xem xét giao thực hiện.
+
+- Tiếp nhận, triển khai các bài toán khai thác dữ liệu GIS trên hạ tầng chung khi có chỉ đạo của EVNCPC.
+
+Chunk #4
+tokens --
+
+Văn bản: 6515/EVNCPC-VTCNTT+KD+KT - Kế hoạch xây dựng hệ thống GIS chuẩn hóa cơ sở dữ liệu lưới điện của EVNCPC
+Ngày ban hành: 21/08/2025
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 1.2. GIS hạ thế:
+1.2. GIS hạ thế:
+
+- Lập phương án xây dựng công cụ chuyển đổi dữ liệu từ các hệ thống hiện có sang dữ liệu GIS hạ thế và vẽ tự động đối tượng (lớp dữ liệu GIS) đường dây
+
+hạ thế với mô tả dữ liệu tại phụ lục 02 kèm theo. Trong đó lưu ý: đơn vị báo cáo phương án về EVNCPC trong tháng 10/2025, hoàn thành xây dựng công cụ trước ngày 31/3/2026.
+
+- Khởi tạo khung CSDL GIS hạ thế, chuyển đổi dữ liệu GIS hạ thế ban đầu và tổ chức hướng dẫn sử dụng công cụ để các đơn vị xây dựng dữ liệu GIS hạ thế. Hoàn thành trong tháng 4/2026.
+
+- Tiếp nhận, triển khai các bài toán khai thác dữ liệu GIS trên hạ tầng chung khi có chỉ đạo của EVNCPC.
+
+Chunk #5
+tokens --
+
+Văn bản: 6515/EVNCPC-VTCNTT+KD+KT - Kế hoạch xây dựng hệ thống GIS chuẩn hóa cơ sở dữ liệu lưới điện của EVNCPC
+Ngày ban hành: 21/08/2025
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 2.1. GIS 110kV, GIS trung thế:
+2.1. GIS 110kV, GIS trung thế:
+
+- Phối hợp CPCIT thực hiện sáp nhập dữ liệu GIS đã biên tập để phù hợp với mô hình CTĐL mới theo phương án tại phụ lục 01 kèm theo. Hoàn thành trong tháng 10/2025.
+
+- Tiếp tục cập nhật/ hoàn thiện CSDL GIS theo biến động thực tế lưới điện theo lưu đồ EVNCPC đã hướng dẫn tại các văn bản số 6067/EVNCPC-KT+VTCNTT ngày 15/8/2022 và 7694/EVNCPC-VTCNTT+KT ngày 20/11/2024 (đính kèm).
+
+Chunk #6
+tokens --
+
+Văn bản: 6515/EVNCPC-VTCNTT+KD+KT - Kế hoạch xây dựng hệ thống GIS chuẩn hóa cơ sở dữ liệu lưới điện của EVNCPC
+Ngày ban hành: 21/08/2025
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 2.2. GIS hạ thế:
+2.2. GIS hạ thế:
+
+- Rà soát, chuẩn hóa dữ liệu phần mềm TTHT để sẵn sàng cho công tác chuyển đổi sang dữ liệu GIS. Hoàn thành trong tháng 12/2025.
+
+- Phối hợp CPCIT chuyển đổi và xây dựng dữ liệu GIS hạ thế với các yêu cầu: (i) DNPC, HPC hoàn thành trong tháng 6/2026 và báo cáo kết quả về EVNCPC; (ii) các CTĐL còn lại hoàn thành trong tháng 9/2026.
+
+Chunk #7
+tokens --
+
+Văn bản: 6515/EVNCPC-VTCNTT+KD+KT - Kế hoạch xây dựng hệ thống GIS chuẩn hóa cơ sở dữ liệu lưới điện của EVNCPC
+Ngày ban hành: 21/08/2025
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 3.1. GIS 110kV, GIS trung thế:
+3.1. GIS 110kV, GIS trung thế:
+
+- EVNCPC sẽ tổ chức lớp đào tạo trực tuyến về sử dụng các công cụ chuyển đổi dữ liệu GIS và cách thức biên tập dữ liệu GIS trong tháng 09/2025, KHoPC chủ động bố trí nhân sự để học tập, triển khai.
+
+- Lập kế hoạch chuyển đổi và biên tập dữ liệu GIS báo cáo EVNCPC để theo dõi trong tháng 10/2025. Trong đó yêu cầu: hoàn thành biên tập dữ liệu GIS 110kV trong tháng 12/2025 và dữ liệu GIS trung thế trong quý 01/2026.
+
+Chunk #8
+tokens --
+
+Văn bản: 6515/EVNCPC-VTCNTT+KD+KT - Kế hoạch xây dựng hệ thống GIS chuẩn hóa cơ sở dữ liệu lưới điện của EVNCPC
+Ngày ban hành: 21/08/2025
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 4. Các đơn vị thành viên: Chủ động nghiên cứu, xây dựng các bài toán khai thác, ứng dụng dữ liệu GIS 110kV, GIS trung thế đã có; tham khảo một số CTĐL
+4. Các đơn vị thành viên: Chủ động nghiên cứu, xây dựng các bài toán khai thác, ứng dụng dữ liệu GIS 110kV, GIS trung thế đã có; tham khảo một số CTĐL
+
+đã thực hiện trước đó như DNPC, HPC. EVNCPC khuyến khích các đơn vị xây dựng các bài toán khai thác, ứng dụng dưới dạng sáng kiến hoặc đề tài NCKH.
+
+Các đơn vị căn cứ thực hiện, kịp thời báo cáo vướng mắc (nếu có) về EVNCPC để xem xét, giải quyết./.
+
+Chunk #9
+tokens --
+
+Nơi nhận:
+
+- Như trên;
+
+- HĐTV EVNCPC (báo cáo);
+
+- TGĐ EVNCPC (báo cáo);
+
+- PTGĐ Nguyễn Hữu Khánh;
+
+- NĐD phần vốn của EVNCPC tại CTCP;
+
+- Ban: KH, ĐT, TCKT, TCNS, AT, PC, TH;
+
+- Lưu: VT, VTCNTT, KT, KD.
+
+KT. TỔNG GIÁM ĐỐC
+PHÓ TỔNG GIÁM ĐỐC
+
+Lê Hoàng Anh Dũng
+
+Chunk #10
+tokens --
+
+Bảng: Bảng DOffice 1 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| TT | Dữ liệu | CPCIT | Các CTĐL (trừ KHoPC) |
+| --- | --- | --- | --- |
+| 1 | GIS 110kV | Sáp nhập dữ liệu, bao gồm các bước:
+1. Chuẩn bị dữ liệu trước khi sáp nhập:
+- Kiểm tra cấu trúc Domain cho CSDL
+- Chuẩn hóa cấu trúc Domain theo CSDL gốc
+- Ghi chú vị trí thu thập (ghi lại vị trí thu thập để phục vụ tra cứu sau này)
+2. Chuyển dữ liệu vào CSDL gốc bằng cách load dữ liệu:
+- Chuyển dữ liệu cho các lớp dữ liệu (Feature Class)
+- Chuyển dữ liệu cho các bảng dữ liệu (Table)
+3. Gửi CSDL offline (file Geodatabase) cho các CTĐL kiểm tra, hiệu chỉnh
+4. Cập nhật dữ liệu lên CSDL GIS live dựa trên CSDL offline đã được các CTĐL kiểm tra, hiệu chỉnh | Kiểm tra, hiệu chỉnh dữ liệu, bao gồm các bước:
+1. Kiểm tra, hiệu chỉnh CSDL offline (file Geodatabase) do CPCIT gửi
+2. Gửi CSDL offline đã được kiểm tra, hiệu chỉnh cho CPCIT |
+| 2 | GIS trung thế | Lập tài liệu hướng dẫn và hỗ trợ sáp nhập dữ liệu, bao gồm các bước:
+1. Lập tài liệu hướng dẫn các bước gộp dữ liệu. Cơ bản gồm các bước sau:
+1.1. Chuẩn bị dữ liệu trước khi sáp nhập:
+- Kiểm tra cấu trúc Domain cho CSDL
+- Chuẩn hóa cấu trúc Domain theo CSDL gốc
+- Ghi chú vị trí thu thập (ghi lại vị trí thu thập để phục vụ tra cứu sau này)
+1.2. Chuyển dữ liệu vào CSDL gốc:
+- Chuyển dữ liệu cho các bảng dữ liệu (Table) bằng cách load dữ liệu
+- Xóa các bảng dữ liệu cũ
+- Copy các Dataset vào dữ liệu gốc
+- Tạo lại các Relationship cho các lớp dữ liệu mới
+2. Tạo nhóm hỗ trợ các CTĐL
+3. Cập nhật dữ liệu lên CSDL GIS live dựa trên CSDL đã được các CTĐL kiểm tra, hiệu chỉnh | Sáp nhập dữ liệu, bao gồm các bước:
+1. Thực hiện gộp dữ liệu theo hướng dẫn
+2. Kiểm tra, hiệu chỉnh CSDL |
+
+Chunk #11
+tokens --
+
+Bảng: Bảng DOffice 2 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| TT | Trường dữ liệu | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng | Nguồn dữ liệu | Chuyển đổi sang GIS |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | ID | ID Cột điện | Text | | 20 | ID tự sinh của GIS | |
+| 2 | IdPMIS | Mã search từ PMIS | Text | | 25 | Biên tập | |
+| 3 | MaTramBienAp | Mã trạm biến áp | Text | | 50 | TTHT | X |
+| 4 | SoMach | Số mạch đi chung | Short Integer | | | Biên tập | |
+| 5 | ViTriCotHaThe | Vị trí cột hạ thế | Text | | 20 | TTHT | X |
+| 6 | KieuCot | Kiểu cột | Short Integer | HT_KieuCot | | TTHT | X |
+| 7 | XuatTuyen | Xuất tuyến | Short Integer | HT_XuatTuyen | | Biên tập | |
+| 8 | LoaiCot | Loại cột | Short Integer | Subtype phân loại cột điện | | TTHT | X |
+| 9 | CongDungCot | Công dụng cột | Short Integer | PC_CongDungCot | | Biên tập | |
+| 10 | SoLuongCot | Số lượng cột | Short Integer | | | Biên tập | |
+| 11 | KetCauCot | Kết cấu cột | Short Integer | PC_KetCauCot | | Biên tập | |
+| 12 | ChieuCaoCot | Chiều cao cột | Short Integer | HT_ChieuCaoCot | | TTHT | X |
+| 13 | LoaiMongCot | Loại móng cột | Short Integer | HT_LoaiMongCot | | Biên tập | |
+| 14 | TiepDia | Tiếp địa | Short Integer | PC_TiepDiaCot | | Biên tập | |
+| 15 | TSTiepDia | Trị số tiếp địa | Double | | | Biên tập | |
+| 16 | SoHuu | Sở hữu | Short Integer | PC_SoHuu | | Biên tập | |
+| 17 | DonViQuanLy | Đơn vị quản lý | Text | PC_DonViQuanLy | 50 | TTHT | X |
+| 18 | TinhThanh | Tỉnh thành | Short Integer | PC_TinhThanh | | Biên tập | |
+| 19 | PhuongXa | Phường xã | Short Integer | PC_PhuongXa | | Biên tập | |
+| 20 | GhiChu | Ghi chú tinh trạng thiết bị | Text | | 255 | Biên tập | |
+| 21 | GhiChuGIS | Ghi chú vị trí thu thập | Text | | 255 | Biên tập | |
+| 22 | NgayKhoiTao | Ngày khởi tạo | Date | | | Biên tập | |
+
+Chunk #12
+tokens --
+
+Bảng: Bảng DOffice 3 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| TT | Trường dữ liệu | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng | Nguồn dữ liệu | Chuyển đổi sang GIS |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 23 | NguoiKhoiTao | Người khởi tạo | Text | | 50 | Biên tập | |
+| 24 | NgayCapNhat | Ngày cập nhật | Date | | | Biên tập | |
+| 25 | NguoiCapNhat | Người cập nhật | Text | | 50 | Biên tập | |
+| 26 | X | Tọa độ X | Double | | | TTHT | X |
+| 27 | Y | Tọa độ Y | Double | | | TTHT | X |
+| 28 | Long | Kinh độ | Double | | | TTHT | X |
+| 29 | Lat | Vĩ độ | Double | | | TTHT | X |
+| 30 | MaPMIS | Mã PMIS | Text | | 50 | Biên tập | |
+
+Chunk #13
+tokens --
+
+Bảng: Bảng DOffice 4 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| TT | Tên trường | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng | Nguồn dữ liệu | Chuyển đổi sang GIS |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | ID | ID Dây dẫn | Text | | 20 | ID tự sinh của GIS | |
+| 2 | IdPMIS | Mã search từ PMIS | Text | | 25 | Biên tập | |
+| 3 | XuatTuyen | Xuất tuyến | Text | | 50 | Biên tập | |
+| 4 | MaTramBienAp | Mã trạm biến áp | Text | | 50 | TTHT | X |
+| 5 | PhanLoai | Phân loại | Short Integer | Subtype phân loại đường dây | | Biên tập | |
+| 6 | PhanTang | Phân tầng trên cột | Short Integer | | | Biên tập | |
+| 7 | DienAp | Điện áp | Short Integer | HT_DienAp | | Biên tập | |
+| 8 | LoaiDayDan | Loại dây dẫn | Short Integer | | | Biên tập | |
+| 9 | MaHieu | Mã hiệu | Short Integer | | | Biên tập | |
+| 10 | TietDienDay | Tiết diện dây | Short Integer | PC_TietDienDay | | Biên tập | |
+| 11 | SoPha | Số pha | Short Integer | | | Biên tập | |
+| 12 | PhaDauNoi | Pha đấu nối | Short Integer | PC_PhaDauNoi | | Biên tập | |
+| 13 | UDinhMuc | Điện áp định mức | Double | | | Biên tập | |
+| 14 | ChieuDai | Chiều dài | Double | | | Biên tập | |
+| 15 | HTLDCapNgam | Hình thức lắp đặt cáp ngầm | Short Integer | PC_HTLDCapNgam | | Biên tập | |
+| 16 | SoHuu | Sở hữu | Short Integer | PC_SoHuu | | Biên tập | |
+| 17 | DonViQuanLy | Đơn vị quản lý | Text | PC_DonViQuanLy | 50 | TTHT | X |
+| 18 | TinhThanh | Tinh thành | Short Integer | PC_TinhThanh | | Biên tập | |
+| 19 | PhuongXa | Phường xã | Short Integer | PC_PhuongXa | | Biên tập | |
+| 20 | GhiChu | Ghi chú tính trạng thiết bị | Text | | 255 | Biên tập | |
+| 21 | GhiChuGIS | Ghi chú vị trí thu thập | Text | | 255 | Biên tập | |
+| 22 | NgayKhoiTao | Ngày khởi tạo | Date | | | Biên tập | |
+| 23 | NguoiKhoiTao | Người khởi tạo | Text | | 50 | Biên tập | |
+| 24 | NgayCapNhat | Ngày cập nhật | Date | | | Biên tập | |
+| 25 | NguoiCapNhat | Người cập nhật | Text | | 50 | Biên tập | |
+| 26 | MaPMIS | Mã PMIS | Text | | 50 | Biên tập | |
+
+Chunk #14
+tokens --
+
+Bảng: Bảng DOffice 5 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| TT | Trường dữ liệu | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng | Nguồn dữ liệu | Chuyển đổi sang GIS |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | ID | ID Công tơ | Text | | 20 | ID tự sinh của GIS | |
+| 2 | IdPMIS | Mã search từ PMIS | Text | | 25 | Biên tập | |
+| 3 | IDCotDien | ID Cột điện | Text | | 20 | ID liên kết Cột điện | X |
+| 4 | MaTramBienAp | Mã trạm biến áp | Text | | 20 | TTHT | X |
+| 5 | MaCongTo | Số công tơ | Text | | 20 | CMIS | X |
+| 6 | MaSoCongTo | Mã công tơ | Text | | 50 | CMIS | X |
+| 7 | MaKhachHang | Mã khách hàng | Text | | 50 | CMIS | X |
+| 8 | TenKhachHang | Tên khách hàng | Text | | 255 | CMIS | X |
+
+Chunk #15
+tokens --
+
+Bảng: Bảng DOffice 6 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| TT | Trường dữ liệu | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng | NGuồn dữ liệu | Ch đổi sang GIS |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 9 | MaDiemDo | Mã điểm đo | Text | | 50 | CMIS | X |
+| 10 | DiaChi | Địa chỉ | Text | | 255 | CMIS | X |
+| 11 | LoaiCongTo | Loại Công tơ | Short Integer | PC_LoaiCongTo | | CMIS | X |
+| 12 | ViTriLapDat | Vị trí lắp đặt | Short Integer | Subtype phân loại theo vị trí công tơ | | CMIS | X |
+| 13 | DayTruocCongTo | Loại dây trước công tơ | Short Integer | HT_LoaiDTCT | | Biên tập | |
+| 14 | LoaiThungCongTo | Loại thùng công tơ | Short Integer | HT_LoaiThungCongTo | | CMIS | X |
+| 15 | ViTriCongToTrongThung | Vị trí công tơ trong thùng | Short Integer | HT_ViTriCongToTrongThung | | CMIS | X |
+| 16 | MaHieuDay | Mã hiệu dây | Short Integer | HT_MaHieuDTCT | | Biên tập | |
+| 17 | TietDienDay | Tiết điện dây | Short Integer | PC_TietDienDay | | Biên tập | |
+| 18 | ChieuDaiDay | Chiều dài dây | Double | | | Biên tập | |
+| 19 | TrangThai | Trạng thái hoạt động | Short Integer | PC-TrangThai | | TTHT | X |
+| 20 | SoHuu | Sở hữu | Short Integer | PC_SoHuu | | Biên tập | |
+| 21 | DonViQuanLy | Đơn vị quản lý | Text | PC_DonViQuanLy | 50 | TTHT | X |
+| 22 | TinhThanh | Tỉnh thành | Short Integer | PC_TinhThanh | | CMIS | X |
+| 23 | PhuongXa | Phường xã | Short Integer | PC_PhuongXa | | CMIS | X |
+| 24 | GhiChu | Ghi chú tình trạng | Text | | 255 | Biên tập | |
+| 25 | GhiChuGIS | Ghi chú vị trí thu thập | Text | | 255 | Biên tập | |
+| 26 | NgayKhoiTao | Ngày khởi tạo | Date | | | Biên tập | |
+| 27 | NguoiKhoiTao | Người khởi tạo | Text | | 50 | Biên tập | |
+| 28 | NgayCapNhat | Ngày cập nhật | Date | | | Biên tập | |
+| 29 | NguoiCapNhat | Người cập nhật | Text | | 50 | Biên tập | |
+| 30 | X | Tọa độ X | Double | | | TTHT | X |
+| 31 | Y | Tọa độ Y | Double | | | TTHT | X |
+| 32 | Long | Kinh độ | Double | | | TTHT | X |
+| 33 | Lat | Vĩ độ | Double | | | TTHT | X |
+| 34 | MaCMIS | Mã CMIS | Text | | | CMIS | X |
+
+Chunk #16
+tokens --
+
+Bảng: Bảng DOffice 7 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| TT | Trường dữ liệu | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng | NGuồn dữ liệu | Ch đổi sang GIS |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | ID | ID điểm đo | Text | | 50 | ID tự sinh của GIS | |
+| 2 | IdPMIS | Mã search từ PMIS | Text | | 25 | Biên tập | |
+| 3 | TenTramBienAp | Tên trạm biến áp | Text | | 255 | TTHT | X |
+| 4 | MaTramBienAp | Mã trạm biến áp | Text | | 50 | TTHT | X |
+| 5 | LoaiTramBienAp | Loại trạm biến áp | Short Integer | Subtype phân loại điểm đo theo trạm biến áp | | TTHT | X |
+| 6 | SoHuu | Sở hữu | Short Integer | PC_SoHuu | | PMIS/Biên tập | Ch đổi cho các thiết bị tại TBA |
+| 7 | DonViQuanLy | Đơn vị quản lý | Text | PC_DonViQuanLy | 50 | PMIS/Biên tập | Ch đổi cho các thiết bị tại TBA |
+| 8 | TinhThanh | Tỉnh thành | Short Integer | PC_TinhThanh | | Biên tập | |
+| 9 | PhuongXa | Phường xã | Short Integer | PC_PhuongXa | | Biên tập | |
+| 10 | GhiChu | Ghi chú tình trạng | Text | | 255 | Biên tập | |
+| 11 | GhiChuGIS | Ghi chú vị trí thu thập | Text | | 255 | Biên tập | |
+| 12 | NgayKhoiTao | Ngày khởi tạo | Date | | | Biên tập | |
+| 13 | NguoiKhoiTao | Người khởi tạo | Text | | 50 | Biên tập | |
+| 14 | NgayCapNhat | Ngày cập nhật | Date | | | Biên tập | |
+| 15 | NguoiCapNhat | Người cập nhật | Text | | 50 | Biên tập | |
+| 16 | X | Tọa độ X | Double | | | TTHT | X |
+| 17 | Y | Tọa độ Y | Double | | | TTHT | X |
+| 18 | Long | Kinh độ | Double | | | TTHT | X |
+| 19 | Lat | Vĩ độ | Double | | | TTHT | X |
+
+Chunk #17
+tokens --
+
+Bảng: Bảng DOffice 8 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| TT | Trường dữ liệu | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng | Nguồn dữ liệu | Chuyển đổi sang GIS |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 20 | MaPMIS | Mã PMIS | Text | | 50 | Biên tập | |
+| 21 | MaCMIS | Mã CMIS | Text | | 50 | CMIS | X |
+
+Chunk #18
+tokens --
+
+Bảng: Bảng DOffice 9 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| TT | Trường dữ liệu | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng | Nguồn dữ liệu | Chuyển đổi sang GIS |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | ID | ID Thiết bị đo đếm | Text | | 20 | ID tự sinh của GIS | |
+| 2 | IdPMIS | Mã search từ PMIS | Text | | 25 | PMIS/Biên tập | Chuyển đổi cho các thiết bị tại TBA |
+| 3 | TenThietBi | Tên thiết bị | Text | | 50 | PMIS/Biên tập | Chuyển đổi cho các thiết bị tại TBA |
+| 4 | IDCotDien | ID Cột điện | Text | | 20 | ID liên kết Cột điện | X |
+| 5 | IDTramBienAp | ID Trạm biến áp | Text | | 20 | TTHT | X |
+| 6 | DanhSoThietBi | Đánh số thiết bị | Text | | 20 | Biên tập | |
+| 7 | LoaiTBDD | Loại thiết bị đo đếm | Short Integer | Subtype phân loại thiết bị đo đếm | | Biên tập | |
+| 8 | DienAp | Điện áp | Short Integer | HT_DienAp | | PMIS/Biên tập | Chuyển đổi cho các thiết bị tại TBA |
+| 9 | MaHieu | Mã hiệu | Short Integer | | | Biên tập | |
+| 10 | HangSanXuat | Hăng sản xuất | Short Integer | | | PMIS/Biên tập | Chuyển đổi cho các thiết bị tại TBA |
+| 11 | NuocSanXuat | Nước sản xuất | Short Integer | | | PMIS/Biên tập | Chuyển đổi cho các thiết bị tại TBA |
+| 12 | NamSanXuat | Năm sản xuất | Short Integer | | | PMIS/Biên tập | Chuyển đổi cho các thiết bị tại TBA |
+| 13 | SoSerial | Số serial | Text | | 50 | PMIS/Biên tập | Chuyển đổi cho các thiết bị tại TBA |
+| 14 | NgayVanHanh | Ngày vận hành | Date | | | PMIS/Biên tập | Chuyển đổi cho các thiết bị tại TBA |
+| 15 | SoHuu | Sở hữu | Short Integer | PC_SoHuu | | PMIS/Biên tập | Chuyển đổi cho các thiết bị tại TBA |
+| 16 | DonViQuanLy | Đơn vị quản lý | Text | PC_DonViQuanLy | 50 | PMIS/Biên tập | Chuyển đổi cho các thiết bị tại TBA |
+| 17 | TinhThanh | Tỉnh thành | Short Integer | PC_TinhThanh | | Biên tập | |
+| 18 | PhuongXa | Phường xã | Short Integer | PC_PhuongXa | | Biên tập | |
+| 19 | GhiChu | Ghi chú tỉnh trạng | Text | | 255 | Biên tập | |
+| 20 | GhiChuGIS | Ghi chú vị trí thu thập | Text | | 255 | Biên tập | |
+| 21 | NgayKhoiTao | Ngày khỏi tạo | Date | | | Biên tập | |
+| 22 | NguoiKhoiTao | Gười khỏi tạo | Text | | 50 | Biên tập | |
+| 23 | NgayCapNhat | Ngày cập nhật | Date | | | Biên tập | |
+| 24 | NguoiCapNhat | Gười cập nhật | Text | | 50 | Biên tập | |
+| 25 | X | Tọa độ X | Double | | | TTHT/Biên tập | Chuyển đổi cho các thiết bị tại TBA |
+| 26 | Y | Tọa độ Y | Double | | | TTHT/Biên tập | Chuyển đổi cho các thiết bị tại TBA |
+| 27 | Long | Kinh độ | Double | | | TTHT/Biên tập | Chuyển đổi cho các thiết bị tại TBA |
+| 28 | Lat | Vĩ độ | Double | | | TTHT/Biên tập | Chuyển đổi cho các thiết bị tại TBA |
+| 29 | MaPMIS | Mã PMIS | Text | | 50 | PMIS/Biên tập | Chuyển đổi cho các thiết bị tại TBA |
+
+Chunk #19
+tokens --
+
+Bảng: Bảng DOffice 10 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| TT | Trường dữ liệu | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng | Nguồn dữ liệu | Chuyển đổi sang GIS |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | ID | ID Thiết bị đóng cắt | Text | | 20 | ID tự sinh của GIS | |
+| 2 | IdPMIS | Mã search từ PMIS | Text | | 25 | PMIS/Biên tập | Chuyển đổi cho các thiết bị tại TBA |
+| 3 | IDCotDien | ID Cột điện | Text | | 20 | ID liên kết Cột điện | X |
+| 4 | IDTramBienAp | ID Trạm biến áp | Text | | 20 | Biên tập | |
+| 5 | IDTuPP | ID Tủ phân phối | Text | | 20 | ID liên kết Tủ phân phối | X |
+| 6 | IDTuBu | ID Tụ bù | Text | | 20 | ID liên kết Tụ bù | X |
+| 7 | LoaiTBDC | Loại thiết bị đóng cắt | Short Integer | Subtype phân loại thiết bị đóng cắt | | Biên tập | |
+| 8 | DanhSoThietBi | Đánh số thiết bị | Text | | 50 | Biên tập | |
+| 9 | DienAp | Điện áp | Short Integer | HT_DienAp | | Biên tập | |
+| 10 | MaHieu | Mã hiệu | Short Integer | | | Biên tập | |
+| 11 | HangSanXuat | Hăng sản xuất | Short Integer | | | Biên tập | |
+
+Chunk #20
+tokens --
+
+Bảng: Bảng DOffice 11 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| TT | Trường dữ liệu | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng | Nguồn dữ liệu | Chuyển đổi sang GIS |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 12 | NuocSanXuat | Nước sản xuất | Short Integer | | | Biên tập | |
+| 13 | NamSanXuat | Năm sản xuất | Short Integer | | | Biên tập | |
+| 14 | SoSerial | Số serial | Text | | 50 | Biên tập | |
+| 15 | NgayVanHanh | Ngày vận hành | Date | | | Biên tập | |
+| 16 | ViTriLapDat | Vị trí lắp đặt | Short Integer | PC_ViTriTBDC | | Biên tập | |
+| 17 | SoHuu | Sở hữu | Short Integer | PC_SoHuu | | Biên tập | |
+| 18 | DonViQuanLy | Đơn vị quản lý | Text | PC_DonViQuanLy | 50 | Biên tập | |
+| 19 | TinhThanh | Tỉnh thành | Short Integer | PC_TinhThanh | | Biên tập | |
+| 20 | PhuongXa | Phường xã | Short Integer | PC_PhuongXa | | Biên tập | |
+| 21 | GhiChu | Ghi chú tình trạng | Text | | 255 | Biên tập | |
+| 22 | GhiChuGIS | Ghi chú vị trí thu thập | Text | | 255 | Biên tập | |
+| 23 | NgayKhoiTao | Ngày khởi tạo | Date | | | Biên tập | |
+| 24 | NguoiKhoiTao | Người khởi tạo | Text | | 50 | Biên tập | |
+| 25 | NgayCapNhat | Ngày cập nhật | Date | | | Biên tập | |
+| 26 | NguoiCapNhat | Người cập nhật | Text | | 50 | Biên tập | |
+| 27 | X | Tọa độ X | Double | | | Biên tập | |
+| 28 | Y | Tọa độ Y | Double | | | Biên tập | |
+| 29 | Long | Kinh độ | Double | | | Biên tập | |
+| 30 | Lat | Vĩ độ | Double | | | Biên tập | |
+| 31 | MaPMIS | Mã PMIS | Text | | 50 | PMIS/Biên tập | Chuyên đổi cho các thiết bị tại TBA |
+
+Chunk #21
+tokens --
+
+Bảng: Bảng DOffice 12 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| TT | Trường dữ liệu | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng | Nguồn dữ liệu | Chuyển đổi sang GIS |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | ID | ID Tủ hạ thế | Text | | 20 | ID tự sinh của GIS | |
+| 2 | IdPMIS | Mã search từ PMIS | Text | | 25 | Biên tập | |
+| 3 | MaTramBienAp | Mã trạm biến áp | Text | | 20 | TTHT | X |
+| 4 | LoaiTuPP | Loại tử phân phối | Short Integer | Subtype phân loại tử phân phối | | Biên tập | |
+| 5 | TiepDia | Tiếp địa | Short Integer | PC_TiepDia | | Biên tập | |
+| 6 | SoXuatTuyen | Số xuất tuyến | Short Integer | | | Biên tập | |
+| 7 | ViTri | Vị trí lắp đặt | Short Integer | | | Biên tập | |
+| 8 | SoHuu | Sở hữu | Short Integer | PC_SoHuu | | Biên tập | |
+| 9 | DonViQuanLy | Đơn vị quản lý | Text | PC_DonViQuanLy | 50 | TTHT | X |
+| 10 | TinhThanh | Tỉnh thành | Short Integer | PC_TinhThanh | | Biên tập | |
+| 11 | PhuongXa | Phường xã | Short Integer | PC_PhuongXa | | Biên tập | |
+| 12 | GhiChu | Ghi chú | Text | | 255 | Biên tập | |
+| 13 | GhiChuGIS | Ghi chú vị trí thu thập | Text | | 255 | Biên tập | |
+| 14 | NgayKhoiTao | Ngày khởi tạo | Date | | | Biên tập | |
+| 15 | NguoiKhoiTao | Người khởi tạo | Text | | 50 | Biên tập | |
+| 16 | NgayCapNhat | Ngày cập nhật | Date | | | Biên tập | |
+| 17 | NguoiCapNhat | Người cập nhật | Text | | 50 | Biên tập | |
+| 18 | X | Tọa độ X | Double | | | TTHT | X |
+| 19 | Y | Tọa độ Y | Double | | | TTHT | X |
+| 20 | Long | Kinh độ | Double | | | TTHT | X |
+| 21 | Lat | Vĩ độ | Double | | | TTHT | X |
+| 22 | MaPMIS | Mã PMIS | Text | | 50 | Biên tập | |
+
+Chunk #22
+tokens --
+
+Bảng: Bảng DOffice 13 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| TT | Tên trường | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng |
+| --- | --- | --- | --- | --- | --- |
+| 1 | IDHinhAnh | ID hình ảnh | Text | | 50 |
+| 2 | IDCotDien | ID cột điện | Text | | 50 |
+| 3 | ThuMuc | Thư mục lưu trữ | Text | | 255 |
+| 4 | DuongDan | Đường dẫn vật lý | Text | | 255 |
+| 5 | NgayKhoiTao | Ngày khởi tạo | Date | | |
+| 6 | NguoiKhoiTao | Người khởi tạo | Text | | 50 |
+
+Chunk #23
+tokens --
+
+Bảng: Bảng DOffice 14 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| TT | Tên trường | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng |
+| --- | --- | --- | --- | --- | --- |
+| 1 | IDHinhAnh | ID hình ảnh | Text | | 50 |
+| 2 | IDCongToKhachHang | ID công tơ khách hàng | Text | | 50 |
+| 3 | ThuMuc | Thư mục lưu trữ | Text | | 255 |
+| 4 | DuongDan | Đường dẫn vật lý | Text | | 255 |
+| 5 | NgayKhoiTao | Ngày khởi tạo | Date | | |
+| 6 | NguoiKhoiTao | Người khởi tạo | Text | | 50 |
+
+Chunk #24
+tokens --
+
+Bảng: Bảng DOffice 15 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| TT | Tên trường | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng |
+| --- | --- | --- | --- | --- | --- |
+| 1 | IDHinhAnh | ID hình ảnh | Text | | 50 |
+| 2 | IDCongToKhachHang | ID công tơ khách hàng | Text | | 50 |
+| 3 | ThuMuc | Thư mục lưu trữ | Text | | 255 |
+| 4 | DuongDan | Đường dẫn vật lý | Text | | 255 |
+| 5 | NgayKhoiTao | Ngày khởi tạo | Date | | |
+
+Chunk #25
+tokens --
+
+Bảng: Bảng DOffice 16 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| TT | Tên trường | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng |
+| --- | --- | --- | --- | --- | --- |
+| 6 | NguoiKhoiTao | Người khởi tạo | Text | | 50 |
+
+Chunk #26
+tokens --
+
+Bảng: Bảng DOffice 17 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| Tên mối quan hệ | PXXXXX_CotDien HT_HinhAnhCotDien | Ghi chú |
+| --- | --- | --- |
+| Lớp dữ liệu: | F08_PXXXXX_CotDien-HT | F08: thứ tự lớp dữ liệu; PXXXXX là mã Đội quản lý điện. Ví dụ: Đội quản lý điện Hải Châu: PP0100 |
+| Trường thuộc tính liên kết của lớp dữ liệu: F08_PXXXXX_CotDien-HT | ID | Kiểu dữ liệu: Text
+Độ rộng: 50 |
+| Bảng dữ liệu: | PX_HinhAnhCotDien | PX là mã Công ty Điện lực. Ví dụ: PP_HinhAnhCotDien: bảng dữ liệu hình ảnh cột của Công ty Điện lực Đà Nẵng |
+| Trường thuộc tính liên kết của lớp dữ liệu: PX_HinhAnhCotDien | IDCotDien | Kiểu dữ liệu: Text
+Độ rộng: 50 |
+| Mối quan hệ: lớp dữ liệu Cột điện hạ thế với bảng dữ liệu hình ảnh cột điện | 1 - Nhiều (1-M) | |
+
+Chunk #27
+tokens --
+
+Bảng: Bảng DOffice 18 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| Tên mối quan hệ | PXXXXX_CongToKhachHang HT_HinhAnhKhachHang | Ghi chú |
+| --- | --- | --- |
+| Lớp dữ liệu: | F05_PXXXXX_CongToKhachHang-HT | F05: thứ tự lớp dữ liệu; PXXXXX là mã Đội quản lý điện. Ví dụ: Đội quản lý điện Hải Châu: PP0100 |
+| Trường thuộc tính liên kết của lớp dữ liệu: F08_PXXXXX_CongToKhachHang-HT | ID | Kiểu dữ liệu: Text
+Độ rộng: 50 |
+| Bảng dữ liệu: | PX_HinhAnhKhachHang | PX là mã Công ty Điện lực. Ví dụ: PP_HinhAnhKhachHang: bảng dữ liệu hình ảnh khách hàng của Công ty Điện lực Đà Nẵng |
+| Trường thuộc tính liên kết của lớp dữ liệu: PX_HinhAnhKhachHang | IDCongToKhachHang | Kiểu dữ liệu: Text
+Độ rộng: 50 |
+| Mối quan hệ: lớp dữ liệu Công tơ khách hàng hạ thế với bảng dữ liệu hình ảnh khách hàng | 1 - Nhiều (1-M) | |
+
+Chunk #28
+tokens --
+
+Bảng: Bảng DOffice 19 | Văn bản: 6515/EVNCPC-VTCNTT+KD+KT
+| Tên mối quan hệ | PXXXXX_CongToKhachHang HT_HinhAnhHoSoKhachHang | Ghi chú |
+| --- | --- | --- |
+| Lớp dữ liệu: | F05_PXXXXX_CongToKhachHang-HT | F05: thứ tự lớp dữ liệu;
+PXXXXX là mã Đội quản lý
+điện. Ví dụ: Đội quản lý điện
+Hải Châu: PP0100 |
+| Trường thuộc tính liên kết của lớp dữ liệu:
+F08_PXXXXX_CongToKhachHang-HT | ID | Kiểu dữ liệu: Text
+Độ rộng: 50 |
+| Bảng dữ liệu: | PX_HinhAnhHoSoKhachHang | PX là mã Công ty Điện lực. Ví dụ:
+PP_HinhAnhHoSoKhachHang : bảng dữ liệu hình ảnh hồ sơ khách hàng của Công ty Điện lực Đà Nẵng. |
+| Trường thuộc tính liên kết của lớp dữ liệu:
+PX_HinhAnhHoSoKhachHang | IDCongToKhachHang | Kiểu dữ liệu: Text
+Độ rộng: 50 |
+| Mối quan hệ: lớp dữ liệu Công tơ khách hàng hạ thế với bảng dữ liệu hình ảnh hồ sơ khách hàng | 1 - Nhiều (1-M) | |

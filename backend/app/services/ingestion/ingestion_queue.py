@@ -28,7 +28,6 @@ from app.services.documents.document_service import DocumentService
 from app.services.document_sources import DofficeElasticsearchSource
 from app.services.ingestion.ingestion_doffice_ingestion_service import DofficeIngestionService, DofficeIngestOptions
 from app.services.retrieval.retrieval_elasticsearch_keyword_search import get_elasticsearch_keyword_store
-from app.services.embeddings.embedding_factory import get_embedding_provider
 from app.services.embeddings.embedding_sparse_factory import get_sparse_embedding_provider
 from app.services.graph import GraphIndexingService, GraphMergeService, get_neo4j_client
 from app.services.graph.extractors.extractor_factory import build_graph_extractor
@@ -36,6 +35,7 @@ from app.services.ingestion.ingestion_profiles import load_profile_configs
 from app.services.knowledge.knowledge_artifact_compiler import KnowledgeArtifactCompiler, KnowledgeArtifactCompilerConfig
 from app.services.knowledge.knowledge_artifact_indexing_service import KnowledgeArtifactIndexingService
 from app.services.llm_gateway import build_llm_gateway_or_error, get_llm_gateway
+from app.services.retrieval.retrieval_document_index import DocumentIndexStore
 from app.services.rag.rag_runtime_config import RagRuntimeConfigValues, load_rag_runtime_config
 from app.services.documents.document_storage import get_storage_client
 from app.services.vector.vector_indexing_service import VectorIndexingService
@@ -583,7 +583,7 @@ class IngestionQueue:
                 chunking_service=ChunkingService(repository=repository, storage=storage),
                 vector_indexing_service=VectorIndexingService(
                     repository=repository,
-                    embedding_provider=get_embedding_provider(),
+                    llm_gateway=get_llm_gateway(),
                     vector_store=get_vector_store(),
                     sparse_embedding_provider=get_sparse_embedding_provider(),
                     keyword_index_store=(
@@ -600,7 +600,7 @@ class IngestionQueue:
                 knowledge_artifact_repository=KnowledgeArtifactRepository(session),
                 artifact_indexing_service=KnowledgeArtifactIndexingService(
                     repository=KnowledgeArtifactRepository(session),
-                    embedding_provider=get_embedding_provider(),
+                    llm_gateway=get_llm_gateway(),
                     vector_store=get_artifact_vector_store(),
                     sparse_embedding_provider=get_sparse_embedding_provider(),
                 ),
@@ -609,6 +609,10 @@ class IngestionQueue:
                     if settings.elasticsearch_enabled
                     else None
                 ),
+                document_index_store=(
+                    DocumentIndexStore() if settings.two_stage_retrieval_enabled else None
+                ),
+                llm_gateway=get_llm_gateway(),
             )
             response = await service.ingest_doffice_document(
                 payload.id_vb,
@@ -916,7 +920,7 @@ class IngestionQueue:
             try:
                 artifact_response = await KnowledgeArtifactIndexingService(
                     repository=KnowledgeArtifactRepository(session),
-                    embedding_provider=get_embedding_provider(),
+                    llm_gateway=get_llm_gateway(),
                     vector_store=get_artifact_vector_store(),
                     sparse_embedding_provider=get_sparse_embedding_provider(),
                 ).index_document(document_id)
@@ -929,7 +933,7 @@ class IngestionQueue:
 
         chunk_response = await VectorIndexingService(
             repository=document_repository,
-            embedding_provider=get_embedding_provider(),
+            llm_gateway=get_llm_gateway(),
             vector_store=get_vector_store(),
             sparse_embedding_provider=get_sparse_embedding_provider(),
         ).index_document(

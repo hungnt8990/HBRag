@@ -125,8 +125,20 @@ class QdrantVectorStore:
         "noi_ban_hanh",
         "issuing_org",
         "ten_file",
+        # ACL mới (flatten): list keyword ["dv_{id}","pb_{id}","nv_{id}"].
+        "acl_subjects",
     )
-    PAYLOAD_INTEGER_FIELDS = ("page_start", "page_end", "chunk_index")
+    PAYLOAD_INTEGER_FIELDS = (
+        "page_start",
+        "page_end",
+        "chunk_index",
+        # ACL mới: allow/deny ở cấp đơn vị/phòng ban/cá nhân (id nguyên).
+        "acl_allow_dv",
+        "acl_allow_pb",
+        "acl_allow_nv",
+        "acl_deny_pb",
+        "acl_deny_nv",
+    )
 
     def __init__(
         self,
@@ -277,6 +289,35 @@ class QdrantVectorStore:
             wait=True,
         )
 
+    async def set_acl_payload_for_document(
+        self,
+        document_id: UUID | str,
+        acl_payload: dict[str, object],
+        *,
+        tenant_id: UUID | str | None = None,
+    ) -> None:
+        """Cập nhật riêng các trường ACL cho toàn bộ point của một văn bản.
+
+        Dùng cho re-compress: chỉ ghi đè payload (set_payload merge theo key),
+        KHÔNG đụng vector nên không cần nhúng lại. Các key không nằm trong
+        ``acl_payload`` được giữ nguyên.
+        """
+        if not acl_payload:
+            return
+        exists = await self._client.collection_exists(collection_name=self.collection_name)
+        if not exists:
+            return
+
+        must = [FieldCondition(key="document_id", match=MatchValue(value=str(document_id)))]
+        if tenant_id is not None:
+            must.append(FieldCondition(key="tenant_id", match=MatchValue(value=str(tenant_id))))
+        await self._client.set_payload(
+            collection_name=self.collection_name,
+            payload=dict(acl_payload),
+            points=Filter(must=must),
+            wait=True,
+        )
+
     async def search(
         self,
         *,
@@ -292,6 +333,7 @@ class QdrantVectorStore:
         chunk_type: str | None = None,
         table_name: str | None = None,
         access_filter: AccessFilter | None = None,
+        acl_subject: "AclSubject | None" = None,
     ) -> list[VectorSearchResult]:
         await self.ensure_collection()
         query_filter = self._payload_filter(
@@ -304,6 +346,23 @@ class QdrantVectorStore:
             chunk_type=chunk_type,
             table_name=table_name,
             access_filter=access_filter,
+            acl_subject=acl_subject,
+        )
+
+        from qdrant_client.models import QuantizationSearchParams, SearchParams
+
+        search_params = SearchParams(
+            hnsw_ef=settings.qdrant_search_hnsw_ef,
+            exact=False,
+            quantization=(
+                QuantizationSearchParams(
+                    ignore=False,
+                    rescore=settings.qdrant_quantization_rescore,
+                    oversampling=settings.qdrant_quantization_oversampling,
+                )
+                if settings.qdrant_quantization_enabled
+                else None
+            ),
         )
 
         if self.sparse_enabled and sparse_query is not None and sparse_query.indices:
@@ -316,6 +375,7 @@ class QdrantVectorStore:
                         using=self.dense_vector_name,
                         limit=candidate_limit,
                         filter=query_filter,
+                        params=search_params,
                     ),
                     Prefetch(
                         query=SparseVector(
@@ -341,6 +401,7 @@ class QdrantVectorStore:
                 limit=top_k,
                 with_payload=True,
                 with_vectors=False,
+                search_params=search_params,
             )
         points = getattr(response, "points", response)
         return [self._to_search_result(point) for point in points]
@@ -433,6 +494,7 @@ class QdrantVectorStore:
         chunk_type: str | None = None,
         table_name: str | None = None,
         access_filter: AccessFilter | None = None,
+        acl_subject: "AclSubject | None" = None,
     ) -> Filter | None:
         must: list[FieldCondition] = []
         must_not: list[FieldCondition] = []
@@ -546,6 +608,19 @@ class QdrantVectorStore:
                         match=MatchAny(any=sorted(access_filter.project_codes)),
                     )
                 )
+        # Hệ ACL danh mục (acl_*): enforce ĐỘC LẬP, bất kể access_read_all_documents.
+        if acl_subject is not None:
+            from app.services.security.security_acl_payload import (
+                build_qdrant_acl_conditions_flat,
+            )
+
+            # Flat: 1 MatchAny trên acl_subjects (nhanh hơn 3 OR), + deny.
+            acl_conditions = build_qdrant_acl_conditions_flat(acl_subject)
+            if acl_conditions is not None:  # None = super admin -> không lọc
+                acl_should, acl_must_not = acl_conditions
+                must.append(Filter(should=acl_should))
+                must_not.extend(acl_must_not)
+
         return Filter(must=must, must_not=must_not, should=should) if must or must_not or should else None
 
     @staticmethod
@@ -586,15 +661,42 @@ class QdrantVectorStore:
         ) from last_error
 
     async def _create_collection(self) -> None:
+        from qdrant_client.models import (
+            HnswConfigDiff,
+            OptimizersConfigDiff,
+            ScalarQuantization,
+            ScalarQuantizationConfig,
+            ScalarType,
+        )
+
         kwargs: dict[str, Any] = {
             "collection_name": self.collection_name,
             "vectors_config": {
                 self.dense_vector_name: VectorParams(
                     size=self.vector_size,
                     distance=self.distance,
+                    on_disk=settings.qdrant_vector_on_disk,
                 )
             },
+            "hnsw_config": HnswConfigDiff(
+                m=settings.qdrant_hnsw_m,
+                ef_construct=settings.qdrant_hnsw_ef_construct,
+                on_disk=settings.qdrant_hnsw_on_disk,
+            ),
+            "optimizers_config": OptimizersConfigDiff(
+                memmap_threshold=settings.qdrant_memmap_threshold,
+            ),
+            "shard_number": settings.qdrant_shard_number,
+            "replication_factor": settings.qdrant_replication_factor,
         }
+        if settings.qdrant_quantization_enabled:
+            kwargs["quantization_config"] = ScalarQuantization(
+                scalar=ScalarQuantizationConfig(
+                    type=ScalarType.INT8,
+                    quantile=0.99,
+                    always_ram=True,  # index quantized vẫn ở RAM để search nhanh
+                )
+            )
         if self.sparse_enabled:
             kwargs["sparse_vectors_config"] = {
                 self.sparse_vector_name: SparseVectorParams()

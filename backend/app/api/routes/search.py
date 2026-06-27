@@ -6,7 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies.auth import get_current_user
+import logging
+
 from app.core.config import settings
+from app.services.cache.search_cache import get_search_cache
+
+logger = logging.getLogger("api.search")
 from app.db.session import get_db_session
 from app.models.user import User
 from app.repositories.auth import AuthRepository
@@ -29,17 +34,17 @@ from app.services.retrieval.retrieval_elasticsearch_keyword_search import (
     ElasticsearchKeywordSearchService,
     get_elasticsearch_keyword_store,
 )
-from app.services.embeddings.embedding_base import EmbeddingProvider
-from app.services.embeddings.embedding_factory import get_embedding_provider
 from app.services.embeddings.embedding_sparse_factory import get_sparse_embedding_provider
 from app.services.graph import GraphRetrievalService, Neo4jClient, get_neo4j_client
 from app.services.graph.extractors.extractor_factory import build_graph_extractor
 from app.services.retrieval.retrieval_hybrid_search import HybridSearchError, HybridSearchService
+from app.services.retrieval.retrieval_document_index import (
+    DocumentIndexStore,
+    TwoStageHybridSearchService,
+)
 from app.services.retrieval.retrieval_keyword_search import KeywordSearchError, KeywordSearchService
 from app.services.llm_gateway import LLMGateway, get_llm_gateway
 from app.services.security.security_permissions import can_view_document, can_view_knowledge_base
-from app.services.rerankers import Reranker
-from app.services.rerankers.reranker_factory import get_reranker
 from app.services.rerankers.reranker_service import RerankingError, RerankingService
 from app.services.vector.vector_indexing_service import VectorIndexingService, VectorSearchError
 from app.services.vector.vector_store import QdrantVectorStore, get_vector_store
@@ -66,12 +71,12 @@ def get_knowledge_base_repository(
 
 def get_vector_search_service(
     repository: Annotated[DocumentRepository, Depends(get_search_repository)],
-    embedding_provider: Annotated[EmbeddingProvider, Depends(get_embedding_provider)],
+    llm_gateway: Annotated[LLMGateway, Depends(get_llm_gateway)],
     vector_store: Annotated[QdrantVectorStore, Depends(get_vector_store)],
 ) -> VectorIndexingService:
     return VectorIndexingService(
         repository=repository,
-        embedding_provider=embedding_provider,
+        llm_gateway=llm_gateway,
         vector_store=vector_store,
         sparse_embedding_provider=get_sparse_embedding_provider(),
         keyword_index_store=(
@@ -121,11 +126,28 @@ def get_hybrid_search_service(
         RetrievalLogRepository,
         Depends(get_retrieval_log_repository),
     ],
-) -> HybridSearchService:
-    return HybridSearchService(
+    llm_gateway: Annotated[LLMGateway, Depends(get_llm_gateway)],
+) -> HybridSearchService | TwoStageHybridSearchService:
+    base = HybridSearchService(
         vector_search_service=vector_search_service,
         keyword_search_service=keyword_search_service,
         retrieval_log_repository=retrieval_log_repository,
+    )
+    if not settings.two_stage_retrieval_enabled:
+        return base
+
+    # Two-stage: Stage 1 lọc document (ES, hybrid kNN+BM25) -> Stage 2 search chunk
+    # trong scope đó (vẫn áp ACL ở Stage 2 làm phòng thủ nhiều lớp).
+    document_index = DocumentIndexStore(
+        url=settings.two_stage_document_index_url or settings.elasticsearch_url,
+    )
+    return TwoStageHybridSearchService(
+        hybrid_search=base,
+        document_index=document_index,
+        llm_gateway=llm_gateway,
+        stage1_top_n=settings.two_stage_stage1_top_n,
+        stage1_min_results=settings.two_stage_stage1_min_results,
+        enabled=True,
     )
 
 
@@ -134,7 +156,7 @@ def get_reranking_service(
         HybridSearchService,
         Depends(get_hybrid_search_service),
     ],
-    reranker: Annotated[Reranker, Depends(get_reranker)],
+    llm_gateway: Annotated[LLMGateway, Depends(get_llm_gateway)],
     retrieval_log_repository: Annotated[
         RetrievalLogRepository,
         Depends(get_retrieval_log_repository),
@@ -147,7 +169,7 @@ def get_reranking_service(
 ) -> RerankingService:
     return RerankingService(
         hybrid_search_service=hybrid_search_service,
-        reranker=reranker,
+        llm_gateway=llm_gateway,
         retrieval_log_repository=retrieval_log_repository,
         chunk_repository=chunk_repository,
         graph_retrieval_service=graph_retrieval_service,
@@ -184,6 +206,7 @@ async def vector_search(
             top_k=request.top_k,
             document_ids={str(document_id) for document_id in visible_ids},
             access_filter=build_access_filter(subject_context),
+            acl_subject=await _acl_subject(auth_repository=auth_repository, current_user=current_user),
         )
     except VectorSearchError as exc:
         raise HTTPException(
@@ -216,7 +239,16 @@ async def hybrid_search(
             auth_repository=auth_repository,
             current_user=current_user,
         )
-        return await _call_search_service(
+        acl_subject = await _acl_subject(
+            auth_repository=auth_repository, current_user=current_user
+        )
+        cache = get_search_cache()
+        if cache is not None and acl_subject is not None:
+            cached = await cache.get(request.query, acl_subject, request.top_k, HybridSearchResponse)
+            if cached is not None:
+                logger.info("search cache HIT (hybrid)")
+                return cached
+        response = await _call_search_service(
             service,
             query=request.query,
             top_k=request.top_k,
@@ -224,11 +256,16 @@ async def hybrid_search(
             keyword_weight=request.keyword_weight,
             document_ids=visible_ids,
             access_filter=build_access_filter(subject_context),
+            acl_subject=acl_subject,
             retrieval_enrichment_enabled=_resolve_retrieval_enrichment_enabled(
                 profile=request.profile,
                 override=request.retrieval_enrichment_enabled,
             ),
         )
+        if cache is not None and acl_subject is not None:
+            logger.info("search cache MISS (hybrid) -> set")
+            await cache.set(request.query, acl_subject, request.top_k, response)
+        return response
     except HybridSearchError as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -267,6 +304,7 @@ async def rerank_search(
             candidate_k=request.candidate_k,
             document_ids=visible_ids,
             access_filter=build_access_filter(subject_context),
+            acl_subject=await _acl_subject(auth_repository=auth_repository, current_user=current_user),
             subject_context=subject_context,
             retrieval_enrichment_enabled=_resolve_retrieval_enrichment_enabled(
                 profile=request.profile,
@@ -310,6 +348,7 @@ async def keyword_search(
             top_k=request.top_k,
             document_ids=visible_ids,
             access_filter=build_access_filter(subject_context),
+            acl_subject=await _acl_subject(auth_repository=auth_repository, current_user=current_user),
             retrieval_enrichment_enabled=_resolve_retrieval_enrichment_enabled(
                 profile=request.profile,
                 override=request.retrieval_enrichment_enabled,
@@ -394,6 +433,20 @@ def _resolve_retrieval_enrichment_enabled(
         return bool(override)
     _ = resolve_profile(profile or "auto")
     return bool(settings.retrieval_enrichment_enabled)
+
+async def _acl_subject(*, auth_repository, current_user):
+    """Dựng AclSubject (danh mục) từ user ứng dụng qua User.id_nv. None nếu chưa map."""
+    session = getattr(auth_repository, "_session", None)
+    if session is None:
+        return None
+    from app.services.security.security_acl_payload import AclSubject
+
+    return await AclSubject.from_app_user(
+        session,
+        current_user,
+        super_admin_roles=set(settings.permission_admin_roles or []),
+    )
+
 
 async def _call_search_service(service, **kwargs):
     parameters = inspect.signature(service.search).parameters

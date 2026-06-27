@@ -37,21 +37,34 @@ KEYWORD_FIELDS = [
     "content_type",
     "change_topic",
     "screen_names",
+    # ACL mới (flatten allow): list keyword ["dv_{id}","pb_{id}","nv_{id}"].
+    "acl_subjects",
+]
+
+# ACL mới: allow/deny dạng id nguyên -> INTEGER index.
+INTEGER_FIELDS = [
+    "acl_allow_dv",
+    "acl_allow_pb",
+    "acl_allow_nv",
+    "acl_deny_pb",
+    "acl_deny_nv",
 ]
 
 
 async def main() -> None:
     store = get_vector_store()
     client = store._client  # maintenance script: use the configured client directly
-    for field in KEYWORD_FIELDS:
+    fields = [(f, PayloadSchemaType.KEYWORD) for f in KEYWORD_FIELDS]
+    fields += [(f, PayloadSchemaType.INTEGER) for f in INTEGER_FIELDS]
+    for field, schema in fields:
         try:
             await client.create_payload_index(
                 collection_name=store.collection_name,
                 field_name=field,
-                field_schema=PayloadSchemaType.KEYWORD,
+                field_schema=schema,
                 wait=True,
             )
-            print(f"created payload index: {field}")
+            print(f"created payload index: {field} ({schema})")
         except Exception as exc:  # Qdrant raises when index already exists
             message = str(exc).casefold()
             if "already" in message or "exists" in message:

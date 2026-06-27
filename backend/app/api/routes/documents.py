@@ -1,5 +1,4 @@
-﻿import inspect
-from typing import Annotated
+﻿from typing import Annotated
 from urllib.parse import quote
 from uuid import UUID
 
@@ -108,9 +107,11 @@ from app.services.ingestion.ingestion_doffice_ingestion_service import (
     DofficeIngestOptions,
     EmptyDofficeDocumentError,
 )
-from app.services.retrieval.retrieval_elasticsearch_keyword_search import get_elasticsearch_keyword_store
-from app.services.embeddings.embedding_base import EmbeddingProvider
-from app.services.embeddings.embedding_factory import get_embedding_provider
+from app.services.retrieval.retrieval_elasticsearch_keyword_search import (
+    ElasticsearchKeywordStore,
+    get_elasticsearch_keyword_store,
+)
+from app.services.retrieval.retrieval_document_index import DocumentIndexStore
 from app.services.embeddings.embedding_sparse_factory import get_sparse_embedding_provider
 from app.services.graph import (
     GraphDocumentChunksMissingError,
@@ -213,12 +214,12 @@ def get_chunk_enrichment_service(
 
 def get_vector_indexing_service(
     repository: Annotated[DocumentRepository, Depends(get_document_repository)],
-    embedding_provider: Annotated[EmbeddingProvider, Depends(get_embedding_provider)],
+    llm_gateway: Annotated[LLMGateway, Depends(get_llm_gateway)],
     vector_store: Annotated[QdrantVectorStore, Depends(get_vector_store)],
 ) -> VectorIndexingService:
     return VectorIndexingService(
         repository=repository,
-        embedding_provider=embedding_provider,
+        llm_gateway=llm_gateway,
         vector_store=vector_store,
         sparse_embedding_provider=get_sparse_embedding_provider(),
         keyword_index_store=(
@@ -234,11 +235,11 @@ def get_knowledge_artifact_indexing_service(
         KnowledgeArtifactRepository,
         Depends(get_knowledge_artifact_repository),
     ],
-    embedding_provider: Annotated[EmbeddingProvider, Depends(get_embedding_provider)],
+    llm_gateway: Annotated[LLMGateway, Depends(get_llm_gateway)],
 ) -> KnowledgeArtifactIndexingService:
     return KnowledgeArtifactIndexingService(
         repository=repository,
-        embedding_provider=embedding_provider,
+        llm_gateway=llm_gateway,
         vector_store=get_artifact_vector_store(),
         sparse_embedding_provider=get_sparse_embedding_provider(),
     )
@@ -268,6 +269,7 @@ def get_doffice_ingestion_service(
         KnowledgeArtifactIndexingService,
         Depends(get_knowledge_artifact_indexing_service),
     ],
+    llm_gateway: Annotated[LLMGateway, Depends(get_llm_gateway)],
 ) -> DofficeIngestionService:
     return DofficeIngestionService(
         repository=repository,
@@ -283,6 +285,10 @@ def get_doffice_ingestion_service(
             if settings.elasticsearch_enabled
             else None
         ),
+        document_index_store=(
+            DocumentIndexStore() if settings.two_stage_retrieval_enabled else None
+        ),
+        llm_gateway=llm_gateway,
     )
 
 def get_graph_indexing_service(
@@ -1617,6 +1623,8 @@ async def delete_document(
     current_user: Annotated[User, Depends(get_current_user)],
     storage: Annotated[StorageClient, Depends(get_storage_client)],
     vector_store: Annotated[QdrantVectorStore, Depends(get_vector_store)],
+    artifact_vector_store: Annotated[QdrantVectorStore, Depends(get_artifact_vector_store)],
+    keyword_store: Annotated[ElasticsearchKeywordStore, Depends(get_elasticsearch_keyword_store)],
 ) -> DocumentDeleteResponse:
     document = await _require_manageable_document(
         document_id=document_id,
@@ -1629,16 +1637,13 @@ async def delete_document(
     storage_paths = list(dict.fromkeys(storage_paths))
 
     try:
-        delete_parameters = inspect.signature(
-            vector_store.delete_points_for_document
-        ).parameters
-        if "tenant_id" in delete_parameters:
-            await vector_store.delete_points_for_document(
-                document_id,
-                tenant_id=getattr(document, "organization_id", None),
-            )
-        else:
-            await vector_store.delete_points_for_document(document_id)
+        # Xóa toàn bộ vector của văn bản khỏi Qdrant (collection chunk + artifact)
+        # và khỏi Elasticsearch keyword store. Lọc theo document_id (UUID duy nhất
+        # toàn cục); KHÔNG lọc thêm tenant_id, vì dữ liệu index từ phiên bản cũ có
+        # thể không gắn tenant_id và sẽ bị sót nếu lọc thêm điều kiện này.
+        await vector_store.delete_points_for_document(document_id)
+        await artifact_vector_store.delete_points_for_document(document_id)
+        await keyword_store.delete_points_for_document(document_id)
         for storage_path in storage_paths:
             if storage_path:
                 await storage.delete_file(object_name=storage_path)

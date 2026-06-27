@@ -18,13 +18,13 @@ def test_fake_graph_extractor_returns_deterministic_entities() -> None:
     async def run_test() -> None:
         extractor = FakeGraphExtractor()
         result = await extractor.extract(
-            content="Äiá»u 10 quy Ä‘á»‹nh EVNCPC vÃ  NLÄ.",
+            content="Điều 10 quy định EVNCPC và NLĐ.",
             max_entities=10,
             max_relations=10,
         )
 
         names = [(entity.name, entity.type) for entity in result.entities]
-        assert ("Äiá»u 10", "legal_article") in names
+        assert ("Điều 10", "legal_article") in names
         assert ("EVNCPC", "organization") in names
         assert any(relation.type == "lien_quan_den" for relation in result.relationships)
 
@@ -40,7 +40,7 @@ def test_llm_graph_extractor_deduplicates_and_validates_entities() -> None:
                     "entities": [
                         {"name": "CPCIT", "normalized_name": "cpcit", "type": "organization", "confidence": 0.9, "evidence": "CPCIT"},
                         {"name": "CPCIT", "normalized_name": "cpcit", "type": "organization", "confidence": 0.8, "evidence": "CPCIT"},
-                        {"name": "ThÆ° Viá»‡n Quá»‘c Gia HÃ  Ná»™i", "normalized_name": "thu vien quoc gia ha noi", "type": "organization", "confidence": 0.9, "evidence": ""},
+                        {"name": "Thư Viện Quốc Gia Hà Nội", "normalized_name": "thu vien quoc gia ha noi", "type": "organization", "confidence": 0.9, "evidence": ""},
                     ],
                     "relationships": [],
                 },
@@ -49,7 +49,7 @@ def test_llm_graph_extractor_deduplicates_and_validates_entities() -> None:
 
     result = asyncio.run(
         LLMGraphExtractor(FakeLLM()).extract(
-            content="CPCIT ban hÃ nh quyáº¿t Ä‘á»‹nh Ä‘Ã o táº¡o.",
+            content="CPCIT ban hành quyết định đào tạo.",
             max_entities=10,
             max_relations=10,
         )
@@ -63,24 +63,24 @@ def test_graph_merge_service_deduplicates_aliases() -> None:
     merged = service.merge_entities(
         [
             ExtractedEntity(
-                name="NLÄ",
-                normalized_name="NLÄ",
+                name="NLĐ",
+                normalized_name="NLĐ",
                 type="person",
                 confidence=0.6,
-                evidence="NLÄ",
+                evidence="NLĐ",
             ),
             ExtractedEntity(
-                name="ngÆ°á»i lao Ä‘á»™ng",
-                normalized_name="ngÆ°á»i lao Ä‘á»™ng",
+                name="người lao động",
+                normalized_name="người lao động",
                 type="person",
                 confidence=0.9,
-                evidence="ngÆ°á»i lao Ä‘á»™ng",
+                evidence="người lao động",
             ),
         ]
     )
 
     assert len(merged) == 1
-    assert merged[0].normalized_name == "ngÆ°á»i lao Ä‘á»™ng"
+    assert merged[0].normalized_name == "người lao động"
     assert merged[0].confidence == 0.9
 
 
@@ -106,7 +106,7 @@ def test_graph_indexing_service_updates_status_and_logs(monkeypatch) -> None:
                     id=chunk_id,
                     document_id=document_id,
                     chunk_index=0,
-                    content="Äiá»u 10 quy Ä‘á»‹nh EVNCPC vÃ  NLÄ.",
+                    content="Điều 10 quy định EVNCPC và NLĐ.",
                     chunk_metadata={"article_number": "10"},
                 )
             ]
@@ -266,7 +266,7 @@ def test_reranking_service_merges_graph_candidates_with_hybrid_results() -> None
 
     service = RerankingService(
         hybrid_search_service=FakeHybridSearchService(),  # type: ignore[arg-type]
-        reranker=FakeReranker(),  # type: ignore[arg-type]
+        llm_gateway=FakeReranker(),  # type: ignore[arg-type]
         retrieval_log_repository=FakeLogRepository(),  # type: ignore[arg-type]
         chunk_repository=FakeChunkRepository(),  # type: ignore[arg-type]
         graph_retrieval_service=FakeGraphRetrievalService(),  # type: ignore[arg-type]

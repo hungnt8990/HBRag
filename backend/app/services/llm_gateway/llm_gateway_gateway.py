@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from app.services.embeddings.embedding_base import EmbeddingProvider
 from app.services.llms import LLMProvider
@@ -10,7 +11,13 @@ from app.services.llms.llm_factory import (
     build_llm_provider_or_error,
     get_llm_provider,
 )
-from app.services.rerankers.reranker_base import RerankCandidate, Reranker, RerankScore
+
+if TYPE_CHECKING:
+    from app.services.rerankers.reranker_base import (
+        RerankCandidate,
+        Reranker,
+        RerankScore,
+    )
 
 
 @dataclass(frozen=True)
@@ -104,7 +111,7 @@ class LLMGateway:
         ):
             yield delta
 
-    async def embedding(self, texts: list[str]) -> list[list[float]]:
+    async def embed_texts(self, texts: list[str]) -> list[list[float]]:
         return await self._get_embedding_provider().embed_texts(texts)
 
     async def embed_query(self, query: str) -> list[float]:

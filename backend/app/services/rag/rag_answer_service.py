@@ -99,7 +99,7 @@ POLICY_EXPLAINER_STYLE = (
     "For short identifier/code queries, answer what the identifier refers "
     "to and the directly attached date/topic only; do not expand into other document "
     "passages unless they literally contain the same identifier. "
-    "Do not say 'hÃ´m nay' unless the document text explicitly says today. "
+    "Do not say 'hôm nay' unless the document text explicitly says today. "
     "Do not repeat the same source line or quote more than once. "
     "Do not list duplicate citations. "
     "If only one relevant item is found, give one concise answer and one source. "
@@ -182,17 +182,17 @@ SOURCE_FLAG_ALIASES = {
     "knowledge_artifact": "artifact",
 }
 TABLE_ENUMERATION_QUERY_PATTERNS = (
-    "danh sÃ¡ch",
-    "liá»‡t kÃª",
-    "bao gá»“m",
-    "gá»“m nhá»¯ng ai",
-    "cÃ³ nhá»¯ng ai",
-    "nhá»¯ng há»™ nÃ o",
-    "cÃ¡c há»™",
-    "cÃ¡c cÃ¡ nhÃ¢n",
-    "tá»•ng cá»™ng",
-    "sá»‘ tiá»n",
-    "bao nhiÃªu",
+    "danh sách",
+    "liệt kê",
+    "bao gồm",
+    "gồm những ai",
+    "có những ai",
+    "những hộ nào",
+    "các hộ",
+    "các cá nhân",
+    "tổng cộng",
+    "số tiền",
+    "bao nhiêu",
     "list",
     "all rows",
     "who",
@@ -1352,7 +1352,7 @@ class RagAnswerService:
         """Return True when it is safe to attempt structured evidence recovery.
 
         This deliberately avoids language-specific intent keywords such as
-        "bao nhiÃªu", "má»¥c tiÃªu", or "tham gia". Structured retrieval is cheap
+        "bao nhiêu", "mục tiêu", or "tham gia". Structured retrieval is cheap
         and safe to try for any non-empty query; row/section scoring plus
         answerability thresholds decide whether retrieved structured evidence is
         actually relevant.
@@ -1580,7 +1580,7 @@ class RagAnswerService:
     def _strip_vietnamese_accents(value: str) -> str:
         normalized = unicodedata.normalize("NFD", value or "")
         stripped = "".join(char for char in normalized if unicodedata.category(char) != "Mn")
-        return stripped.replace("Ä", "D").replace("Ä‘", "d")
+        return stripped.replace("Đ", "D").replace("đ", "d")
 
     @staticmethod
     def _prioritize_person_area_chunks(
@@ -1843,7 +1843,7 @@ class RagAnswerService:
 
     @staticmethod
     def _looks_vietnamese_query(query: str) -> bool:
-        if re.search(r"[ÄƒÃ¢Ä‘ÃªÃ´Æ¡Æ°Ä‚Ã‚ÄÃŠÃ”Æ Æ¯]", query or ""):
+        if re.search(r"[ăâđêôơưĂÂĐÊÔƠƯ]", query or ""):
             return True
         normalized = normalize_metadata_value(RagAnswerService._strip_vietnamese_accents(query or ""))
         return bool(re.search(r"\b(la|co|khong|nhung|cua|trong|theo)\b", normalized))
@@ -1851,7 +1851,7 @@ class RagAnswerService:
     @staticmethod
     def _looks_identifier_only_query(query: str) -> bool:
         clean = " ".join(str(query or "").split()).strip()
-        return bool(clean and re.fullmatch(r"[A-Za-z0-9Ã„ÂÃ„â€˜/._+\-]+", clean))
+        return bool(clean and re.fullmatch(r"[A-Za-z0-9Đđ/._+\-]+", clean))
 
     @staticmethod
     def _missing_accessible_context_answer(query: str) -> str:
@@ -2242,9 +2242,9 @@ class RagAnswerService:
 
         hints: list[str] = []
         for label, value in (
-            ("Chá»§ Ä‘á» trÆ°á»›c", session_context.last_topic),
-            ("Pháº¡m vi hiá»‡n táº¡i", session_context.current_scope),
-            ("Pháº¡m vi ngÆ°á»i dÃ¹ng", session_context.user_scope),
+            ("Chủ đề trước", session_context.last_topic),
+            ("Phạm vi hiện tại", session_context.current_scope),
+            ("Phạm vi người dùng", session_context.user_scope),
         ):
             text = " ".join(str(value or "").split())
             if text:
@@ -2261,7 +2261,7 @@ class RagAnswerService:
         if not hints:
             return query
 
-        return f"{query}\n\nNgá»¯ cáº£nh há»™i thoáº¡i ngáº¯n háº¡n do chatbot cung cáº¥p Ä‘á»ƒ há»— trá»£ truy xuáº¥t, khÃ´ng pháº£i nguá»“n trÃ­ch dáº«n:\n" + "\n".join(f"- {hint}" for hint in hints[:8])
+        return f"{query}\n\nNgữ cảnh hội thoại ngắn hạn do chatbot cung cấp để hỗ trợ truy xuất, không phải nguồn trích dẫn:\n" + "\n".join(f"- {hint}" for hint in hints[:8])
 
     @staticmethod
     def _short_term_context_section(
@@ -2339,7 +2339,7 @@ class RagAnswerService:
                     add(raw_value)
 
             content = chunk.content or ""
-            for match in re.findall(r"\b\d{2,6}/[A-ZÃ€-á»¸0-9Ä\-]+\b", content):
+            for match in re.findall(r"\b\d{2,6}/[A-ZÀ-Ỹ0-9Đ\-]+\b", content):
                 add(match)
             for match in re.findall(r"\b\d{1,2}/\d{1,2}/\d{4}\b", content):
                 add(match)
@@ -2719,11 +2719,11 @@ class RagAnswerService:
         internal_terms = (
             r"target_contexts|ENTITY_MATCHED_ROWS|TABLE_SUPPORT|retrieved\s+(?:context|chunks|evidence)|"
             r"retrieval|BM25|vector\s+search|context\s+window|chunk(?:s)?|"
-            r"ngá»¯\s*cáº£nh|ngu\s*canh|Ä‘oáº¡n\s+trÃ­ch|doan\s+trich"
+            r"ngữ\s*cảnh|ngu\s*canh|đoạn\s+trích|doan\s+trich"
         )
         cleaned_lines: list[str] = []
         for line in cleaned.splitlines():
-            is_note_line = re.match(r"^\s*(?:lÆ°u Ã½|luu y|ghi chÃº|ghi chu|note)\s*[:ï¼š-]", line, flags=re.IGNORECASE)
+            is_note_line = re.match(r"^\s*(?:lưu ý|luu y|ghi chú|ghi chu|note)\s*[:：-]", line, flags=re.IGNORECASE)
             has_internal_term = re.search(internal_terms, line, flags=re.IGNORECASE)
             has_prompt_label = re.search(r"\b(?:target_contexts|ENTITY_MATCHED_ROWS|TABLE_SUPPORT)\b", line)
             if (is_note_line and has_internal_term) or has_prompt_label:
@@ -2960,7 +2960,7 @@ class RagAnswerService:
         lines: list[str] = []
         for raw_line in (content or "").replace("\\_", "_").splitlines():
             for part in re.split(r"(?<=[.;:])\s+(?=\S)", raw_line):
-                line = " ".join(part.split()).strip(" -*â€¢â€£â—¦")
+                line = " ".join(part.split()).strip(" -*•‣◦")
                 if line and re.search(r"\b\d{1,4}\b", line):
                     lines.append(line)
         return lines
@@ -2991,8 +2991,13 @@ class RagAnswerService:
                     "entity_profile",
                 }
                 if is_result_row and (include_all_table_rows or RagAnswerService._contains_any_query_term(line, query_terms)):
-                    if formatted not in seen_rows:
-                        seen_rows.add(formatted)
+                    # Dedupe on the row text itself, not the citation-prefixed
+                    # string: the same row is re-emitted by both the per-row
+                    # chunk and the aggregate table_group chunk under different
+                    # citations, and ENTITY_MATCHED_ROWS must expose it once.
+                    row_dedup_key = line.strip()
+                    if row_dedup_key not in seen_rows:
+                        seen_rows.add(row_dedup_key)
                         matched_rows.append(formatted)
                     continue
 
@@ -3026,6 +3031,14 @@ class RagAnswerService:
         support_chunk_types = {"table_title", "table_header", "table_caption"}
         if chunk_type in support_chunk_types:
             return False
+
+        # Aggregate views (row groups / column slices / table blocks) are
+        # alternate renderings of rows that are already fully present in
+        # ENTITY_MATCHED_ROWS for table-enumeration queries. Drop them from the
+        # Document Text set so the same row is not repeated several times.
+        aggregate_table_types = {"table_group", "table_column", "table_block"}
+        if include_all_table_rows and chunk_type in aggregate_table_types:
+            return True
 
         has_result_line = False
         has_narrative_line = False
@@ -3191,10 +3204,10 @@ class RagAnswerService:
             "attribute",
             "schema",
             "layer",
-            "báº£ng dá»¯ liá»‡u",
-            "báº£ng dá»¯ liá»‡u thuá»™c tÃ­nh",
-            "thuá»™c tÃ­nh",
-            "lá»›p dá»¯ liá»‡u",
+            "bảng dữ liệu",
+            "bảng dữ liệu thuộc tính",
+            "thuộc tính",
+            "lớp dữ liệu",
         ]
         for term in existing_terms:
             terms.extend(RagAnswerService._query_surface_phrases(term))

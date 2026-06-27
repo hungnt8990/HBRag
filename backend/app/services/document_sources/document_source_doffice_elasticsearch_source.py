@@ -57,6 +57,12 @@ class DofficeElasticsearchSource:
             if timeout_seconds is not None
             else settings.doffice_es_timeout_seconds
         )
+        self._auth = (
+            httpx.BasicAuth(settings.doffice_es_username, settings.doffice_es_password)
+            if settings.doffice_es_username and settings.doffice_es_password
+            else None
+        )
+        self._verify_ssl = settings.doffice_es_verify_ssl
 
     async def fetch_document_by_id_vb(self, id_vb: str) -> DofficeDocument:
         clean_id = " ".join(str(id_vb or "").split()).strip()
@@ -80,7 +86,11 @@ class DofficeElasticsearchSource:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=self._timeout_seconds) as client:
+            async with httpx.AsyncClient(
+                timeout=self._timeout_seconds,
+                auth=self._auth,
+                verify=self._verify_ssl,
+            ) as client:
                 response = await client.request(
                     "GET",
                     self._url,

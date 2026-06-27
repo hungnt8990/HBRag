@@ -1,0 +1,45 @@
+{
+    "took": 2,
+    "timed_out": false,
+    "_shards": {
+        "total": 3,
+        "successful": 3,
+        "skipped": 0,
+        "failed": 0
+    },
+    "hits": {
+        "total": {
+            "value": 1,
+            "relation": "eq"
+        },
+        "max_score": 1.0,
+        "hits": [
+            {
+                "_index": "doffice_vanban",
+                "_id": "1474990",
+                "_score": 1.0,
+                "_ignored": [
+                    "noi_dung.keyword",
+                    "tom_tat.keyword"
+                ],
+                "_source": {
+                    "id_vb": 1474990,
+                    "ky_hieu": "3665/EVNCPC-KT+VTCNTT",
+                    "trich_yeu": "V/v vận hành thử nghiệm phần mềm kết nối dữ liệu tự động hệ thống SCADA – hệ thống OMS\n",
+                    "id_dv_ban_hanh": 251,
+                    "noi_ban_hanh": "Tổng công ty Điện lực miền Trung",
+                    "nguoi_ky": "Trần Nguyễn Bảo An",
+                    "ten_file": "20260615-EVNCPC-VTCNTT-KT-Thu-Nghiem-Cong-Cu-SCADA-OMS.pdf",
+                    "duong_dan": "2026\\6\\251\\69d906f0-3e2e-4e36-a2ff-77ba21496f5b.pdf",
+                    "noi_dung": "TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM  **CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM** **TỔNG CÔNG TY**  **Độc lập - Tự do - Hạnh phúc** **ĐIỆN LỰC MIỀN TRUNG**    Số: 3665/EVNCPC-KT+VTCNTT Đà Nẵng, ngày 16 tháng 6 năm 2026 V/v vận hành thử nghiệm phần mềm kết nối dữ liệu tự động hệ thống SCADA – hệ thống OMS\n\nKính gửi:\n\n- Công ty CNTT Điện lực miền Trung;\n\n- Các Công ty Điện lực: Quảng Trị, Đà Nẵng, Đăk Lăk.\n\nEVNCPC nhận được văn bản số 573/BC-IT ngày 03/6/2026 của CPCIT về việc báo cáo hoàn thành xây dựng phần mềm trong Dự án Xây dựng chương trình kết nối dữ liệu tự động hệ thống SCADA – hệ thống OMS;\n\nĐể triển khai vận hành thử nghiệm phần mềm kết nối dữ liệu tự động hệ thống SCADA – hệ thống OMS trước khi nghiệm thu và đưa vào áp dụng thực tế, EVNCPC yêu cầu các đơn vị thực hiện những nội dung sau:\n\n**1. CPCIT:**\n\n- Bổ sung hướng dẫn sử dụng phần mềm kết nối dữ liệu tự động hệ thống SCADA – hệ thống OMS trước khi giao các đơn vị thử nghiệm.\n\n- Phân quyền cho QTPC, ĐNPC, ĐLPC truy cập và vận hành thử nghiệm phần mềm ngay sau khi nhận thông tin người dùng.\n\n- Hoàn thành trước **ngày** **22/6/2026.**\n\n**2. QTPC, ĐNPC, ĐLPC:**\n\n- Cung cấp thông tin người dùng (user) cho CPCIT phân quyền truy cập phần mềm trước **ngày 20/6/2026** .\n\n- Tổ chức áp dụng, vận hành thử nghiệm phần mềm; gửi kết quả thử nghiệm, đánh giá khả năng vận hành thực tế về CPCIT và EVNCPC trước **ngày** **30/6/2026.** Đầu mối liên hệ: Ông Võ Văn Phúc – Chuyên viên Phòng Vận hành CPCIT.\n\nĐiện thoại liên lạc: 0975 667 135./.\n\n**Nơi nhận:**  **KT. TỔNG GIÁM ĐỐC**\n\n- Như trên;  **PHÓ TỔNG GIÁM ĐỐC**\n\n- TGĐ EVNCPC (báo cáo);\n\n- PTGĐ Nguyễn Hữu Khánh;\n\n- PTGĐ Trần Văn Gia;\n\n- Ban: PC;\n\n- Lưu: VT, VTCNTT, KT.\n\n**Trần Nguyễn Bảo An**",
+                    "tom_tat": "**Nội dung chính:**\n\nTổng Công ty Điện lực miền Trung yêu cầu các đơn vị thực hiện các nội dung sau để vận hành thử nghiệm phần mềm kết nối dữ liệu tự động hệ thống SCADA – hệ thống OMS:\n\n1.  **CPCIT:**\n    *   Bổ sung hướng dẫn sử dụng phần mềm trước khi giao đơn vị thử nghiệm.\n    *   Phân quyền cho QTPC, ĐNPC, ĐLPC truy cập và vận hành thử nghiệm ngay sau khi nhận thông tin người dùng.\n    *   **Thời hạn hoàn thành:** Trước ngày 22/6/2026.\n\n2.  **QTPC, ĐNPC, ĐLPC:**\n    *   Cung cấp thông tin người dùng (user) cho CPCIT phân quyền truy cập phần mềm trước ngày 20/6/2026.\n    *   Tổ chức áp dụng, vận hành thử nghiệm phần mềm; gửi kết quả thử nghiệm, đánh giá khả năng vận hành thực tế về CPCIT và EVNCPC trước ngày 30/6/2026.\n    *   **Đầu mối liên hệ:** Ông Võ Văn Phúc – Chuyên viên Phòng Vận hành CPCIT (Điện thoại: 0975 667 135).",
+                    "ngay_tao": "2026-06-16 08:21:51",
+                    "type_ocr": "CPCIT",
+                    "ngay_capnhat": "2026-06-16 08:21:58",
+                    "nam": 2026,
+                    "thang": 6
+                }
+            }
+        ]
+    }
+}

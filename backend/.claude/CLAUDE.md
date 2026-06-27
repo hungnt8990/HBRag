@@ -8,3 +8,9 @@ In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the re
 
 If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
 <!-- CODEGRAPH_END -->
+
+## Tổng quan dự án (BẮT BUỘC đọc & cập nhật)
+
+- **Trước khi làm việc:** đọc `docs/PROJECT_OVERVIEW.md` để nắm kiến trúc, hệ phân quyền, các điểm còn để ngỏ và cảnh báo (vd. alembic divergence).
+- **Sau khi hoàn thành mỗi thay đổi đáng kể** (thêm/sửa module, model, migration, luồng ingest/retrieval/phân quyền): **cập nhật lại `docs/PROJECT_OVERVIEW.md`** cho khớp thực tế — sửa phần liên quan, đổi dòng "Cập nhật gần nhất" ở đầu file, và cập nhật mục TODO. Coi đây là một phần của định nghĩa "đã xong", không phải bước tùy chọn.
+- Giữ tài liệu súc tích, đúng sự thật (chỉ ghi điều đã kiểm chứng trong code), không phình to.

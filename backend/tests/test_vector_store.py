@@ -42,6 +42,7 @@ class FakeQdrantClient:
         collection_name: str,
         vectors_config,
         sparse_vectors_config=None,
+        **kwargs,
     ) -> None:
         dense = vectors_config["dense"]
         self.exists = True

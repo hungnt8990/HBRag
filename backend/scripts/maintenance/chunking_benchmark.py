@@ -33,7 +33,6 @@ from app.services.retrieval.retrieval_elasticsearch_keyword_search import (
     ElasticsearchKeywordSearchService,
     get_elasticsearch_keyword_store,
 )
-from app.services.embeddings.embedding_factory import get_embedding_provider
 from app.services.embeddings.embedding_sparse_factory import get_sparse_embedding_provider
 from app.services.retrieval.retrieval_hybrid_search import HybridSearchService
 from app.services.retrieval.retrieval_keyword_search import KeywordSearchService
@@ -42,7 +41,6 @@ from app.services.llm_gateway import get_llm_gateway
 from app.services.queries.query_contract_service import QueryContractService
 from app.services.rag.rag_answer_service import RagAnswerService
 from app.services.rag.rag_runtime_config import default_rag_runtime_config, load_rag_runtime_config
-from app.services.rerankers.reranker_factory import get_reranker
 from app.services.rerankers.reranker_service import RerankingService
 from app.services.vector.vector_indexing_service import VectorIndexingService
 from app.services.vector.vector_store import get_artifact_vector_store, get_vector_store
@@ -173,14 +171,14 @@ async def _build_services(session) -> BenchmarkServices:
         await rag_runtime_config_repository.rollback()
         rag_config = default_rag_runtime_config()
 
-    embedding_provider = get_embedding_provider()
+    llm_gateway = get_llm_gateway()
     sparse_embedding_provider = get_sparse_embedding_provider()
     vector_store = get_vector_store()
     artifact_vector_store = get_artifact_vector_store()
 
     vector_search_service = VectorIndexingService(
         repository=document_repository,
-        embedding_provider=embedding_provider,
+        llm_gateway=llm_gateway,
         vector_store=vector_store,
         sparse_embedding_provider=sparse_embedding_provider,
         keyword_index_store=get_elasticsearch_keyword_store() if settings.elasticsearch_enabled else None,
@@ -200,14 +198,14 @@ async def _build_services(session) -> BenchmarkServices:
     )
     reranking_service = RerankingService(
         hybrid_search_service=hybrid_search_service,
-        reranker=get_reranker(),
+        llm_gateway=llm_gateway,
         retrieval_log_repository=retrieval_log_repository,
         chunk_repository=document_repository,
         graph_retrieval_service=None,
     )
     artifact_indexing_service = KnowledgeArtifactIndexingService(
         repository=artifact_repository,
-        embedding_provider=embedding_provider,
+        llm_gateway=llm_gateway,
         vector_store=artifact_vector_store,
         sparse_embedding_provider=sparse_embedding_provider,
     )

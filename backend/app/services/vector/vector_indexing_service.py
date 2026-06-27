@@ -16,8 +16,8 @@ from app.schemas.documents import (
 )
 from app.services.security.security_access_control import AccessFilter
 from app.services.retrieval.retrieval_elasticsearch_keyword_search import ElasticsearchKeywordStore
-from app.services.embeddings import EmbeddingProvider
 from app.services.embeddings.embedding_sparse import SparseEmbeddingProvider
+from app.services.llm_gateway import LLMGateway
 from app.services.rag.rag_chunk import (
     RagChunk,
     build_embedding_text,
@@ -58,13 +58,13 @@ class VectorIndexingService:
         self,
         *,
         repository: DocumentRepository,
-        embedding_provider: EmbeddingProvider,
+        llm_gateway: LLMGateway,
         vector_store: QdrantVectorStore,
         sparse_embedding_provider: SparseEmbeddingProvider | None = None,
         keyword_index_store: ElasticsearchKeywordStore | None = None,
     ) -> None:
         self._repository = repository
-        self._embedding_provider = embedding_provider
+        self._llm_gateway = llm_gateway
         self._vector_store = vector_store
         self._sparse_embedding_provider = sparse_embedding_provider
         self._keyword_index_store = keyword_index_store
@@ -128,7 +128,7 @@ class VectorIndexingService:
                 total_chunks=len(rag_chunks),
                 indexable_chunks=len(indexable_chunks),
             )
-            dense_vectors = await self._embedding_provider.embed_texts(embedding_texts)
+            dense_vectors = await self._llm_gateway.embed_texts(embedding_texts)
             if len(dense_vectors) != len(indexable_chunks):
                 raise ValueError(
                     "Dense embedding count does not match the number of indexable chunks."
@@ -247,18 +247,19 @@ class VectorIndexingService:
         chunk_type: str | None = None,
         table_name: str | None = None,
         access_filter: AccessFilter | None = None,
+        acl_subject: "AclSubject | None" = None,
     ) -> VectorSearchResponse:
         try:
             if document_ids is not None and not document_ids:
                 return VectorSearchResponse(query=query, top_k=top_k, results=[])
             query_embedding_text = build_query_embedding_text(query)
-            query_vector = await self._embedding_provider.embed_query(query_embedding_text)
+            query_vector = await self._llm_gateway.embed_query(query_embedding_text)
             sparse_query = None
             if self._sparse_embedding_provider is not None:
                 sparse_query = await self._sparse_embedding_provider.embed_query(
                     query_embedding_text
                 )
-            results = await self._search_store(
+            results = await self._search_store(  # acl_subject lọc theo chữ ký vector_store.search
                 query_vector=query_vector,
                 sparse_query=sparse_query,
                 top_k=top_k,
@@ -271,6 +272,7 @@ class VectorIndexingService:
                 chunk_type=chunk_type,
                 table_name=table_name,
                 access_filter=access_filter,
+                acl_subject=acl_subject,
             )
         except Exception as exc:
             raise VectorSearchError("Failed to run vector search.") from exc

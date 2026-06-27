@@ -45,7 +45,7 @@ DEFAULT_CHUNK_MODE: ChunkMode = "recursive"
 LEGAL_SEPARATORS = ("\n\n", "\n", ". ")
 DEFAULT_TEXT_SEPARATORS = ("\n\n\n", "\n\n", "\n- ", "\n+ ", ". ", "\n", " ", "")
 GIS_SCHEMA_TABLE_PATTERN = re.compile(
-    r"(?ms)(\(\d+\)\s+F\d+_[A-Za-z0-9_]+\s*[â€“-].*?)(?=^\s*\(\d+\)\s+F\d+_[A-Za-z0-9_]+|\Z)"
+    r"(?ms)(\(\d+\)\s+F\d+_[A-Za-z0-9_]+\s*[–-].*?)(?=^\s*\(\d+\)\s+F\d+_[A-Za-z0-9_]+|\Z)"
 )
 GIS_LAYER_PATTERN = re.compile(r"\bF\d+_[A-Za-z0-9_]+\b")
 

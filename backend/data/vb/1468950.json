@@ -1,0 +1,45 @@
+{
+    "took": 3,
+    "timed_out": false,
+    "_shards": {
+        "total": 3,
+        "successful": 3,
+        "skipped": 0,
+        "failed": 0
+    },
+    "hits": {
+        "total": {
+            "value": 1,
+            "relation": "eq"
+        },
+        "max_score": 1.0,
+        "hits": [
+            {
+                "_index": "doffice_vanban",
+                "_id": "1468950",
+                "_score": 1.0,
+                "_ignored": [
+                    "noi_dung.keyword",
+                    "tom_tat.keyword"
+                ],
+                "_source": {
+                    "id_vb": 1468950,
+                    "ky_hieu": "608/QĐ-IT",
+                    "trich_yeu": "Về việc cử cán bộ tham gia Khóa đào tạo Ứng dụng Python trên nền tảng ArcGIS\n",
+                    "id_dv_ban_hanh": 256,
+                    "noi_ban_hanh": "Công ty CNTT Điện lực miền Trung",
+                    "nguoi_ky": "Trần Khắc Tuấn",
+                    "ten_file": "9-QĐ cu can bo tham gia lop đao tao-Lớp ArcGIS.pdf",
+                    "duong_dan": "2026\\6\\256\\6bb0fb4d-4f60-415d-9d62-f612b4b8b19c.pdf",
+                    "noi_dung": "TỔNG CÔNG TY  **CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM** ĐIỆN LỰC MIỀN TRUNG  **Ðộc lập - Tự do - Hạnh phúc** **CÔNG TY CÔNG NGHỆ THÔNG TIN** **ĐIỆN LỰC MIỀN TRUNG**\n\nSố: 608/QĐ-IT  Đà Nẵng, ngày 11 tháng 6 năm 2026\n\n**QUYẾT ĐỊNH**\n\n**Về việc cử cán bộ tham gia Khóa đào tạo Ứng dụng Python**\n\n**trên nền tảng ArcGIS**\n\n**GIÁM ĐỐC**\n\n**CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG**\n\nCăn cứ Quyết định số 633/QĐ-HĐTV ngà y 10/11/2022 của Hội đồng thành viên Tổng công ty Điện lực miền Trung về việc ban hành Quy chế Tổ chức và hoạt động của Công ty Công nghệ thông tin Điện lực miền Trung;\n\nCăn cứ Quyết định số 720/QĐ-EVN ngày 01/6/2025 của Tập đoà n Điện lực Việt Nam về việc ban hành Quy định đà o tạo phát triển nguồn nhân lực trong Tập đoà n Điện lực Việt Nam;\n\nCăn cứ Quyết định số 454/QĐ-HĐTV ngà y 27/5/2025 của Hội đồng thành viên Tổng công ty Điện lực miền Trung về việc ban hành Quy chế đào tạo phát triển nguồn nhân lực trong Tổng công ty Điện lực miền Trung;\n\nCăn cứ Tờ trình số 42/TH ngày 30/5/2026 của phòng Tổng hợp về việc phê duyệt tổ chức chương trình khóa đào tạo Ứng dụng Python trên nền tảng ArcGIS đã được Giám đốc Công ty phê duyệt.\n\nTheo đề nghị của Trưởng phòng Tổng hợp.\n\n**QUYẾT ĐỊNH:**\n\n**Điều 1** . Cử cán bộ có tên trong danh sách như **Phụ lục I** đính kèm tham gia Khóa đào tạo Ứng dụng Python trên nền tảng ArcGIS, cụ thể như sau:\n\n1. Thời gian đào tạo: từ ngày 17 đến 19/6/2026.\n\n- Buổi sáng từ 08h00 – 12h00, buổi chiều từ 13h00 – 17h00.\n\n- Thời lượng: 03 ngày.\n\n2. Hình thức đào tạo: đào tạo tập trung tại Đơn vị đào tạo (Hà Nội).\n\n- Địa chỉ: Số nhà 13, Khu D9A Khu nhà ở thấp tầng tại ô đất số D6B, D6C, D9B thuộc khu ĐG QSDĐ, Phường Tây Hồ, TP Hà Nội, Việt Nam.\n\n3. Nội dung đào tạo: chi tiết như **Phụ lục II** đính kèm.\n\n4. Đơn vị đào tạo: Công ty TNHH ESRI Việt Nam.\n\n5. Kinh phí đào tạo: do CPCIT chi trả.\n\n**Điều 2** . Các cán bộ nêu trên có trách nhiệm tham gia khóa đào tạo đầy đủ, đúng thời gian và tuân thủ nội quy lớp học. Sau khóa đào tạo, mỗi cán bộ nộp chứng chỉ gốc về Bộ phận Hành chính - Phòng Tổng hợp.\n\n**Điều 3** . Các Phòng Phần mềm, Vận hành, Phát triển ứng dụng, các phòng chức năng Công ty có liên quan và các cá nhân có tên tại Điều 1 căn cứ Quyết định thi hành./.\n\n**Nơi nhận:**  **GIÁM ĐỐC**\n\n- Như Điều 3;\n\n- PGĐ (để biết);\n\n- Lưu: VT, TH.\n\n**Trần Khắc Tuấn**\n\n**Phụ lục I**\n\n**DANH SÁCH CÁN BỘ THAM GIA**\n\n**KHÓA ĐÀO TẠO ỨNG DỤNG PYTHON TRÊN NỀN TẢNG ARCGIS**\n\n<table><thead><tr><td>STT</td><td>Họ và tên</td><td>Chức danh</td><td>Phòng</td><td>Số điện thoại</td><td>E - mail</td></tr></thead><tbody><tr><td>1</td><td>Nguyễn Trọng Hùng</td><td>Chuyên viên</td><td>PM</td><td>0935554288</td><td colspan=\"3\">hungnt@cpc.vn</td></tr><tr><td>2</td><td>Trình Thanh Tịnh</td><td>Chuyên viên</td><td>PM</td><td>0963789555</td><td colspan=\"3\">TinhTT1@cpc.vn</td></tr><tr><td>3</td><td>Lê Công Linh</td><td>Chuyên viên</td><td>PTUD</td><td>0945141415</td><td colspan=\"3\">linhlc@cpc.vn</td></tr><tr><td rowspan=\"2\">4</td><td rowspan=\"2\">Phạm Hồ Bảo Hoàng</td><td rowspan=\"2\">Chuyên viên</td><td rowspan=\"2\">PTUD</td><td rowspan=\"2\">0857472727</td><td colspan=\"3\">&nbsp;</td></tr><tr><td>&nbsp;</td><td rowspan=\"3\">hoangphb@cpc.vn</td><td rowspan=\"3\">n</td></tr><tr><td>5</td><td>Hà Thái Văn</td><td>Chuyên viên</td><td>PTUD</td><td>0935861473</td><td>vanht2@cpc.vn</td></tr><tr><td>6</td><td>Nguyễn Thanh Phú</td><td>Chuyên viên</td><td>VH</td><td>0983129374</td><td>phunt3@cpc.vn</td></tr></tbody></table>\n\n**Phụ lục II**\n\n**NỘI DUNG**\n\n**KHÓA ĐÀO TẠO ỨNG DỤNG PYTHON TRÊN NỀN TẢNG ARCGIS**\n\n**1. Làm quen với Python trong ArcGIS Pro**\n\n- Giới thiệu\n\n• Kiến trúc ArcGIS Pro và Python\n\n• Môi trường Python của ArcGIS (conda, Python 3.x)\n\n• IDE khuyến nghị: Jupyter, VSCode, hoặc Python Window trong ArcGIS\n\n- Tổng quan về arcpy\n\n• Cấu trúc thư viện arcpy\n\n• Các module quan trọng: arcpy.management, arcpy.analysis, arcpy.mp, arcpy.da\n\n- Làm việc với dữ liệu địa lý\n\n• Truy cập lớp dữ liệu trong project\n\n• Lấy thông tin thuộc tính, geometry\n\n**2. Xử lý và phân tích dữ liệu không gian**\n\n- Làm việc với dữ liệu\n\n• Tạo/lưu/ghi feature class\n\n• Xử lý shapefile, geodatabase, table\n\n• Duyệt và chỉnh sửa với arcpy.da. SearchCursor, UpdateCursor, InsertCursor\n\n- Tự động hóa phân tích không gian Clip, Buffer, Intersect, Spatial Join\n\n- Quản lý dữ liệu\n\n• Quản lý workspace, datasets, fields\n\n• Kiểm tra và xử lý lỗi topology đơn giản\n\n**3. Tự động hóa bản đồ và công cụ tùy chỉnh**\n\n- Xây dựng Tool tùy chỉnh\n\n• Thiết lập tham số người dùng nhập\n\n• Xử lý logic và validate dữ liệu\n\n- Tối ưu và chia sẻ công cụ\n\n• Ghỉ log, xử lý lỗi\n\n• Đóng gói tool cho người khác sử dụng\n\n- Triển khai script từ command line hoặc Task Scheduler",
+                    "tom_tat": "**Nội dung chính:**\n\nQuyết định cử 06 cán bộ tham gia Khóa đào tạo Ứng dụng Python trên nền tảng ArcGIS do Công ty TNHH ESRI Việt Nam tổ chức tại Hà Nội.\n\n**1. Thông tin khóa đào tạo:**\n*   **Thời gian:** Từ ngày 17 đến 19/6/2026 (03 ngày).\n*   **Thời gian cụ thể:** Sáng 08h00 – 12h00; Chiều 13h00 – 17h00.\n*   **Hình thức:** Đào tạo tập trung.\n*   **Địa điểm:** Số nhà 13, Khu D9A, Khu nhà ở thấp tầng tại ô đất số D6B, D6C, D9B thuộc khu ĐG QSDĐ, Phường Tây Hồ, TP Hà Nội.\n*   **Kinh phí:** Do CPCIT chi trả.\n\n**2. Danh sách cán bộ tham gia (06 người):**\n*   Nguyễn Trọng Hùng (Chuyên viên, Phòng PM) - 0935554288 - hungnt@cpc.vn\n*   Trình Thanh Tịnh (Chuyên viên, Phòng PM) - 0963789555 - TinhTT1@cpc.vn\n*   Lê Công Linh (Chuyên viên, Phòng PTUD) - 0945141415 - linhlc@cpc.vn\n*   Phạm Hồ Bảo Hoàng (Chuyên viên, Phòng PTUD) - 0857472727 - hoangphb@cpc.vn\n*   Hà Thái Văn (Chuyên viên, Phòng PTUD) - 0935861473 - vanht2@cpc.vn\n*   Nguyễn Thanh Phú (Chuyên viên, Phòng VH) - 0983129374 - phunt3@cpc.vn\n\n**3. Nội dung đào tạo:**\n*   Làm quen với Python trong ArcGIS Pro (Kiến trúc, môi trường, arcpy, dữ liệu địa lý).\n*   Xử lý và phân tích dữ liệu không gian (Tạo/lưu dữ liệu, tự động hóa phân tích Clip, Buffer, Intersect..., quản lý dữ liệu).\n*   Tự động hóa bản đồ và công cụ tùy chỉnh (Xây dựng Tool, tối ưu, đóng gói script).\n\n**4. Yêu cầu thực hiện:**\n*   Các cán bộ phải tham gia đầy đủ, đúng giờ và tuân thủ nội quy.\n*   Sau khóa học, nộp chứng chỉ gốc về Bộ phận Hành chính - Phòng Tổng hợp.\n*   Các phòng ban liên quan căn cứ Quyết định này để thi hành.",
+                    "ngay_tao": "2026-06-11 09:43:39",
+                    "type_ocr": "CPCIT",
+                    "ngay_capnhat": "2026-06-11 09:43:48",
+                    "nam": 2026,
+                    "thang": 6
+                }
+            }
+        ]
+    }
+}

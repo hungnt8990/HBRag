@@ -1703,6 +1703,9 @@ function DocumentDetailModal({
   const [activeTab, setActiveTab] = useState<"parse" | "chunk" | "embed" | "access">("parse");
   const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [expandedMetadataChunkIds, setExpandedMetadataChunkIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [accessPolicy, setAccessPolicy] = useState<DocumentAccessPolicy>(
     DEFAULT_DOCUMENT_ACCESS,
   );
@@ -1718,6 +1721,7 @@ function DocumentDetailModal({
       setActiveTab("parse");
       setDownloadError(null);
       setAccessMessage(null);
+      setExpandedMetadataChunkIds(new Set());
     }
   }, [open, document?.document_id]);
 
@@ -2012,26 +2016,59 @@ function DocumentDetailModal({
                 {document.chunks.length === 0 ? (
                   <EmptyState message="No chunk data available." />
                 ) : (
-                  document.chunks.map((chunk) => (
-                    <article className="rounded-xl border border-slate-200 bg-white p-4" key={chunk.id}>
-                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-sm font-semibold text-slate-800">
-                          Chunk #{chunk.chunk_index}
-                        </span>
-                        <span className="font-mono text-xs text-slate-500">
-                          {chunk.token_count === null ? "tokens --" : `${chunk.token_count} tokens`}
-                        </span>
-                      </div>
-                      <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                        {chunk.content}
-                      </p>
-                      {Object.keys(chunk.metadata).length > 0 ? (
-                        <pre className="mt-3 overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
-                          {JSON.stringify(chunk.metadata, null, 2)}
-                        </pre>
-                      ) : null}
-                    </article>
-                  ))
+                  document.chunks.map((chunk) => {
+                    const hasMetadata = Object.keys(chunk.metadata).length > 0;
+                    const metadataExpanded = expandedMetadataChunkIds.has(chunk.id);
+                    return (
+                      <article className="rounded-xl border border-slate-200 bg-white p-4" key={chunk.id}>
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-sm font-semibold text-slate-800">
+                            Chunk #{chunk.chunk_index}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs text-slate-500">
+                              {chunk.token_count === null ? "tokens --" : `${chunk.token_count} tokens`}
+                            </span>
+                            {hasMetadata ? (
+                              <button
+                                aria-expanded={metadataExpanded}
+                                aria-label={metadataExpanded ? "Hide metadata" : "Show metadata"}
+                                className={cn(
+                                  "inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors",
+                                  metadataExpanded
+                                    ? "border-slate-300 bg-slate-100 text-slate-900"
+                                    : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-800",
+                                )}
+                                onClick={() => {
+                                  setExpandedMetadataChunkIds((current) => {
+                                    const next = new Set(current);
+                                    if (next.has(chunk.id)) {
+                                      next.delete(chunk.id);
+                                    } else {
+                                      next.add(chunk.id);
+                                    }
+                                    return next;
+                                  });
+                                }}
+                                title={metadataExpanded ? "Hide metadata" : "Show metadata"}
+                                type="button"
+                              >
+                                <Database className="h-4 w-4" />
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                        <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                          {chunk.content}
+                        </p>
+                        {hasMetadata && metadataExpanded ? (
+                          <pre className="mt-3 overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+                            {JSON.stringify(chunk.metadata, null, 2)}
+                          </pre>
+                        ) : null}
+                      </article>
+                    );
+                  })
                 )}
               </div>
             ) : null}

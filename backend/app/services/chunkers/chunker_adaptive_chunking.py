@@ -19,6 +19,9 @@ FOOTER_RE = re.compile(
     r"(?im)^\s*(Nơi nhận|Noi nhan|KT\.|TL\.|TUQ\.|PHÓ\s+|PHO\s+|TỔNG\s+GIÁM\s+ĐỐC|TONG\s+GIAM\s+DOC)\b"
 )
 APPENDIX_RE = re.compile(r"(?im)^\s*(PHỤ\s+LỤC|PHU\s+LUC|Appendix)\b")
+APPENDIX_HEADING_RE = re.compile(
+    r"(?im)^\s*(?P<title>(?:PHỤ\s+LỤC|PHU\s+LUC|Appendix)\s*[^\n]{0,180})$"
+)
 SENTENCE_END_RE = re.compile(r"[.!?。！？…]\s*$")
 
 
@@ -36,6 +39,16 @@ class ChunkQualityResult:
     @property
     def passed(self) -> bool:
         return not self.reasons
+
+
+@dataclass(frozen=True)
+class StructureHeading:
+    start: int
+    end: int
+    level: int
+    title: str
+    label: str
+    number: str | None = None
 
 
 def normalize_text_for_chunking(text: str) -> str:
@@ -102,6 +115,20 @@ def apply_chunk_quality_gate(content: str, metadata: dict[str, Any]) -> ChunkQua
             reasons.append("missing_table_headers")
         if updated.get("row_index") is None:
             reasons.append("missing_row_index")
+    if chunk_type == "table_group":
+        if not updated.get("table_title"):
+            reasons.append("missing_table_title")
+        if not updated.get("table_headers"):
+            reasons.append("missing_table_headers")
+        if updated.get("row_start") is None or updated.get("row_end") is None:
+            reasons.append("missing_table_group_rows")
+    if chunk_type == "table_column":
+        if not updated.get("table_title"):
+            reasons.append("missing_table_title")
+        if not updated.get("table_headers"):
+            reasons.append("missing_table_headers")
+        if not (updated.get("column_name") or updated.get("table_column")):
+            reasons.append("missing_table_column")
     if chunk_type == "legal_clause" and not updated.get("article_number"):
         reasons.append("missing_article_context")
     if source_type == "doffice_elasticsearch":
@@ -172,6 +199,8 @@ def _legal_chunks(
             "section_number": section.group("number") if section else None,
             "section_title": _legal_section_title(chapter, section, match),
             "legal_path": _legal_path(chapter, section, match),
+            "section_path": _legal_path(chapter, section, match),
+            "heading_path": _legal_path(chapter, section, match),
             "summary": _legal_clause_summary(
                 article_text=article_text,
                 article_number=article_number,
@@ -240,29 +269,35 @@ def _section_chunks(
     max_chars: int,
     overlap_chars: int,
 ) -> list[EvidenceChunk]:
-    headings = list(HEADING_RE.finditer(text))
+    headings = _detect_structure_headings(text)
     if not headings:
         return []
     chunks: list[EvidenceChunk] = []
-    if headings[0].start() > 0:
+    if headings[0].start > 0:
         chunks.extend(
             _bounded_chunks(
-                text[: headings[0].start()].strip(),
+                text[: headings[0].start].strip(),
                 base_metadata={
                     **base_metadata,
                     "chunk_type": "document_preamble",
                     "chunk_strategy": "structure_aware",
                     "section_path": ["preamble"],
-                    "source_span": {"start": 0, "end": headings[0].start()},
+                    "heading_path": ["preamble"],
+                    "source_span": {"start": 0, "end": headings[0].start},
                 },
                 max_chars=max_chars,
                 overlap_chars=overlap_chars,
             )
         )
-    for index, match in enumerate(headings):
-        start = match.start()
-        end = headings[index + 1].start() if index + 1 < len(headings) else len(text)
-        section_title = normalize_text_for_chunking(f"{match.group('label')} {match.group('title')}")
+    stack: list[StructureHeading] = []
+    for index, heading in enumerate(headings):
+        start = heading.start
+        end = headings[index + 1].start if index + 1 < len(headings) else len(text)
+        while stack and stack[-1].level >= heading.level:
+            stack.pop()
+        stack.append(heading)
+        section_path = [item.title for item in stack if item.title]
+        section_title = heading.title
         chunks.extend(
             _bounded_chunks(
                 text[start:end].strip(),
@@ -271,7 +306,11 @@ def _section_chunks(
                     "chunk_type": "document_section",
                     "chunk_strategy": "structure_aware",
                     "section_title": section_title,
-                    "section_path": [section_title],
+                    "section_path": section_path,
+                    "heading_path": section_path,
+                    "heading_level": heading.level,
+                    "heading_label": heading.label,
+                    "heading_number": heading.number,
                     "source_span": {"start": start, "end": end},
                 },
                 max_chars=max_chars,
@@ -279,6 +318,56 @@ def _section_chunks(
             )
         )
     return chunks
+
+
+def _detect_structure_headings(text: str) -> list[StructureHeading]:
+    headings: list[StructureHeading] = []
+    for match in APPENDIX_HEADING_RE.finditer(text):
+        title = normalize_text_for_chunking(match.group("title"))
+        if title:
+            headings.append(
+                StructureHeading(
+                    start=match.start(),
+                    end=match.end(),
+                    level=0,
+                    title=title,
+                    label="appendix",
+                )
+            )
+    for match in HEADING_RE.finditer(text):
+        label = match.group("label")
+        title = normalize_text_for_chunking(f"{label} {match.group('title')}")
+        number = label.rstrip(".)")
+        headings.append(
+            StructureHeading(
+                start=match.start(),
+                end=match.end(),
+                level=_heading_level_from_label(label),
+                title=title,
+                label=label,
+                number=number,
+            )
+        )
+    headings.sort(key=lambda heading: (heading.start, heading.level))
+    return _dedupe_same_line_headings(headings)
+
+
+def _heading_level_from_label(label: str) -> int:
+    clean = label.rstrip(".)")
+    if re.fullmatch(r"\d+(?:\.\d+)*", clean):
+        return clean.count(".") + 1
+    return 1
+
+
+def _dedupe_same_line_headings(headings: list[StructureHeading]) -> list[StructureHeading]:
+    deduped: list[StructureHeading] = []
+    occupied_starts: set[int] = set()
+    for heading in headings:
+        if heading.start in occupied_starts:
+            continue
+        occupied_starts.add(heading.start)
+        deduped.append(heading)
+    return deduped
 
 
 def _recursive_chunks(

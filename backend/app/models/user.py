@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, Column, ForeignKey, String, Table
+from sqlalchemy import BigInteger, Boolean, Column, ForeignKey, String, Table
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -47,6 +47,8 @@ class User(Base, TimestampMixin):
         index=True,
     )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # Liên kết tới danh mục nhân viên EVNCPC (dm_nhan_vien.id_nv) cho phân quyền ACL.
+    id_nv: Mapped[int | None] = mapped_column(BigInteger, nullable=True, index=True)
 
     organization: Mapped[Organization] = relationship(back_populates="users")
     roles: Mapped[list[Role]] = relationship(

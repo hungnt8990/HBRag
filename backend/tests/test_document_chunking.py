@@ -126,13 +126,13 @@ def test_chunker_avoids_early_split_boundary() -> None:
 def test_chunker_preserves_gis_schema_table_as_single_chunk() -> None:
     chunker = RecursiveTextChunker(chunk_size=120, chunk_overlap=20)
     table = (
-        "(1) F08_CotDien_HT â€“ L?p c?t di?n\n"
-        "TT | Tru?ng d? li?u | MÃ´ t? | Ki?u d? li?u | Mi?n giÃ¡ tr? | Ä? r?ng | "
-        "Ngu?n d? li?u | Chuy?n d?i sang GIS\n"
-        "1 | ID | ID C?t di?n | Text | | 20 | ID t? sinh c?a GIS |\n"
-        "2 | MaTramBienAp | MÄƒ tr?m bi?n Ã¡p | Text | | 50 | TTHT | X\n"
+        "(1) F08_CotDien_HT – Lớp cột điện\n"
+        "TT | Trường dữ liệu | Mô tả | Kiểu dữ liệu | Miền giá trị | Độ rộng | "
+        "Nguồn dữ liệu | Chuyển đổi sang GIS\n"
+        "1 | ID | ID Cột điện | Text | | 20 | ID tự sinh của GIS |\n"
+        "2 | MaTramBienAp | Mã trạm biến áp | Text | | 50 | TTHT | X\n"
     )
-    text = f"Gi?i thi?u van b?n hÃ nh chÃ­nh.\n\n{table}\nK?t lu?n."
+    text = f"Giới thiệu văn bản hành chính.\n\n{table}\nKết luận."
 
     chunks = chunker.chunk_text(text)
     table_chunks = [chunk for chunk in chunks if chunk.metadata.get("chunk_type") == "gis_table"]
@@ -294,11 +294,11 @@ def test_chunk_endpoint_rejects_chunk_size_out_of_range() -> None:
 
 def test_legal_article_short_article_kept_as_one_chunk() -> None:
     text = (
-        "CHUONG I QUY Ä?NH CHUNG\n"
-        "Äi?u 1. Ph?m vi di?u ch?nh\n"
-        "Van b?n nÃ y quy d?nh v? quy?n vÃ  nghia v? c?a cÃ¡c bÃªn.\n\n"
-        "Äi?u 10. Ngh? k?t hÃ´n\n"
-        "Khi k?t hÃ´n, ngu?i lao d?ng du?c ngh? 03 ngÃ y cÃ³ hu?ng luong.\n"
+        "CHƯƠNG I QUY ĐỊNH CHUNG\n"
+        "Điều 1. Phạm vi điều chỉnh\n"
+        "Văn bản này quy định về quyền và nghĩa vụ của các bên.\n\n"
+        "Điều 10. Nghỉ kết hôn\n"
+        "Khi kết hôn, người lao động được nghỉ 03 ngày có hưởng lương.\n"
     )
     repository = FakeDocumentRepository(status="parsed", parsed_text=text)
     app.dependency_overrides[get_document_repository] = lambda: repository
@@ -316,23 +316,23 @@ def test_legal_article_short_article_kept_as_one_chunk() -> None:
     assert len(repository.created_chunks) >= 2
 
     article_10 = next(
-        (chunk for chunk in repository.created_chunks if "Äi?u 10" in chunk.content),
+        (chunk for chunk in repository.created_chunks if "Điều 10" in chunk.content),
         None,
     )
     assert article_10 is not None
     assert article_10.metadata["chunk_mode"] == "legal_article"
     assert article_10.metadata["article_number"] == "10"
-    assert article_10.metadata["article_title"] == "Ngh? k?t hÃ´n"
-    assert article_10.metadata["chapter_title"] == "CHUONG I QUY Ä?NH CHUNG"
+    assert article_10.metadata["article_title"] == "Nghỉ kết hôn"
+    assert article_10.metadata["chapter_title"] == "CHƯƠNG I QUY ĐỊNH CHUNG"
     # Whole article fits, must remain a single semantic chunk.
-    assert "03 ngÃ y cÃ³ hu?ng luong" in article_10.content
+    assert "03 ngày có hưởng lương" in article_10.content
 
 
 def test_legal_article_long_article_is_split_with_metadata() -> None:
-    body_lines = "\n".join(f"- Äi?m {index}: n?i dung dÃ i dÌ£ng." for index in range(1, 60))
+    body_lines = "\n".join(f"- Điểm {index}: nội dung dài dòng." for index in range(1, 60))
     text = (
-        "CHUONG II QUY Ä?NH C? TH?\n"
-        "Äi?u 5. Quy d?nh m? r?ng\n"
+        "CHƯƠNG II QUY ĐỊNH CỤ THỂ\n"
+        "Điều 5. Quy định mở rộng\n"
         f"{body_lines}\n"
     )
     repository = FakeDocumentRepository(status="parsed", parsed_text=text)
@@ -357,8 +357,8 @@ def test_legal_article_long_article_is_split_with_metadata() -> None:
     assert subchunk_indices == list(range(len(article_chunks)))
     for chunk in article_chunks:
         assert chunk.metadata["chunk_mode"] == "legal_article"
-        assert chunk.metadata["article_title"] == "Quy d?nh m? r?ng"
-        assert chunk.metadata["chapter_title"].startswith("CHUONG II")
+        assert chunk.metadata["article_title"] == "Quy định mở rộng"
+        assert chunk.metadata["chapter_title"].startswith("CHƯƠNG II")
 
 
 def test_recursive_mode_metadata_records_chunk_mode() -> None:
@@ -468,20 +468,20 @@ def test_chunking_service_creates_table_row_chunks() -> None:
         element_type="table_row",
         text=(
             "STT: 3\n"
-            "M?ng cÃ´ng ngh?: XÃ¢y d?ng n?n t?ng RAG trÃªn d? li?u n?i b?\n"
-            "PhÌ£ng ch? trÌ: PTUD\n"
-            "NhÃ¢n s? d? xu?t: Nguy?n Tr?ng HÃ¹ng"
+            "Mảng công nghệ: Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
+            "Phòng chủ trì: PTUD\n"
+            "Nhân sự đề xuất: Nguyễn Trọng Hùng"
         ),
         page_number=5,
         table_id="pdf_p5_staff_text",
         row_index=3,
         metadata={
             "stt": "3",
-            "area": "XÃ¢y d?ng n?n t?ng RAG trÃªn d? li?u n?i b?",
+            "area": "Xây dựng nền tảng RAG trên dữ liệu nội bộ",
             "lead_department": "PTUD",
-            "staff_names": ["Nguy?n Tr?ng HÃ¹ng"],
-            "staff": [{"name": "Nguy?n Tr?ng HÃ¹ng", "role_note": None}],
-            "source_table": "Danh sÃ¡ch nhÃ¢n s? ph? trÃ¡ch t?ng m?ng cÃ´ng ngh? lÆ¡i",
+            "staff_names": ["Nguyễn Trọng Hùng"],
+            "staff": [{"name": "Nguyễn Trọng Hùng", "role_note": None}],
+            "source_table": "Danh sách nhân sự phụ trách từng mảng công nghệ lõi",
             "relationship_type": "technology_area_staff",
             "confidence": 0.95,
         },
@@ -506,8 +506,8 @@ def test_chunking_service_creates_table_row_chunks() -> None:
     table_row = next(
         chunk for chunk in repository.created_chunks if chunk.metadata["chunk_type"] == "table_row"
     )
-    assert table_row.metadata["area"] == "XÃ¢y d?ng n?n t?ng RAG trÃªn d? li?u n?i b?"
-    assert "Nguy?n Tr?ng HÃ¹ng" in table_row.metadata["staff_names"]
+    assert table_row.metadata["area"] == "Xây dựng nền tảng RAG trên dữ liệu nội bộ"
+    assert "Nguyễn Trọng Hùng" in table_row.metadata["staff_names"]
     assert table_row.metadata["chunk_overlap"] == 0
     assert table_row.metadata["overlap_applied"] is False
 
@@ -518,20 +518,20 @@ def test_chunking_service_creates_person_entity_profile_chunks() -> None:
             element_type="table_row",
             text=(
                 "STT: 3\n"
-                "M?ng cÃ´ng ngh?: XÃ¢y d?ng n?n t?ng RAG trÃªn d? li?u n?i b?\n"
-                "PhÌ£ng ch? trÌ: PTUD\n"
-                "NhÃ¢n s? d? xu?t: Nguy?n Tr?ng HÃ¹ng"
+                "Mảng công nghệ: Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
+                "Phòng chủ trì: PTUD\n"
+                "Nhân sự đề xuất: Nguyễn Trọng Hùng"
             ),
             page_number=5,
             table_id="pdf_p5_staff_text",
             row_index=3,
             metadata={
                 "stt": "3",
-                "area": "XÃ¢y d?ng n?n t?ng RAG trÃªn d? li?u n?i b?",
+                "area": "Xây dựng nền tảng RAG trên dữ liệu nội bộ",
                 "lead_department": "PTUD",
-                "staff_names": ["Nguy?n Tr?ng HÃ¹ng"],
-                "staff": [{"name": "Nguy?n Tr?ng HÃ¹ng", "role_note": None}],
-                "source_table": "Danh sÃ¡ch nhÃ¢n s? ph? trÃ¡ch t?ng m?ng cÃ´ng ngh? lÆ¡i",
+                "staff_names": ["Nguyễn Trọng Hùng"],
+                "staff": [{"name": "Nguyễn Trọng Hùng", "role_note": None}],
+                "source_table": "Danh sách nhân sự phụ trách từng mảng công nghệ lõi",
                 "relationship_type": "technology_area_staff",
                 "confidence": 0.95,
             },
@@ -540,20 +540,20 @@ def test_chunking_service_creates_person_entity_profile_chunks() -> None:
             element_type="table_row",
             text=(
                 "STT: 5\n"
-                "M?ng cÃ´ng ngh?: Kho d? li?u AI dÃ¹ng chung\n"
-                "PhÌ£ng ch? trÌ: VH\n"
-                "NhÃ¢n s? d? xu?t: Nguy?n Tr?ng HÃ¹ng"
+                "Mảng công nghệ: Kho dữ liệu AI dùng chung\n"
+                "Phòng chủ trì: VH\n"
+                "Nhân sự đề xuất: Nguyễn Trọng Hùng"
             ),
             page_number=5,
             table_id="pdf_p5_staff_text",
             row_index=5,
             metadata={
                 "stt": "5",
-                "area": "Kho d? li?u AI dÃ¹ng chung",
+                "area": "Kho dữ liệu AI dùng chung",
                 "lead_department": "VH",
-                "staff_names": ["Nguy?n Tr?ng HÃ¹ng"],
-                "staff": [{"name": "Nguy?n Tr?ng HÃ¹ng", "role_note": None}],
-                "source_table": "Danh sÃ¡ch nhÃ¢n s? ph? trÃ¡ch t?ng m?ng cÃ´ng ngh? lÆ¡i",
+                "staff_names": ["Nguyễn Trọng Hùng"],
+                "staff": [{"name": "Nguyễn Trọng Hùng", "role_note": None}],
+                "source_table": "Danh sách nhân sự phụ trách từng mảng công nghệ lõi",
                 "relationship_type": "technology_area_staff",
                 "confidence": 0.95,
             },
@@ -581,33 +581,33 @@ def test_chunking_service_creates_person_entity_profile_chunks() -> None:
         for chunk in repository.created_chunks
         if chunk.metadata["chunk_type"] == "entity_profile"
     )
-    assert profile.metadata["person_name"] == "Nguy?n Tr?ng HÃ¹ng"
+    assert profile.metadata["person_name"] == "Nguyễn Trọng Hùng"
     assert any(
-        area["area"] == "XÃ¢y d?ng n?n t?ng RAG trÃªn d? li?u n?i b?"
+        area["area"] == "Xây dựng nền tảng RAG trên dữ liệu nội bộ"
         for area in profile.metadata["areas"]
     )
 
 def test_chunking_service_keeps_prose_when_document_also_has_table_rows() -> None:
-    heading = "3. XÃ¢y d?ng n?n t?ng RAG trÃªn d? li?u n?i b?"
-    prose = "M?c tiÃªu: Khai thÃ¡c tri th?c n?i b? ph?c v? h?i dÃ¡p vÃ  tÌm ki?m."
+    heading = "3. Xây dựng nền tảng RAG trên dữ liệu nội bộ"
+    prose = "Mục tiêu: Khai thác tri thức nội bộ phục vụ hỏi đáp và tìm kiếm."
     row_element = ParsedElement(
         element_type="table_row",
         text=(
             "STT: 3\n"
-            "M?ng cÃ´ng ngh?: XÃ¢y d?ng n?n t?ng RAG trÃªn d? li?u n?i b?\n"
-            "PhÌ£ng ch? trÌ: PTUD\n"
-            "NhÃ¢n s? d? xu?t: Nguy?n Tr?ng HÃ¹ng"
+            "Mảng công nghệ: Xây dựng nền tảng RAG trên dữ liệu nội bộ\n"
+            "Phòng chủ trì: PTUD\n"
+            "Nhân sự đề xuất: Nguyễn Trọng Hùng"
         ),
         page_number=5,
         table_id="pdf_p5_staff_text",
         row_index=3,
         metadata={
             "stt": "3",
-            "area": "XÃ¢y d?ng n?n t?ng RAG trÃªn d? li?u n?i b?",
+            "area": "Xây dựng nền tảng RAG trên dữ liệu nội bộ",
             "lead_department": "PTUD",
-            "staff_names": ["Nguy?n Tr?ng HÃ¹ng"],
-            "staff": [{"name": "Nguy?n Tr?ng HÃ¹ng", "role_note": None}],
-            "source_table": "Danh sÃ¡ch nhÃ¢n s? ph? trÃ¡ch t?ng m?ng cÃ´ng ngh? lÆ¡i",
+            "staff_names": ["Nguyễn Trọng Hùng"],
+            "staff": [{"name": "Nguyễn Trọng Hùng", "role_note": None}],
+            "source_table": "Danh sách nhân sự phụ trách từng mảng công nghệ lõi",
             "relationship_type": "technology_area_staff",
             "confidence": 0.95,
         },
@@ -667,8 +667,8 @@ def test_chunking_service_keeps_prose_when_document_also_has_table_rows() -> Non
         if chunk.metadata["chunk_type"] == "table_row"
     )
     assert table_row.metadata["stt"] == "3"
-    assert "Nguy?n Tr?ng HÃ¹ng" in table_row.content
-    assert "Nguy?n Tr?ng HÃ¹ng" in table_row.metadata["staff_names"]
+    assert "Nguyễn Trọng Hùng" in table_row.content
+    assert "Nguyễn Trọng Hùng" in table_row.metadata["staff_names"]
     assert table_row.metadata["area"] == heading.removeprefix("3. ")
 
     profile = next(
@@ -676,22 +676,22 @@ def test_chunking_service_keeps_prose_when_document_also_has_table_rows() -> Non
         for chunk in repository.created_chunks
         if chunk.metadata["chunk_type"] == "entity_profile"
     )
-    assert profile.metadata["person_name"] == "Nguy?n Tr?ng HÃ¹ng"
+    assert profile.metadata["person_name"] == "Nguyễn Trọng Hùng"
     assert any(
-        area["area"] == "XÃ¢y d?ng n?n t?ng RAG trÃªn d? li?u n?i b?"
+        area["area"] == "Xây dựng nền tảng RAG trên dữ liệu nội bộ"
         for area in profile.metadata["areas"]
     )
     assert profile.metadata["chunk_strategy"] == "hybrid_structured"
 
 
 def test_hybrid_structured_keeps_prose_when_table_parse_fails() -> None:
-    heading = "3. XÃ¢y d?ng n?n t?ng RAG trÃªn d? li?u n?i b?"
-    prose = "M?c tiÃªu: Khai thÃ¡c tri th?c n?i b? ph?c v? h?i dÃ¡p vÃ  tÌm ki?m."
+    heading = "3. Xây dựng nền tảng RAG trên dữ liệu nội bộ"
+    prose = "Mục tiêu: Khai thác tri thức nội bộ phục vụ hỏi đáp và tìm kiếm."
     broken_table_text = (
-        "DANH SÃCH NHÃ‚N S? PH? TRÃCH T?NG M?NG CÃ”NG NGH? LÆ I\n"
-        "6 PTUD 6. Nguy?n Hu?nh Äang Khoa Platform AI 7. Nguy?n Quang LÃ¢m "
-        "8. Nguy?n Tr?ng HÃ¹ng 9. VÆ¡ Van PhÃºc 10. VÆ¡ Van HÌ£a "
-        "th?c hi?n dÃ¡nh giÃ¡ hi?u qu? cÃ´ng vi?c c?a t?ng cÃ¡ nhÃ¢n"
+        "DANH SÁCH NHÂN SỰ PHỤ TRÁCH TỪNG MẢNG CÔNG NGHỆ LÕI\n"
+        "6 PTUD 6. Nguyễn Huỳnh Đăng Khoa Platform AI 7. Nguyễn Quang Lâm "
+        "8. Nguyễn Trọng Hùng 9. Võ Văn Phúc 10. Võ Văn Hòa "
+        "thực hiện đánh giá hiệu quả công việc của từng cá nhân"
     )
     invalid_row = ParsedElement(
         element_type="table_row",
@@ -702,18 +702,18 @@ def test_hybrid_structured_keeps_prose_when_table_parse_fails() -> None:
         metadata={
             "stt": "6",
             "area": (
-                "PTUD 6. Nguy?n Hu?nh Äang Khoa Platform AI 7. Nguy?n Quang LÃ¢m "
-                "8. Nguy?n Tr?ng HÃ¹ng"
+                "PTUD 6. Nguyễn Huỳnh Đăng Khoa Platform AI 7. Nguyễn Quang Lâm "
+                "8. Nguyễn Trọng Hùng"
             ),
             "lead_department": "PTUD",
-            "staff_names": ["th?c hi?n dÃ¡nh giÃ¡ hi?u qu? cÃ´ng vi?c"],
+            "staff_names": ["thực hiện đánh giá hiệu quả công việc"],
             "staff": [
                 {
-                    "name": "th?c hi?n dÃ¡nh giÃ¡ hi?u qu? cÃ´ng vi?c",
+                    "name": "thực hiện đánh giá hiệu quả công việc",
                     "role_note": None,
                 }
             ],
-            "source_table": "Danh sÃ¡ch nhÃ¢n s? ph? trÃ¡ch t?ng m?ng cÃ´ng ngh? lÆ¡i",
+            "source_table": "Danh sách nhân sự phụ trách từng mảng công nghệ lõi",
             "relationship_type": "technology_area_staff",
             "confidence": 0.95,
         },

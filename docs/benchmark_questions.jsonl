@@ -1,7 +1,5 @@
-{"question":"3113/EVN-KDMBD là văn bản gì?","question_type":"doc_code_lookup","expected_answer":"Tra cứu đúng văn bản theo số hiệu.","expected_doc_code":"3113/EVN-KDMBD","expected_evidence":["document_summary_artifact","document_header"]}
-{"question":"Văn bản 3113/EVN-KDMBD ban hành ngày nào?","question_type":"doc_date_lookup","expected_answer":"Tra cứu đúng ngày ban hành.","expected_doc_code":"3113/EVN-KDMBD","expected_evidence":["document_header","document_summary_artifact"]}
-{"question":"Nguyễn Quang Lâm tham gia mảng nào?","question_type":"person_assignment_lookup","expected_answer":"Tra cứu đúng các mảng công nghệ của người được hỏi.","expected_evidence":["table_row","assignment_artifact","entity_profile_artifact"]}
-{"question":"STT 3 trong bảng phân công là nội dung gì?","question_type":"table_row_lookup","expected_answer":"Tra cứu đúng dòng bảng tương ứng với STT 3.","expected_evidence":["table_row","table_artifact","table_summary"]}
-{"question":"Điều 10 quy định nội dung gì?","question_type":"legal_clause_lookup","expected_answer":"Tra cứu đúng điều khoản và giữ nguyên điều/khoản/điểm.","expected_evidence":["legal_clause","legal_evidence_artifact"]}
-{"question":"Tóm tắt nội dung chính của văn bản này.","question_type":"summary","expected_answer":"Tóm tắt nội dung chính ở mức tài liệu.","expected_evidence":["document_summary_artifact","assignment_artifact","deadline_artifact"]}
-
+{"id":"doc_code_001","question_type":"doc_code","question":"Văn bản 6515/EVNCPC-VTCNTT ban hành ngày nào?","expected_doc_code":"6515/EVNCPC-VTCNTT","expected_evidence":["document_summary_artifact","document_header"]}
+{"id":"person_001","question_type":"person_assignment","question":"Nguyễn Văn A phụ trách nhiệm vụ gì?","expected_evidence":["assignment_artifact","table_row"],"expected_row_index":"1"}
+{"id":"table_001","question_type":"table_lookup","question":"Dòng STT 2 trong bảng phân công nhiệm vụ là gì?","expected_evidence":["table_evidence_artifact","table_row"],"expected_row_index":"2"}
+{"id":"legal_001","question_type":"legal_clause","question":"Điều 10 quy định chế độ gì?","expected_evidence":["legal_evidence_artifact","legal_clause"],"expected_article_number":"10"}
+{"id":"summary_001","question_type":"summary","question":"Tóm tắt nội dung chính của văn bản.","expected_evidence":["document_summary_artifact","evidence_chunk"]}

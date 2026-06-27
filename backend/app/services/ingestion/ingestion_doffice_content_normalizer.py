@@ -10,7 +10,7 @@ from typing import Any
 
 FOOTER_MARKER_PATTERN = re.compile(r"(?im)^\s*(Nơi nhận|KT\.\s*GIÁM ĐỐC|PHÓ GIÁM ĐỐC|Lưu:\s*VT)\b")
 PAGE_MARKER_PATTERN = re.compile(r"(?im)^\s*---\s*Page\s+\d+\s*---\s*$")
-APPENDIX_MARKER_PATTERN = re.compile(r"(?im)^\s*(PHá»¤\s*Lá»¤C|PHU\s*LUC)\b")
+APPENDIX_MARKER_PATTERN = re.compile(r"(?im)^\s*(PHỤ\s*LỤC|PHU\s*LUC)\b")
 ASCII_FOOTER_MARKER_PATTERN = re.compile(
     r"(?im)^\s*(Noi\s+nhan|N[ơo]i\s+nhận|KT\.\s*GIAM\s+DOC|PHO\s+GIAM\s+DOC|Luu:\s*VT)\b"
 )
@@ -18,7 +18,7 @@ TABLE_PATTERN = re.compile(r"(?is)<table\b.*?</table>")
 DOC_CODE_PATTERN = re.compile(r"\b(?!\d{1,2}/\d{1,2}/\d{2,4}\b)(\d{1,6}/[A-ZÀ-ỸĐ0-9][A-ZÀ-ỸĐ0-9+._\-]{1,}(?:/[A-ZÀ-ỸĐ0-9+._\-]+)*)\b", re.UNICODE)
 DATE_PATTERN = re.compile(r"\b\d{1,2}/\d{1,2}/\d{2,4}\b")
 MONTH_YEAR_PATTERN = re.compile(r"\b\d{1,2}/\d{4}\b")
-VIETNAMESE_TEXT_DATE_PATTERN = re.compile(r"ngÃ y\s+(\d{1,2})\s+thÃ¡ng\s+(\d{1,2})\s+nÄƒm\s+(\d{4})", re.IGNORECASE)
+VIETNAMESE_TEXT_DATE_PATTERN = re.compile(r"ngày\s+(\d{1,2})\s+tháng\s+(\d{1,2})\s+năm\s+(\d{4})", re.IGNORECASE)
 EMAIL_PATTERN = re.compile(r"\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b")
 PHONE_PATTERN = re.compile(r"(?<!\d)(?:\+?84|0)\d(?:[\s.\-]?\d){7,10}(?!\d)")
 LONG_LIST_LINE_PATTERN = re.compile(r"^\s*(?:[-+*]|\d+[.)])\s+\S+")
@@ -44,9 +44,9 @@ SPACING_FIXES = {
     "Ư ớc tính": "Ước tính",
     "Th ông báo": "Thông báo",
     "D ịch vụ": "Dịch vụ",
-    "D á»‹ch": "Dá»‹ch",
-    "bÃ¡oc Ã¡o": "bÃ¡o cÃ¡o",
-    "Ä‘á»ƒp/h": "Ä‘á»ƒ p/h",
+    "D ịch": "Dịch",
+    "báoc áo": "báo cáo",
+    "đểp/h": "để p/h",
 }
 
 
@@ -216,6 +216,13 @@ def normalize_doffice_source(source: dict[str, Any]) -> NormalizedDofficeDocumen
     body_text, footer_text = split_footer_signature(base_plain_text)
     base_clean_text = normalize_lines(apply_spacing_fixes(strip_markdown_noise(body_text)))
     metadata = build_rule_metadata(source=source, clean_text=base_clean_text, tables=tables)
+    # FIX 3A: ``ngay_vb`` thường null và ngày ban hành nằm ở khối chữ ký (đã bị
+    # ``split_footer_signature`` tách khỏi body). Thử bắt lại từ plain text đầy đủ
+    # (gồm cả footer) khi vẫn thiếu issued_date.
+    if not metadata.get("issued_date"):
+        fallback_issued_date = parse_issued_date_from_text(base_plain_text)
+        if fallback_issued_date:
+            metadata = {**metadata, "issued_date": fallback_issued_date}
     summary_text = build_document_summary(source=source, clean_text=base_clean_text, metadata=metadata)
     metadata_preamble = build_doffice_metadata_preamble(source=source, metadata=metadata)
     metadata = {**metadata, "metadata_preamble": metadata_preamble}
@@ -297,10 +304,10 @@ def build_document_summary(*, source: dict[str, Any], clean_text: str, metadata:
         lowered = clean.casefold()
         if any(token in lowered for token in ("quyết định", "quyet dinh", "đào tạo", "dao tao", "kinh phí", "kinh phi", "thời gian", "thoi gian", "địa điểm", "dia diem")):
             candidates.append(clean)
-    candidates.extend(
-        _optional_string(metadata.get(key))
-        for key in ("issued_date", "issuer")
-    )
+    # Chỉ thêm issuer vào phần tóm tắt dạng văn xuôi. KHÔNG thêm issued_date thô:
+    # ``_sanitize_summary_text`` (DOC_CODE_PATTERN.sub) sẽ băm "11/08/2025" thành
+    # "11/". Ngày ban hành đã có ở trường metadata + preamble cấu trúc.
+    candidates.append(_optional_string(metadata.get("issuer")))
     summary = " ".join(_dedupe_sentences(candidates))
     summary = _sanitize_summary_text(summary)
     return _limit_words(summary, max_words=200) or None
@@ -904,7 +911,7 @@ def _looks_like_platform(value: str | None) -> bool:
     return "cms" in lowered or "website" in lowered or ("app" in lowered and "khach" in lowered)
 
 def _looks_like_phase(value: str | None) -> bool:
-    return bool(re.search(r"giai\s*(?:doan|Ä‘oáº¡n)\s*\d+", str(value or ""), flags=re.IGNORECASE))
+    return bool(re.search(r"giai\s*(?:doan|Ä‘oạn)\s*\d+", str(value or ""), flags=re.IGNORECASE))
 
 def _feature_from_values(values: list[str], *, row_number: str | None, platform: str | None) -> str | None:
     for value in values:
@@ -1015,9 +1022,11 @@ def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[Norm
         )
         is_feature_table = _is_feature_change_table(table.headers)
         groups: dict[tuple[str | None, str | None], list[NormalizedTableRow]] = {}
+        data_rows: list[NormalizedTableRow] = []
         for row in table.rows:
             if row.metadata.get("is_table_marker"):
                 continue
+            data_rows.append(row)
             elements.append(
                 NormalizedElement(
                     "table_row",
@@ -1063,6 +1072,66 @@ def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[Norm
                         "phase": phase,
                         "group_name": " - ".join(str(value) for value in (platform, phase) if value),
                         "row_count": len(group_rows),
+                        "columns": list(table.metadata.get("columns") or _canonical_table_columns(table.headers)),
+                        "source_span": table.metadata.get("source_span"),
+                        "indexable": True,
+                    },
+                )
+            )
+        if not groups:
+            for group_index, group_rows in enumerate(_table_row_windows(data_rows, size=10), start=1):
+                if len(group_rows) < 2:
+                    continue
+                row_start = int(group_rows[0].row_index)
+                row_end = int(group_rows[-1].row_index)
+                elements.append(
+                    NormalizedElement(
+                        "table_group",
+                        table_row_window_group_text(table=table, group_index=group_index, rows=group_rows),
+                        {
+                            "chunk_type": "table_group",
+                            **table.metadata,
+                            "table_id": table.metadata.get("table_id"),
+                            "logical_table_id": table.metadata.get("logical_table_id"),
+                            "table_index": table.table_index,
+                            "table_title": table.metadata.get("table_name"),
+                            "table_headers": list(table.headers),
+                            "columns": list(table.metadata.get("columns") or _canonical_table_columns(table.headers)),
+                            "group_name": f"Rows {row_start}-{row_end}",
+                            "row_start": row_start,
+                            "row_end": row_end,
+                            "row_count": len(group_rows),
+                            "source_span": table.metadata.get("source_span"),
+                            "indexable": True,
+                        },
+                    )
+                )
+        for column_index, header in enumerate(table.headers):
+            column_values = _table_column_values(table=table, column_index=column_index, rows=data_rows)
+            if not column_values:
+                continue
+            elements.append(
+                NormalizedElement(
+                    "table_column",
+                    table_column_text(table=table, column_index=column_index, rows=data_rows),
+                    {
+                        "chunk_type": "table_column",
+                        **table.metadata,
+                        "table_id": table.metadata.get("table_id"),
+                        "logical_table_id": table.metadata.get("logical_table_id"),
+                        "table_index": table.table_index,
+                        "table_title": table.metadata.get("table_name"),
+                        "table_headers": list(table.headers),
+                        "columns": list(table.metadata.get("columns") or _canonical_table_columns(table.headers)),
+                        "column_name": clean_inline_text(header),
+                        "table_column": clean_inline_text(header),
+                        "column_index": column_index,
+                        "column_values": column_values[:50],
+                        "row_context_headers": _table_column_context_headers(table.headers, column_index),
+                        "row_start": int(data_rows[0].row_index) if data_rows else None,
+                        "row_end": int(data_rows[-1].row_index) if data_rows else None,
+                        "row_count": len(column_values),
+                        "source_span": table.metadata.get("source_span"),
                         "indexable": True,
                     },
                 )
@@ -1147,6 +1216,93 @@ def table_group_text(*, table: NormalizedTable, platform: str | None, phase: str
     if features:
         lines.append("Các chức năng: " + "; ".join(features[:20]))
     return "\n".join(line for line in lines if line.strip())
+
+
+def _table_row_windows(rows: list[NormalizedTableRow], *, size: int) -> list[list[NormalizedTableRow]]:
+    safe_size = max(1, size)
+    return [rows[index : index + safe_size] for index in range(0, len(rows), safe_size)]
+
+
+def table_row_window_group_text(*, table: NormalizedTable, group_index: int, rows: list[NormalizedTableRow]) -> str:
+    row_start = rows[0].row_index if rows else 0
+    row_end = rows[-1].row_index if rows else 0
+    lines = [
+        f"Bảng: {table.metadata.get('table_name') or 'Bảng dữ liệu DOffice'}",
+        f"Nhóm dòng {group_index}: Rows {row_start}-{row_end}",
+    ]
+    if table.headers:
+        lines.append("Header: " + " | ".join(clean_inline_text(header) for header in table.headers if clean_inline_text(header)))
+    lines.append("Các dòng liên quan:")
+    for row in rows:
+        details = " | ".join(
+            f"{table.headers[index]}: {value}"
+            for index, value in enumerate(row.values)
+            if value and index < len(table.headers)
+        )
+        if details:
+            lines.append(f"- Dòng {row.row_index}: {details}")
+    return "\n".join(line for line in lines if line.strip())
+
+
+def _table_column_context_indices(headers: list[str], column_index: int) -> list[int]:
+    preferred = {"stt", "tt", "ho_ten", "ten", "nhan_su", "nguoi_phu_trach", "noi_dung", "du_lieu", "chuc_nang", "man_hinh"}
+    indices: list[int] = []
+    for index, header in enumerate(headers):
+        if index == column_index:
+            continue
+        normalized = _normalize_key(header)
+        if normalized in preferred or any(term in normalized for term in ("ten", "noi_dung", "du_lieu", "chuc_nang", "man_hinh")):
+            indices.append(index)
+        if len(indices) >= 2:
+            break
+    if not indices and headers and column_index != 0:
+        indices.append(0)
+    return indices
+
+
+def _table_column_context_headers(headers: list[str], column_index: int) -> list[str]:
+    return [headers[index] for index in _table_column_context_indices(headers, column_index) if index < len(headers)]
+
+
+def _table_column_values(*, table: NormalizedTable, column_index: int, rows: list[NormalizedTableRow]) -> list[str]:
+    values: list[str] = []
+    for row in rows:
+        if column_index >= len(row.values):
+            continue
+        value = clean_inline_text(row.values[column_index])
+        if value:
+            values.append(value)
+    return unique_strings(values)
+
+
+def table_column_text(*, table: NormalizedTable, column_index: int, rows: list[NormalizedTableRow]) -> str:
+    column_name = clean_inline_text(table.headers[column_index]) if column_index < len(table.headers) else f"Cột {column_index + 1}"
+    context_indices = _table_column_context_indices(table.headers, column_index)
+    context_headers = [table.headers[index] for index in context_indices if index < len(table.headers)]
+    lines = [
+        f"Bảng: {table.metadata.get('table_name') or 'Bảng dữ liệu DOffice'}",
+        f"Cột bảng: {column_name}",
+        "Cột dùng làm ngữ cảnh hàng: " + ", ".join(context_headers) if context_headers else "",
+        "| Dòng | Ngữ cảnh hàng | Nội dung cột |",
+        "| --- | --- | --- |",
+    ]
+    for row in rows:
+        if column_index >= len(row.values):
+            continue
+        value = clean_inline_text(row.values[column_index])
+        if not value:
+            continue
+        context_parts = []
+        for context_index in context_indices:
+            if context_index >= len(row.values) or context_index >= len(table.headers):
+                continue
+            context_value = clean_inline_text(row.values[context_index])
+            if context_value:
+                context_parts.append(f"{table.headers[context_index]}: {context_value}")
+        context = "; ".join(context_parts) if context_parts else f"Row {row.row_index}"
+        lines.append(f"| {row.row_index} | {context} | {value} |")
+    return "\n".join(line for line in lines if line.strip())
+
 
 def _canonical_table_columns(headers: list[str]) -> list[str]:
     normalized = {_normalize_key(header) for header in headers}
@@ -1421,6 +1577,14 @@ def parse_issued_date_from_text(text: str) -> str | None:
         clean,
         flags=re.IGNORECASE,
     )
+    if not match:
+        # Fallback: ngày dạng số có tiền tố "ngày" (vd "Ngày 11/8/2025, ...").
+        # Yêu cầu tiền tố "ngày" để tránh khớp nhầm các số ngày/tháng bất kỳ.
+        match = re.search(
+            r"ng\S*y\s+(\d{1,2})/(\d{1,2})/(\d{4})",
+            clean,
+            flags=re.IGNORECASE,
+        )
     if not match:
         return None
     day, month, year = match.groups()

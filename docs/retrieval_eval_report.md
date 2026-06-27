@@ -1,18 +1,12 @@
-# Retrieval Evaluation Report
+# Retrieval Eval Report
 
-Status: not executed in this container.
+Status: framework created. Run:
 
-## Scope
+```powershell
+python scripts/maintenance/chunking_benchmark.py --mode retrieval --benchmark-dir docs --output-dir docs
+```
 
-This report is intended to compare retrieval quality across:
-
-- vector search
-- keyword search
-- hybrid search
-- reranked search
-- artifact-first retrieval
-
-## Metrics To Record
+Metrics emitted:
 
 - Recall@5
 - Recall@10
@@ -22,8 +16,3 @@ This report is intended to compare retrieval quality across:
 - Wrong Document Rate
 - Wrong Row Rate
 - Wrong Article Rate
-
-## Notes
-
-The codebase already has the plumbing needed to collect retrieval logs and run the above evaluation once a benchmark corpus is wired in.
-

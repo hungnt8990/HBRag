@@ -265,7 +265,7 @@ def test_reranked_results_saved_in_retrieval_log() -> None:
         log_repository = FakeRetrievalLogRepository()
         service = RerankingService(
             hybrid_search_service=hybrid_service,  # type: ignore[arg-type]
-            reranker=FakeReranker(),
+            llm_gateway=FakeReranker(),
             retrieval_log_repository=log_repository,  # type: ignore[arg-type]
             chunk_repository=FakeChunkRepository(),  # type: ignore[arg-type]
         )
@@ -314,7 +314,7 @@ def test_reranking_service_uses_full_chunk_content_not_preview() -> None:
 
         service = RerankingService(
             hybrid_search_service=hybrid_service,  # type: ignore[arg-type]
-            reranker=FakeReranker(),
+            llm_gateway=FakeReranker(),
             retrieval_log_repository=log_repository,  # type: ignore[arg-type]
             chunk_repository=chunk_repository,  # type: ignore[arg-type]
         )

@@ -244,6 +244,40 @@ class ElasticsearchKeywordStore:
                     f"Elasticsearch delete_by_query failed: HTTP {response.status_code} {response.text[:500]}"
                 )
 
+    async def set_acl_payload_for_document(
+        self,
+        document_id: UUID | str,
+        acl_payload: dict[str, Any],
+        *,
+        tenant_id: UUID | str | None = None,
+    ) -> None:
+        """Ghi đè các trường ACL (acl_*) cho toàn bộ chunk của một văn bản (không index lại)."""
+        if not settings.elasticsearch_enabled or not acl_payload:
+            return
+        await self.ensure_index()
+        filters: list[dict[str, Any]] = [{"term": {"document_id": str(document_id)}}]
+        if tenant_id is not None:
+            filters.append({"term": {"tenant_id": str(tenant_id)}})
+        script_source = ";".join(f"ctx._source['{key}']=params['{key}']" for key in acl_payload)
+        body = {
+            "query": {"bool": {"filter": filters}},
+            "script": {"source": script_source, "params": dict(acl_payload), "lang": "painless"},
+        }
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            # Refresh trước để các chunk vừa bulk-index hiển thị cho update_by_query.
+            await client.post(f"{self.url}/{self.index_name}/_refresh")
+            response = await client.post(
+                f"{self.url}/{self.index_name}/_update_by_query",
+                json=body,
+                params={"conflicts": "proceed", "refresh": "true"},
+            )
+            if response.status_code == 404:
+                return
+            if response.status_code >= 400:
+                raise ElasticsearchKeywordError(
+                    f"Elasticsearch update_by_query failed: HTTP {response.status_code} {response.text[:500]}"
+                )
+
     def _chunk_document(self, chunk: RagChunk, *, embedding_text: str | None) -> dict[str, Any]:
         payload = qdrant_payload(chunk, store_raw_text=False)
         chunk_id = str(payload.get("chunk_id") or chunk.database_chunk_id or chunk.chunk_id)
@@ -280,6 +314,20 @@ class ElasticsearchKeywordStore:
                 continue
             doc[key] = values
             doc[f"{key}_normalized"] = [_normalize_text(value) for value in values if value]
+        # ACL mới: copy thẳng nếu đã có trong payload lúc index (ngoài ra còn được
+        # cập nhật qua set_acl_payload_for_document sau khi ingest).
+        for acl_field in (
+            "acl_subjects",
+            "acl_allow_dv",
+            "acl_allow_pb",
+            "acl_allow_nv",
+            "acl_deny_pb",
+            "acl_deny_nv",
+            "acl_ver",
+        ):
+            value = payload.get(acl_field)
+            if value not in (None, [], ""):
+                doc[acl_field] = value
         return {key: value for key, value in doc.items() if value not in (None, "", [])}
 
     @staticmethod
@@ -313,7 +361,12 @@ class ElasticsearchKeywordStore:
                             "filter": ["lowercase", "vi_ascii_folding"],
                         },
                     },
-                }
+                },
+                "number_of_shards": settings.elasticsearch_number_of_shards,
+                "number_of_replicas": settings.elasticsearch_number_of_replicas,
+                "refresh_interval": settings.elasticsearch_refresh_interval,
+                # Không hạ max_result_window: bulk delete_by_query dùng scroll batch lớn
+                # (mặc định ES = 10000) — hạ xuống sẽ làm hỏng thao tác xóa/re-ingest.
             },
             "mappings": {
                 "dynamic": True,
@@ -335,6 +388,14 @@ class ElasticsearchKeywordStore:
                     "searchable_metadata": {"type": "text", "analyzer": "vi_bm25"},
                     "metadata_json": {"type": "text", "analyzer": "vi_bm25", "index": False},
                     "metadata": {"type": "object", "enabled": False},
+                    # ACL mới: flatten allow + deny + version.
+                    "acl_subjects": {"type": "keyword"},
+                    "acl_allow_dv": {"type": "integer"},
+                    "acl_allow_pb": {"type": "integer"},
+                    "acl_allow_nv": {"type": "integer"},
+                    "acl_deny_pb": {"type": "integer"},
+                    "acl_deny_nv": {"type": "integer"},
+                    "acl_ver": {"type": "keyword"},
                 },
             },
         }
@@ -359,13 +420,16 @@ class ElasticsearchKeywordSearchService:
         top_k: int,
         document_ids: set[UUID] | set[str] | None = None,
         access_filter: AccessFilter | None = None,
+        acl_subject: "AclSubject | None" = None,
         retrieval_enrichment_enabled: bool = False,
     ) -> KeywordSearchResponse:
         if document_ids is not None and not document_ids:
             return KeywordSearchResponse(query=query, top_k=top_k, results=[])
         try:
             await self._store.ensure_index()
-            payload = self._build_query(query=query, top_k=top_k, document_ids=document_ids)
+            payload = self._build_query(
+                query=query, top_k=top_k, document_ids=document_ids, acl_subject=acl_subject
+            )
             async with httpx.AsyncClient(timeout=self._store.timeout_seconds) as client:
                 response = await client.post(
                     f"{self._store.url}/{self._store.index_name}/_search",
@@ -424,6 +488,7 @@ class ElasticsearchKeywordSearchService:
         query: str,
         top_k: int,
         document_ids: set[UUID] | set[str] | None,
+        acl_subject: "AclSubject | None" = None,
     ) -> dict[str, Any]:
         clean_query = " ".join(str(query or "").split()).strip()
         exact_terms = KeywordSearchService._extract_exact_terms(clean_query)
@@ -464,6 +529,13 @@ class ElasticsearchKeywordSearchService:
         filters: list[dict[str, Any]] = []
         if document_ids is not None:
             filters.append({"terms": {"document_id": [str(item) for item in document_ids]}})
+        if acl_subject is not None:
+            from app.services.security.security_acl_payload import build_es_acl_filter_flat
+
+            # Flat: 1 terms trên acl_subjects (nằm trong filter context -> cache tốt) + deny.
+            acl_clause = build_es_acl_filter_flat(acl_subject)
+            if acl_clause is not None:  # None = super admin
+                filters.append(acl_clause)
         return {
             "size": top_k,
             "track_scores": True,
@@ -504,7 +576,7 @@ def _normalize_for_exact(value: Any) -> str | list[str]:
 def _normalize_text(value: Any) -> str:
     normalized = unicodedata.normalize("NFD", str(value or ""))
     normalized = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
-    normalized = normalized.replace("Ä", "D").replace("Ä‘", "d")
+    normalized = normalized.replace("Đ", "D").replace("Ä‘", "d")
     normalized = re.sub(r"\s+", " ", normalized.casefold()).strip()
     return normalized
 

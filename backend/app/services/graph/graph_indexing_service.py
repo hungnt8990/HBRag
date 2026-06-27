@@ -435,7 +435,7 @@ def _entity_key(name: Any, entity_type: Any) -> str:
 def _normalize_entity_name(value: str) -> str:
     normalized = unicodedata.normalize("NFD", value or "")
     normalized = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
-    normalized = normalized.replace("Ä", "D").replace("Ä‘", "d")
+    normalized = normalized.replace("Đ", "D").replace("đ", "d")
     normalized = re.sub(r"\s+", " ", normalized.casefold()).strip()
     return normalized
 
