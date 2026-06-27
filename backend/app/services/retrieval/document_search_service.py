@@ -16,6 +16,7 @@ import httpx
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
+from app.db.session import AsyncSessionLocal
 from app.services.retrieval.retrieval_document_index import DocumentIndexStore
 from app.services.security.security_acl_payload import AclSubject, acl_subject_to_keys
 
@@ -32,9 +33,7 @@ class DocumentSearchError(RuntimeError):
 
 class DocumentSearchRequest(BaseModel):
     query: str = Field(min_length=1, max_length=2000, description="Từ khoá, số ký hiệu, hoặc câu hỏi")
-    id_nv: int = Field(description="Mã nhân viên — bắt buộc để lọc quyền")
-    id_pb: int | None = Field(default=None, description="Mã phòng ban")
-    id_dv: int | None = Field(default=None, description="Mã đơn vị")
+    id_nv: int = Field(description="Mã nhân viên — bắt buộc; id_pb/id_dv được resolve từ dm_nhan_vien")
     top_n: int = Field(default=20, ge=1, le=100, description="Số văn bản trả về")
     use_vector: bool = Field(default=True, description="Dùng BBQ kNN (False = BM25-only)")
     mode: Literal["auto", "list", "excerpt"] = Field(default="auto")
@@ -113,6 +112,29 @@ def detect_mode(query: str, requested: str) -> str:
     return "list"
 
 
+async def _resolve_subject_from_db(id_nv: int) -> AclSubject | None:
+    """Tra id_pb/id_dv THẬT từ ``dm_nhan_vien`` (dùng chung ``AclSubject.from_session``).
+
+    None nếu id_nv không có trong danh mục.
+    """
+    async with AsyncSessionLocal() as session:
+        return await AclSubject.from_session(session, id_nv)
+
+
+async def resolve_acl_subject(id_nv: int) -> AclSubject:
+    """Dựng AclSubject với id_pb/id_dv lấy TỪ dm_nhan_vien theo id_nv (id_nv là nguồn sự thật).
+
+    KHÔNG tin id_pb/id_dv do client gửi -> chống leo thang quyền. id_nv không có trong danh
+    mục (hoặc DB lỗi) -> fallback nv-only: chỉ khớp văn bản cấp đích danh nhân viên đó (~0).
+    """
+    try:
+        subject = await _resolve_subject_from_db(id_nv)
+    except Exception:
+        logger.warning("Không resolve được phòng/đơn vị cho id_nv=%s -> nv-only", id_nv, exc_info=True)
+        subject = None
+    return subject or AclSubject(id_nv=id_nv, is_super_admin=False)
+
+
 def build_acl_filters(acl_subject: AclSubject) -> list[dict]:
     if acl_subject.is_super_admin:
         return []
@@ -189,9 +211,8 @@ async def execute_document_search(request: DocumentSearchRequest) -> DocumentSea
     if not settings.elasticsearch_enabled:
         raise DocumentSearchUnavailable("Elasticsearch chưa được bật.")
 
-    acl_subject = AclSubject(
-        id_nv=request.id_nv, id_pb=request.id_pb, id_dv=request.id_dv, is_super_admin=False
-    )
+    # id_nv là nguồn sự thật: id_pb/id_dv resolve từ dm_nhan_vien (không tin client).
+    acl_subject = await resolve_acl_subject(request.id_nv)
     search_type = detect_search_type(request.query)
     mode_used = detect_mode(request.query, request.mode)
     acl_filters = build_acl_filters(acl_subject)
@@ -248,14 +269,15 @@ async def execute_document_search(request: DocumentSearchRequest) -> DocumentSea
         )
 
     logger.info(
-        "document_search id_nv=%s type=%s mode=%s vector=%s results=%d query=%r",
-        request.id_nv, search_type, mode_used, used_vector, len(results), request.query[:60],
+        "document_search id_nv=%s pb=%s dv=%s type=%s mode=%s vector=%s results=%d query=%r",
+        request.id_nv, acl_subject.id_pb, acl_subject.id_dv,
+        search_type, mode_used, used_vector, len(results), request.query[:60],
     )
     return DocumentSearchResponse(
         query=request.query,
         id_nv=request.id_nv,
-        id_pb=request.id_pb,
-        id_dv=request.id_dv,
+        id_pb=acl_subject.id_pb,
+        id_dv=acl_subject.id_dv,
         search_type=search_type,
         mode_used=mode_used,
         used_vector=used_vector,

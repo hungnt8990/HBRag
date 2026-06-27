@@ -3,7 +3,13 @@
 > Tài liệu này mô tả tổng thể backend để người mới (hoặc Claude ở phiên sau) đọc là
 > hiểu dự án có gì. **Mỗi khi hoàn thành một thay đổi đáng kể, phải cập nhật file này.**
 >
-> Cập nhật gần nhất: 2026-06-27 — **Job DOffice sync (2 ES nguồn) + API search nâng cấp**.
+> Cập nhật gần nhất: 2026-06-27 — **Search ACL: id_nv là nguồn sự thật**. `document_search_service`
+> bỏ `id_pb`/`id_dv` khỏi request; thêm `resolve_acl_subject(id_nv)` → tra `dm_nhan_vien`
+> (tái dùng `AclSubject.from_session`) lấy id_pb/id_dv THẬT (không tin client → chống leo quyền + khớp
+> đúng văn bản cấp cả phòng/đơn vị). id_nv không có trong danh mục → nv-only (~0 kết quả).
+> Inspect `/acl`: ES source bỏ `raw` trùng lặp (raw=None). +2 test (resolve / unknown-nv).
+>
+> Trước đó — **Job DOffice sync (2 ES nguồn) + API search nâng cấp**.
 > (1) `jobs/doffice_sync/` viết lại đọc TRỰC TIẾP từ `doffice_vanban` (1.26M docs, scroll
 > search_after sort `ngay_capnhat.keyword`+`id_vb` — vì ngay_capnhat là text) + `doffice_vanban_quyen`
 > (ACL: don_vi/phong_ban/ca_nhan_list + `quyen_checksum`), host `https://10.72.121.232:9200`
@@ -31,8 +37,8 @@
 >
 > Trước đó — **API tìm kiếm văn bản trực tiếp**: endpoint mới
 > `POST /api/document-search/search` (`app/api/routes/document_search.py`) tìm document-level
-> trên ES `hbrag_documents_v1` (hybrid BBQ kNN + BM25 + ACL trong 1 query). Input id_nv/id_pb/
-> id_dv + query (caller tự truyền identity, không qua get_current_user); output list văn bản +
+> trên ES `hbrag_documents_v1` (hybrid BBQ kNN + BM25 + ACL trong 1 query). Input id_nv + query
+> (id_pb/id_dv resolve từ dm_nhan_vien, không qua get_current_user); output list văn bản +
 > metadata + score, đã lọc ACL. `DocumentIndexStore` thêm `_build_search_body()` (dùng chung) +
 > `search_documents_with_detail()` (trả full metadata). Fallback BM25-only nếu embed lỗi/tắt
 > (`used_vector=False`); 503 nếu ES tắt, 502 nếu ES lỗi. +10 unit test. (`search_documents` giữ

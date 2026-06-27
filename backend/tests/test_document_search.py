@@ -64,7 +64,7 @@ class _FakeClient:
         return self._resp
 
 
-def _patch(monkeypatch, resp, *, api_key=None):
+def _patch(monkeypatch, resp, *, api_key=None, org=(None, None)):
     monkeypatch.setattr(dss.settings, "elasticsearch_enabled", True)
     monkeypatch.setattr(auth_mod.settings, "document_search_api_key", api_key)
     monkeypatch.setattr(dss.httpx, "AsyncClient", lambda *a, **k: _FakeClient(resp))
@@ -73,6 +73,14 @@ def _patch(monkeypatch, resp, *, api_key=None):
         return None
 
     monkeypatch.setattr(DocumentIndexStore, "ensure_index", _noop)
+
+    # Chặn DB: resolve id_pb/id_dv từ dm_nhan_vien -> trả org=(id_pb, id_dv) giả lập.
+    async def _fake_resolve(id_nv):
+        if org == (None, None):
+            return None
+        return AclSubject(id_nv=id_nv, id_pb=org[0], id_dv=org[1], is_super_admin=False)
+
+    monkeypatch.setattr(dss, "_resolve_subject_from_db", _fake_resolve)
 
 
 def _hits():
@@ -100,6 +108,35 @@ def test_endpoint_exact(monkeypatch) -> None:
     data = resp.json()
     assert data["search_type"] == "exact"
     assert data["results"][0]["highlights"]
+
+
+def test_search_resolves_pb_dv_from_nhan_vien(monkeypatch) -> None:
+    # id_nv -> (id_pb, id_dv) thật từ dm_nhan_vien; ACL filter phải có cả 3 key.
+    _patch(monkeypatch, _FakeResp(_hits()), org=(43038, 1833))
+    resp = TestClient(app).post(
+        "/api/document-search/search", json={"query": "GIS lưới điện", "id_nv": 117058}
+    )
+    assert resp.status_code == 200
+    keys = _FakeClient.captured["query"]["bool"]["filter"][0]["bool"]["filter"][0]["terms"][
+        "acl_subjects"
+    ]
+    assert {"nv_117058", "pb_43038", "dv_1833"} <= set(keys)
+    body = resp.json()
+    assert body["id_pb"] == 43038 and body["id_dv"] == 1833
+
+
+def test_search_unknown_nhan_vien_nv_only(monkeypatch) -> None:
+    # id_nv không có trong dm_nhan_vien -> chỉ key nv_, không có pb_/dv_.
+    _patch(monkeypatch, _FakeResp(_hits()), org=(None, None))
+    resp = TestClient(app).post(
+        "/api/document-search/search", json={"query": "GIS lưới điện", "id_nv": 87}
+    )
+    assert resp.status_code == 200
+    keys = _FakeClient.captured["query"]["bool"]["filter"][0]["bool"]["filter"][0]["terms"][
+        "acl_subjects"
+    ]
+    assert keys == ["nv_87"]
+    assert resp.json()["id_pb"] is None
 
 
 def test_endpoint_hybrid_uses_knn(monkeypatch) -> None:
