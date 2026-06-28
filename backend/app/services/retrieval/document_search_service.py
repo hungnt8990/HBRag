@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import re
+import unicodedata
 from typing import Literal
 
 import httpx
@@ -36,6 +37,9 @@ class DocumentSearchRequest(BaseModel):
     id_nv: int = Field(description="Mã nhân viên — bắt buộc; id_pb/id_dv được resolve từ dm_nhan_vien")
     top_n: int = Field(default=20, ge=1, le=100, description="Số văn bản trả về")
     use_vector: bool = Field(default=True, description="Dùng BBQ kNN (False = BM25-only)")
+    prefer_recent: bool = Field(
+        default=True, description="Ưu tiên văn bản mới (gauss decay theo ngay_vb) — vẫn giữ độ liên quan"
+    )
     mode: Literal["auto", "list", "excerpt"] = Field(default="auto")
 
 
@@ -95,10 +99,69 @@ _QUESTION_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Mã THỂ THỨC văn bản (đứng trước SỐ khi tra cứu ký hiệu, vd "qd 258" = quyết định số 258).
+# Khác danh sách synonym (synonym là viết tắt NỘI DUNG); đây là LOẠI văn bản để nhận diện
+# truy vấn dạng tra cứu số/ký hiệu -> không cho "quyết định" (rất phổ biến) làm nhiễu BM25.
+_DOC_TYPE_ABBR = {"qd", "tb", "kh", "ct", "nq", "bc", "ttr", "hd", "qc", "cv", "gm", "tl", "tt", "cd", "nd"}
+_NUM_RE = re.compile(r"\d{1,5}")
+
+
+def _fold_lower(s: str) -> str:
+    s = unicodedata.normalize("NFD", s.lower())
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+    return s.replace("đ", "d")
+
+
+def _is_ky_hieu_lookup(query: str) -> bool:
+    """True nếu query là tra cứu ký hiệu/số văn bản: '<loại?> <số>' (vd 'qd 258', '258', 'so 168').
+
+    Điều kiện: có ≥1 token là SỐ và MỌI token đều là số / 'so' / mã thể thức -> tránh bắt
+    nhầm câu nội dung có chứa số (vd 'phụ cấp 2023' -> 'phu','cap' không phải mã -> bm25).
+    """
+    toks = _fold_lower(query).split()
+    if not toks or not any(_NUM_RE.fullmatch(t) for t in toks):
+        return False
+    return all(_NUM_RE.fullmatch(t) or t == "so" or t in _DOC_TYPE_ABBR for t in toks)
+
+
+def _parse_ref(query: str) -> tuple[list[str], list[str]]:
+    """Tách (số, mã loại) từ truy vấn tra cứu. Vd 'qd 258' -> (['258'], ['qd'])."""
+    toks = _fold_lower(query).split()
+    nums = [t for t in toks if _NUM_RE.fullmatch(t)]
+    types = [t for t in toks if t in _DOC_TYPE_ABBR]
+    return nums, types
+
+
+# Năm tường minh trong câu hỏi -> map vào field `nam` (năm văn bản).
+_YEAR_RE = re.compile(r"\b(?:19|20)\d{2}\b")
+
+# Mã đơn vị xuất hiện trong ky_hieu -> ưu tiên văn bản CỦA đơn vị được nhắc trong câu hỏi.
+# (Có thể tách ra file config sau, giống vi_synonyms.) cpcit trong ky_hieu viết là '-IT'.
+_ORG_CODES = {
+    "evncpc", "evn", "evnict", "cpcit", "cpc", "cpccc", "cdmt", "evnspc", "evnnpc",
+    "dnpc", "khpc", "glpc", "qnpc", "qbpc", "qtpc", "ttpc", "pypc", "knpc", "dlpc", "bdpc", "klpc",
+}
+_ORG_ALIAS = {"cpcit": "it"}
+
+
+def _extract_years(query: str) -> list[int]:
+    return sorted({int(m.group()) for m in _YEAR_RE.finditer(query)})
+
+
+def _extract_orgs(query: str) -> list[str]:
+    toks = set(_fold_lower(query).split())
+    return [t for t in toks if t in _ORG_CODES]
+
 
 def detect_search_type(query: str) -> str:
+    if _is_ky_hieu_lookup(query):
+        return "ref"  # tra cứu số/ký hiệu rời (qd 258) -> ưu tiên ky_hieu, không nhiễu noi_dung
     if _KY_HIEU_RE.search(query):
-        return "exact"
+        return "exact"  # ký hiệu đầy đủ có '/' (258/QĐ-IT)
+    if _extract_orgs(query):
+        # Nêu đích danh đơn vị -> cần chính xác lexical: boost org hiệu quả ở bm25, không bị
+        # điểm knn (ngữ nghĩa, không phân biệt được đơn vị) lấn át như ở hybrid.
+        return "bm25"
     if len(query.split()) >= 6 or _QUESTION_RE.search(query):
         return "hybrid"
     return "bm25"
@@ -149,13 +212,65 @@ def build_acl_filters(acl_subject: AclSubject) -> list[dict]:
     return [clause]
 
 
+# Recency decay (gauss) — ưu tiên văn bản mới nhưng vẫn giữ độ liên quan (boost_mode=multiply).
+# Trong vòng OFFSET ngày: không giảm điểm; sau đó giảm dần, đến SCALE thì còn ~DECAY.
+_RECENCY_FIELD = "ngay_vb.date"
+_RECENCY_OFFSET = "30d"
+_RECENCY_SCALE = "365d"
+_RECENCY_DECAY = 0.5
+
+
+def _wrap_recency(query_block: dict) -> dict:
+    """Bọc query bằng function_score gauss decay theo ngay_vb -> điểm = liên_quan × độ_mới."""
+    return {
+        "function_score": {
+            "query": query_block,
+            "functions": [
+                {
+                    "gauss": {
+                        _RECENCY_FIELD: {
+                            "origin": "now",
+                            "offset": _RECENCY_OFFSET,
+                            "scale": _RECENCY_SCALE,
+                            "decay": _RECENCY_DECAY,
+                        }
+                    }
+                }
+            ],
+            "boost_mode": "multiply",
+            "score_mode": "multiply",
+        }
+    }
+
+
 def build_query_body(
     query: str,
     top_n: int,
     search_type: str,
     acl_filters: list[dict],
     query_vector: list[float] | None,
+    *,
+    prefer_recent: bool = False,
 ) -> dict:
+    if search_type == "ref":
+        # Tra cứu số/ký hiệu rời ("qd 258"). Ký hiệu lưu dạng "258/QĐ-IT" -> token [258, qd, it].
+        # match_phrase "<số> <loại>" khớp ĐÚNG thứ tự số->loại -> đẩy 258/QĐ lên trên 258/BC.
+        nums, types = _parse_ref(query)
+        should: list[dict] = []
+        for n in nums:
+            for t in types:
+                should.append({"match_phrase": {"ky_hieu": {"query": f"{n} {t}", "boost": 12.0}}})
+            should.append({"match": {"ky_hieu": {"query": n, "boost": 4.0}}})
+            should.append({"term": {"id_vb": {"value": n, "boost": 3.0}}})
+        for t in types:  # loại văn bản (IDF thấp, boost nhẹ để phân biệt khi cùng số)
+            should.append({"match": {"ky_hieu": {"query": t, "boost": 1.0}}})
+        return {
+            "size": top_n,
+            "_source": _SOURCE_FIELDS,
+            "highlight": _HIGHLIGHT,
+            "query": {"bool": {"should": should, "filter": acl_filters, "minimum_should_match": 1}},
+        }
+
     if search_type == "exact":
         return {
             "size": top_n,
@@ -174,21 +289,51 @@ def build_query_body(
             },
         }
 
+    # ký hiệu: match thường (KHÔNG fuzzy — là mã, fuzzy dễ khớp sai số văn bản).
+    # nội dung: fuzzy (gõ sai 1-2 ký tự) + minimum_should_match (chịu được gõ thiếu/nhiễu vài từ).
+    # phrase_prefix: bắt kiểu gõ dở từ cuối ("kế hoạch cung cấp đi…").
     should = [
         {"match": {"ky_hieu": {"query": query, "boost": 6.0}}},
-        {"match": {"trich_yeu": {"query": query, "boost": 3.0}}},
-        {"match": {"tom_tat": {"query": query, "boost": 2.0}}},
-        {"match": {"keywords": {"query": query, "boost": 1.5}}},
-        {"match": {"noi_dung": {"query": query, "boost": 1.0}}},
-        {"match": {"noi_ban_hanh": {"query": query, "boost": 0.5}}},
+        {
+            "multi_match": {
+                "query": query,
+                "type": "best_fields",
+                "fields": ["trich_yeu^3", "tom_tat^2", "keywords^1.5", "noi_dung^1", "noi_ban_hanh^0.5"],
+                "fuzziness": "AUTO",
+                "prefix_length": 1,
+                "max_expansions": 50,
+                "operator": "or",
+                "minimum_should_match": "2<70%",
+            }
+        },
+        {
+            "multi_match": {
+                "query": query,
+                "type": "phrase_prefix",
+                "fields": ["trich_yeu^3", "tom_tat^2", "noi_dung^1"],
+                "boost": 0.6,
+            }
+        },
     ]
 
+    # Năm tường minh -> FILTER CỨNG theo `nam` (áp cả lên knn) vì vector ngữ nghĩa KHÔNG phân
+    # biệt được năm; chỉ boost trong phần BM25 sẽ bị điểm knn lấn át ở chế độ hybrid.
+    years = _extract_years(query)
+    extra_filters = [{"terms": {"nam": years}}] if years else []
+    # Org được nhắc -> boost văn bản CỦA đơn vị đó (ky_hieu chứa mã org) — giữ mềm (ưu tiên, không loại).
+    for o in _extract_orgs(query):
+        should.append({"match": {"ky_hieu": {"query": _ORG_ALIAS.get(o, o), "boost": 8.0}}})
+
+    # Có năm tường minh -> KHÔNG ép "mới nhất" (người dùng đã chỉ định năm; filter nam lo việc đó).
+    apply_recency = prefer_recent and not years
+    combined_filter = acl_filters + extra_filters
+    bool_query = {"bool": {"should": should, "filter": combined_filter}}
     if search_type == "bm25" or query_vector is None:
         return {
             "size": top_n,
             "_source": _SOURCE_FIELDS,
             "highlight": _HIGHLIGHT,
-            "query": {"bool": {"should": should, "filter": acl_filters}},
+            "query": _wrap_recency(bool_query) if apply_recency else bool_query,
         }
 
     return {
@@ -200,9 +345,10 @@ def build_query_body(
             "query_vector": query_vector,
             "k": top_n,
             "num_candidates": top_n * 4,
-            "filter": acl_filters,
+            "filter": combined_filter,
         },
-        "query": {"bool": {"should": should, "filter": acl_filters}},
+        # recency áp lên phần BM25 (knn giữ điểm ngữ nghĩa) -> hybrid vẫn nghiêng về văn bản mới.
+        "query": _wrap_recency(bool_query) if apply_recency else bool_query,
     }
 
 
@@ -231,7 +377,10 @@ async def execute_document_search(request: DocumentSearchRequest) -> DocumentSea
             )
             search_type = "bm25"
 
-    body = build_query_body(request.query, request.top_n, search_type, acl_filters, query_vector)
+    body = build_query_body(
+        request.query, request.top_n, search_type, acl_filters, query_vector,
+        prefer_recent=request.prefer_recent,
+    )
     store = DocumentIndexStore(url=settings.two_stage_document_index_url or settings.elasticsearch_url)
     await store.ensure_index()
 

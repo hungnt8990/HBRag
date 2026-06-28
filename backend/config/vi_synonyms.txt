@@ -1,0 +1,36 @@
+# Từ viết tắt -> dạng đầy đủ cho ES document search (set: vi_abbreviations).
+#
+# NGUỒN SỰ THẬT cho viết tắt. Sửa file này rồi chạy:
+#     .venv/Scripts/python.exe scripts/sync_es_synonyms.py --apply
+# (lần đầu: tự cấu hình analyzer; các lần sau: cập nhật KHÔNG downtime/không reindex).
+#
+# Quy ước:
+# - Mỗi dòng 1 luật, dạng:  viettat => day du
+# - Viết THƯỜNG, KHÔNG DẤU (vì search analyzer bỏ dấu trước khi áp synonym;
+#   gõ 'QĐ' hay 'qd' đều khớp được).
+# - Dòng bắt đầu '#' là chú thích; dòng trống bỏ qua.
+# - Tránh mã 2 chữ cái dễ trùng từ thường (cân nhắc trước khi thêm).
+
+# --- Thể thức văn bản ---
+tb => thong bao
+qd => quyet dinh
+kh => ke hoach
+ct => chi thi
+nq => nghi quyet
+bc => bao cao
+ttr => to trinh
+hd => huong dan
+qc => quy che
+cv => cong van
+gm => giay moi
+tl => tai lieu
+
+# --- Thuật ngữ ngành ---
+atld => an toan lao dong
+pccc => phong chay chua chay
+cbcnv => can bo cong nhan vien
+cntt => cong nghe thong tin
+sxkd => san xuat kinh doanh
+dvkh => dich vu khach hang
+
+ubnd => uy ban nhan dan

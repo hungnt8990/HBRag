@@ -11,6 +11,7 @@ Mặc định TẮT (`two_stage_retrieval_enabled=False`); bật khi corpus đ�
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
@@ -22,6 +23,61 @@ if TYPE_CHECKING:
     from app.services.security.security_acl_payload import AclSubject
 
 logger = logging.getLogger(__name__)
+
+
+# Tên ES synonyms_set (quản lý qua Synonyms API). NGUỒN SỰ THẬT cho luật viết tắt là
+# file config/vi_synonyms.txt; script scripts/sync_es_synonyms.py đẩy file -> set này.
+SYNONYMS_SET_NAME = "vi_abbreviations"
+
+# backend/app/services/retrieval/<file> -> parents[3] = backend/
+VI_SYNONYMS_FILE = Path(__file__).resolve().parents[3] / "config" / "vi_synonyms.txt"
+
+
+def load_vi_synonyms(path: Path | None = None) -> list[str]:
+    """Đọc luật viết tắt từ file (bỏ comment '#' và dòng trống). Dùng bởi script sync."""
+    p = path or VI_SYNONYMS_FILE
+    if not p.exists():
+        logger.warning("Không thấy file synonym %s -> rỗng", p)
+        return []
+    rules: list[str] = []
+    for line in p.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line and not line.startswith("#"):
+            rules.append(line)
+    return rules
+
+
+def _vi_analysis() -> dict[str, Any]:
+    """Analysis dùng chung: vi_bm25 (index+search cơ bản) + vi_bm25_search (thêm synonym viết tắt).
+
+    Thứ tự filter search: lowercase -> asciifolding -> synonym_graph để khớp viết tắt
+    trong không gian đã bỏ dấu (vd gõ 'QĐ' hay 'qd' đều -> 'quyet dinh').
+
+    Synonym lấy từ ES synonyms_set (``updateable=True``) -> cập nhật luật KHÔNG cần
+    reindex/close-open; chỉ search analyzer được dùng filter updateable (đúng thiết kế).
+    Yêu cầu: set phải TỒN TẠI trong ES trước khi tạo/mở index (chạy sync_es_synonyms.py).
+    """
+    return {
+        "filter": {
+            "vi_synonyms": {
+                "type": "synonym_graph",
+                "synonyms_set": SYNONYMS_SET_NAME,
+                "updateable": True,
+            },
+        },
+        "analyzer": {
+            "vi_bm25": {
+                "type": "custom",
+                "tokenizer": "standard",
+                "filter": ["lowercase", "asciifolding"],
+            },
+            "vi_bm25_search": {
+                "type": "custom",
+                "tokenizer": "standard",
+                "filter": ["lowercase", "asciifolding", "vi_synonyms"],
+            },
+        },
+    }
 
 
 class DocumentIndexStore:
@@ -39,16 +95,27 @@ class DocumentIndexStore:
         properties: dict[str, Any] = {
             "document_id": {"type": "keyword"},
             "id_vb": {"type": "keyword"},
+            # ky_hieu KHÔNG dùng synonym (là mã văn bản, tránh mở rộng nhầm).
             "ky_hieu": {"type": "text", "analyzer": "vi_bm25"},
-            "trich_yeu": {"type": "text", "analyzer": "vi_bm25"},
-            "tom_tat": {"type": "text", "analyzer": "vi_bm25"},
-            "keywords": {"type": "text", "analyzer": "vi_bm25"},
-            "noi_dung": {"type": "text", "analyzer": "vi_bm25", "index_options": "offsets"},
+            # Field nội dung: index bằng vi_bm25, search bằng vi_bm25_search (có synonym viết tắt).
+            "trich_yeu": {"type": "text", "analyzer": "vi_bm25", "search_analyzer": "vi_bm25_search"},
+            "tom_tat": {"type": "text", "analyzer": "vi_bm25", "search_analyzer": "vi_bm25_search"},
+            "keywords": {"type": "text", "analyzer": "vi_bm25", "search_analyzer": "vi_bm25_search"},
+            "noi_dung": {
+                "type": "text",
+                "analyzer": "vi_bm25",
+                "search_analyzer": "vi_bm25_search",
+                "index_options": "offsets",
+            },
             "noi_ban_hanh": {"type": "keyword"},
             "nguoi_ky": {"type": "keyword"},
             "ten_file": {"type": "keyword"},
             "nam": {"type": "integer"},
-            "ngay_vb": {"type": "keyword"},
+            # ngay_vb keyword (lọc/sort) + sub-field date để decay recency (function_score gauss).
+            "ngay_vb": {
+                "type": "keyword",
+                "fields": {"date": {"type": "date", "format": "yyyy-MM-dd", "ignore_malformed": True}},
+            },
             # ACL — giống chunk index để lọc cùng cách.
             "acl_subjects": {"type": "keyword", "doc_values": True},
             "acl_deny_pb": {"type": "integer"},
@@ -70,15 +137,7 @@ class DocumentIndexStore:
                 "number_of_replicas": settings.elasticsearch_number_of_replicas,
                 "refresh_interval": "60s",
                 "index.queries.cache.enabled": True,
-                "analysis": {
-                    "analyzer": {
-                        "vi_bm25": {
-                            "type": "custom",
-                            "tokenizer": "standard",
-                            "filter": ["lowercase", "asciifolding"],
-                        }
-                    }
-                },
+                "analysis": _vi_analysis(),
             },
             "mappings": {"properties": properties},
         }

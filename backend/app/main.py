@@ -10,6 +10,7 @@ from app.api.routes.auth import router as auth_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.document_search import router as document_search_router
 from app.api.routes.documents import router as documents_router
+from app.api.routes.doffice_acl import router as doffice_acl_router
 from app.api.routes.health import router as health_router
 from app.api.routes.knowledge_bases import router as knowledge_bases_router
 from app.api.routes.memory import router as memory_router
@@ -115,6 +116,7 @@ def create_app() -> FastAPI:
     app.include_router(chat_router)
     app.include_router(documents_router)
     app.include_router(document_search_router)
+    app.include_router(doffice_acl_router)
     app.include_router(health_router)
     app.include_router(knowledge_bases_router)
     app.include_router(memory_router)

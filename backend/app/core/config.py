@@ -116,6 +116,8 @@ class Settings(BaseSettings):
     two_stage_document_embedding_text: str = "trich_yeu_tom_tat"  # nguồn text để embed
     # API tìm kiếm văn bản: API key tĩnh để chặn truy cập (rỗng = mở, cho dev).
     document_search_api_key: str | None = None
+    # API cập nhật ACL cho DOffice gọi: API key tĩnh (rỗng = mở, cho dev).
+    doffice_acl_api_key: str | None = None
 
     memory_provider: str = "local"
     memory_enabled: bool = True

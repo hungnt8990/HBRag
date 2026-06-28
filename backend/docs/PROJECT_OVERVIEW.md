@@ -3,7 +3,53 @@
 > Tài liệu này mô tả tổng thể backend để người mới (hoặc Claude ở phiên sau) đọc là
 > hiểu dự án có gì. **Mỗi khi hoàn thành một thay đổi đáng kể, phải cập nhật file này.**
 >
-> Cập nhật gần nhất: 2026-06-27 — **Search ACL: id_nv là nguồn sự thật**. `document_search_service`
+> Cập nhật gần nhất: 2026-06-27 — **API DOffice cập nhật ACL** (`POST /api/doffice/acl/update`).
+> Nhận `id_vb` + 3 list (đơn vị/phòng ban/cá nhân) -> nén ACL (dùng chung `resolve_doffice_and_compress`)
+> -> ghi PG (`document_metadata.access`) + ES (3 trường ACL phẳng). **Tự tạo mới** (đơn lẻ, KHÁC sync
+> lấy batch): nếu chưa có ở PG, `_fetch_vanban` (nội dung, `doffice_vanban` term id_vb) + `_fetch_quyen`
+> (quyền, `doffice_vanban_quyen` term id_vb) + `_embed` (BBQ) + `_create_document`; ACL khi TẠO lấy từ
+> **quyền nguồn** (`acl_source=doffice_vanban_quyen`, fallback params), khi UPDATE lấy từ params; 404 chỉ
+> khi không có ở `doffice_vanban`. Tách lớp: hàm lõi `update_document_acl` thuần domain
+> (`app/services/retrieval/document_acl_update_service.py`); route mỏng + chokepoint `require_acl_update_access`
+> (`doffice_acl_api_key`) để gắn phân quyền sau. Bảng mô tả: `docs/API_ACL_UPDATE.md`. +7 test.
+>
+> Trước đó — **Năm + đơn vị trong câu hỏi**. `build_query_body`: NĂM tường minh
+> (`_extract_years`, regex 19xx/20xx) -> **FILTER cứng `terms nam`** áp cả lên knn (vì vector ngữ nghĩa
+> KHÔNG phân biệt năm; chỉ boost sẽ bị knn lấn ở hybrid) + TẮT recency. MÃ ĐƠN VỊ (`_extract_orgs`,
+> `_ORG_CODES`: evncpc/evn/dnpc… cpcit→'it') -> (a) `detect_search_type` ép **bm25** (chính xác lexical,
+> không bị knn lấn) + (b) boost mềm `match ky_hieu <org>`. Super_admin: 'Qđ chi quỹ phúc lợi năm 2025
+> của evncpc' -> 3231/QĐ-EVNCPC #1. LƯU Ý: kết quả thực tế vẫn qua ACL — nhân viên CPCIT (dv_256)
+> KHÔNG thấy QĐ welfare nội bộ EVNCPC (acl_subjects = nhân viên EVNCPC tổng) là ĐÚNG quyền. +3 test.
+>
+> Trước đó — **Recency rerank (ưu tiên văn bản mới)**. Thêm sub-field
+> `ngay_vb.date` (kiểu date, populate bằng `scripts/add_ngay_vb_date.py --apply` → `_update_by_query`
+> reindex tại chỗ, KHÔNG re-embed). `build_query_body` nhánh bm25/hybrid bọc `function_score` gauss
+> decay theo `ngay_vb.date` (origin=now, offset 30d, scale 365d, decay 0.5, boost_mode=multiply) →
+> điểm = liên_quan × độ_mới; ref/exact KHÔNG áp (tra cứu cụ thể). Tham số request `prefer_recent`
+> (mặc định True). Kết quả 'quy trinh phat trien': văn bản 2026 (258/QĐ-IT) lên #1 thay vì 2023. +1 test.
+>
+> Trước đó — **Tra cứu số/ký hiệu rời (search_type "ref")**. `detect_search_type`
+> thêm nhánh `ref`: query dạng '<loại?> <số>' (vd `qd 258`, `258`, `kh 80` — mọi token là số/'so'/
+> mã thể thức `_DOC_TYPE_ABBR`) -> `build_query_body` dùng `match_phrase ky_hieu "<số> <loại>"`
+> (boost 12, đảo về thứ tự "258/QĐ") + match số (4) + term id_vb (3); KHÔNG đụng noi_dung nên
+> "quyết định" phổ biến không làm nhiễu BM25. Kết quả: `qd 258` -> 258/QĐ-IT lên đầu (137 vs ~32).
+> Câu có số kèm từ thường ('phụ cấp 2023') vẫn là bm25. +1 test. (Ghi chú: **embedding chỉ embed
+> trich_yeu + tom_tat**, không embed noi_dung; noi_dung chỉ index BM25.)
+>
+> Trước đó — **Search chịu lỗi gõ (fuzzy/không dấu/viết tắt)**.
+> (1) `build_query_body` nhánh bm25/hybrid: ký hiệu match thường (không fuzzy), nội dung dùng
+> `multi_match best_fields` + `fuzziness=AUTO` (gõ sai 1-2 ký tự) + `minimum_should_match="2<70%"`
+> (chịu gõ thiếu/nhiễu) + 1 nhánh `phrase_prefix` (gõ dở từ cuối); nhánh exact GIỮ nguyên (mã
+> phải chính xác). (2) **Gõ không dấu ĐÃ chạy sẵn** — `vi_bm25` có sẵn `asciifolding` (đ→d),
+> query có/không dấu cho kết quả y hệt; KHÔNG cần reindex. (3) Viết tắt: thêm analyzer search-time
+> `vi_bm25_search` (lowercase→asciifolding→`synonym_graph`, `VI_SYNONYMS` 18 rule TB/QĐ/KH/ATLĐ…)
+> + `search_analyzer` cho trich_yeu/tom_tat/keywords/noi_dung. **Viết tắt khai báo ở
+> `config/vi_synonyms.txt`** (nguồn sự thật, version-control), đẩy vào **ES synonyms_set
+> `vi_abbreviations`** (Synonyms API, `updateable=True`) qua `scripts/sync_es_synonyms.py --apply`:
+> lần đầu close/open chuyển analyzer sang set-based; các lần sau chỉ cập nhật set + reload analyzer
+> → KHÔNG downtime, KHÔNG reindex. +2 test query body.
+>
+> Trước đó — **Search ACL: id_nv là nguồn sự thật**. `document_search_service`
 > bỏ `id_pb`/`id_dv` khỏi request; thêm `resolve_acl_subject(id_nv)` → tra `dm_nhan_vien`
 > (tái dùng `AclSubject.from_session`) lấy id_pb/id_dv THẬT (không tin client → chống leo quyền + khớp
 > đúng văn bản cấp cả phòng/đơn vị). id_nv không có trong danh mục → nv-only (~0 kết quả).

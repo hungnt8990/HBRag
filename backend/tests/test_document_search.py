@@ -18,12 +18,81 @@ def test_detect_search_type() -> None:
     assert dss.detect_search_type("GIS lưới điện") == "bm25"
     assert dss.detect_search_type("quy định về phụ cấp điện lực là gì năm 2023") == "hybrid"
     assert dss.detect_search_type("một hai ba bốn năm sáu bảy") == "hybrid"
+    # tra cứu số/ký hiệu rời -> ref
+    assert dss.detect_search_type("qd 258") == "ref"
+    assert dss.detect_search_type("258") == "ref"
+    assert dss.detect_search_type("kh 80") == "ref"
+    # có số nhưng kèm từ thường -> KHÔNG phải ref
+    assert dss.detect_search_type("phụ cấp 2023") == "bm25"
+
+
+def test_build_query_body_ref_phrase() -> None:
+    body = dss.build_query_body("qd 258", 10, "ref", [], None)
+    should = body["query"]["bool"]["should"]
+    phrases = [c for c in should if "match_phrase" in c]
+    # phrase đảo về thứ tự "<số> <loại>" để khớp "258/QĐ"
+    assert any(c["match_phrase"]["ky_hieu"]["query"] == "258 qd" for c in phrases)
+    assert "noi_dung" not in str(body["query"])  # ref không đụng noi_dung (tránh nhiễu)
 
 
 def test_detect_mode() -> None:
     assert dss.detect_mode("x", "list") == "list"
     assert dss.detect_mode("GIS", "auto") == "list"
     assert dss.detect_mode("điều kiện nghỉ phép là gì", "auto") == "excerpt"
+
+
+def test_build_query_body_fuzzy_bm25() -> None:
+    body = dss.build_query_body("khen thuong", 10, "bm25", [], None)
+    should = body["query"]["bool"]["should"]
+    mm = [c for c in should if "multi_match" in c]
+    # có nhánh fuzzy + nhánh phrase_prefix
+    assert any(c["multi_match"].get("fuzziness") == "AUTO" for c in mm)
+    assert any(c["multi_match"].get("type") == "phrase_prefix" for c in mm)
+    # ký hiệu không fuzzy
+    kh = [c for c in should if "match" in c and "ky_hieu" in c["match"]]
+    assert kh and "fuzziness" not in kh[0]["match"]["ky_hieu"]
+
+
+def test_build_query_body_exact_no_fuzzy() -> None:
+    body = dss.build_query_body("6515/EVNCPC-VTCNTT", 10, "exact", [], None)
+    dump = str(body)
+    assert "fuzziness" not in dump and "phrase_prefix" not in dump
+
+
+def test_extract_year_org() -> None:
+    assert dss._extract_years("quỹ phúc lợi năm 2025 của evncpc") == [2025]
+    assert dss._extract_years("qd 2632") == []  # số ký hiệu, không phải năm
+    assert set(dss._extract_orgs("của evncpc và cpcit")) == {"evncpc", "cpcit"}
+
+
+def test_build_query_body_year_org_boost() -> None:
+    body = dss.build_query_body(
+        "chi quy phuc loi nam 2025 cua evncpc", 10, "bm25", [], None, prefer_recent=True
+    )
+    # có năm tường minh -> KHÔNG bọc recency (không ép "mới nhất")
+    assert "function_score" not in body["query"]
+    bq = body["query"]["bool"]
+    # năm là FILTER cứng (áp được cả lên knn ở hybrid)
+    assert {"terms": {"nam": [2025]}} in bq["filter"]
+    # org là boost mềm trong should (ưu tiên, không loại văn bản khác)
+    assert any(c.get("match", {}).get("ky_hieu", {}).get("query") == "evncpc" for c in bq["should"])
+
+
+def test_detect_org_query_uses_bm25() -> None:
+    # nêu đích danh đơn vị -> bm25 (chính xác lexical) thay vì hybrid
+    assert dss.detect_search_type("tình hình chi quỹ phúc lợi của evncpc thế nào") == "bm25"
+
+
+def test_build_query_body_recency() -> None:
+    on = dss.build_query_body("quy trinh", 10, "bm25", [], None, prefer_recent=True)
+    fs = on["query"]["function_score"]
+    assert fs["functions"][0]["gauss"]["ngay_vb.date"]  # decay theo ngày
+    assert fs["boost_mode"] == "multiply" and "bool" in fs["query"]
+    off = dss.build_query_body("quy trinh", 10, "bm25", [], None, prefer_recent=False)
+    assert "function_score" not in off["query"]
+    # ref (tra cứu số) KHÔNG áp recency
+    ref = dss.build_query_body("qd 258", 10, "ref", [], None, prefer_recent=True)
+    assert "function_score" not in str(ref["query"])
 
 
 def test_build_acl_filters() -> None:
@@ -114,7 +183,8 @@ def test_search_resolves_pb_dv_from_nhan_vien(monkeypatch) -> None:
     # id_nv -> (id_pb, id_dv) thật từ dm_nhan_vien; ACL filter phải có cả 3 key.
     _patch(monkeypatch, _FakeResp(_hits()), org=(43038, 1833))
     resp = TestClient(app).post(
-        "/api/document-search/search", json={"query": "GIS lưới điện", "id_nv": 117058}
+        "/api/document-search/search",
+        json={"query": "GIS lưới điện", "id_nv": 117058, "prefer_recent": False},
     )
     assert resp.status_code == 200
     keys = _FakeClient.captured["query"]["bool"]["filter"][0]["bool"]["filter"][0]["terms"][
@@ -129,7 +199,8 @@ def test_search_unknown_nhan_vien_nv_only(monkeypatch) -> None:
     # id_nv không có trong dm_nhan_vien -> chỉ key nv_, không có pb_/dv_.
     _patch(monkeypatch, _FakeResp(_hits()), org=(None, None))
     resp = TestClient(app).post(
-        "/api/document-search/search", json={"query": "GIS lưới điện", "id_nv": 87}
+        "/api/document-search/search",
+        json={"query": "GIS lưới điện", "id_nv": 87, "prefer_recent": False},
     )
     assert resp.status_code == 200
     keys = _FakeClient.captured["query"]["bool"]["filter"][0]["bool"]["filter"][0]["terms"][
