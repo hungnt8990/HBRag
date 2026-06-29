@@ -9,6 +9,7 @@ import {
   Clock3,
   Database,
   Download,
+  Eye,
   FileSearch,
   GitBranch,
   Layers3,
@@ -55,9 +56,8 @@ import {
   deleteMemory,
   downloadDocumentFile,
   enqueueDofficeIngestionJob,
-  enqueueIngestionJob,
-  getAccessCatalog,
   getDocumentAccess,
+  getDocumentChunkQdrantPayloads,
   getDocumentDetail,
   getProfiles,
   getCurrentUser,
@@ -67,7 +67,6 @@ import {
   updateDocumentAccess,
   listDocuments,
   listIngestionJobs,
-  reingestDocument,
   listMemories,
   testHeadingRules,
   updateProfileConfig,
@@ -75,9 +74,10 @@ import {
   type DocumentAccessPolicy,
   type DofficeIngestResponse,
   type DocumentListItem,
+  type DocumentListResponse,
+  type DocumentQdrantPayloadsResponse,
   type HeadingRuleTestMatch,
   type IngestionJob,
-  type IngestionLog,
   type IngestionStep,
   type MemoryItem,
   type MemorySettings,
@@ -92,7 +92,7 @@ import {
 import { streamRagChat } from "@/lib/streaming";
 import { cn } from "@/lib/utils";
 
-type ActiveView = "auto" | "chat" | "settings" | "memory";
+type ActiveView = "auto" | "documents" | "chat" | "settings" | "memory";
 type TypewriterSpeed = "slow" | "normal" | "fast";
 type PipelineStepKey = "upload" | "parse" | "chunk" | "enrich" | "index" | "graph";
 type RunState = "idle" | "running" | "succeeded" | "failed";
@@ -114,18 +114,6 @@ type UploadAccessForm = Required<
     | "denied_group_codes"
   >
 >;
-
-const DEFAULT_UPLOAD_ACCESS: UploadAccessForm = {
-  organization_id: "",
-  access_scope: "corp_wide",
-  classification: "internal",
-  allowed_org_ids: "",
-  allowed_role_names: "",
-  allowed_group_codes: "",
-  denied_org_ids: "",
-  denied_role_names: "",
-  denied_group_codes: "",
-};
 
 const DEFAULT_DOCUMENT_ACCESS: DocumentAccessPolicy = {
   scope: "unit_only",
@@ -243,14 +231,13 @@ const answerStyleOptions: ProfileConfig["answer_style"][] = [
   "table_qa",
 ];
 
-const SELECTED_DOCUMENT_STORAGE_KEY = "hbrag_selected_document_id";
-
 const navItems: Array<{
   key: ActiveView;
   label: string;
   icon: typeof Workflow;
 }> = [
   { key: "auto", label: "Auto Queue", icon: Workflow },
+  { key: "documents", label: "Tra cứu văn bản", icon: FileSearch },
   { key: "chat", label: "RAG Chat", icon: MessageSquareText },
   { key: "settings", label: "RAG Config", icon: ServerCog },
   { key: "memory", label: "Memory", icon: Brain },
@@ -260,38 +247,15 @@ export default function Home() {
   const router = useRouter();
   const [activeView, setActiveView] = useState<ActiveView>("auto");
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
-  const [accessCatalog, setAccessCatalog] =
-    useState<AccessCatalogResponse | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [runtimeConfig, setRuntimeConfig] =
     useState<RuntimeConfigResponse | null>(null);
   const [systemError, setSystemError] = useState<string | null>(null);
-  const [documents, setDocuments] = useState<DocumentListItem[]>([]);
-  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
-  const [selectedDocument, setSelectedDocument] =
-    useState<DocumentDetailResponse | null>(null);
-  const [documentModalOpen, setDocumentModalOpen] = useState(false);
-  const [documentModalLoading, setDocumentModalLoading] = useState(false);
-  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
-  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
-
-  const [autoFile, setAutoFile] = useState<File | null>(null);
-  const [uploadAccess, setUploadAccess] = useState<UploadAccessForm>(
-    DEFAULT_UPLOAD_ACCESS,
-  );
   const [autoJobs, setAutoJobs] = useState<IngestionJob[]>([]);
-  const [autoSubmitting, setAutoSubmitting] = useState(false);
-  const [rerunningDocumentId, setRerunningDocumentId] = useState<string | null>(null);
-  const [autoUploadMessage, setAutoUploadMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
   const [dofficeIdVb, setDofficeIdVb] = useState("");
   const [dofficeForceRefresh, setDofficeForceRefresh] = useState(false);
   const [dofficeEnableEnrichment, setDofficeEnableEnrichment] = useState(true);
   const [dofficeSubmitting, setDofficeSubmitting] = useState(false);
-  const [dofficeResult, setDofficeResult] =
-    useState<DofficeIngestResponse | null>(null);
   const [dofficeMessage, setDofficeMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -318,6 +282,7 @@ export default function Home() {
   const [useMem0, setUseMem0] = useState(false);
   const [memoryTopK, setMemoryTopK] = useState(5);
   const [useGraph, setUseGraph] = useState(false);
+  const [adminViewAll, setAdminViewAll] = useState(true);
   const [graphExpansionDepth, setGraphExpansionDepth] = useState(1);
   const [graphExpansionLimit, setGraphExpansionLimit] = useState(20);
   const settingsInitialized = useRef(false);
@@ -326,7 +291,7 @@ export default function Home() {
   const isStreamDoneRef = useRef(false);
   const intervalRef = useRef<number | null>(null);
 
-  const [logs, setLogs] = useState<UiLog[]>([]);
+  const [, setLogs] = useState<UiLog[]>([]);
 
   const [memoryItems, setMemoryItems] = useState<MemoryItem[]>([]);
   const [memoryDraft, setMemoryDraft] = useState("");
@@ -442,14 +407,6 @@ export default function Home() {
     }
   }, [appendLog]);
 
-  const refreshAccessCatalog = useCallback(async () => {
-    try {
-      setAccessCatalog(await getAccessCatalog());
-    } catch (error) {
-      appendLog("system", "access", "error", getErrorMessage(error));
-    }
-  }, [appendLog]);
-
   const refreshMemorySettings = useCallback(async () => {
     try {
       const config = await getMemorySettings();
@@ -474,129 +431,30 @@ export default function Home() {
     }
   }, [appendLog]);
 
-  const syncDocumentWorkspace = useCallback(
-    (detail: DocumentDetailResponse | null) => {
-      setSelectedDocument(detail);
-      if (detail?.document_id) {
-        window.localStorage.setItem(SELECTED_DOCUMENT_STORAGE_KEY, detail.document_id);
-      } else {
-        window.localStorage.removeItem(SELECTED_DOCUMENT_STORAGE_KEY);
-      }
-    },
-    [],
-  );
-
-  const refreshSelectedDocument = useCallback(
-    async (documentId: string) => {
-      const detail = await getDocumentDetail(documentId);
-      syncDocumentWorkspace(detail);
-      return detail;
-    },
-    [syncDocumentWorkspace],
-  );
-
-  const refreshDocuments = useCallback(
-    async (preferredDocumentId?: string | null) => {
-      setIsLoadingDocuments(true);
-      try {
-        const response = await listDocuments({
-          limit: 200,
-          offset: 0,
-        });
-        setDocuments(response.items);
-
-        const storedDocumentId =
-          preferredDocumentId ??
-          selectedDocumentId ??
-          window.localStorage.getItem(SELECTED_DOCUMENT_STORAGE_KEY);
-        const nextSelectedId =
-          response.items.find((item) => item.document_id === storedDocumentId)?.document_id ??
-          response.items[0]?.document_id ??
-          null;
-        setSelectedDocumentId(nextSelectedId);
-        if (!nextSelectedId) {
-          syncDocumentWorkspace(null);
-        }
-      } catch (error) {
-        appendLog("system", "documents", "error", getErrorMessage(error));
-      } finally {
-        setIsLoadingDocuments(false);
-      }
-    },
-    [
-      appendLog,
-      selectedDocumentId,
-      syncDocumentWorkspace,
-    ],
-  );
-
   const refreshJobs = useCallback(async () => {
     try {
       const jobs = await listIngestionJobs();
       setAutoJobs(jobs);
-      if (jobs.some((job) => ["succeeded", "failed"].includes(job.status))) {
-        void refreshDocuments(null);
-      }
     } catch (error) {
       appendLog("auto", "queue", "error", getErrorMessage(error));
     }
-  }, [appendLog, refreshDocuments]);
+  }, [appendLog]);
 
   useEffect(() => {
     if (!authChecked) {
       return;
     }
-    void refreshDocuments();
-    void refreshAccessCatalog();
     void refreshRuntimeConfig();
     void refreshJobs();
     void refreshMemorySettings();
     void refreshMemoryItems();
   }, [
     authChecked,
-    refreshAccessCatalog,
-    refreshDocuments,
     refreshJobs,
     refreshRuntimeConfig,
     refreshMemorySettings,
     refreshMemoryItems,
   ]);
-
-  useEffect(() => {
-    if (!authChecked) {
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      void refreshDocuments();
-    }, 200);
-    return () => window.clearTimeout(timer);
-  }, [authChecked, refreshDocuments]);
-
-  useEffect(() => {
-    if (!selectedDocumentId) {
-      syncDocumentWorkspace(null);
-      return;
-    }
-
-    let cancelled = false;
-    void getDocumentDetail(selectedDocumentId)
-      .then((detail) => {
-        if (!cancelled) {
-          syncDocumentWorkspace(detail);
-        }
-      })
-      .catch((error) => {
-        if (cancelled) {
-          return;
-        }
-        appendLog("system", "documents", "error", getErrorMessage(error));
-        void refreshDocuments(null);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [appendLog, refreshDocuments, selectedDocumentId, syncDocumentWorkspace]);
 
   useEffect(() => {
     const hasActiveJob = autoJobs.some((job) =>
@@ -613,46 +471,6 @@ export default function Home() {
     return () => window.clearInterval(timer);
   }, [autoJobs, refreshJobs]);
 
-  const handleAutoFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setAutoFile(event.target.files?.[0] ?? null);
-    setAutoUploadMessage(null);
-  };
-
-  const handleAutoSubmit = async () => {
-    if (!autoFile) {
-      return;
-    }
-
-    setAutoSubmitting(true);
-    setAutoUploadMessage(null);
-    const started = performance.now();
-    appendLog("auto", "queue", "info", `Queued ${autoFile.name}.`);
-
-    try {
-      const job = await enqueueIngestionJob(autoFile, compactUploadAccess(uploadAccess));
-      const durationMs = performance.now() - started;
-      setAutoJobs((current) => [job, ...current.filter((item) => item.job_id !== job.job_id)]);
-      appendLog(
-        "auto",
-        "queue",
-        "success",
-        `Created ingestion job ${compactId(job.job_id)}.`,
-        durationMs,
-      );
-      setAutoUploadMessage({
-        type: "success",
-        text: `Queued ${autoFile.name} successfully. Profile will be auto-detected during ingestion.`,
-      });
-      await refreshDocuments(null);
-    } catch (error) {
-      const message = getErrorMessage(error);
-      appendLog("auto", "queue", "error", message);
-      setAutoUploadMessage({ type: "error", text: message });
-    } finally {
-      setAutoSubmitting(false);
-    }
-  };
-
   const handleDofficeSubmit = async () => {
     const idVb = dofficeIdVb.trim();
     if (!idVb || dofficeSubmitting) {
@@ -661,7 +479,6 @@ export default function Home() {
 
     setDofficeSubmitting(true);
     setDofficeMessage(null);
-    setDofficeResult(null);
     const started = performance.now();
     appendLog("auto", "doffice", "info", `Đưa văn bản DOffice ${idVb} vào hàng đợi.`);
 
@@ -675,7 +492,7 @@ export default function Home() {
       setAutoJobs((current) => [job, ...current.filter((item) => item.job_id !== job.job_id)]);
       setDofficeMessage({
         type: "success",
-        text: `Đã đưa văn bản ${idVb} vào hàng đợi. Theo dõi tiến trình ở Operation Logs.`,
+        text: `Đã tạo job xử lý văn bản ${idVb}.`,
       });
       appendLog(
         "auto",
@@ -693,99 +510,6 @@ export default function Home() {
       setDofficeSubmitting(false);
     }
   };
-
-  const handleReingestDocument = useCallback(
-    async (documentId: string) => {
-      setRerunningDocumentId(documentId);
-      setAutoUploadMessage(null);
-      const started = performance.now();
-      appendLog(
-        "auto",
-        "reingest",
-        "info",
-        `Queued re-ingestion for ${compactId(documentId)}.`,
-      );
-      try {
-        const job = await reingestDocument(documentId);
-        const durationMs = performance.now() - started;
-        setAutoJobs((current) => [
-          job,
-          ...current.filter((item) => item.job_id !== job.job_id),
-        ]);
-        appendLog(
-          "auto",
-          "reingest",
-          "success",
-          `Created re-ingestion job ${compactId(job.job_id)}.`,
-          durationMs,
-        );
-        setAutoUploadMessage({
-          type: "success",
-          text: "Queued re-ingestion from parse through indexing. Profile will be auto-detected again.",
-        });
-        await refreshDocuments(null);
-      } catch (error) {
-        const message = getErrorMessage(error);
-        appendLog("auto", "reingest", "error", message);
-        setAutoUploadMessage({ type: "error", text: message });
-      } finally {
-        setRerunningDocumentId(null);
-      }
-    },
-    [appendLog, refreshDocuments],
-  );
-
-  const handleOpenDocumentModal = useCallback(
-    async (documentId: string) => {
-      setDocumentModalOpen(true);
-      setDocumentModalLoading(true);
-      setSelectedDocumentId(documentId);
-      try {
-        await refreshSelectedDocument(documentId);
-      } catch (error) {
-        appendLog("system", "documents", "error", getErrorMessage(error));
-      } finally {
-        setDocumentModalLoading(false);
-      }
-    },
-    [appendLog, refreshSelectedDocument],
-  );
-
-  const handleDeleteDocument = useCallback(
-    async (documentId: string) => {
-      const target = documents.find((document) => document.document_id === documentId);
-      const title = target?.title ?? documentId;
-      const confirmed = window.confirm(
-        `Delete "${title}" from MinIO, Qdrant, and the document database?`,
-      );
-      if (!confirmed) {
-        return;
-      }
-
-      setDeletingDocumentId(documentId);
-      const started = performance.now();
-      try {
-        const result = await deleteDocument(documentId);
-        if (selectedDocumentId === documentId) {
-          setSelectedDocumentId(null);
-          syncDocumentWorkspace(null);
-        }
-        await refreshDocuments(null);
-        appendLog(
-          "system",
-          "delete",
-          "success",
-          `Deleted ${title}: ${result.deleted_files} MinIO file(s), Qdrant vectors cleared.`,
-          performance.now() - started,
-        );
-      } catch (error) {
-        appendLog("system", "delete", "error", getErrorMessage(error));
-      } finally {
-        setDeletingDocumentId(null);
-      }
-    },
-    [appendLog, documents, refreshDocuments, selectedDocumentId, syncDocumentWorkspace],
-  );
 
   const handleAsk = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -841,6 +565,7 @@ export default function Home() {
             use_graph: useGraph,
             graph_expansion_depth: graphExpansionDepth,
             graph_expansion_limit: graphExpansionLimit,
+            admin_view_all: adminViewAll,
           },
           {
             onMetadata: (data) => setSessionId(data.session_id),
@@ -892,6 +617,7 @@ export default function Home() {
         use_graph: useGraph,
         graph_expansion_depth: graphExpansionDepth,
         graph_expansion_limit: graphExpansionLimit,
+        admin_view_all: adminViewAll,
       });
       const durationMs = performance.now() - started;
       setSessionId(response.session_id);
@@ -1040,29 +766,13 @@ export default function Home() {
         </nav>
 
         {activeView === "auto" ? (
-          <AutoQueueView
-            accessCatalog={accessCatalog}
-            deletingDocumentId={deletingDocumentId}
-            detailLoading={documentModalLoading}
-            detailOpen={documentModalOpen}
-            detailDocument={selectedDocument}
-            documents={documents}
+          <AutoJobRunnerView
             dofficeEnableEnrichment={dofficeEnableEnrichment}
             dofficeForceRefresh={dofficeForceRefresh}
             dofficeIdVb={dofficeIdVb}
             dofficeLoading={dofficeSubmitting}
             dofficeMessage={dofficeMessage}
-            dofficeResult={dofficeResult}
-            file={autoFile}
-            isLoadingDocuments={isLoadingDocuments}
             jobs={autoJobs}
-            loading={autoSubmitting}
-            message={autoUploadMessage}
-            uploadAccess={uploadAccess}
-            onCloseDetail={() => setDocumentModalOpen(false)}
-            onFileChange={handleAutoFileChange}
-            onUploadAccessChange={setUploadAccess}
-            onDeletePublishedDocument={handleDeleteDocument}
             onDofficeEnableEnrichmentChange={setDofficeEnableEnrichment}
             onDofficeForceRefreshChange={setDofficeForceRefresh}
             onDofficeIdVbChange={(value) => {
@@ -1070,19 +780,13 @@ export default function Home() {
               setDofficeMessage(null);
             }}
             onDofficeSubmit={handleDofficeSubmit}
-            onOpenDocument={handleOpenDocumentModal}
-            onRefreshDocuments={() => {
-              void refreshDocuments(null);
+            onRefreshJobs={() => {
+              void refreshJobs();
             }}
-            onReingestDocument={handleReingestDocument}
-            onSubmit={handleAutoSubmit}
-            rerunningDocumentId={rerunningDocumentId}
-            logs={[
-              ...autoJobs.flatMap((job) => mapIngestionLogs(job.logs)),
-              ...logs.filter((log) => log.source === "auto"),
-            ]}
           />
         ) : null}
+
+        {activeView === "documents" ? <DocumentSearchView /> : null}
 
         {activeView === "chat" ? (
           <ChatView
@@ -1116,6 +820,8 @@ export default function Home() {
             setUseMemory={setUseMemory}
             setMemoryTopK={setMemoryTopK}
             setUseGraph={setUseGraph}
+            adminViewAll={adminViewAll}
+            setAdminViewAll={setAdminViewAll}
             setGraphExpansionDepth={setGraphExpansionDepth}
             setGraphExpansionLimit={setGraphExpansionLimit}
             streamingEnabled={streamingEnabled}
@@ -1152,6 +858,492 @@ export default function Home() {
   );
 }
 
+function DocumentSearchView() {
+  const PAGE_SIZE = 20;
+  const [queryInput, setQueryInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [data, setData] = useState<DocumentListResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedDoc, setSelectedDoc] = useState<DocumentListItem | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const load = useCallback(async (term: string, pageIndex: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await listDocuments({
+        search: term || undefined,
+        limit: PAGE_SIZE,
+        offset: pageIndex * PAGE_SIZE,
+      });
+      setData(res);
+    } catch (err) {
+      setError(getErrorMessage(err));
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load(search, page);
+  }, [search, page, load]);
+
+  const handleDelete = useCallback(
+    async (doc: DocumentListItem) => {
+      if (
+        !window.confirm(
+          `Xóa văn bản "${doc.title}"?\nSẽ xóa khỏi PostgreSQL + Qdrant + Elasticsearch (KHÔNG hồi phục).`,
+        )
+      ) {
+        return;
+      }
+      setDeletingId(doc.document_id);
+      setError(null);
+      try {
+        await deleteDocument(doc.document_id);
+        await load(search, page);
+      } catch (err) {
+        setError(getErrorMessage(err));
+      } finally {
+        setDeletingId(null);
+      }
+    },
+    [load, search, page],
+  );
+
+  const total = data?.total ?? 0;
+  const items = data?.items ?? [];
+  const maxPage = Math.max(0, Math.ceil(total / PAGE_SIZE) - 1);
+
+  return (
+    <div className="space-y-5">
+      <Card className="bg-white shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileSearch className="h-5 w-5 text-emerald-700" />
+            Tra cứu văn bản
+          </CardTitle>
+          <CardDescription>
+            Tìm trong toàn bộ văn bản đã đồng bộ (PostgreSQL) — theo tiêu đề/ký hiệu/tên file, có phân trang.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <form
+            className="flex gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setPage(0);
+              setSearch(queryInput.trim());
+            }}
+          >
+            <Input
+              className="flex-1"
+              onChange={(event) => setQueryInput(event.target.value)}
+              placeholder="Tìm theo tiêu đề / ký hiệu / tên file..."
+              value={queryInput}
+            />
+            <Button className="bg-emerald-600 text-white hover:bg-emerald-700" type="submit">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSearch className="h-4 w-4" />}
+              Tìm
+            </Button>
+            <Button
+              className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              onClick={() => {
+                void load(search, page);
+              }}
+              type="button"
+              variant="outline"
+            >
+              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+            </Button>
+          </form>
+
+          {error ? (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <span>
+              {total.toLocaleString()} văn bản{search ? ` khớp "${search}"` : ""}
+            </span>
+            <span>
+              Trang {page + 1} / {Math.max(1, maxPage + 1)}
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {loading && items.length === 0 ? (
+              <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+                Đang tải...
+              </div>
+            ) : items.length === 0 ? (
+              <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+                Không có văn bản nào.
+              </div>
+            ) : (
+              items.map((doc) => (
+                <div
+                  className="flex items-start gap-2 rounded-xl border border-slate-100 bg-white px-3 py-3 transition-colors hover:border-cyan-200 hover:bg-cyan-50/30"
+                  key={doc.document_id}
+                >
+                  <button
+                    className="min-w-0 flex-1 cursor-pointer text-left"
+                    onClick={() => setSelectedDoc(doc)}
+                    type="button"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate text-sm font-semibold text-slate-800">{doc.title}</p>
+                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                        {doc.status}
+                      </span>
+                      {doc.source_type === "doffice_elasticsearch" ? (
+                        <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sky-700">
+                          AI DO
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 grid gap-1 text-xs text-slate-500 sm:grid-cols-2">
+                      <span className="truncate" title={doc.ky_hieu ?? undefined}>
+                        Ký hiệu: <span className="font-medium text-slate-700">{doc.ky_hieu ?? "--"}</span>
+                      </span>
+                      <span className="truncate">
+                        id_vb: <span className="font-medium text-slate-700">{doc.id_vb ?? "--"}</span>
+                      </span>
+                      <span className="truncate">
+                        Chunk (PG): {doc.chunk_count} · Qdrant:{" "}
+                        <span className="font-medium text-cyan-700">{doc.qdrant_point_count ?? "—"}</span> point
+                      </span>
+                      <span className="truncate">
+                        Cập nhật: {new Date(doc.updated_at).toLocaleString()}
+                      </span>
+                      <span className="truncate sm:col-span-2" title={doc.document_id}>
+                        doc_id: {doc.document_id}
+                      </span>
+                    </div>
+                  </button>
+                  <button
+                    className="shrink-0 rounded-lg border border-rose-200 bg-white p-2 text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                    disabled={deletingId === doc.document_id}
+                    onClick={() => handleDelete(doc)}
+                    title="Xóa văn bản (PostgreSQL + Qdrant + Elasticsearch)"
+                    type="button"
+                  >
+                    {deletingId === doc.document_id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Button
+              className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              disabled={page <= 0 || loading}
+              onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+              type="button"
+              variant="outline"
+            >
+              ← Trước
+            </Button>
+            <Button
+              className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              disabled={page >= maxPage || loading}
+              onClick={() => setPage((prev) => prev + 1)}
+              type="button"
+              variant="outline"
+            >
+              Sau →
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {selectedDoc ? (
+        <DocumentChunksModal doc={selectedDoc} onClose={() => setSelectedDoc(null)} />
+      ) : null}
+    </div>
+  );
+}
+
+// Format JSON gọn: mảng toàn giá trị nguyên thủy (acl_subjects, don_vi_list...) gom
+// về 1 DÒNG thay vì mỗi phần tử 1 dòng; object/mảng lồng vẫn xuống dòng cho dễ đọc.
+function formatCompactJson(value: unknown, indent = 0): string {
+  const pad = "  ".repeat(indent);
+  const padIn = "  ".repeat(indent + 1);
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "[]";
+    if (value.every((item) => item === null || typeof item !== "object")) {
+      return `[${value.map((item) => JSON.stringify(item)).join(", ")}]`;
+    }
+    const items = value.map((item) => padIn + formatCompactJson(item, indent + 1));
+    return `[\n${items.join(",\n")}\n${pad}]`;
+  }
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>);
+    if (entries.length === 0) return "{}";
+    const items = entries.map(
+      ([key, val]) => `${padIn}${JSON.stringify(key)}: ${formatCompactJson(val, indent + 1)}`,
+    );
+    return `{\n${items.join(",\n")}\n${pad}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function DocumentChunksModal({
+  doc,
+  onClose,
+}: {
+  doc: DocumentListItem;
+  onClose: () => void;
+}) {
+  const [detail, setDetail] = useState<DocumentDetailResponse | null>(null);
+  const [qdrant, setQdrant] = useState<DocumentQdrantPayloadsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [openChunks, setOpenChunks] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError(null);
+    void (async () => {
+      try {
+        const [detailRes, qdrantRes] = await Promise.all([
+          getDocumentDetail(doc.document_id),
+          getDocumentChunkQdrantPayloads(doc.document_id).catch(() => null),
+        ]);
+        if (!active) return;
+        setDetail(detailRes);
+        setQdrant(qdrantRes);
+      } catch (err) {
+        if (active) setError(getErrorMessage(err));
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [doc.document_id]);
+
+  const qdrantByIndex = new Map<number, Record<string, unknown>>();
+  for (const point of qdrant?.points ?? []) {
+    const idx = Number(point["chunk_index"]);
+    if (!Number.isNaN(idx)) {
+      qdrantByIndex.set(idx, point);
+    }
+  }
+
+  const toggle = (id: string) => {
+    setOpenChunks((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const chunks = detail?.chunks ?? [];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-4 sm:p-8"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-3xl rounded-2xl bg-white shadow-xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between border-b border-slate-100 px-5 py-4">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-slate-800">{doc.title}</p>
+            <p className="mt-0.5 truncate text-xs text-slate-500">
+              Ký hiệu: {doc.ky_hieu ?? "--"} · id_vb: {doc.id_vb ?? "--"} · {chunks.length} chunk (PG) ·
+              Qdrant: {qdrant?.count ?? 0} point
+            </p>
+          </div>
+          <button
+            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"
+            onClick={onClose}
+            type="button"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="max-h-[70vh] space-y-2 overflow-y-auto px-5 py-4">
+          {loading ? (
+            <div className="py-8 text-center text-sm text-slate-500">Đang tải chunk...</div>
+          ) : error ? (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              {error}
+            </div>
+          ) : chunks.length === 0 ? (
+            <div className="py-8 text-center text-sm text-slate-500">
+              Văn bản chưa có chunk trong PostgreSQL.
+            </div>
+          ) : (
+            chunks.map((chunk) => {
+              const payload = qdrantByIndex.get(chunk.chunk_index);
+              const open = openChunks.has(chunk.id);
+              return (
+                <div className="rounded-xl border border-slate-100" key={chunk.id}>
+                  <div className="flex items-start gap-2 px-3 py-2">
+                    <span className="mt-0.5 shrink-0 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                      #{chunk.chunk_index}
+                    </span>
+                    <p className="min-w-0 flex-1 whitespace-pre-wrap break-words text-xs text-slate-700">
+                      {chunk.content}
+                    </p>
+                    <button
+                      className={cn(
+                        "shrink-0 rounded-lg border p-1.5",
+                        payload
+                          ? "border-cyan-200 bg-white text-cyan-700 hover:bg-cyan-50"
+                          : "border-slate-200 bg-slate-50 text-slate-300",
+                      )}
+                      disabled={!payload}
+                      onClick={() => toggle(chunk.id)}
+                      title={payload ? "Xem metadata Qdrant" : "Chunk này không có point trên Qdrant"}
+                      type="button"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                  </div>
+                  {open && payload ? (
+                    <pre className="overflow-x-auto border-t border-slate-100 bg-slate-50 px-3 py-2 text-[11px] leading-relaxed text-slate-700">
+                      {formatCompactJson(payload)}
+                    </pre>
+                  ) : null}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AutoJobRunnerView({
+  dofficeEnableEnrichment,
+  dofficeForceRefresh,
+  dofficeIdVb,
+  dofficeLoading,
+  dofficeMessage,
+  jobs,
+  onDofficeEnableEnrichmentChange,
+  onDofficeForceRefreshChange,
+  onDofficeIdVbChange,
+  onDofficeSubmit,
+  onRefreshJobs,
+}: {
+  dofficeEnableEnrichment: boolean;
+  dofficeForceRefresh: boolean;
+  dofficeIdVb: string;
+  dofficeLoading: boolean;
+  dofficeMessage: { type: "success" | "error"; text: string } | null;
+  jobs: IngestionJob[];
+  onDofficeEnableEnrichmentChange: (value: boolean) => void;
+  onDofficeForceRefreshChange: (value: boolean) => void;
+  onDofficeIdVbChange: (value: string) => void;
+  onDofficeSubmit: () => void;
+  onRefreshJobs: () => void;
+}) {
+  const jobMetrics = [
+    { label: "Queued", value: jobs.filter((job) => job.status === "queued").length.toLocaleString() },
+    { label: "Running", value: jobs.filter((job) => job.status === "running").length.toLocaleString() },
+    { label: "Done", value: jobs.filter((job) => job.status === "succeeded").length.toLocaleString() },
+    { label: "Failed", value: jobs.filter((job) => job.status === "failed").length.toLocaleString() },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <section className="space-y-4">
+        <Card className="bg-white shadow-sm">
+          <CardHeader>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle>Job Queue</CardTitle>
+                <CardDescription>Trạng thái các job backend gần đây.</CardDescription>
+              </div>
+              <Button
+                className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                onClick={onRefreshJobs}
+                type="button"
+                variant="outline"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <MetricStrip metrics={jobMetrics} />
+            {jobs.length === 0 ? (
+              <EmptyState message="No jobs found." />
+            ) : (
+              <div className="space-y-3">
+                {jobs.slice(0, 20).map((job) => {
+                  const steps = buildPipelineStepsFromJob(job, dofficePipelineDefinitions);
+                  return (
+                    <article
+                      className="rounded-xl border border-slate-100 bg-white px-4 py-3"
+                      key={job.job_id}
+                    >
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <StatusBadge state={normalizeState(job.status)} />
+                          <span className="font-mono text-xs text-slate-500">
+                            {compactId(job.job_id)}
+                          </span>
+                        </div>
+                        <span className="text-xs text-slate-500">
+                          {formatDateTime(job.updated_at)}
+                        </span>
+                      </div>
+                      <div className="mb-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-3">
+                        <QueueMetric label="Document" value={job.document_id ? compactId(job.document_id) : "--"} />
+                        <QueueMetric label="Source" value={job.filename || "--"} />
+                        <QueueMetric
+                          label="Profile"
+                          value={job.resolved_ingestion_profile ?? job.ingestion_profile ?? "auto"}
+                        />
+                      </div>
+                      <PipelineStrip
+                        compact
+                        dark={false}
+                        onStepFocus={() => undefined}
+                        runningStep={null}
+                        steps={steps}
+                      />
+                      {job.error ? (
+                        <p className="mt-3 text-sm text-rose-700">{job.error}</p>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+    </div>
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function AutoQueueView({
   accessCatalog,
   deletingDocumentId,
@@ -1396,89 +1588,6 @@ function AutoQueueView({
               {message.text}
             </div>
           ) : null}
-          <div className="space-y-3 rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-3">
-            <div className="flex items-center gap-2">
-              <FileSearch className="h-4 w-4 text-emerald-700" />
-              <h3 className="text-sm font-semibold text-emerald-950">
-                Thông tin văn bản DOffice
-              </h3>
-            </div>
-            <label className="block">
-              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700">
-                id_vb
-              </span>
-              <Input
-                className="mt-2 border-emerald-200 bg-white"
-                onChange={(event) => onDofficeIdVbChange(event.target.value)}
-                placeholder="1068586"
-                value={dofficeIdVb}
-              />
-            </label>
-            <div className="space-y-2">
-              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-emerald-100 bg-white px-3 py-2 text-sm text-slate-700">
-                <span>Force refresh</span>
-                <input
-                  checked={dofficeForceRefresh}
-                  className="h-4 w-4 cursor-pointer accent-emerald-600"
-                  onChange={(event) => onDofficeForceRefreshChange(event.target.checked)}
-                  type="checkbox"
-                />
-              </label>
-              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-emerald-100 bg-white px-3 py-2 text-sm text-slate-700">
-                <span>Enable enrichment</span>
-                <input
-                  checked={dofficeEnableEnrichment}
-                  className="h-4 w-4 cursor-pointer accent-emerald-600"
-                  onChange={(event) => onDofficeEnableEnrichmentChange(event.target.checked)}
-                  type="checkbox"
-                />
-              </label>
-            </div>
-            <Button
-              className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
-              disabled={!dofficeIdVb.trim() || dofficeLoading}
-              onClick={onDofficeSubmit}
-              type="button"
-            >
-              {dofficeLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Database className="h-4 w-4" />
-              )}
-              Lấy văn bản
-            </Button>
-            {dofficeMessage ? (
-              <div
-                className={cn(
-                  "rounded-lg border px-3 py-2 text-sm",
-                  dofficeMessage.type === "error"
-                    ? "border-rose-200 bg-rose-50 text-rose-700"
-                    : "border-emerald-200 bg-white text-emerald-800",
-                )}
-              >
-                {dofficeMessage.text}
-              </div>
-            ) : null}
-            {dofficeResult ? (
-              <dl className="grid gap-2 rounded-lg bg-white px-3 py-3 text-xs text-slate-600">
-                <QueueMetric label="id_vb" value={dofficeResult.id_vb} />
-                <QueueMetric label="ky_hieu" value={dofficeResult.ky_hieu ?? "--"} />
-                <QueueMetric label="noi_ban_hanh" value={dofficeResult.noi_ban_hanh ?? "--"} />
-                <QueueMetric
-                  label="chunks_created"
-                  value={dofficeResult.chunks_created.toLocaleString()}
-                />
-                <div className="rounded-lg bg-white/70 px-3 py-2 ring-1 ring-slate-100">
-                  <dt className="font-semibold uppercase tracking-wider text-slate-400">
-                    trich_yeu
-                  </dt>
-                  <dd className="mt-1 max-h-16 overflow-hidden text-sm font-medium text-slate-800">
-                    {dofficeResult.trich_yeu ?? "--"}
-                  </dd>
-                </div>
-              </dl>
-            ) : null}
-          </div>
           <MetricStrip metrics={metrics} />
         </CardContent>
       </Card>
@@ -3170,6 +3279,8 @@ function SettingsPanel({
   setTypewriterSpeed,
   setUseMem0,
   setUseGraph,
+  adminViewAll,
+  setAdminViewAll,
   setUseMemory,
   streamingEnabled,
   typewriterEnabled,
@@ -3191,6 +3302,8 @@ function SettingsPanel({
   setTypewriterSpeed: (value: TypewriterSpeed) => void;
   setUseMem0: (value: boolean) => void;
   setUseGraph: (value: boolean) => void;
+  adminViewAll: boolean;
+  setAdminViewAll: (value: boolean) => void;
   setUseMemory: (value: boolean) => void;
   streamingEnabled: boolean;
   typewriterEnabled: boolean;
@@ -3363,6 +3476,23 @@ function SettingsPanel({
               className="h-5 w-5 cursor-pointer accent-cyan-600"
               disabled={!runtimeConfig?.graph_enabled}
               onChange={(event) => setUseGraph(event.target.checked)}
+              type="checkbox"
+            />
+          </label>
+
+          <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-white px-4 py-3">
+            <span>
+              <span className="block text-sm font-semibold text-slate-800">
+                Xem tất cả tài liệu (admin)
+              </span>
+              <span className="block text-xs text-slate-500">
+                Nếu bạn là admin: bỏ lọc quyền, tìm trong toàn bộ tài liệu. Người dùng thường không bị ảnh hưởng.
+              </span>
+            </span>
+            <input
+              checked={adminViewAll}
+              className="h-5 w-5 cursor-pointer accent-cyan-600"
+              onChange={(event) => setAdminViewAll(event.target.checked)}
               type="checkbox"
             />
           </label>
@@ -3837,21 +3967,6 @@ function findJobStep(
   return steps.find((step) => aliases[key].includes(step.name));
 }
 
-function mapIngestionLogs(logs: IngestionLog[]): UiLog[] {
-  return logs
-    .slice()
-    .reverse()
-    .map((log, index) => ({
-      id: `${log.timestamp}-${index}`,
-      timestamp: log.timestamp,
-      source: "auto",
-      step: log.step,
-      level: normalizeLogLevel(log.level),
-      message: log.message,
-      durationMs: log.duration_ms,
-    }));
-}
-
 function normalizeState(state: string): RunState {
   if (["succeeded", "success", "indexed", "completed"].includes(state)) {
     return "succeeded";
@@ -3863,16 +3978,6 @@ function normalizeState(state: string): RunState {
     return "running";
   }
   return "idle";
-}
-
-function normalizeLogLevel(level: string): UiLog["level"] {
-  if (level === "success") {
-    return "success";
-  }
-  if (level === "error") {
-    return "error";
-  }
-  return "info";
 }
 
 function formatDuration(durationMs?: number | null): string {
@@ -3962,12 +4067,6 @@ function formatDocumentProfile(document: DocumentListItem): string {
     return "AI DO: clean markdown/html -> text";
   }
   return document.document_profile ?? "unknown";
-}
-
-function compactUploadAccess(access: UploadAccessForm): UploadAccessOptions {
-  return Object.fromEntries(
-    Object.entries(access).filter(([, value]) => value.trim() !== ""),
-  ) as UploadAccessOptions;
 }
 
 function formatKnowledgeBase(document: DocumentListItem): string {

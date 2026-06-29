@@ -39,6 +39,29 @@ FORBIDDEN_QDRANT_PAYLOAD_FIELDS = {
     "access",
 }
 
+# Trường THỪA cần bỏ khỏi payload Qdrant của chunk DOffice (thiết kế 3-DB). Giữ lại
+# toàn bộ metadata nghiệp vụ (platform, feature_name, table_name, id_vb, ky_hieu...);
+# chỉ bỏ phần TRÙNG/không dùng ở retrieval mới:
+#  - ACL hệ cũ (allowed_*/denied_*/owner_*/scope/...) — thiết kế mới chỉ dùng
+#    acl_subjects + acl_deny_* (gắn riêng qua set_acl_payload_for_document).
+#  - alias định danh trùng (doc_code/doc_codes/identifiers/issuer/issuing_org/subject)
+#    — đã có id_vb, ky_hieu, document_code, trich_yeu, noi_ban_hanh.
+#  - vài mảng rỗng/ít giá trị cho tìm kiếm.
+# (acl_allow_dv/pb/nv đã được bỏ ở tầng ingestor — không còn ghi vào payload.)
+DOFFICE_REDUNDANT_PAYLOAD_FIELDS = {
+    # ACL hệ cũ
+    "allowed_org_ids", "allowed_org_paths", "allowed_user_ids", "allowed_role_names",
+    "allowed_group_codes", "denied_org_ids", "denied_org_paths", "denied_user_ids",
+    "denied_role_names", "denied_group_codes", "owner_org_id", "owner_org_path",
+    "scope", "inherit_permission", "classification",
+    # alias định danh trùng
+    "doc_code", "doc_codes", "identifiers", "issuer", "issuing_org", "subject",
+    # mảng rỗng/ít giá trị
+    "business_domains", "project_codes", "areas", "source_systems", "staff",
+    "staff_names", "screen_names", "cross_references", "convertible_fields",
+    "field_names", "rule_enrichment", "validation_issues", "dates",
+}
+
 
 class RagChunk(BaseModel):
     model_config = ConfigDict(extra="allow")
@@ -993,6 +1016,11 @@ def qdrant_payload(chunk: RagChunk, *, store_raw_text: bool = False) -> dict[str
     for key in FORBIDDEN_QDRANT_PAYLOAD_FIELDS:
         payload.pop(key, None)
     payload.update(flatten_access_payload(access))
+    # Chunk DOffice (thiết kế 3-DB): bỏ trường thừa để gọn metadata Qdrant (ACL hệ cũ,
+    # alias định danh trùng, mảng rỗng). ACL flat (acl_subjects + acl_deny_*) gắn riêng sau.
+    if str(payload.get("source_type") or "") == "doffice_elasticsearch":
+        for key in DOFFICE_REDUNDANT_PAYLOAD_FIELDS:
+            payload.pop(key, None)
     return payload
 
 

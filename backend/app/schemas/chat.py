@@ -61,6 +61,9 @@ class RagChatRequest(BaseModel):
     use_graph: bool = False
     graph_expansion_depth: int = Field(default=1, ge=0, le=5)
     graph_expansion_limit: int = Field(default=20, ge=1, le=100)
+    # Checkbox FE "Xem tất cả tài liệu (admin)": admin -> bỏ lọc ACL (xem tất cả).
+    # Người dùng thường tick cũng không có tác dụng (kiểm tra vai trò ở backend).
+    admin_view_all: bool = True
 
     @model_validator(mode="after")
     def validate_candidate_window(self) -> "RagChatRequest":
@@ -99,6 +102,9 @@ class RagChatStreamRequest(BaseModel):
     use_graph: bool = False
     graph_expansion_depth: int = Field(default=1, ge=0, le=5)
     graph_expansion_limit: int = Field(default=20, ge=1, le=100)
+    # Checkbox FE "Xem tất cả tài liệu (admin)": admin -> bỏ lọc ACL (xem tất cả).
+    # Người dùng thường tick cũng không có tác dụng (kiểm tra vai trò ở backend).
+    admin_view_all: bool = True
 
     @model_validator(mode="after")
     def validate_candidate_window(self) -> "RagChatStreamRequest":

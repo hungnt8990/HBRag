@@ -31,6 +31,15 @@ class Settings(BaseSettings):
     qdrant_api_key: str | None = None
     qdrant_collection_name: str = "hbrag_chunks_v2"
     qdrant_artifact_collection_name: str = "hbrag_artifacts_v1"
+    # Thiết kế DOffice 3-DB (job đồng bộ mới): 2 collection Qdrant + 1 index ES BM25.
+    # Col 1: vector từng chunk nội dung. Col 2: 1 point/văn bản cho metadata (mọi
+    # trường TRỪ noi_dung) — tìm theo ngữ nghĩa (dense) lẫn ký hiệu (sparse).
+    qdrant_chunks_collection_name: str = "hbrag_doffice_chunks_v1"
+    qdrant_docmeta_collection_name: str = "hbrag_doffice_docmeta_v1"
+    # ES BM25 cấp văn bản (không vector, không chunk).
+    doffice_documents_index_name: str = "hbrag_doffice_documents_v1"
+    # Dev: vẫn ghi chunk vào PostgreSQL để soi; product có thể tắt.
+    store_chunks_in_pg: bool = True
     qdrant_upsert_batch_size: int = 64
     qdrant_upsert_retry_count: int = 2
     qdrant_hybrid_candidate_multiplier: int = 4
@@ -111,6 +120,9 @@ class Settings(BaseSettings):
     two_stage_stage1_top_n: int = 50
     two_stage_stage1_min_results: int = 3              # fallback full search khi stage1 < ngưỡng
     two_stage_chunk_threshold: int = 5_000_000         # bật two-stage khi corpus đủ lớn
+    # Retrieval thiết kế DOffice mới: Stage-1 = ES BM25 doc ∪ Qdrant docmeta; Stage-2 =
+    # Qdrant chunks. Bật sau khi job đồng bộ 3-DB đã đổ dữ liệu (TẮT mặc định).
+    doffice_retrieval_enabled: bool = False
     # Document index BBQ embedding (Stage 1 hybrid kNN + BM25)
     two_stage_document_embedding_enabled: bool = False  # bật khi muốn dùng BBQ vector
     two_stage_document_embedding_text: str = "trich_yeu_tom_tat"  # nguồn text để embed

@@ -100,58 +100,255 @@ class DofficeIngestionService:
 
         started = time.perf_counter()
         existing = await self._find_existing(clean_id)
-        if existing is not None and not options.force_refresh:
-            chunk_count = await self._repository.count_chunks_for_document(existing.id)
-            metadata = dict(getattr(existing, "document_metadata", None) or {})
-            _emit_progress(
-                options,
-                "parse",
-                "succeeded",
-                "DOffice document already exists; skipping fetch because force_refresh=false.",
-                {"document_id": str(existing.id), "id_vb": clean_id, "chunk_count": chunk_count},
-            )
-            _emit_progress(
-                options,
-                "chunk",
-                "succeeded",
-                "Existing chunk set reused.",
-                {"chunk_count": chunk_count},
-            )
-            _emit_progress(
-                options,
-                "index",
-                "succeeded",
-                "Existing vector/keyword index reused.",
-                {"document_id": str(existing.id)},
-            )
-            logger.info(
-                "Skipped DOffice ingest id_vb=%s document=%s chunks=%s reason=already_ingested duration_ms=%s",
+        pg_exists = existing is not None
+        es_exists = await self._document_index_has(clean_id)
+
+        # force_refresh: ép ingest đầy đủ -> dọn sạch PG/ES rồi lấy lại từ DOffice.
+        if options.force_refresh:
+            if pg_exists:
+                await self._delete_existing(existing)
+            if es_exists:
+                await self._delete_document_index(clean_id)
+            return await self._full_ingest_from_doffice(
                 clean_id,
-                existing.id,
-                chunk_count,
-                _duration_ms(started),
-            )
-            return DofficeIngestResponse(
-                status="skipped",
-                id_vb=clean_id,
-                ky_hieu=_optional_string(metadata.get("ky_hieu")),
-                trich_yeu=_optional_string(metadata.get("trich_yeu")),
-                noi_ban_hanh=_optional_string(metadata.get("noi_ban_hanh")),
-                chunks_created=chunk_count,
-                document_id=existing.id,
-                source_type=DOFFICE_SOURCE_TYPE,
-                message="Văn bản đã có trong hệ thống. Bật Force refresh nếu cần lấy và xá»­ lý lại.",
+                options,
+                started=started,
+                uploaded_by_user_id=uploaded_by_user_id,
+                organization_id=organization_id,
+                knowledge_base_id=knowledge_base_id,
+                access=access,
             )
 
-        if existing is not None:
+        # CẢ 2 ĐỀU CÓ (đã sync) -> chunk + đẩy Qdrant/chunk-ES, KHÔNG tạo/đè document-level.
+        if pg_exists and es_exists:
+            return await self._ingest_existing_for_retrieval(
+                existing, clean_id, options, started=started
+            )
+
+        # LỆCH 1 DB (XOR) -> xóa phần thừa rồi ingest đầy đủ lại từ DOffice.
+        if pg_exists != es_exists:
+            logger.warning(
+                "DOffice id_vb=%s lệch PG/ES (pg=%s es=%s) -> xóa phần thừa + ingest lại",
+                clean_id,
+                pg_exists,
+                es_exists,
+            )
+            if pg_exists:
+                await self._delete_existing(existing)
+            if es_exists:
+                await self._delete_document_index(clean_id)
             _emit_progress(
                 options,
                 "parse",
                 "running",
-                "Force refresh enabled; deleting previous DOffice document before re-ingest.",
-                {"document_id": str(existing.id), "id_vb": clean_id},
+                "Phát hiện lệch PG/ES; đã xóa phần thừa, ingest lại đầy đủ từ DOffice.",
+                {"id_vb": clean_id, "pg_exists": pg_exists, "es_exists": es_exists},
             )
-            await self._delete_existing(existing)
+
+        # CẢ 2 ĐỀU KHÔNG CÓ (hoặc vừa dọn do lệch) -> ingest đầy đủ từ DOffice.
+        return await self._full_ingest_from_doffice(
+            clean_id,
+            options,
+            started=started,
+            uploaded_by_user_id=uploaded_by_user_id,
+            organization_id=organization_id,
+            knowledge_base_id=knowledge_base_id,
+            access=access,
+        )
+
+    def _doc_index_store(self) -> Any:
+        """DocumentIndexStore để kiểm tra/xóa tồn tại ES (cần cả khi two-stage tắt).
+
+        KHÔNG gán vào ``self._document_index_store`` để tránh bật nhầm việc ghi
+        ``hbrag_documents_v1`` ở ``_attach_acl_from_source`` (vốn gate theo two-stage).
+        """
+        if self._document_index_store is not None:
+            return self._document_index_store
+        try:
+            from app.services.retrieval.retrieval_document_index import DocumentIndexStore
+
+            return DocumentIndexStore()
+        except Exception:
+            logger.exception("Không khởi tạo được DocumentIndexStore để kiểm tra tồn tại")
+            return None
+
+    async def _document_index_has(self, id_vb: str) -> bool:
+        store = self._doc_index_store()
+        if store is None:
+            return False
+        found = await store.existing_id_vb([id_vb])
+        return id_vb in found
+
+    async def _delete_document_index(self, id_vb: str) -> None:
+        store = self._doc_index_store()
+        if store is None:
+            return
+        try:
+            deleted = await store.delete_by_id_vb(id_vb)
+            logger.info("Đã xóa %s record ES document index id_vb=%s", deleted, id_vb)
+        except Exception:
+            logger.exception("Xóa ES document index thất bại id_vb=%s", id_vb)
+
+    async def _ingest_existing_for_retrieval(
+        self,
+        document: Any,
+        clean_id: str,
+        options: DofficeIngestOptions,
+        *,
+        started: float,
+    ) -> DofficeIngestResponse:
+        """Nhánh 'cả 2 DB đều có': chunk + đẩy Qdrant/chunk-ES, không tạo document mới.
+
+        Đọc noi_dung từ PG (job sync lưu ``noi_dung_raw``); doc cũ chưa có thì lấy 1 lần
+        từ DOffice rồi cache lại. KHÔNG ghi đè ``hbrag_documents_v1`` (ACL/định danh do
+        sync quản lý) — chỉ gắn ACL cho point Qdrant + chunk-ES.
+        """
+
+        document_id = document.id
+        meta = dict(getattr(document, "document_metadata", None) or {})
+
+        existing_chunks = await self._repository.count_chunks_for_document(document_id)
+        if existing_chunks > 0:
+            _emit_progress(options, "parse", "succeeded", "Văn bản đã có chunk; tái sử dụng (không chunk lại).", {"document_id": str(document_id), "id_vb": clean_id, "chunk_count": existing_chunks})
+            _emit_progress(options, "chunk", "succeeded", "Tái sử dụng chunk hiện có.", {"chunk_count": existing_chunks})
+            _emit_progress(options, "index", "succeeded", "Tái sử dụng vector/keyword index hiện có.", {"document_id": str(document_id)})
+            return DofficeIngestResponse(
+                status="skipped",
+                id_vb=clean_id,
+                ky_hieu=_optional_string(meta.get("ky_hieu")),
+                trich_yeu=_optional_string(meta.get("trich_yeu")),
+                noi_ban_hanh=_optional_string(meta.get("noi_ban_hanh")),
+                chunks_created=existing_chunks,
+                document_id=document_id,
+                source_type=DOFFICE_SOURCE_TYPE,
+                message="Văn bản đã được chunk/index trước đó; tái sử dụng.",
+            )
+
+        noi_dung = _optional_string(meta.get("noi_dung_raw"))
+        if not noi_dung:
+            _emit_progress(options, "parse", "running", "PG chưa có noi_dung_raw -> lấy 1 lần từ DOffice và cache lại.", {"id_vb": clean_id})
+            fetched = await self._source.fetch_document_by_id_vb(clean_id)
+            noi_dung = fetched.raw_noi_dung
+            await self._repository.update_document_metadata(document, {"noi_dung_raw": noi_dung})
+
+        source = self._source_dict_from_metadata(meta, noi_dung)
+        normalized = normalize_doffice_source(source)
+        if not normalized.clean_text.strip():
+            raise EmptyDofficeDocumentError(
+                f"DOffice document id_vb={clean_id} has no content after cleaning."
+            )
+        source_document = self._doffice_document_from_source(source, normalized)
+
+        document.document_profile = "doffice_admin"
+        await self._repository.update_document_parsed_content(
+            document,
+            parsed_text=normalized.clean_text,
+            parsed_at=datetime.now(UTC),
+            status="parsed",
+        )
+        await self._repository.update_document_metadata(
+            document,
+            self._document_metadata(source_document, normalized),
+        )
+        await self._repository.commit()
+        _emit_progress(options, "parse", "succeeded", "Đã nạp nội dung normalized vào document đã sync (không tạo mới).", {"document_id": str(document_id), "id_vb": clean_id})
+
+        try:
+            _emit_progress(options, "chunk", "running", "Chunking DOffice document.", {"document_id": str(document_id), "profile": "auto"})
+            chunk_response = await self._chunking_service.chunk_document(document_id, profile="auto")
+            _emit_progress(options, "chunk", "succeeded", "DOffice document chunking completed.", {"document_id": str(document_id), "chunk_count": chunk_response.chunk_count})
+
+            artifact_count = await self._compile_and_index_artifacts(document=document, options=options)
+
+            if options.enable_enrichment and self._enrichment_service is not None:
+                _emit_progress(options, "enrich", "running", "Running chunk enrichment for DOffice document.", {"document_id": str(document_id)})
+                enrich_response = await self._enrichment_service.enrich_document(document_id, enabled=True, update_keyword_search_vector=True)
+                _emit_progress(options, "enrich", "succeeded", "Chunk enrichment completed.", {"document_id": str(document_id), "status": enrich_response.status, "enriched_count": enrich_response.enriched_count, "skipped_count": enrich_response.skipped_count, "failed_count": enrich_response.failed_count})
+            else:
+                _emit_progress(options, "enrich", "succeeded", "Chunk enrichment skipped.", {"document_id": str(document_id), "enabled": options.enable_enrichment, "has_enrichment_service": self._enrichment_service is not None})
+
+            _emit_progress(options, "index", "running", "Indexing DOffice chunks into Qdrant and Elasticsearch keyword store if enabled.", {"document_id": str(document_id), "artifact_count": artifact_count})
+            index_response = await self._vector_indexing_service.index_document(document_id, use_enriched_content_for_embedding=options.enable_enrichment)
+            # write_document_index=False: bản ghi document-level + ACL do job sync sở hữu;
+            # chỉ gắn ACL cho point Qdrant + chunk-ES, KHÔNG đè hbrag_documents_v1.
+            await self._attach_acl_from_source(document_id=document_id, source_document=source_document, write_document_index=False)
+            _emit_progress(options, "index", "succeeded", "Vector and keyword indexing completed (document-level giữ nguyên bản sync).", {"document_id": str(document_id), "status": index_response.status, "indexed_chunk_count": index_response.indexed_chunk_count, "indexed_artifact_count": artifact_count, "duration_ms": _duration_ms(started)})
+        except Exception as exc:
+            logger.exception("DOffice retrieval-ingest failed id_vb=%s document=%s", clean_id, document_id)
+            raise DofficeIngestionError(f"Failed to ingest DOffice document: {exc}") from exc
+
+        return DofficeIngestResponse(
+            status="success",
+            id_vb=clean_id,
+            ky_hieu=source_document.ky_hieu,
+            trich_yeu=source_document.trich_yeu,
+            noi_ban_hanh=source_document.noi_ban_hanh,
+            chunks_created=chunk_response.chunk_count,
+            document_id=document_id,
+            source_type=DOFFICE_SOURCE_TYPE,
+            message="Văn bản đã có ở PG+ES; đã chunk và đẩy Qdrant/chunk-ES, giữ nguyên bản ghi document-level đã sync.",
+        )
+
+    @staticmethod
+    def _source_dict_from_metadata(meta: dict[str, Any], noi_dung: str) -> dict[str, Any]:
+        access = meta.get("access") or {}
+        raw_assignment = access.get("raw_assignment") or {}
+        return {
+            "id_vb": meta.get("id_vb"),
+            "ky_hieu": meta.get("ky_hieu"),
+            "trich_yeu": meta.get("trich_yeu"),
+            "id_dv_ban_hanh": meta.get("id_dv_ban_hanh"),
+            "noi_ban_hanh": meta.get("noi_ban_hanh"),
+            "nguoi_ky": meta.get("nguoi_ky"),
+            "ten_file": meta.get("ten_file"),
+            "duong_dan": meta.get("duong_dan"),
+            "ngay_vb": meta.get("ngay_vb"),
+            "ngay_tao": meta.get("ngay_tao"),
+            "ngay_capnhat": meta.get("ngay_capnhat"),
+            "nam": meta.get("nam"),
+            "thang": meta.get("thang"),
+            "tom_tat": meta.get("tom_tat"),
+            "noi_dung": noi_dung,
+            "don_vi_list": raw_assignment.get("don_vi_list"),
+            "phong_ban_list": raw_assignment.get("phong_ban_list"),
+            "ca_nhan_list": raw_assignment.get("ca_nhan_list"),
+        }
+
+    @staticmethod
+    def _doffice_document_from_source(source: dict[str, Any], normalized: NormalizedDofficeDocument) -> DofficeDocument:
+        return DofficeDocument(
+            id_vb=str(source.get("id_vb") or ""),
+            ky_hieu=_optional_string(source.get("ky_hieu")),
+            trich_yeu=_optional_string(source.get("trich_yeu")),
+            id_dv_ban_hanh=source.get("id_dv_ban_hanh"),
+            noi_ban_hanh=_optional_string(source.get("noi_ban_hanh")),
+            nguoi_ky=_optional_string(source.get("nguoi_ky")),
+            ten_file=_optional_string(source.get("ten_file")),
+            duong_dan=_optional_string(source.get("duong_dan")),
+            raw_noi_dung=str(source.get("noi_dung") or ""),
+            ngay_vb=_optional_string(source.get("ngay_vb")),
+            ngay_tao=_optional_string(source.get("ngay_tao")),
+            ngay_capnhat=_optional_string(source.get("ngay_capnhat")),
+            nam=source.get("nam"),
+            thang=source.get("thang"),
+            tom_tat=_optional_string(source.get("tom_tat")),
+            clean_text=normalized.clean_text,
+            raw_source=source,
+        )
+
+    async def _full_ingest_from_doffice(
+        self,
+        clean_id: str,
+        options: DofficeIngestOptions,
+        *,
+        started: float,
+        uploaded_by_user_id: UUID | None,
+        organization_id: UUID | None,
+        knowledge_base_id: UUID | None,
+        access: dict[str, Any] | None,
+    ) -> DofficeIngestResponse:
+        """Ingest đầy đủ từ DOffice (pipeline cũ): tạo Document + chunk + index + ghi
+        ``hbrag_documents_v1``. Dùng cho nhánh 'cả 2 đều không có' và force_refresh."""
 
         _emit_progress(
             options,
@@ -364,7 +561,7 @@ class DofficeIngestionService:
             return
         await self._repository.update_doffice_raw_status(raw_record, **statuses)
 
-    async def _attach_acl_from_source(self, *, document_id: Any, source_document: Any) -> None:
+    async def _attach_acl_from_source(self, *, document_id: Any, source_document: Any, write_document_index: bool = True) -> None:
         """Tính ACL từ 3 list DOffice (đơn vị/phòng ban/cá nhân) và gắn vào payload chunk.
 
         Mô hình ĐỘNG: chỉ ghi bộ quyền rút gọn ``acl_*`` lên point Qdrant + doc ES
@@ -410,7 +607,9 @@ class DofficeIngestionService:
 
         # Two-stage: ghi 1 record vào ES document index (Stage 1). Embed trich_yeu +
         # tom_tat nếu bật BBQ. Backward compat: chỉ chạy khi two-stage + có store.
-        if settings.two_stage_retrieval_enabled and self._document_index_store is not None:
+        # ``write_document_index=False`` (nhánh 'cả 2 DB đều có') -> KHÔNG đè bản ghi
+        # hbrag_documents_v1 do job sync sở hữu, chỉ gắn ACL cho chunk Qdrant/ES ở trên.
+        if write_document_index and settings.two_stage_retrieval_enabled and self._document_index_store is not None:
             from app.services.security.security_acl_payload import acl_keys_from_acl
 
             trich_yeu = _optional_string(raw.get("trich_yeu"))

@@ -25,7 +25,11 @@ def get_memory_repository(
     return MemoryRepository(session)
 
 
-@router.get("/settings", response_model=MemorySettingsResponse)
+@router.get(
+    "/settings",
+    response_model=MemorySettingsResponse,
+    summary="Lấy cấu hình bộ nhớ",
+)
 async def get_memory_settings(
     _current_user: Annotated[User, Depends(get_current_user)],
 ) -> MemorySettingsResponse:
@@ -39,7 +43,11 @@ async def get_memory_settings(
     )
 
 
-@router.patch("/settings", status_code=status.HTTP_501_NOT_IMPLEMENTED)
+@router.patch(
+    "/settings",
+    status_code=status.HTTP_501_NOT_IMPLEMENTED,
+    summary="Cập nhật cấu hình bộ nhớ",
+)
 async def patch_memory_settings(
     _current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
@@ -52,7 +60,11 @@ async def patch_memory_settings(
     )
 
 
-@router.get("", response_model=list[MemoryItemResponse])
+@router.get(
+    "",
+    response_model=list[MemoryItemResponse],
+    summary="Danh sách mục bộ nhớ",
+)
 async def list_memory(
     repository: Annotated[MemoryRepository, Depends(get_memory_repository)],
     current_user: Annotated[User, Depends(get_current_user)],
@@ -64,7 +76,12 @@ async def list_memory(
     return [_to_item(result) for result in results]
 
 
-@router.post("", response_model=MemoryItemResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=MemoryItemResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Ghi nhớ hội thoại",
+)
 async def create_memory(
     request: MemoryCreateRequest,
     repository: Annotated[MemoryRepository, Depends(get_memory_repository)],
@@ -86,7 +103,11 @@ async def create_memory(
     return _to_item(result)
 
 
-@router.delete("/{memory_id}", response_model=MemoryDeleteResponse)
+@router.delete(
+    "/{memory_id}",
+    response_model=MemoryDeleteResponse,
+    summary="Xóa một mục bộ nhớ",
+)
 async def delete_memory(
     memory_id: str,
     repository: Annotated[MemoryRepository, Depends(get_memory_repository)],

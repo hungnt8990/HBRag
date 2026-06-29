@@ -220,6 +220,9 @@ class DocumentListItem(BaseModel):
     title: str
     status: str
     source_type: str
+    id_vb: str | None = None
+    ky_hieu: str | None = None
+    qdrant_point_count: int | None = None
     filename: str | None
     organization: DocumentOrganization | None
     knowledge_base: DocumentKnowledgeBase | None = None

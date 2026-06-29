@@ -24,6 +24,7 @@ export type RagStreamRequest = {
   use_graph?: boolean;
   graph_expansion_depth?: number;
   graph_expansion_limit?: number;
+  admin_view_all?: boolean;
 };
 
 export type RagStreamHandlers = {

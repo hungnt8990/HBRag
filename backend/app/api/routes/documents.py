@@ -1,4 +1,6 @@
-﻿from typing import Annotated
+﻿import asyncio
+import logging
+from typing import Annotated, Any
 from urllib.parse import quote
 from uuid import UUID
 
@@ -143,7 +145,13 @@ from app.services.vector.vector_indexing_service import (
 from app.services.vector.vector_indexing_service import (
     DocumentNotFoundError as VectorDocumentNotFoundError,
 )
-from app.services.vector.vector_store import QdrantVectorStore, get_artifact_vector_store, get_vector_store
+from app.services.vector.vector_store import (
+    QdrantVectorStore,
+    get_artifact_vector_store,
+    get_doffice_chunks_vector_store,
+    get_doffice_docmeta_vector_store,
+    get_vector_store,
+)
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 DOCUMENT_DETAIL_PREVIEW_LIMIT = 50_000
@@ -311,6 +319,7 @@ def get_graph_indexing_service(
     "/upload",
     response_model=DocumentUploadResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Tải lên một văn bản mới",
 )
 async def upload_document(
     service: Annotated[DocumentService, Depends(get_document_service)],
@@ -429,6 +438,7 @@ async def upload_document(
     "/upload-batch",
     response_model=DocumentBatchUploadResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Tải lên nhiều văn bản cùng lúc (theo lô)",
 )
 async def upload_documents_batch(
     service: Annotated[DocumentService, Depends(get_document_service)],
@@ -598,7 +608,11 @@ def _to_ingestion_job_payload(job: IngestionJob) -> dict[str, object]:
     }
 
 
-@router.post("/doffice/ingest-jobs", status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/doffice/ingest-jobs",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Tạo job nền nạp văn bản từ DOffice (bất đồng bộ)",
+)
 async def enqueue_doffice_ingestion_job(
     request: DofficeIngestRequest,
     background_tasks: BackgroundTasks,
@@ -662,7 +676,11 @@ async def enqueue_doffice_ingestion_job(
     return _to_ingestion_job_payload(job)
 
 
-@router.post("/doffice/ingest", response_model=DofficeIngestResponse)
+@router.post(
+    "/doffice/ingest",
+    response_model=DofficeIngestResponse,
+    summary="Nạp đồng bộ một văn bản từ DOffice (parse + chunk + index)",
+)
 async def ingest_doffice_document(
     request: DofficeIngestRequest,
     repository: Annotated[DocumentRepository, Depends(get_document_repository)],
@@ -887,7 +905,11 @@ async def _resolve_upload_knowledge_base(
     return knowledge_base, target_organization_id
 
 
-@router.get("", response_model=DocumentListResponse)
+@router.get(
+    "",
+    response_model=DocumentListResponse,
+    summary="Lấy danh sách văn bản (phân trang, lọc, tìm kiếm)",
+)
 async def list_documents(
     repository: Annotated[DocumentRepository, Depends(get_document_repository)],
     auth_repository: Annotated[AuthRepository, Depends(get_auth_repository)],
@@ -926,8 +948,22 @@ async def list_documents(
         )
     ]
     paged_rows = visible_rows[offset : offset + limit]
+    # Đếm số point Qdrant (collection chunks mới) cho từng văn bản của trang — hiển
+    # thị "N point" ở FE. Best-effort: Qdrant lỗi -> None (FE hiện "—").
+    chunks_store = get_doffice_chunks_vector_store()
+
+    async def _qcount(document) -> int | None:
+        try:
+            return await chunks_store.count_points_for_document(document.id)
+        except Exception:
+            return None
+
+    counts = await asyncio.gather(*[_qcount(row.document) for row in paged_rows])
     return DocumentListResponse(
-        items=[_to_document_list_item_from_row(row) for row in paged_rows],
+        items=[
+            _to_document_list_item_from_row(row, qdrant_point_count=count)
+            for row, count in zip(paged_rows, counts, strict=False)
+        ],
         total=len(visible_rows),
         limit=limit,
         offset=offset,
@@ -937,6 +973,7 @@ async def list_documents(
 @router.post(
     "/{document_id}/chunk",
     response_model=DocumentChunkResponse,
+    summary="Chia nhỏ (chunk) văn bản đã parse",
 )
 async def chunk_document(
     document_id: UUID,
@@ -1003,6 +1040,7 @@ async def chunk_document(
 @router.post(
     "/{document_id}/enrich",
     response_model=DocumentChunkEnrichmentResponse,
+    summary="Làm giàu (enrich) các chunk bằng LLM",
 )
 async def enrich_document_chunks(
     document_id: UUID,
@@ -1154,6 +1192,7 @@ async def enrich_document_chunks(
 @router.post(
     "/{document_id}/index-vector",
     response_model=DocumentVectorIndexResponse,
+    summary="Index vector các chunk vào Qdrant (và Elasticsearch nếu bật)",
 )
 async def index_document_vectors(
     document_id: UUID,
@@ -1230,6 +1269,7 @@ async def index_document_vectors(
 @router.post(
     "/{document_id}/index-graph",
     response_model=GraphIndexResponse,
+    summary="Index đồ thị tri thức của văn bản vào Neo4j",
 )
 async def index_document_graph(
     document_id: UUID,
@@ -1262,6 +1302,7 @@ async def index_document_graph(
 @router.post(
     "/{document_id}/parse",
     response_model=DocumentParseResponse,
+    summary="Parse (trích xuất văn bản) từ file đã tải lên",
 )
 async def parse_document(
     document_id: UUID,
@@ -1330,7 +1371,11 @@ async def parse_document(
         ) from exc
 
 
-@router.get("/{document_id}/access", response_model=DocumentAccessResponse)
+@router.get(
+    "/{document_id}/access",
+    response_model=DocumentAccessResponse,
+    summary="Lấy cấu hình phân quyền truy cập của văn bản",
+)
 async def get_document_access(
     document_id: UUID,
     repository: Annotated[DocumentRepository, Depends(get_document_repository)],
@@ -1348,7 +1393,11 @@ async def get_document_access(
         access=normalize_document_access_metadata(document),
     )
 
-@router.patch("/{document_id}/access", response_model=DocumentAccessResponse)
+@router.patch(
+    "/{document_id}/access",
+    response_model=DocumentAccessResponse,
+    summary="Cập nhật cấu hình phân quyền truy cập của văn bản",
+)
 async def update_document_access(
     document_id: UUID,
     request: DocumentAccessUpdateRequest,
@@ -1380,7 +1429,11 @@ async def update_document_access(
         access=normalize_document_access_metadata(document),
     )
 
-@router.post("/{document_id}/access/test", response_model=DocumentAccessDecisionResponse)
+@router.post(
+    "/{document_id}/access/test",
+    response_model=DocumentAccessDecisionResponse,
+    summary="Kiểm tra quyền truy cập văn bản của một người dùng",
+)
 async def test_document_access(
     document_id: UUID,
     request: DocumentAccessTestRequest,
@@ -1428,7 +1481,51 @@ async def test_document_access(
     await log_repository.commit()
     return DocumentAccessDecisionResponse(**decision.model_dump())
 
-@router.get("/{document_id}", response_model=DocumentDetailResponse)
+@router.get(
+    "/{document_id}/chunks/qdrant",
+    summary="Lấy payload (metadata) các point Qdrant của văn bản",
+)
+async def get_document_qdrant_payloads(
+    document_id: UUID,
+    repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+    auth_repository: Annotated[AuthRepository, Depends(get_auth_repository)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> dict[str, object]:
+    """Trả payload (metadata) các point Qdrant của 1 văn bản (collection chunks mới).
+
+    FE dùng để hiển thị metadata Qdrant theo từng chunk (nút con mắt): map theo
+    ``chunk_index`` (hoặc ``chunk_id``) với chunk lấy từ PG.
+    """
+    document = await repository.get_document(document_id)
+    if document is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+    descendant_ids = await auth_repository.get_descendant_organization_ids(
+        current_user.organization_id
+    )
+    if not can_view_document(current_user, document, descendant_organization_ids=descendant_ids):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Document is not visible.")
+    store = get_doffice_chunks_vector_store()
+    try:
+        points = await store.retrieve_payloads_for_document(
+            document_id, tenant_id=getattr(document, "organization_id", None)
+        )
+    except Exception as exc:  # noqa: BLE001 - lỗi Qdrant trả 502 cho FE
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Qdrant error: {exc}"
+        ) from exc
+    return {
+        "document_id": str(document_id),
+        "collection": store.collection_name,
+        "count": len(points),
+        "points": points,
+    }
+
+
+@router.get(
+    "/{document_id}",
+    response_model=DocumentDetailResponse,
+    summary="Lấy chi tiết văn bản (file, chunk, log, trạng thái graph)",
+)
 async def get_document_detail(
     document_id: UUID,
     repository: Annotated[DocumentRepository, Depends(get_document_repository)],
@@ -1553,7 +1650,10 @@ async def get_document_detail(
     )
 
 
-@router.get("/{document_id}/files/{file_id}/download")
+@router.get(
+    "/{document_id}/files/{file_id}/download",
+    summary="Tải xuống file gốc của văn bản",
+)
 async def download_document_file(
     document_id: UUID,
     file_id: UUID,
@@ -1615,7 +1715,11 @@ async def download_document_file(
     )
 
 
-@router.delete("/{document_id}", response_model=DocumentDeleteResponse)
+@router.delete(
+    "/{document_id}",
+    response_model=DocumentDeleteResponse,
+    summary="Xóa văn bản khỏi PostgreSQL + Qdrant + Elasticsearch + storage",
+)
 async def delete_document(
     document_id: UUID,
     repository: Annotated[DocumentRepository, Depends(get_document_repository)],
@@ -1644,6 +1748,22 @@ async def delete_document(
         await vector_store.delete_points_for_document(document_id)
         await artifact_vector_store.delete_points_for_document(document_id)
         await keyword_store.delete_points_for_document(document_id)
+        # Thiết kế DOffice 3-DB: xóa thêm 2 collection Qdrant mới + ES BM25 doc-level.
+        # BEST-EFFORT: store doffice là singleton thật (không qua Depends), nếu transient
+        # lỗi/không cấu hình thì chỉ cảnh báo — không làm hỏng việc xóa PG + store cũ.
+        _id_vb = _optional_string((getattr(document, "document_metadata", None) or {}).get("id_vb"))
+        try:
+            await get_doffice_chunks_vector_store().delete_points_for_document(document_id)
+            await get_doffice_docmeta_vector_store().delete_points_for_document(document_id)
+            if _id_vb:
+                from app.services.retrieval.retrieval_doffice_bm25 import DofficeBm25DocumentStore
+
+                await DofficeBm25DocumentStore().delete_by_id_vb(_id_vb)
+        except Exception:
+            logging.getLogger(__name__).warning(
+                "Xóa dấu vết DOffice (Qdrant/ES mới) thất bại document=%s id_vb=%s", document_id, _id_vb,
+                exc_info=True,
+            )
         for storage_path in storage_paths:
             if storage_path:
                 await storage.delete_file(object_name=storage_path)
@@ -1792,7 +1912,14 @@ def _download_content_disposition(filename: str) -> str:
     return f"attachment; filename*=UTF-8''{encoded_filename}"
 
 
-def _to_document_list_item_from_row(row) -> DocumentListItem:
+def _optional_string(value: Any) -> str | None:
+    if value is None:
+        return None
+    clean = " ".join(str(value).split()).strip()
+    return clean or None
+
+
+def _to_document_list_item_from_row(row, *, qdrant_point_count: int | None = None) -> DocumentListItem:
     return _to_document_list_item_from_values(
         document=row.document,
         filename=row.filename,
@@ -1801,6 +1928,7 @@ def _to_document_list_item_from_row(row) -> DocumentListItem:
         vector_indexed_count=row.vector_indexed_count,
         pipeline_logs_count=row.pipeline_logs_count,
         graph_indexed=row.graph_indexed,
+        qdrant_point_count=qdrant_point_count,
     )
 
 
@@ -1813,7 +1941,9 @@ def _to_document_list_item_from_values(
     vector_indexed_count: int | None,
     pipeline_logs_count: int,
     graph_indexed: bool,
+    qdrant_point_count: int | None = None,
 ) -> DocumentListItem:
+    _meta = getattr(document, "document_metadata", None) or {}
     effective_vector_indexed_count = vector_indexed_count
     if effective_vector_indexed_count is None and getattr(document, "status", None) == "indexed":
         effective_vector_indexed_count = chunk_count
@@ -1879,6 +2009,9 @@ def _to_document_list_item_from_values(
         vector_indexed_count=effective_vector_indexed_count,
         pipeline_logs_count=pipeline_logs_count,
         graph_indexed=graph_indexed,
+        id_vb=_optional_string(_meta.get("id_vb")),
+        ky_hieu=_optional_string(_meta.get("ky_hieu")),
+        qdrant_point_count=qdrant_point_count,
     )
 
 

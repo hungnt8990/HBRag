@@ -295,6 +295,28 @@ class DocumentIndexStore:
                     f"upsert_document lỗi document={document_id}: HTTP {resp.status_code} {resp.text[:300]}"
                 )
 
+    async def delete_by_id_vb(self, id_vb: str) -> int:
+        """Xóa các record document-index theo ``id_vb`` (delete_by_query).
+
+        Dùng cho bước sửa lệch (XOR): khi văn bản còn record ở ES nhưng đã mất ở PG
+        (hoặc ngược lại) -> xóa phần thừa rồi ingest lại từ đầu. Index chưa tồn tại
+        (404) -> coi như đã xóa 0 record.
+        """
+        body = {"query": {"term": {"id_vb": str(id_vb)}}}
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            resp = await client.post(
+                f"{self.url}/{self.index_name}/_delete_by_query",
+                json=body,
+                params={"refresh": "true", "conflicts": "proceed"},
+            )
+        if resp.status_code == 404:
+            return 0
+        if resp.status_code >= 400:
+            raise RuntimeError(
+                f"delete_by_id_vb lỗi id_vb={id_vb}: HTTP {resp.status_code} {resp.text[:300]}"
+            )
+        return int(resp.json().get("deleted", 0) or 0)
+
     async def existing_id_vb(self, id_vb_list: list[str]) -> set[str]:
         """Tập ``id_vb`` đã có record trong document index (terms query trên id_vb)."""
         if not id_vb_list:

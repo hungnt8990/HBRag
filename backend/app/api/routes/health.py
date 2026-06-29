@@ -17,7 +17,7 @@ class HealthResponse(BaseModel):
 router = APIRouter(tags=["health"])
 
 
-@router.get("/health", response_model=HealthResponse)
+@router.get("/health", response_model=HealthResponse, summary="Kiểm tra sức khỏe dịch vụ")
 async def health_check() -> HealthResponse:
     return HealthResponse(
         status="ok",

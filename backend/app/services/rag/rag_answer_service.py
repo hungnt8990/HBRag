@@ -289,6 +289,7 @@ class RagAnswerService:
         graph_expansion_limit: int = 20,
         access_filter: AccessFilter | None = None,
         subject_context: SubjectContext | None = None,
+        acl_subject: "AclSubject | None" = None,
         retrieval_enrichment_enabled: bool = False,
         query_intent_rules: dict[str, Any] | None = None,
     ) -> RagChatResponse:
@@ -360,6 +361,7 @@ class RagAnswerService:
                 graph_expansion_limit=graph_expansion_limit,
                 access_filter=access_filter,
                 subject_context=subject_context,
+                acl_subject=acl_subject,
                 retrieval_enrichment_enabled=retrieval_enrichment_enabled,
                 query_intent_rules=query_intent_rules,
             )
@@ -535,6 +537,7 @@ class RagAnswerService:
         graph_expansion_limit: int = 20,
         access_filter: AccessFilter | None = None,
         subject_context: SubjectContext | None = None,
+        acl_subject: "AclSubject | None" = None,
         retrieval_enrichment_enabled: bool = False,
         query_intent_rules: dict[str, Any] | None = None,
     ) -> AsyncIterator[RagStreamEvent]:
@@ -623,6 +626,7 @@ class RagAnswerService:
                 graph_expansion_limit=graph_expansion_limit,
                 access_filter=access_filter,
                 subject_context=subject_context,
+                acl_subject=acl_subject,
                 retrieval_enrichment_enabled=retrieval_enrichment_enabled,
                 query_intent_rules=query_intent_rules,
             )
@@ -837,6 +841,9 @@ class RagAnswerService:
         return await self._reranking_service.search(**supported)
 
     async def _retrieve_artifact_first_or_rerank(self, **kwargs) -> ArtifactFirstRetrievalResult:
+        # acl_subject CHỈ dùng cho nhánh reranking search (retrieval DOffice 2 tầng). Tách
+        # ra để artifact-first retrieve (không nhận tham số này) không lỗi.
+        acl_subject = kwargs.pop("acl_subject", None)
         artifact_service = self._artifact_first_retrieval_service
         if artifact_service is not None:
             try:
@@ -844,7 +851,7 @@ class RagAnswerService:
             except Exception:
                 logger.exception("Artifact-first retrieval failed; falling back to chunk reranking.")
 
-        rerank_response = await self._run_reranking_search(**kwargs)
+        rerank_response = await self._run_reranking_search(acl_subject=acl_subject, **kwargs)
         query_contract = QueryContractService().build_contract(
             str(kwargs.get("query") or ""),
             allow_graph_expansion=bool(kwargs.get("use_graph")),

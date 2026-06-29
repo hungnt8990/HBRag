@@ -20,8 +20,13 @@ from app.repositories.knowledge_artifacts import KnowledgeArtifactRepository
 from app.repositories.knowledge_bases import KnowledgeBaseRepository
 from app.repositories.memory import MemoryRepository
 from app.repositories.rag_runtime_config import RagRuntimeConfigRepository
+from app.repositories.retrieval_logs import RetrievalLogRepository
 from app.schemas.chat import RagChatRequest, RagChatResponse, RagChatStreamRequest
-from app.services.security.security_access_control import build_access_filter, build_subject_context
+from app.services.security.security_access_control import (
+    build_access_filter,
+    build_subject_context,
+    role_names,
+)
 from app.services.retrieval.retrieval_artifact_first_retrieval import ArtifactFirstRetrievalService
 from app.services.documents.document_profiles import profile_config, resolve_profile
 from app.services.embeddings.embedding_sparse_factory import get_sparse_embedding_provider
@@ -91,6 +96,12 @@ def get_rag_runtime_config_repository(
     return RagRuntimeConfigRepository(session)
 
 
+def get_retrieval_log_repository(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> RetrievalLogRepository:
+    return RetrievalLogRepository(session)
+
+
 async def get_rag_answer_service(
     chat_repository: Annotated[ChatRepository, Depends(get_chat_repository)],
     reranking_service: Annotated[RerankingService, Depends(get_reranking_service)],
@@ -107,7 +118,31 @@ async def get_rag_answer_service(
         RagRuntimeConfigRepository,
         Depends(get_rag_runtime_config_repository),
     ],
+    document_repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+    retrieval_log_repository: Annotated[
+        RetrievalLogRepository,
+        Depends(get_retrieval_log_repository),
+    ],
 ) -> RagAnswerService:
+    # Retrieval DOffice 3-DB: khi bật cờ, chat dùng doffice two-stage (Stage-1 ES BM25
+    # doc ∪ Qdrant docmeta -> Stage-2 Qdrant chunks, lọc acl_subjects/acl_deny) làm
+    # reranking_service (drop-in) + TẮT artifact-first để tìm đúng collection doffice.
+    if settings.doffice_retrieval_enabled:
+        from app.services.retrieval.retrieval_doffice_two_stage import (
+            build_doffice_two_stage_search,
+        )
+
+        return RagAnswerService(
+            chat_repository=chat_repository,
+            reranking_service=build_doffice_two_stage_search(
+                repository=document_repository,
+                llm_gateway=llm_provider,
+                retrieval_log_repository=retrieval_log_repository,
+            ),
+            llm_provider=llm_provider,
+            document_log_repository=document_log_repository,
+            artifact_first_retrieval_service=None,
+        )
     try:
         rag_config = await load_rag_runtime_config(rag_config_repository)
         await rag_config_repository.commit()
@@ -240,6 +275,11 @@ async def rag_chat(
             graph_expansion_limit=request.graph_expansion_limit,
             access_filter=build_access_filter(subject_context),
             subject_context=subject_context,
+            acl_subject=await _build_acl_subject(
+                auth_repository=auth_repository,
+                current_user=current_user,
+                admin_view_all=bool(getattr(request, "admin_view_all", True)),
+            ),
             retrieval_enrichment_enabled=resolved["retrieval_enrichment_enabled"],
             query_intent_rules=resolved["query_intent_rules"],
         )
@@ -625,6 +665,42 @@ async def _subject_context(
         current_user,
         descendant_organization_ids=descendant_ids,
     )
+
+
+def _user_is_admin(current_user: User) -> bool:
+    """User có vai trò admin (theo settings.permission_admin_roles)."""
+    return bool(role_names(current_user) & set(settings.permission_admin_roles or []))
+
+
+async def _build_acl_subject(
+    *,
+    auth_repository: AuthRepository,
+    current_user: User,
+    admin_view_all: bool,
+):
+    """AclSubject (theo id_nv) cho retrieval DOffice 2 tầng.
+
+    - Vai trò admin -> ``from_app_user`` tự đặt ``is_super_admin`` (bỏ lọc ACL).
+    - Checkbox ``admin_view_all`` (mặc định bật): nếu user LÀ admin thì ép super_admin
+      để xem TẤT CẢ tài liệu, kể cả khi tên vai trò không khớp danh sách mặc định.
+      Người dùng thường tick cũng KHÔNG có tác dụng (không phải admin).
+    - Trả None nếu user chưa map ``id_nv`` -> retrieval không lọc (xem tất cả).
+    """
+    from dataclasses import replace
+
+    from app.services.security.security_acl_payload import AclSubject
+
+    session = getattr(auth_repository, "_session", None)
+    if session is None:
+        return None
+    subject = await AclSubject.from_app_user(
+        session, current_user, super_admin_roles=set(settings.permission_admin_roles or [])
+    )
+    if admin_view_all and _user_is_admin(current_user):
+        if subject is None:
+            return AclSubject(id_nv=-1, is_super_admin=True)
+        return replace(subject, is_super_admin=True)
+    return subject
 
 
 async def _call_answer_service(service, **kwargs):

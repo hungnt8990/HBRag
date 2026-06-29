@@ -39,7 +39,12 @@ def get_auth_repository(
     return AuthRepository(session)
 
 
-@router.post("", response_model=KnowledgeBaseResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=KnowledgeBaseResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Tạo kho tri thức",
+)
 async def create_knowledge_base(
     request: KnowledgeBaseCreate,
     repository: Annotated[
@@ -74,7 +79,11 @@ async def create_knowledge_base(
     return KnowledgeBaseResponse.model_validate(knowledge_base)
 
 
-@router.get("", response_model=KnowledgeBaseListResponse)
+@router.get(
+    "",
+    response_model=KnowledgeBaseListResponse,
+    summary="Danh sách kho tri thức",
+)
 async def list_knowledge_bases(
     repository: Annotated[
         KnowledgeBaseRepository,
@@ -96,7 +105,11 @@ async def list_knowledge_bases(
     )
 
 
-@router.get("/{knowledge_base_id}", response_model=KnowledgeBaseResponse)
+@router.get(
+    "/{knowledge_base_id}",
+    response_model=KnowledgeBaseResponse,
+    summary="Chi tiết kho tri thức",
+)
 async def get_knowledge_base(
     knowledge_base_id: UUID,
     repository: Annotated[
@@ -115,7 +128,11 @@ async def get_knowledge_base(
     return KnowledgeBaseResponse.model_validate(knowledge_base)
 
 
-@router.patch("/{knowledge_base_id}", response_model=KnowledgeBaseResponse)
+@router.patch(
+    "/{knowledge_base_id}",
+    response_model=KnowledgeBaseResponse,
+    summary="Cập nhật kho tri thức",
+)
 async def update_knowledge_base(
     knowledge_base_id: UUID,
     request: KnowledgeBaseUpdate,
@@ -143,7 +160,11 @@ async def update_knowledge_base(
     return KnowledgeBaseResponse.model_validate(updated)
 
 
-@router.delete("/{knowledge_base_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{knowledge_base_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Xóa kho tri thức",
+)
 async def delete_knowledge_base(
     knowledge_base_id: UUID,
     repository: Annotated[
@@ -167,6 +188,7 @@ async def delete_knowledge_base(
     "/{knowledge_base_id}/members",
     response_model=KnowledgeBaseMemberResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Thêm thành viên kho tri thức",
 )
 async def add_knowledge_base_member(
     knowledge_base_id: UUID,
@@ -198,6 +220,7 @@ async def add_knowledge_base_member(
 @router.delete(
     "/{knowledge_base_id}/members/{member_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    summary="Xóa thành viên kho tri thức",
 )
 async def remove_knowledge_base_member(
     knowledge_base_id: UUID,

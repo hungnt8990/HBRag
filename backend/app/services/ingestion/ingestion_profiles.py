@@ -221,6 +221,24 @@ BOOTSTRAP_PROFILE_CONFIGS: dict[str, dict[str, Any]] = {
         "max_context_chars": 8000,
         "heading_rules": [],
     },
+    # Văn bản DOffice dùng chunker chuyên biệt (build_doffice_chunks): tách Điều/Khoản
+    # cho pháp quy, mỗi bảng 1 chunk, văn xuôi cắt theo ngưỡng dưới. Các khóa
+    # ``doffice_*`` được chunker đọc (xem chunker_chunking_service._chunk_doffice_document);
+    # ``chunk_size/chunk_overlap`` KHÔNG dùng cho doffice (giữ để tương thích UI).
+    "doffice_admin": {
+        "chunk_mode": "doffice_structured",
+        "doffice_body_max_chars": 3200,
+        "doffice_body_overlap": 300,
+        "doffice_table_max_chars": 3500,
+        "chunk_size": 3200,
+        "chunk_overlap": 300,
+        "top_k": 8,
+        "candidate_k": 60,
+        "answer_mode": "hybrid",
+        "answer_style": "policy_explainer",
+        "max_context_chars": 9000,
+        "heading_rules": [],
+    },
 }
 
 FALLBACK_CONFIG: dict[str, Any] = {

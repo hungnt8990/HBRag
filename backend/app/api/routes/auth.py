@@ -34,7 +34,7 @@ def get_document_repository(
     return DocumentRepository(session)
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, summary="Đăng nhập lấy access token")
 async def login(
     request: LoginRequest,
     repository: Annotated[AuthRepository, Depends(get_auth_repository)],
@@ -51,11 +51,11 @@ async def login(
     return TokenResponse(access_token=create_access_token(subject=str(user.id)))
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=UserResponse, summary="Lấy thông tin người dùng hiện tại")
 async def me(current_user: Annotated[User, Depends(get_current_user)]) -> UserResponse:
     return to_user_response(current_user)
 
-@router.get("/access-catalog", response_model=AccessCatalogResponse)
+@router.get("/access-catalog", response_model=AccessCatalogResponse, summary="Lấy danh mục phân quyền truy cập")
 async def access_catalog(
     current_user: Annotated[User, Depends(get_current_user)],
     auth_repository: Annotated[AuthRepository, Depends(get_auth_repository)],
@@ -96,7 +96,7 @@ async def access_catalog(
     )
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, summary="Đăng xuất phiên làm việc")
 async def logout() -> None:
     return None
 

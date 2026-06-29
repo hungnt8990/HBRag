@@ -139,12 +139,13 @@ def test_fetch_document_by_id_vb_parses_elasticsearch_response(monkeypatch) -> N
 
 
 class FakeRepository:
-    def __init__(self, existing: SimpleNamespace | None = None) -> None:
+    def __init__(self, existing: SimpleNamespace | None = None, *, chunk_count: int = 7) -> None:
         self.existing = existing
         self.document: SimpleNamespace | None = None
         self.deleted_documents: list[UUID] = []
         self.raw_documents: list[SimpleNamespace] = []
         self.raw_status_updates: list[dict[str, object]] = []
+        self.chunk_count = chunk_count
         self.commits = 0
         self.rollbacks = 0
 
@@ -154,7 +155,7 @@ class FakeRepository:
         return None
 
     async def count_chunks_for_document(self, document_id: UUID) -> int:
-        return 7
+        return self.chunk_count
 
     async def create_document(self, **kwargs):
         self.document = SimpleNamespace(
@@ -298,8 +299,41 @@ class FakeVectorStore:
         self.deleted.append((str(document_id), str(tenant_id) if tenant_id else None))
 
 
-def _ingestion_service(repository: FakeRepository, source: FakeSource | None = None):
+class FakeDocumentIndexStore:
+    """Giả lập ES document index (hbrag_documents_v1) cho test 3 nhánh ingest."""
+
+    def __init__(self, existing: set[str] | None = None) -> None:
+        self.existing = set(existing or ())
+        self.deleted: list[str] = []
+
+    async def existing_id_vb(self, id_vb_list: list[str]) -> set[str]:
+        return {v for v in id_vb_list if v in self.existing}
+
+    async def delete_by_id_vb(self, id_vb: str) -> int:
+        self.deleted.append(id_vb)
+        existed = id_vb in self.existing
+        self.existing.discard(id_vb)
+        return 1 if existed else 0
+
+    async def upsert_document(self, **kwargs) -> None:
+        return None
+
+    async def update_acl(self, *args, **kwargs) -> None:
+        return None
+
+    async def update_document_embedding(self, *args, **kwargs) -> None:
+        return None
+
+
+def _ingestion_service(
+    repository: FakeRepository,
+    source: FakeSource | None = None,
+    *,
+    document_index_store: "FakeDocumentIndexStore | None" = None,
+    es_existing: set[str] | None = None,
+):
     vector_store = FakeVectorStore()
+    doc_index = document_index_store or FakeDocumentIndexStore(existing=es_existing)
     return (
         DofficeIngestionService(
             repository=repository,  # type: ignore[arg-type]
@@ -308,6 +342,7 @@ def _ingestion_service(repository: FakeRepository, source: FakeSource | None = N
             vector_indexing_service=FakeVectorIndexingService(),  # type: ignore[arg-type]
             vector_store=vector_store,  # type: ignore[arg-type]
             enrichment_service=FakeEnrichmentService(),  # type: ignore[arg-type]
+            document_index_store=doc_index,  # type: ignore[arg-type]
         ),
         vector_store,
     )
@@ -490,7 +525,8 @@ def test_doffice_chunk_builder_keeps_table_rows_structured() -> None:
     }
 
     chunk_types = [chunk.metadata["chunk_type"] for chunk in chunks]
-    assert "document_summary" in chunk_types
+    # Tóm tắt tổng hợp đã BỎ khỏi collection chunk (chỉ giữ nội dung thật).
+    assert "document_summary" not in chunk_types
     assert "document_header" in chunk_types
     assert "document_body" in chunk_types
     # Builder v2: mỗi bảng chỉ còn 1 chunk_type="table" (không nổ table_parent/table_row).
@@ -499,10 +535,6 @@ def test_doffice_chunk_builder_keeps_table_rows_structured() -> None:
     assert "table_parent" not in chunk_types
     assert "table_row" not in chunk_types
     assert all(forbidden.isdisjoint(chunk.metadata) for chunk in chunks)
-
-    summary = next(chunk for chunk in chunks if chunk.metadata["chunk_type"] == "document_summary")
-    assert len(summary.content) < 1000
-    assert "|" not in summary.content
 
     body = next(chunk for chunk in chunks if chunk.metadata["chunk_type"] == "document_body")
     assert "Tóm tắt nguồn" not in body.content
@@ -535,6 +567,71 @@ def test_doffice_chunk_builder_keeps_table_rows_structured() -> None:
     assert footer.metadata["indexable"] is False
     assert footer.metadata["embedding_enabled"] is False
 
+def _sample_doffice_source_with_appendix() -> dict[str, object]:
+    """Mô phỏng thể thức 6515: thân văn bản + footer + phụ lục có heading riêng.
+
+    Heading phụ lục ("Phụ lục 01", "(1) F08_CotDien_HT – Lớp cột điện", "Tên bảng dữ
+    liệu...") KHÔNG khớp các từ khóa cũ ("danh sách"/"giao màn") nên trước fix các bảng
+    này rơi về tên "Bảng DOffice N" và prose phụ lục bị bỏ hoàn toàn.
+    """
+
+    return {
+        "id_vb": "1068586",
+        "ky_hieu": "6515/EVNCPC-VTCNTT+KD+KT",
+        "trich_yeu": "Ke hoach xay dung he thong GIS chuan hoa CSDL luoi dien",
+        "noi_ban_hanh": "Tong cong ty Dien luc mien Trung",
+        "nguoi_ky": "Le Hoang Anh Dung",
+        "ngay_vb": "2025-08-21",
+        "noi_dung": """
+Kinh gui: Cac don vi thanh vien.
+Tong cong ty giao nhiem vu cho cac don vi thuc hien cac noi dung sau.
+Tran trong./.
+KT. TONG GIAM DOC
+Noi nhan:
+- Nhu tren;
+- Luu: VT, VTCNTT, KT, KD.
+PHU LUC 01
+PHUONG AN SAP NHAP DU LIEU GIS 110kV, GIS TRUNG THE
+<table><thead><tr><th>TT</th><th>Du lieu</th><th>CPCIT</th></tr></thead>
+<tbody><tr><td>1</td><td>GIS 110kV</td><td>Sap nhap du lieu</td></tr></tbody></table>
+Phu luc 02
+MO TA DU LIEU KHOI TAO VA CHUYEN DOI SANG DU LIEU GIS HA THE
+1. Muc tieu
+Khoi tao khung CSDL GIS luoi dien ha the bao gom 10 doi tuong thiet bi.
+2. Chi tiet du lieu chuyen doi cua 07 doi tuong thiet bi
+(1) F08_CotDien_HT – Lop cot dien
+<table><thead><tr><th>TT</th><th>Truong du lieu</th><th>Mo ta</th><th>Kieu du lieu</th></tr></thead>
+<tbody><tr><td>1</td><td>ID</td><td>ID Cot dien</td><td>Text</td></tr></tbody></table>
+""",
+    }
+
+
+def test_doffice_appendix_prose_and_table_titles_are_captured() -> None:
+    normalized = normalize_doffice_source(_sample_doffice_source_with_appendix())
+    chunks = build_doffice_chunks(normalized)
+
+    # FIX: bảng phụ lục nhận tên theo heading thật, không còn "Bảng DOffice N".
+    table_names = {table.metadata.get("table_name") for table in normalized.tables}
+    assert not any(str(name).startswith("Bảng DOffice") for name in table_names)
+    assert any("F08_CotDien_HT" in str(name) for name in table_names)
+
+    # Prose phụ lục có heading "1./2." nên heading-aware chunker phân loại thành
+    # document_section; gom theo cờ artifact_type thay vì chunk_type.
+    appendix_chunks = [c for c in chunks if c.metadata.get("artifact_type") == "appendix"]
+    appendix_text = "\n".join(c.content for c in appendix_chunks)
+    # FIX: prose phụ lục (tiêu đề + mục tiêu + heading lớp dữ liệu) không còn bị bỏ.
+    assert appendix_chunks
+    assert "Muc tieu" in appendix_text
+    assert "F08_CotDien_HT" in appendix_text
+
+    # FIX: chunk bảng mang đầy đủ khối ngữ cảnh như chunk prose.
+    table_chunk = next(c for c in chunks if c.metadata.get("chunk_type") == "table")
+    assert "Văn bản: 6515/EVNCPC-VTCNTT+KD+KT" in table_chunk.content
+    assert "Ngày ban hành: 21/08/2025" in table_chunk.content
+    assert "Cơ quan ban hành: Tong cong ty Dien luc mien Trung" in table_chunk.content
+    assert "Bảng:" in table_chunk.content
+
+
 def test_doffice_summary_filters_pii_and_table_rows_are_lookup_ready() -> None:
     source = {
         "id_vb": "608",
@@ -558,16 +655,19 @@ Danh sách cán bộ tham gia
 """,
     }
 
-    chunks = build_doffice_chunks(normalize_doffice_source(source))
-    summary = next(chunk for chunk in chunks if chunk.metadata["chunk_type"] == "document_summary")
+    normalized = normalize_doffice_source(source)
+    chunks = build_doffice_chunks(normalized)
     table = next(chunk for chunk in chunks if chunk.metadata["chunk_type"] == "table")
 
-    assert "0983129374" not in summary.content
-    assert "phunt3@cpc.vn" not in summary.content
-    assert "Nguyễn Thanh Phú" not in summary.content
-    assert len(summary.content.split()) <= 200
+    # Tóm tắt KHÔNG còn là chunk (chỉ giữ nội dung), nhưng vẫn được sinh + lọc PII.
+    assert not any(chunk.metadata.get("chunk_type") == "document_summary" for chunk in chunks)
+    summary_text = normalized.summary_text or ""
+    assert "0983129374" not in summary_text
+    assert "phunt3@cpc.vn" not in summary_text
+    assert "Nguyễn Thanh Phú" not in summary_text
+    assert len(summary_text.split()) <= 200
     for chunk in chunks:
-        if chunk.metadata.get("chunk_type") in {"document_summary", "document_header", "legal_clause", "table"}:
+        if chunk.metadata.get("chunk_type") in {"document_header", "legal_clause", "table"}:
             assert chunk.metadata["source_span"]["start"] <= chunk.metadata["source_span"]["end"]
 
     # Danh sách cán bộ (kể cả PII) nằm đầy đủ trong chunk bảng để tra cứu.
@@ -666,15 +766,33 @@ def test_ingest_doffice_document_creates_document_metadata() -> None:
     assert {"embedding_status": "indexed", "sync_status": "indexed"} in repository.raw_status_updates
 
 
-def test_ingest_doffice_document_skips_existing_without_force_refresh() -> None:
-    existing = SimpleNamespace(
+def _existing_synced_doc(*, with_noi_dung: bool = True) -> SimpleNamespace:
+    meta = {
+        "id_vb": "1068586",
+        "ky_hieu": "6515/EVNCPC-VTCNTT+KD+KT",
+        "trich_yeu": "Giao nhiem vu GIS",
+        "noi_ban_hanh": "EVNCPC",
+        "has_embedding": True,
+        "access": {"raw_assignment": {"don_vi_list": [], "phong_ban_list": [], "ca_nhan_list": []}},
+    }
+    if with_noi_dung:
+        meta["noi_dung_raw"] = "--- Page 1 ---\n## CPCIT\nCPCIT thuc hien GIS 110kV."
+    return SimpleNamespace(
         id=EXISTING_DOCUMENT_ID,
         organization_id=ORG_ID,
-        document_metadata={"id_vb": "1068586", "ky_hieu": "6515/EVNCPC-VTCNTT+KD+KT"},
+        document_profile=None,
+        parsed_text=None,
+        parsed_at=None,
+        document_metadata=meta,
     )
+
+
+def test_ingest_doffice_both_db_exist_and_already_chunked_skips() -> None:
+    """Cả 2 DB đều có VÀ đã có chunk -> tái sử dụng, không chunk lại, không gọi DOffice."""
+    existing = _existing_synced_doc()
     source = FakeSource()
-    repository = FakeRepository(existing=existing)
-    service, vector_store = _ingestion_service(repository, source)
+    repository = FakeRepository(existing=existing, chunk_count=7)
+    service, vector_store = _ingestion_service(repository, source, es_existing={"1068586"})
 
     response = asyncio.run(
         service.ingest_doffice_document(
@@ -691,7 +809,109 @@ def test_ingest_doffice_document_skips_existing_without_force_refresh() -> None:
     assert response.chunks_created == 7
     assert source.calls == []
     assert repository.deleted_documents == []
+    assert repository.document is None  # không tạo document mới
     assert vector_store.deleted == []
+
+
+def test_ingest_doffice_both_db_exist_no_chunks_reads_noi_dung_from_pg() -> None:
+    """Cả 2 DB đều có nhưng chưa chunk -> đọc noi_dung từ PG, chunk + Qdrant, không tạo doc."""
+    existing = _existing_synced_doc(with_noi_dung=True)
+    source = FakeSource()
+    repository = FakeRepository(existing=existing, chunk_count=0)
+    service, vector_store = _ingestion_service(repository, source, es_existing={"1068586"})
+
+    response = asyncio.run(
+        service.ingest_doffice_document(
+            "1068586",
+            DofficeIngestOptions(force_refresh=False, enable_enrichment=False),
+            uploaded_by_user_id=USER_ID,
+            organization_id=ORG_ID,
+            knowledge_base_id=KB_ID,
+        )
+    )
+
+    assert response.status == "success"
+    assert response.document_id == EXISTING_DOCUMENT_ID
+    assert response.chunks_created == 2
+    assert source.calls == []  # đọc noi_dung từ PG, KHÔNG gọi DOffice
+    assert repository.document is None  # KHÔNG tạo document mới
+    assert repository.deleted_documents == []
+    assert vector_store.deleted == []
+    # đã nạp nội dung normalized vào document ĐANG CÓ
+    assert "CPCIT" in (existing.parsed_text or "")
+    assert existing.document_metadata.get("parsed_elements")
+    # giữ nguyên ACL đã sync (không bị xóa)
+    assert existing.document_metadata.get("access")
+
+
+def test_ingest_doffice_both_db_exist_missing_noi_dung_falls_back_to_doffice() -> None:
+    """Cả 2 DB đều có nhưng PG chưa lưu noi_dung_raw -> lấy 1 lần từ DOffice rồi cache."""
+    existing = _existing_synced_doc(with_noi_dung=False)
+    source = FakeSource()
+    repository = FakeRepository(existing=existing, chunk_count=0)
+    service, _vector_store = _ingestion_service(repository, source, es_existing={"1068586"})
+
+    response = asyncio.run(
+        service.ingest_doffice_document(
+            "1068586",
+            DofficeIngestOptions(force_refresh=False, enable_enrichment=False),
+            uploaded_by_user_id=USER_ID,
+            organization_id=ORG_ID,
+            knowledge_base_id=KB_ID,
+        )
+    )
+
+    assert response.status == "success"
+    assert source.calls == ["1068586"]  # thiếu noi_dung_raw -> fetch DOffice 1 lần
+    assert existing.document_metadata.get("noi_dung_raw")  # đã cache vào PG
+    assert repository.document is None
+
+
+def test_ingest_doffice_xor_pg_only_deletes_and_full_ingests() -> None:
+    """Lệch: chỉ PG có (ES mất) -> xóa phần thừa PG rồi ingest đầy đủ từ DOffice."""
+    existing = _existing_synced_doc()
+    source = FakeSource()
+    repository = FakeRepository(existing=existing)
+    service, vector_store = _ingestion_service(repository, source, es_existing=set())
+
+    response = asyncio.run(
+        service.ingest_doffice_document(
+            "1068586",
+            DofficeIngestOptions(force_refresh=False, enable_enrichment=False),
+            uploaded_by_user_id=USER_ID,
+            organization_id=ORG_ID,
+            knowledge_base_id=KB_ID,
+        )
+    )
+
+    assert response.status == "success"
+    assert repository.deleted_documents == [EXISTING_DOCUMENT_ID]  # xóa PG thừa
+    assert source.calls == ["1068586"]  # ingest đầy đủ từ DOffice
+    assert repository.document is not None  # tạo document mới
+    assert vector_store.deleted == [(str(EXISTING_DOCUMENT_ID), str(ORG_ID))]
+
+
+def test_ingest_doffice_xor_es_only_deletes_es_and_full_ingests() -> None:
+    """Lệch: chỉ ES có (PG mất) -> xóa record ES thừa rồi ingest đầy đủ từ DOffice."""
+    source = FakeSource()
+    repository = FakeRepository()  # PG không có
+    doc_index = FakeDocumentIndexStore(existing={"1068586"})  # ES có
+    service, _vector_store = _ingestion_service(repository, source, document_index_store=doc_index)
+
+    response = asyncio.run(
+        service.ingest_doffice_document(
+            "1068586",
+            DofficeIngestOptions(force_refresh=False, enable_enrichment=False),
+            uploaded_by_user_id=USER_ID,
+            organization_id=ORG_ID,
+            knowledge_base_id=KB_ID,
+        )
+    )
+
+    assert response.status == "success"
+    assert doc_index.deleted == ["1068586"]  # xóa record ES thừa
+    assert source.calls == ["1068586"]  # ingest đầy đủ
+    assert repository.document is not None
 
 
 def test_ingest_doffice_document_force_refresh_replaces_existing() -> None:
@@ -865,8 +1085,12 @@ def test_table_chunks_add_part_suffix_when_split() -> None:
     )
     results = _table_chunks(_minimal_normalized_doc([table]), table)
     assert len(results) > 1
-    assert "(phần 1/" in results[0][0]
-    assert "(phần 2/" in results[1][0]
+    # Khối ngữ cảnh đầu chunk bảng giờ mang đầy đủ thông tin văn bản như chunk prose.
+    assert "Văn bản:" in results[0][0]
+    assert "Ngày ban hành:" in results[0][0]
+    assert "Cơ quan ban hành:" in results[0][0]
+    assert "Phần: 1/" in results[0][0]
+    assert "Phần: 2/" in results[1][0]
     assert results[1][1]["subchunk_index"] == 1
     assert results[1][1]["chunk_strategy"] == "table_chunker_split"
 
@@ -882,7 +1106,7 @@ def test_table_chunks_single_when_small() -> None:
     )
     results = _table_chunks(_minimal_normalized_doc([table]), table)
     assert len(results) == 1
-    assert "(phần" not in results[0][0]
+    assert "Phần:" not in results[0][0]
     assert results[0][1]["chunk_strategy"] == "table_single"
 
 

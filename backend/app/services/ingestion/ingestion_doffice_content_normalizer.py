@@ -214,6 +214,21 @@ def normalize_doffice_source(source: dict[str, Any]) -> NormalizedDofficeDocumen
     base_markdown_text = replace_tables(raw_text, tables, replacement="markdown")
     base_plain_text = html_to_plain_text(replace_tables(raw_text, tables, replacement="placeholder"))
     body_text, footer_text = split_footer_signature(base_plain_text)
+    appendix_text, appendix_span = extract_appendix_text(base_plain_text)
+    # Footer bị tách khỏi body nên không có vị trí -> tìm lại trong base_plain_text để
+    # chunk footer sắp ĐÚNG thứ tự đọc (cuối thân thư, TRƯỚC phụ lục), không bị reorder
+    # đẩy xuống sau phụ lục. Dùng cùng hệ tọa độ với appendix/table (base_plain_text).
+    footer_span = (
+        _source_span_for_text(base_plain_text, footer_text, chunk_type="footer_signature")
+        if footer_text
+        else None
+    )
+    # reading_pos của mỗi bảng = vị trí placeholder [[TABLE_N]] trong base_plain_text.
+    # Đây là hệ tọa độ NHẤT QUÁN với body/footer/appendix (span gốc của bảng theo
+    # raw_text HTML không so sánh được) -> chunk sắp đúng thứ tự đọc khi reorder.
+    for _ph_index, _ph_match in enumerate(re.finditer(r"\[\[TABLE_\d+]]", base_plain_text)):
+        if _ph_index < len(tables):
+            tables[_ph_index].metadata["reading_pos"] = _ph_match.start()
     base_clean_text = normalize_lines(apply_spacing_fixes(strip_markdown_noise(body_text)))
     metadata = build_rule_metadata(source=source, clean_text=base_clean_text, tables=tables)
     # FIX 3A: ``ngay_vb`` thường null và ngày ban hành nằm ở khối chữ ký (đã bị
@@ -229,7 +244,7 @@ def normalize_doffice_source(source: dict[str, Any]) -> NormalizedDofficeDocumen
     clean_text = prepend_metadata_preamble(base_clean_text, metadata_preamble)
     plain_text = prepend_metadata_preamble(base_plain_text, metadata_preamble)
     markdown_text = prepend_metadata_preamble(base_markdown_text, metadata_preamble)
-    elements = build_elements(source=source, clean_text=base_clean_text, tables=tables, footer_text=footer_text, summary_text=summary_text, metadata=metadata)
+    elements = build_elements(source=source, clean_text=base_clean_text, tables=tables, footer_text=footer_text, footer_span=footer_span, summary_text=summary_text, metadata=metadata, appendix_text=appendix_text, appendix_span=appendix_span)
     content_hash = sha256_text("\n\n".join(part for part in (metadata_preamble, raw_text) if part.strip()))
     metadata_hash = sha256_json({key: source.get(key) for key in sorted(source) if key != "noi_dung"})
 
@@ -395,6 +410,18 @@ def parse_html_tables(raw_text: str) -> list[NormalizedTable]:
             for index, row in enumerate(data_rows)
             if _is_meaningful_table_data_row(headers, row)
         ]
+        # Bảng bị tách trang (phần 2+) không có heading riêng -> rơi về "Bảng DOffice N".
+        # Nếu là phần tiếp của bảng phụ lục liền trước (cùng cấu trúc cột, đánh số tiếp)
+        # -> kế thừa tên cha + "(tiếp theo)" để không mất ngữ cảnh phụ lục.
+        if table_name.startswith("Bảng DOffice ") and tables:
+            prev_name = str(tables[-1].metadata.get("table_name") or "")
+            if (
+                prev_name
+                and not prev_name.startswith("Bảng DOffice ")
+                and _is_continuation_table(list(tables[-1].headers), headers, data_rows)
+            ):
+                base_name = re.sub(r"\s*\(tiếp theo\)\s*$", "", prev_name)
+                table_name = f"{base_name} (tiếp theo)"
         logical_table_id = _logical_table_id(table_name=table_name, headers=headers)
         table_id = f"{logical_table_id}:physical:{table_index + 1}"
         tables.append(
@@ -481,6 +508,48 @@ def _row_key(headers: list[str], row: list[str], *, index: int) -> str:
         return row_number
     return str(index)
 
+# Heading mục/bảng trong phụ lục. LƯU Ý: KHÔNG dùng "\b" sau "(\d+)" — sau ")" là
+# dấu cách (cả hai non-word) nên "\b" luôn fail, khiến heading "(7) F10_..." trượt.
+_APPENDIX_HEADING_NUM = re.compile(r"^\(\d+\)\s*\S")  # "(1) ...", "(7) F10_..."
+_APPENDIX_HEADING_KW = re.compile(
+    r"(?iu)^(?:phụ\s*lục|phu\s*luc|appendix|tên\s+bảng|ten\s+bang|mối\s+quan\s+hệ|"
+    r"moi\s+quan\s+he|danh\s+sách|danh\s+sach|\d+(?:\.\d+)*[.)]\s)"
+)
+_FEATURE_CLASS_RE = re.compile(r"\bF\d{2}_[A-Za-zÀ-ỹ]")  # mã lớp dữ liệu F08_/F10_...
+
+
+def _appendix_heading_name(line: str) -> str | None:
+    """Tên heading phụ lục nếu dòng là tiêu đề mục/bảng (đã gỡ markdown ``#``/``>``).
+
+    Heading OCR đôi khi có tiền tố ``####`` (vd ``#### (1) Mối quan hệ...``) -> phải gỡ
+    để bắt được ``(N) ...``; nếu không sẽ khớp nhầm dòng caption ngay phía trên.
+    """
+    clean = re.sub(r"^[#>\s]+", "", clean_inline_text(line)).strip(" :-")
+    if not clean or len(clean) > 160 or "|" in clean:
+        return None
+    if (
+        _APPENDIX_HEADING_NUM.match(clean)
+        or _APPENDIX_HEADING_KW.match(clean)
+        or _FEATURE_CLASS_RE.search(clean)
+    ):
+        return clean
+    return None
+
+
+def _is_continuation_table(prev_headers: list[str], headers: list[str], data_rows: list[list[str]]) -> bool:
+    """True nếu bảng hiện tại là PHẦN TIẾP của bảng liền trước (do tách trang).
+
+    Dấu hiệu: cùng số cột, cột đầu là TT/STT ở cả hai, và dòng dữ liệu đầu của bảng
+    hiện tại đánh số > 1 (vd 23, 9, 20 — tiếp nối; bảng mới sẽ bắt đầu từ 1).
+    """
+    if not headers or not prev_headers or len(prev_headers) != len(headers):
+        return False
+    if _normalize_key(headers[0]) not in {"tt", "stt"} or _normalize_key(prev_headers[0]) not in {"tt", "stt"}:
+        return False
+    first = next((clean_inline_text(row[0]) for row in data_rows if row and clean_inline_text(row[0])), "")
+    return bool(re.fullmatch(r"\d+", first)) and int(first) > 1
+
+
 def infer_table_name(raw_text: str, table_start: int, *, table_index: int) -> str:
     before = html_to_plain_text((raw_text or "")[:table_start])
     lines = [line.strip(" :-") for line in before.splitlines() if line.strip(" :-")]
@@ -492,6 +561,27 @@ def infer_table_name(raw_text: str, table_start: int, *, table_index: int) -> st
             return clean_inline_text(line)
         if "giao" in lowered and "man" in lowered:
             return clean_inline_text(line)
+    # Bảng trong PHỤ LỤC thường có heading riêng (Phụ lục NN, (N) F0X_..., (N) Mối quan
+    # hệ..., Tên bảng dữ liệu...) -> lấy heading gần nhất làm tên bảng thay vì rơi về
+    # "Bảng DOffice N". Chỉ áp dụng khi bảng nằm sau marker phụ lục.
+    if APPENDIX_MARKER_PATTERN.search(before):
+        window = lines[-6:]
+        for idx in range(len(window) - 1, -1, -1):
+            name = _appendix_heading_name(window[idx])
+            if not name:
+                continue
+            # Tiêu đề "Phụ lục NN" có dòng mô tả ngay dưới (vd "PHƯƠNG ÁN SÁP NHẬP...")
+            # -> gộp để tên bảng đầy đủ: "Phụ lục 01 — Phương án sáp nhập...".
+            if re.match(r"(?iu)^(phụ\s*lục|phu\s*luc|appendix)\b", name):
+                subtitle: list[str] = []
+                for follow in window[idx + 1:]:
+                    clean = re.sub(r"^[#>\s]+", "", clean_inline_text(follow)).strip(" :-")
+                    if not clean or "|" in clean or _appendix_heading_name(clean):
+                        break
+                    subtitle.append(clean)
+                if subtitle:
+                    name = f"{name} — {' '.join(subtitle)}"
+            return name
     return f"Bảng DOffice {table_index + 1}"
 
 
@@ -950,7 +1040,7 @@ def _compact_multiline_cell(value: Any) -> str | list[str] | None:
     return unique[0] if unique else None
 
 
-def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[NormalizedTable], footer_text: str | None, summary_text: str | None, metadata: dict[str, Any]) -> list[NormalizedElement]:
+def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[NormalizedTable], footer_text: str | None, footer_span: dict[str, int] | None = None, summary_text: str | None, metadata: dict[str, Any], appendix_text: str = "", appendix_span: dict[str, int] | None = None) -> list[NormalizedElement]:
     elements: list[NormalizedElement] = []
     if summary_text:
         elements.append(
@@ -998,6 +1088,24 @@ def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[Norm
                 {
                     "chunk_type": "document_body",
                     "source_span": _source_span_for_text(clean_text, body_without_tables.strip(), chunk_type="document_body"),
+                    "indexable": True,
+                },
+            )
+        )
+    # Prose phụ lục (tiêu đề Phụ lục, "Mục tiêu", heading từng lớp dữ liệu, mô tả mối
+    # quan hệ...) trước đây bị ``split_footer_signature`` cắt bỏ. Đưa vào dưới dạng
+    # ``document_body`` để heading-aware chunker chia theo mục và đính ngữ cảnh văn bản.
+    if appendix_text and appendix_text.strip():
+        elements.append(
+            NormalizedElement(
+                "document_body",
+                appendix_text.strip(),
+                {
+                    "chunk_type": "document_body",
+                    "artifact_type": "appendix",
+                    "section_title": "Phụ lục",
+                    "source_span": appendix_span
+                    or _source_span_for_text(clean_text, appendix_text.strip(), chunk_type="document_body"),
                     "indexable": True,
                 },
             )
@@ -1137,7 +1245,7 @@ def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[Norm
                 )
             )
     if footer_text:
-        elements.append(NormalizedElement("footer_signature", footer_text, {"chunk_type": "footer_signature", "is_footer_or_signature": True, "indexable": False, "embedding_enabled": False}))
+        elements.append(NormalizedElement("footer_signature", footer_text, {"chunk_type": "footer_signature", "is_footer_or_signature": True, "indexable": False, "embedding_enabled": False, "source_span": footer_span}))
     return elements
 
 
@@ -1477,6 +1585,33 @@ def split_footer_signature(value: str) -> tuple[str, str | None]:
     body = text[:body_end].strip()
     footer = text[match.start() : footer_end].strip() or None
     return body, footer
+
+
+def extract_appendix_text(plain_text: str) -> tuple[str, dict[str, int] | None]:
+    """Trích phần PROSE của phụ lục (sau marker "PHỤ LỤC") để không mất ngữ cảnh.
+
+    ``split_footer_signature`` cắt body tại marker phụ lục nên trước đây toàn bộ tiêu
+    đề/đoạn mô tả của phụ lục (vd "Phụ lục 02 ... 1. Mục tiêu ...", "(1) F08_CotDien_HT
+    – Lớp cột điện", "Mối quan hệ ...") bị bỏ khỏi mọi chunk. Bảng trong phụ lục được
+    chunk riêng từ :func:`parse_html_tables`; ở đây chỉ giữ phần văn xuôi: gỡ placeholder
+    bảng ``[[TABLE_n]]`` và cắt khối chữ ký nếu bị chèn lẫn (thứ tự body→phụ lục→footer
+    không đồng nhất giữa các văn bản OCR).
+
+    Trả về ``(text, source_span)`` hoặc ``("", None)`` nếu không có phụ lục.
+    """
+
+    text = plain_text or ""
+    match = APPENDIX_MARKER_PATTERN.search(text)
+    if not match:
+        return "", None
+    region = re.sub(r"\[\[TABLE_\d+]]", "\n", text[match.start():])
+    footer_match = FOOTER_MARKER_PATTERN.search(region) or ASCII_FOOTER_MARKER_PATTERN.search(region)
+    if footer_match:
+        region = region[: footer_match.start()]
+    cleaned = normalize_lines(apply_spacing_fixes(strip_markdown_noise(region)))
+    if not cleaned.strip():
+        return "", None
+    return cleaned, {"start": match.start(), "end": len(text)}
 
 
 def normalize_lines(value: str) -> str:

@@ -222,7 +222,7 @@ class RagRuntimeConfigUpdateRequest(BaseModel):
     config: dict[str, Any]
 
 
-@router.get("/profiles", response_model=ProfilesResponse)
+@router.get("/profiles", response_model=ProfilesResponse, summary="Lấy danh sách hồ sơ nạp tài liệu")
 async def list_profiles(
     repository: Annotated[
         IngestionProfileRepository,
@@ -238,7 +238,7 @@ async def list_profiles(
     )
 
 
-@router.put("/profiles/{profile_name}", response_model=ProfilesResponse)
+@router.put("/profiles/{profile_name}", response_model=ProfilesResponse, summary="Cập nhật cấu hình hồ sơ nạp tài liệu")
 async def update_profile_config(
     profile_name: str,
     payload: ProfileUpdateRequest,
@@ -265,7 +265,7 @@ async def update_profile_config(
     )
 
 
-@router.post("/profiles/test-heading-rules", response_model=HeadingRuleTestResponse)
+@router.post("/profiles/test-heading-rules", response_model=HeadingRuleTestResponse, summary="Kiểm thử luật nhận diện tiêu đề")
 async def test_heading_rules(
     payload: HeadingRuleTestRequest,
     repository: Annotated[
@@ -296,7 +296,7 @@ async def test_heading_rules(
     )
 
 
-@router.get("/rag-runtime-config", response_model=RagRuntimeConfigResponse)
+@router.get("/rag-runtime-config", response_model=RagRuntimeConfigResponse, summary="Lấy cấu hình RAG runtime")
 async def get_rag_runtime_config(
     repository: Annotated[
         RagRuntimeConfigRepository,
@@ -317,7 +317,7 @@ async def get_rag_runtime_config(
         source=source,
     )
 
-@router.put("/rag-runtime-config", response_model=RagRuntimeConfigResponse)
+@router.put("/rag-runtime-config", response_model=RagRuntimeConfigResponse, summary="Cập nhật cấu hình RAG runtime")
 async def update_rag_runtime_config(
     payload: RagRuntimeConfigUpdateRequest,
     repository: Annotated[
@@ -340,7 +340,7 @@ async def update_rag_runtime_config(
         source="PostgreSQL",
     )
 
-@router.get("/runtime-config", response_model=RuntimeConfigResponse)
+@router.get("/runtime-config", response_model=RuntimeConfigResponse, summary="Lấy cấu hình runtime hệ thống")
 async def runtime_config(
     repository: Annotated[
         RagRuntimeConfigRepository,
@@ -424,7 +424,7 @@ async def runtime_config(
     )
 
 
-@router.get("/graph-health", response_model=GraphHealthResponse)
+@router.get("/graph-health", response_model=GraphHealthResponse, summary="Kiểm tra tình trạng GraphRAG")
 async def graph_health(
     neo4j_client: Annotated[Neo4jClient, Depends(get_neo4j_client)],
 ) -> GraphHealthResponse:
@@ -452,7 +452,7 @@ async def graph_health(
     )
 
 
-@router.post("/recreate-vector-store", response_model=VectorStoreCollectionResponse)
+@router.post("/recreate-vector-store", response_model=VectorStoreCollectionResponse, summary="Tạo lại collection vector store")
 async def recreate_vector_store(
     vector_store: Annotated[QdrantVectorStore, Depends(get_vector_store)],
 ) -> VectorStoreCollectionResponse:
@@ -509,6 +509,7 @@ def _enqueue_upload_with_optional_profile(
     "/ingestion-jobs",
     response_model=IngestionJobResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    summary="Tải lên và đưa tài liệu vào hàng đợi nạp",
 )
 async def enqueue_ingestion_job(
     background_tasks: BackgroundTasks,
@@ -622,6 +623,7 @@ def _split_form_list(value: str | None) -> list[str]:
     "/documents/{document_id}/reingest",
     response_model=IngestionJobResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    summary="Nạp lại tài liệu đã có",
 )
 async def reingest_document(
     document_id: UUID,
@@ -654,14 +656,14 @@ async def reingest_document(
     return _to_ingestion_job_response(job)
 
 
-@router.get("/ingestion-jobs", response_model=list[IngestionJobResponse])
+@router.get("/ingestion-jobs", response_model=list[IngestionJobResponse], summary="Lấy danh sách tác vụ nạp tài liệu")
 async def list_ingestion_jobs(
     queue: Annotated[IngestionQueue, Depends(get_ingestion_queue)],
 ) -> list[IngestionJobResponse]:
     return [_to_ingestion_job_response(job) for job in queue.list_jobs()]
 
 
-@router.get("/ingestion-jobs/{job_id}", response_model=IngestionJobResponse)
+@router.get("/ingestion-jobs/{job_id}", response_model=IngestionJobResponse, summary="Lấy chi tiết tác vụ nạp tài liệu")
 async def get_ingestion_job(
     job_id: UUID,
     queue: Annotated[IngestionQueue, Depends(get_ingestion_queue)],
@@ -675,7 +677,7 @@ async def get_ingestion_job(
     return _to_ingestion_job_response(job)
 
 
-@router.delete("/ingestion-jobs/{job_id}", response_model=IngestionJobDeleteResponse)
+@router.delete("/ingestion-jobs/{job_id}", response_model=IngestionJobDeleteResponse, summary="Xóa tác vụ nạp tài liệu")
 async def delete_ingestion_job(
     job_id: UUID,
     queue: Annotated[IngestionQueue, Depends(get_ingestion_queue)],

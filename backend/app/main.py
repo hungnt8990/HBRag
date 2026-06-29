@@ -95,10 +95,42 @@ async def _validate_graph_store_on_startup() -> None:
     )
 
 
+API_DESCRIPTION = """
+**HBRag** — API hỏi-đáp RAG trên kho văn bản hành chính EVNCPC (DOffice) với phân quyền theo
+đơn vị/phòng ban/cá nhân (ACL).
+
+### Xác thực
+Hầu hết API yêu cầu **Bearer JWT**. Lấy token qua `POST /api/auth/login`, rồi bấm **Authorize**
+(góc trên phải) và dán `Bearer <token>`.
+
+### Nhóm API
+- **documents**: upload, parse, chunk, index, xóa, tra cứu chunk + metadata Qdrant của văn bản.
+- **search / document-search**: tìm kiếm hybrid/two-stage (gồm retrieval DOffice 3-DB khi bật cờ).
+- **chat**: hỏi-đáp RAG (đồng bộ + streaming) có trích dẫn nguồn.
+- **doffice-acl**: cập nhật/đồng bộ ACL văn bản DOffice theo `id_vb`.
+- **knowledge-bases / memory / admin / auth / health**: quản trị, bộ nhớ hội thoại, xác thực, sức khỏe.
+"""
+
+OPENAPI_TAGS = [
+    {"name": "auth", "description": "Đăng nhập, đăng ký, làm mới token (Bearer JWT)."},
+    {"name": "documents", "description": "Quản lý văn bản: upload, parse, chunk, index, xóa, tra cứu chunk + metadata Qdrant."},
+    {"name": "search", "description": "Tìm kiếm hybrid/two-stage; gồm retrieval DOffice 3-DB khi bật `DOFFICE_RETRIEVAL_ENABLED`."},
+    {"name": "document-search", "description": "Tìm văn bản DOffice ở mức tài liệu (Stage-1) phục vụ kiểm thử/ACL."},
+    {"name": "chat", "description": "Hỏi-đáp RAG (đồng bộ + streaming), có trích dẫn nguồn và bộ nhớ hội thoại."},
+    {"name": "doffice-acl", "description": "Cập nhật/đồng bộ ACL (allow/deny) cho văn bản DOffice theo id_vb."},
+    {"name": "knowledge-bases", "description": "Quản lý kho tri thức (knowledge base) và phân quyền."},
+    {"name": "memory", "description": "Bộ nhớ hội thoại phục vụ chat (ghi nhớ/truy hồi ngữ cảnh người dùng)."},
+    {"name": "admin", "description": "Quản trị hệ thống: người dùng, vai trò, đơn vị, cấu hình RAG runtime."},
+    {"name": "health", "description": "Kiểm tra tình trạng dịch vụ (liveness/readiness)."},
+]
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
+        description=API_DESCRIPTION,
+        openapi_tags=OPENAPI_TAGS,
         docs_url="/docs",
         redoc_url="/redoc",
         lifespan=lifespan,

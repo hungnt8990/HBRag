@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 
+import re
 from dataclasses import replace
 from typing import Any
 
@@ -23,6 +24,11 @@ TABLE_VIEW_CHUNK_TYPES = {"table_parent", "table_row", "table_group", "table_col
 
 # Ngưỡng ký tự để quyết định 1 bảng có cần cắt nhỏ hay không.
 TABLE_CHUNK_MAX_CHARS = 3500  # tránh cắt vụn các bảng 30-40 hàng vừa phải
+# Mặc định cho chunk văn xuôi (body). Có thể override qua profile DB ``doffice_admin``
+# (doffice_body_max_chars / doffice_body_overlap / doffice_table_max_chars) — xem
+# chunker_chunking_service._chunk_doffice_document.
+BODY_CHUNK_MAX_CHARS = 2800
+BODY_CHUNK_OVERLAP = 300
 
 # Nhận diện chunk "chỉ là tiêu đề mục" (document_section không có nội dung thực).
 _SECTION_TITLE_ONLY_MAX_CHARS = 120
@@ -35,6 +41,7 @@ _SECTION_CONTEXT_PREFIXES = (
 )
 
 CHUNK_METADATA_ALLOWLIST = {
+    "reading_pos",
     "id_vb",
     "document_code",
     "ky_hieu",
@@ -140,6 +147,10 @@ def _is_section_title_only_chunk(content: str, metadata: dict[str, Any]) -> bool
 
     if str(metadata.get("chunk_type") or "") != "document_section":
         return False
+    # Heading cấu trúc của PHỤ LỤC (Phụ lục NN, "(N) F0X_...", "Mục tiêu"...) tuy ngắn
+    # nhưng là ngữ cảnh cần giữ cho retrieval; không coi là tiêu đề rỗng.
+    if metadata.get("artifact_type") == "appendix":
+        return False
 
     lines = [line.strip() for line in content.strip().splitlines() if line.strip()]
     body_lines = [line for line in lines if not line.startswith(_SECTION_CONTEXT_PREFIXES)]
@@ -170,13 +181,53 @@ def _is_section_title_only_chunk(content: str, metadata: dict[str, Any]) -> bool
     )
 
 
-def build_doffice_chunks(normalized: NormalizedDofficeDocument) -> list[ChunkCreate]:
+_CONTEXT_PREFIXES = ("Văn bản:", "Ngày ban hành:", "Cơ quan ban hành:", "Mục:")
+
+
+def _appendix_full_title(content: str, metadata: dict) -> str:
+    """Tiêu đề phụ lục đầy đủ từ 1 chunk preamble: section_title + dòng mô tả.
+
+    Vd: section_title="Phụ lục 02" + body "MÔ TẢ DỮ LIỆU KHỞI TẠO..." ->
+    "Phụ lục 02 — MÔ TẢ DỮ LIỆU KHỞI TẠO...".
+    """
+    sect = " ".join(str(metadata.get("section_title") or "").split()).strip()
+    body = [
+        line.strip()
+        for line in content.splitlines()
+        if line.strip() and not line.strip().startswith(_CONTEXT_PREFIXES)
+    ]
+    subtitle = [line for line in body if line.casefold() != sect.casefold()]
+    return f"{sect} — {' '.join(subtitle)}" if subtitle else sect
+
+
+def _merge_appendix_preamble(preamble: tuple[str, dict], content: str) -> str:
+    """Gộp tiêu đề phụ lục (preamble) vào dòng ``Mục:`` của chunk kế tiếp làm mục cha."""
+    title = _appendix_full_title(preamble[0], preamble[1])
+    merged = re.sub(
+        r"(?m)^Mục:\s*(.+)$",
+        lambda m: f"Mục: {title} > {m.group(1)}",
+        content,
+        count=1,
+    )
+    return merged if merged != content else f"{title}\n\n{content}"
+
+
+def build_doffice_chunks(
+    normalized: NormalizedDofficeDocument,
+    *,
+    body_max_chars: int = BODY_CHUNK_MAX_CHARS,
+    body_overlap: int = BODY_CHUNK_OVERLAP,
+    table_max_chars: int = TABLE_CHUNK_MAX_CHARS,
+) -> list[ChunkCreate]:
     """Sinh chunk cho văn bản DOffice.
 
     Builder v2 (mặc định): giữ NGUYÊN cách xử lý phần prose, nhưng BỎ table-
     explosion — mỗi bảng chỉ thành 1 (hoặc vài) chunk ``chunk_type="table"`` lấy
     từ ``normalized.tables``. Đặt env ``DOFFICE_CHUNKER_V2_ENABLED=false`` để quay
     lại builder cũ :func:`build_doffice_chunks_legacy`.
+
+    ``body_max_chars``/``body_overlap``/``table_max_chars`` cho phép tune kích thước
+    chunk qua profile DB ``doffice_admin`` (mặc định = hằng số hiện hành).
     """
 
     if not settings.doffice_chunker_v2_enabled:
@@ -184,25 +235,62 @@ def build_doffice_chunks(normalized: NormalizedDofficeDocument) -> list[ChunkCre
 
     chunks: list[ChunkCreate] = []
 
+    # Tên các bảng (chuẩn hóa) -> dùng để bỏ chunk PROSE phụ lục chỉ-là-tiêu-đề mà
+    # đã có chunk BẢNG cùng tên (vd "Phụ lục 01"): bảng đã mang heading + dữ liệu nên
+    # chunk prose tiêu đề là trùng lặp.
+    _table_names_norm = {
+        " ".join(str(table.metadata.get("table_name") or "").split()).casefold().strip(" :-")
+        for table in normalized.tables
+    }
+    _table_names_norm.discard("")
+
+    # Tiêu đề phụ lục "Phụ lục NN" KHÔNG có bảng ngay dưới (vd Phụ lục 02) -> giữ tạm
+    # để gộp vào chunk phụ lục kế tiếp, tránh chunk tiêu đề mỏng đứng riêng.
+    pending_apx_preamble: tuple[str, dict] | None = None
+
     # --- PROSE: giữ nguyên hành vi cũ, chỉ thêm bước làm sạch cho document_body --
     for element in normalized.elements:
         chunk_type = str(element.metadata.get("chunk_type") or element.element_type)
         if chunk_type in TABLE_VIEW_CHUNK_TYPES:
             # Bỏ các "view" bảng; bảng được xử lý riêng ở dưới.
             continue
+        if chunk_type == "document_summary":
+            # Bỏ chunk TÓM TẮT tổng hợp -> collection chunk chỉ giữ nội dung thật.
+            continue
         prose_element = element
         if chunk_type == "document_body":
             # Làm sạch text body trước khi chunk (bỏ marker phân trang, ký tự lạ).
             prose_element = replace(element, text=clean_for_chunking(element.text))
-        for content, metadata in _expanded_element_chunks(normalized, prose_element):
+        for content, metadata in _expanded_element_chunks(
+            normalized, prose_element, body_max_chars=body_max_chars, body_overlap=body_overlap
+        ):
             if not content.strip():
                 continue
             metadata = _compact_chunk_metadata(metadata)
             # FIX 1: bỏ chunk chỉ là tiêu đề mục rỗng (chỉ trong builder v2).
             if _is_section_title_only_chunk(content, metadata):
                 continue
+            # Bỏ chunk prose phụ lục có tiêu đề trùng tên một bảng (vd "Phụ lục 01"):
+            # chunk bảng đã chứa heading + dữ liệu -> prose tiêu đề là trùng.
+            if metadata.get("artifact_type") == "appendix":
+                _sect = " ".join(str(metadata.get("section_title") or "").split()).casefold().strip(" :-")
+                _is_apx_num = bool(re.match(r"(?iu)^(phụ\s*lục|phu\s*luc)\s+\d+$", _sect))
+                if _sect and (
+                    _sect in _table_names_norm
+                    or (_is_apx_num and any(name.startswith(_sect + " ") for name in _table_names_norm))
+                ):
+                    continue
+                # Tiêu đề "Phụ lục NN" mỏng, không có bảng -> giữ tạm để gộp vào chunk kế.
+                if _is_apx_num and len(content) < 500:
+                    pending_apx_preamble = (content, metadata)
+                    continue
+                # Chunk phụ lục thực -> nếu có tiêu đề đang chờ, gộp vào dòng Mục:.
+                if pending_apx_preamble is not None:
+                    content = _merge_appendix_preamble(pending_apx_preamble, content)
+                    pending_apx_preamble = None
             quality = apply_chunk_quality_gate(content, metadata)
             metadata = _compact_chunk_metadata(quality.metadata)
+            metadata["reading_pos"] = _prose_reading_pos(element, metadata)
             chunks.append(
                 ChunkCreate(
                     chunk_index=len(chunks),
@@ -211,14 +299,32 @@ def build_doffice_chunks(normalized: NormalizedDofficeDocument) -> list[ChunkCre
                 )
             )
 
+    # Tiêu đề phụ lục đang chờ mà không có chunk phụ lục kế -> vẫn ghi ra (không mất).
+    if pending_apx_preamble is not None:
+        _content, _metadata = pending_apx_preamble
+        _quality = apply_chunk_quality_gate(_content, _metadata)
+        chunks.append(
+            ChunkCreate(
+                chunk_index=len(chunks),
+                content=_content,
+                metadata=_compact_chunk_metadata(_quality.metadata),
+            )
+        )
+
     # --- BẢNG: mỗi bảng -> 1 (hoặc vài) chunk gọn, đủ ngữ cảnh cho RAG ----------
     for table in normalized.tables:
-        for content, metadata in _table_chunks(normalized, table):
+        table_reading_pos = table.metadata.get("reading_pos")
+        for sub_index, (content, metadata) in enumerate(
+            _table_chunks(normalized, table, table_max_chars=table_max_chars)
+        ):
             if not content.strip():
                 continue
             metadata = _compact_chunk_metadata(metadata)
             quality = apply_chunk_quality_gate(content, metadata)
             metadata = _compact_chunk_metadata(quality.metadata)
+            if isinstance(table_reading_pos, int):
+                # +sub_index để giữ thứ tự các chunk con của cùng một bảng.
+                metadata["reading_pos"] = table_reading_pos + sub_index
             chunks.append(
                 ChunkCreate(
                     chunk_index=len(chunks),
@@ -227,7 +333,68 @@ def build_doffice_chunks(normalized: NormalizedDofficeDocument) -> list[ChunkCre
                 )
             )
 
-    return chunks
+    # Hai vòng prose/bảng ở trên sinh [tất cả prose] + [tất cả bảng] -> chunk_index
+    # KHÔNG theo thứ tự đọc PDF (vd Phụ lục 02 prose đứng trước bảng Phụ lục 01). Sắp lại
+    # theo source_span để thân bài → footer → Phụ lục 01 → Phụ lục 02 khớp văn bản gốc.
+    return _reorder_chunks_by_source(chunks, doc_len=len(normalized.clean_text or ""))
+
+
+def _prose_reading_pos(element: NormalizedElement, metadata: dict) -> int | None:
+    """Vị trí ĐỌC (base_plain_text) của 1 chunk prose.
+
+    Chunk phụ lục có span CỤC BỘ (so với appendix_text) -> cộng base = vị trí appendix
+    trong base_plain_text (= source_span của element phụ lục). Các chunk khác dùng thẳng
+    source_span.start (body theo base_clean_text ≈ tiền tố base_plain_text).
+    """
+    span = metadata.get("source_span") or {}
+    pos = span.get("start")
+    if not isinstance(pos, int):
+        return None
+    if metadata.get("artifact_type") == "appendix":
+        base = (element.metadata.get("source_span") or {}).get("start") or 0
+        return int(base) + pos
+    return pos
+
+
+def _reorder_chunks_by_source(chunks: list[ChunkCreate], *, doc_len: int) -> list[ChunkCreate]:
+    """Sắp chunk theo THỨ TỰ ĐỌC (``reading_pos`` trong base_plain_text) rồi gán lại chunk_index.
+
+    ``reading_pos`` đưa MỌI loại chunk (body/footer/appendix/table) về CÙNG hệ tọa độ
+    base_plain_text nên sort chính xác (trước đây span ở 3 hệ khác nhau -> prose phụ lục
+    & bảng chen sai chỗ).
+    - ``document_summary``/``document_header`` (tổng hợp) -> ghim đầu.
+    - Chunk thiếu ``reading_pos`` (hiếm) -> fallback source_span; nếu cũng fallback
+      document-scope thì giữ NGAY SAU chunk thực liền trước.
+    - Sort ỔN ĐỊNH theo (vị trí, thứ tự gốc). Không đổi nội dung -> overlap/embedding/ACL nguyên vẹn.
+    """
+    keyed: list[tuple[float, int, ChunkCreate]] = []
+    last_real = 0.0
+    for original_index, chunk in enumerate(chunks):
+        meta = chunk.metadata or {}
+        ctype = meta.get("chunk_type")
+        if ctype == "document_summary":
+            pos = -2.0
+        elif ctype == "document_header":
+            pos = -1.0
+        else:
+            reading_pos = meta.get("reading_pos")
+            if isinstance(reading_pos, (int, float)):
+                pos = float(reading_pos)
+                last_real = pos
+            else:
+                span = meta.get("source_span") or {}
+                start = span.get("start")
+                is_fallback = (not isinstance(start, int)) or (
+                    start == 0 and span.get("end") == doc_len and doc_len > 0
+                )
+                if is_fallback:
+                    pos = last_real + 1e-3
+                else:
+                    pos = float(start)
+                    last_real = pos
+        keyed.append((pos, original_index, chunk))
+    keyed.sort(key=lambda item: (item[0], item[1]))
+    return [replace(chunk, chunk_index=new_index) for new_index, (_, _, chunk) in enumerate(keyed)]
 
 
 def build_doffice_chunks_legacy(normalized: NormalizedDofficeDocument) -> list[ChunkCreate]:
@@ -273,23 +440,45 @@ def _table_document_metadata(normalized: NormalizedDofficeDocument) -> dict[str,
 
 
 def _table_context_line(normalized: NormalizedDofficeDocument, table: NormalizedTable) -> str:
-    """Dòng ngữ cảnh đầu mỗi chunk bảng: tên bảng + ký hiệu văn bản."""
+    """Khối ngữ cảnh đầu mỗi chunk bảng.
 
+    Trước đây chỉ là 1 dòng ``Bảng: <tên> | Văn bản: <mã>`` nên chunk bảng nghèo ngữ
+    cảnh hơn hẳn chunk prose (vốn có Ngày ban hành/Cơ quan ban hành/Mục). Giờ dựng
+    khối đa dòng song song với :func:`standard_document_context` + ``Mục:`` của prose
+    để chunk bảng tự mô tả đầy đủ khi retrieval độc lập.
+    """
+
+    lines: list[str] = []
+    code = normalized.document_code
+    title = normalized.title
+    if code or title:
+        lines.append(f"Văn bản: {code or ''} - {title or ''}".strip(" -"))
+    if normalized.issued_date:
+        lines.append(f"Ngày ban hành: {normalized.issued_date}")
+    if normalized.issuer:
+        lines.append(f"Cơ quan ban hành: {normalized.issuer}")
     table_name = table.metadata.get("table_name") or table.metadata.get("table_title")
-    document_code = normalized.document_code
-    parts: list[str] = []
+    section = (
+        table.metadata.get("section_title")
+        or table.metadata.get("table_title")
+        or table.metadata.get("table_name")
+    )
+    # Section thường được gán bằng chính tên bảng (parse_html_tables); chỉ thêm dòng
+    # "Phụ lục/Mục" khi nó thực sự khác tên bảng để tránh lặp.
+    if section and section != table_name:
+        lines.append(f"Phụ lục/Mục: {section}")
     if table_name:
-        parts.append(f"Bảng: {table_name}")
+        lines.append(f"Bảng: {table_name}")
     else:
-        parts.append("Bảng")
-    if document_code:
-        parts.append(f"Văn bản: {document_code}")
-    return " | ".join(parts)
+        lines.append("Bảng")
+    return "\n".join(lines)
 
 
 def _table_chunks(
     normalized: NormalizedDofficeDocument,
     table: NormalizedTable,
+    *,
+    table_max_chars: int = TABLE_CHUNK_MAX_CHARS,
 ) -> list[tuple[str, dict[str, Any]]]:
     """Sinh các chunk cho một bảng (1 chunk nếu ngắn, cắt theo dòng nếu dài)."""
 
@@ -317,18 +506,19 @@ def _table_chunks(
     }
 
     pieces: list[str]
-    if len(markdown) <= TABLE_CHUNK_MAX_CHARS:
+    if len(markdown) <= table_max_chars:
         pieces = [markdown]
     else:
-        pieces = _split_table_markdown(markdown)
+        pieces = _split_table_markdown(markdown, table_max_chars=table_max_chars)
 
     results: list[tuple[str, dict[str, Any]]] = []
     total = len(pieces)
     for index, piece in enumerate(pieces):
-        # FIX 2A: chunk phần 2+ vốn không có dòng tên bảng -> thêm "(phần X/Y)" để
-        # mỗi mảnh vẫn đủ ngữ cảnh khi retrieval độc lập.
+        # FIX 2A: chunk phần 2+ vốn không có dòng tên bảng -> thêm "Phần X/Y" để
+        # mỗi mảnh vẫn đủ ngữ cảnh khi retrieval độc lập. context_line giờ là khối
+        # đa dòng nên gắn thông tin phần thành dòng riêng thay vì nối đuôi.
         if total > 1:
-            chunk_context_line = f"{context_line} (phần {index + 1}/{total})"
+            chunk_context_line = f"{context_line}\nPhần: {index + 1}/{total}"
         else:
             chunk_context_line = context_line
         content = f"{chunk_context_line}\n{piece}".strip()
@@ -343,12 +533,12 @@ def _table_chunks(
     return results
 
 
-def _split_table_markdown(markdown: str) -> list[str]:
+def _split_table_markdown(markdown: str, *, table_max_chars: int = TABLE_CHUNK_MAX_CHARS) -> list[str]:
     """Cắt markdown bảng dài theo dòng bằng chonkie.TableChunker (giữ header)."""
 
     from chonkie import TableChunker
 
-    rows_per_chunk = _rows_per_chunk(markdown)
+    rows_per_chunk = _rows_per_chunk(markdown, table_max_chars=table_max_chars)
     try:
         chunker = TableChunker(chunk_size=rows_per_chunk)
         pieces = [chunk.text.strip() for chunk in chunker(markdown) if chunk.text.strip()]
@@ -387,8 +577,8 @@ def _merge_tiny_last_table_piece(pieces: list[str]) -> list[str]:
     return pieces[:-2] + [merged]
 
 
-def _rows_per_chunk(markdown: str) -> int:
-    """Ước lượng số dòng/chunk sao cho mỗi mảnh ~<= TABLE_CHUNK_MAX_CHARS."""
+def _rows_per_chunk(markdown: str, *, table_max_chars: int = TABLE_CHUNK_MAX_CHARS) -> int:
+    """Ước lượng số dòng/chunk sao cho mỗi mảnh ~<= table_max_chars."""
 
     lines = [line for line in markdown.split("\n") if line.strip()]
     if len(lines) <= 3:
@@ -397,13 +587,16 @@ def _rows_per_chunk(markdown: str) -> int:
     header_len = sum(len(line) + 1 for line in lines[:2])
     data_lines = lines[2:]
     avg_row_len = max(1, sum(len(line) + 1 for line in data_lines) // max(1, len(data_lines)))
-    budget = max(1, TABLE_CHUNK_MAX_CHARS - header_len)
+    budget = max(1, table_max_chars - header_len)
     return max(1, budget // avg_row_len)
 
 
 def _expanded_element_chunks(
     normalized: NormalizedDofficeDocument,
     element: NormalizedElement,
+    *,
+    body_max_chars: int = BODY_CHUNK_MAX_CHARS,
+    body_overlap: int = BODY_CHUNK_OVERLAP,
 ) -> list[tuple[str, dict[str, Any]]]:
     chunk_type = str(element.metadata.get("chunk_type") or element.element_type)
     base_metadata = {
@@ -437,6 +630,8 @@ def _expanded_element_chunks(
         evidence_chunks = build_body_evidence_chunks(
             text=element.text,
             base_metadata=base_metadata,
+            max_chars=body_max_chars,
+            overlap_chars=body_overlap,
         )
         if evidence_chunks:
             return [(chunk.content, chunk.metadata) for chunk in evidence_chunks]

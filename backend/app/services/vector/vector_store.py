@@ -125,14 +125,16 @@ class QdrantVectorStore:
         "noi_ban_hanh",
         "issuing_org",
         "ten_file",
-        # ACL mới (flatten): list keyword ["dv_{id}","pb_{id}","nv_{id}"].
+        # ACL flatten (2 list keyword): allow ["dv_/pb_/nv_"] + deny ["pb_/nv_"].
         "acl_subjects",
+        "acl_deny",
     )
     PAYLOAD_INTEGER_FIELDS = (
         "page_start",
         "page_end",
         "chunk_index",
-        # ACL mới: allow/deny ở cấp đơn vị/phòng ban/cá nhân (id nguyên).
+        # ACL cũ (id nguyên) — giữ index cho dữ liệu chưa reindex; bản mới dùng
+        # acl_subjects + acl_deny (keyword) ở trên.
         "acl_allow_dv",
         "acl_allow_pb",
         "acl_allow_nv",
@@ -288,6 +290,53 @@ class QdrantVectorStore:
             points_selector=FilterSelector(filter=Filter(must=must)),
             wait=True,
         )
+
+    async def retrieve_payloads_for_document(
+        self,
+        document_id: UUID | str,
+        *,
+        tenant_id: UUID | str | None = None,
+        limit: int = 2000,
+    ) -> list[dict[str, Any]]:
+        """Lấy payload (metadata) của mọi point thuộc 1 văn bản (không kèm vector).
+
+        Dùng cho UI "xem metadata Qdrant theo chunk": scroll theo ``document_id``,
+        trả list payload — FE map sang chunk PG theo ``chunk_index``/``chunk_id``.
+        """
+        exists = await self._client.collection_exists(collection_name=self.collection_name)
+        if not exists:
+            return []
+        must = [FieldCondition(key="document_id", match=MatchValue(value=str(document_id)))]
+        if tenant_id is not None:
+            must.append(FieldCondition(key="tenant_id", match=MatchValue(value=str(tenant_id))))
+        points, _next = await self._client.scroll(
+            collection_name=self.collection_name,
+            scroll_filter=Filter(must=must),
+            limit=limit,
+            with_payload=True,
+            with_vectors=False,
+        )
+        return [{"point_id": str(point.id), **(dict(point.payload or {}))} for point in points]
+
+    async def count_points_for_document(
+        self,
+        document_id: UUID | str,
+        *,
+        tenant_id: UUID | str | None = None,
+    ) -> int:
+        """Đếm số point của 1 văn bản (nhẹ — dùng cho UI hiển thị 'N point Qdrant')."""
+        exists = await self._client.collection_exists(collection_name=self.collection_name)
+        if not exists:
+            return 0
+        must = [FieldCondition(key="document_id", match=MatchValue(value=str(document_id)))]
+        if tenant_id is not None:
+            must.append(FieldCondition(key="tenant_id", match=MatchValue(value=str(tenant_id))))
+        result = await self._client.count(
+            collection_name=self.collection_name,
+            count_filter=Filter(must=must),
+            exact=True,
+        )
+        return int(getattr(result, "count", 0) or 0)
 
     async def set_acl_payload_for_document(
         self,
@@ -825,3 +874,35 @@ def get_artifact_vector_store() -> QdrantVectorStore:
         hybrid_candidate_multiplier=settings.qdrant_hybrid_candidate_multiplier,
         auto_recreate_collection=settings.auto_recreate_collection,
     )
+
+
+def _doffice_vector_store(collection_name: str) -> QdrantVectorStore:
+    """Qdrant store dense+sparse cho thiết kế DOffice 3-DB (chung tham số, khác tên).
+
+    Cả Col chunks lẫn Col docmeta đều dùng dense (Qwen3-Embedding-8B, semantic) +
+    sparse (keyword, mạnh cho ký hiệu) -> giữ được cả truy hồi ngữ nghĩa lẫn từ khóa.
+    """
+    return QdrantVectorStore(
+        client=AsyncQdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key),
+        collection_name=collection_name,
+        vector_size=settings.embedding_dimension,
+        upsert_batch_size=settings.qdrant_upsert_batch_size,
+        dense_vector_name=settings.dense_vector_name,
+        sparse_vector_name=settings.sparse_vector_name,
+        sparse_enabled=settings.sparse_embedding_enabled,
+        upsert_retry_count=settings.qdrant_upsert_retry_count,
+        hybrid_candidate_multiplier=settings.qdrant_hybrid_candidate_multiplier,
+        auto_recreate_collection=settings.auto_recreate_collection,
+    )
+
+
+@lru_cache
+def get_doffice_chunks_vector_store() -> QdrantVectorStore:
+    """Collection 1: vector từng chunk nội dung văn bản."""
+    return _doffice_vector_store(settings.qdrant_chunks_collection_name)
+
+
+@lru_cache
+def get_doffice_docmeta_vector_store() -> QdrantVectorStore:
+    """Collection 2: 1 point/văn bản — vector metadata (mọi trường trừ noi_dung)."""
+    return _doffice_vector_store(settings.qdrant_docmeta_collection_name)

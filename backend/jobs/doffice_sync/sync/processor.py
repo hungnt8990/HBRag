@@ -134,7 +134,12 @@ async def process_one(
         if not dry_run:
             await _set_meta(
                 session, pg.document_id,
-                {"access": _access_block(quyen, acl, signature), "has_embedding": ok},
+                {
+                    "access": _access_block(quyen, acl, signature),
+                    "has_embedding": ok,
+                    # Backfill noi_dung_raw cho doc tạo trước khi thêm trường này.
+                    "noi_dung_raw": vanban.noi_dung,
+                },
             )
             await store.upsert_document(
                 document_id=str(pg.document_id),
@@ -199,6 +204,9 @@ async def _create_document(
         "nam": vanban.nam,
         "source_type": DOFFICE_SOURCE_TYPE,
         "has_embedding": ok,
+        # Lưu FULL noi_dung vào PG để nhánh "click văn bản" chunk lại không phải gọi
+        # API DOffice (xem DofficeIngestionService._ingest_existing_for_retrieval).
+        "noi_dung_raw": vanban.noi_dung,
         "access": _access_block(quyen, acl, signature),
     }
     await session.flush()

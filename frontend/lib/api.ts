@@ -206,6 +206,9 @@ export type DocumentListItem = {
   title: string;
   status: string;
   source_type: string;
+  id_vb?: string | null;
+  ky_hieu?: string | null;
+  qdrant_point_count?: number | null;
   filename: string | null;
   organization: DocumentOrganization | null;
   knowledge_base: DocumentKnowledgeBase | null;
@@ -287,6 +290,7 @@ export type RagChatRequest = {
   use_graph?: boolean;
   graph_expansion_depth?: number;
   graph_expansion_limit?: number;
+  admin_view_all?: boolean;
 };
 
 export type MemorySettings = {
@@ -735,6 +739,22 @@ export async function getDocumentDetail(
   return requestJson<DocumentDetailResponse>(`/api/documents/${documentId}`, {
     method: "GET",
   });
+}
+
+export type DocumentQdrantPayloadsResponse = {
+  document_id: string;
+  collection: string;
+  count: number;
+  points: Array<Record<string, unknown>>;
+};
+
+export async function getDocumentChunkQdrantPayloads(
+  documentId: string,
+): Promise<DocumentQdrantPayloadsResponse> {
+  return requestJson<DocumentQdrantPayloadsResponse>(
+    `/api/documents/${documentId}/chunks/qdrant`,
+    { method: "GET" },
+  );
 }
 
 export async function getDocumentAccess(

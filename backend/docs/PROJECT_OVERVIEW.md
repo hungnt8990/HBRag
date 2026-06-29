@@ -3,7 +3,157 @@
 > Tài liệu này mô tả tổng thể backend để người mới (hoặc Claude ở phiên sau) đọc là
 > hiểu dự án có gì. **Mỗi khi hoàn thành một thay đổi đáng kể, phải cập nhật file này.**
 >
-> Cập nhật gần nhất: 2026-06-27 — **API DOffice cập nhật ACL** (`POST /api/doffice/acl/update`).
+> Cập nhật gần nhất: 2026-06-29 (o) — **Fix thứ tự chunk triệt để: thống nhất tọa độ qua `reading_pos`**.
+> Gốc: source_span ở 3 hệ tọa độ khác nhau (body theo base_clean_text, prose phụ lục theo tọa độ CỤC BỘ của
+> appendix_text 0..N, bảng theo raw_text HTML) -> prose phụ lục (vd "1. Mục tiêu" start=181) chen vào GIỮA body.
+> Fix: thêm `reading_pos` (vị trí trong base_plain_text — hệ nhất quán có placeholder [[TABLE_N]]): bảng lấy vị trí
+> placeholder (`normalize`), prose phụ lục = `appendix_span.start + span cục bộ` (`_prose_reading_pos`), body/footer
+> dùng source_span (base_clean ≈ tiền tố base_plain). `_reorder_chunks_by_source` sort theo `reading_pos`.
+> Verify 6515: header→body→footer→Phụ lục 01 bảng→Phụ lục 02 prose→bảng F-class xen kẽ ĐÚNG thứ tự đọc. 429 test pass.
+>
+> Cập nhật trước: 2026-06-29 (n) — **Fix thứ tự chunk: footer thiếu source_span**.
+> Triệu chứng: chunk "Phụ lục: DANH SÁCH..." (heading phụ lục) chen giữa body và footer, lẽ ra phải ở DƯỚI footer.
+> Gốc: element `footer_signature` tạo KHÔNG có `source_span` (None) -> `_reorder_chunks_by_source` đặt nó sau chunk
+> thực liền trước (sai). Fix: `normalize_doffice_source` tính `footer_span` = `_source_span_for_text(base_plain_text,
+> footer_text)` (footer bị `split_footer_signature` tách khỏi body nên phải tìm lại trong base_plain_text, cùng hệ
+> tọa độ với appendix/table), truyền qua `build_elements` -> gắn `source_span` cho element footer. Verify 3730:
+> body → footer(start=1275) → phụ lục heading(1499) → table(1597). 429 test pass. (Ghi chú: span body/header theo
+> base_clean_text, appendix/footer/table theo base_plain_text — 2 hệ tọa độ nhưng base_clean_text ≈ prefix nên sắp đúng.)
+>
+> Cập nhật trước: 2026-06-29 (m) — **Bổ sung tài liệu Swagger/OpenAPI cho toàn bộ API**.
+> `app/main.py`: thêm `description` (hướng dẫn auth + mô tả nhóm API) + `openapi_tags` (10 nhóm có mô tả) cho
+> `FastAPI(...)`. Thêm `summary` tiếng Việt cho 56/56 endpoint (documents 17, admin 13, knowledge-bases 7, memory 5,
+> auth/search 4, health 1; chat/document-search/doffice-acl đã có). Authorize (HTTPBearer) sẵn có. Xem tại `/docs`
+> (Swagger) hoặc `/redoc`. 237 route-test pass.
+>
+> Cập nhật trước: 2026-06-29 (l) — **Bỏ chunk tóm tắt khỏi collection chunk DOffice**.
+> `build_doffice_chunks` bỏ qua element `document_summary` -> collection `hbrag_doffice_chunks_v1` chỉ còn nội dung
+> thật (header + body + table + appendix). Summary VẪN được `build_document_summary` sinh + lọc PII (dùng cho
+> docmeta embed/metadata), chỉ không thành chunk. 2 test cập nhật (kiểm PII trên `normalized.summary_text`). 46 test
+> pass. (Ghi chú: "Đợt 2" lặp trong bảng 3730 do ô rowspan trong DỮ LIỆU bị giãn từng dòng; "Đợt 1" không lặp vì
+> nằm ở DÒNG HEADER "STT Đợt 1" — bất đối xứng từ cấu trúc bảng OCR, không phải lỗi chunk.)
+>
+> Cập nhật trước: 2026-06-29 (k) — **Nối doffice retrieval vào chat + admin bypass + checkbox FE**.
+> Khi `doffice_retrieval_enabled=True`: `get_rag_answer_service` dùng `build_doffice_two_stage_search` làm
+> `reranking_service` (drop-in) + `artifact_first_retrieval_service=None` -> chat tìm trong collection doffice mới.
+> `RagAnswerService.answer/answer_stream` thêm tham số `acl_subject` (truyền vào `_run_reranking_search`; tách khỏi
+> artifact retrieve). Chat route dựng `acl_subject` qua `_build_acl_subject` (super_admin_roles); checkbox FE
+> `admin_view_all` (mặc định True): user LÀ admin -> ép `is_super_admin` (bỏ lọc ACL, xem tất cả); user thường tick
+> vô hiệu. `_filter_accessible_context_chunks` không chặn doffice (chunk không có key `access`). 429 test pass, tsc OK.
+> ⚠️ Phải đặt `DOFFICE_RETRIEVAL_ENABLED=true` trong .env để chat dùng doffice.
+>
+> Cập nhật trước: 2026-06-29 (j) — **Sắp chunk DOffice theo thứ tự đọc + chẩn đoán chat chưa nối doffice**.
+> (1) `build_doffice_chunks` thêm `_reorder_chunks_by_source`: 2 vòng prose+bảng sinh [prose]+[bảng] lệch thứ tự đọc
+> -> sắp lại theo `source_span.start` (summary/header ghim đầu; chunk fallback document-scope giữ ngay sau chunk thực
+> trước) rồi gán lại chunk_index. KHÔNG đổi content -> overlap/embedding/ACL nguyên vẹn. Neighbor expansion theo
+> `article_number` (DOffice không có) nên không bị ảnh hưởng. 216 test pass. (2) CHẨN ĐOÁN: chat `/api/chat/rag`
+> dùng artifact-first + rerank, KHÔNG dùng `doffice_retrieval_enabled` (chỉ `/api/search` dùng) -> chat KHÔNG tìm
+> nội dung doffice (collection mới). + admin chưa bypass ACL ở chunk-level. TODO: nối doffice two-stage vào answer
+> service + super_admin bypass + checkbox FE.
+>
+> Cập nhật trước: 2026-06-28 (i) — **ACL 2-list (acl_subjects + acl_deny) + FE mảng 1 dòng**.
+> Gộp deny thành 1 list keyword prefixed `acl_deny` ["pb_/nv_"] (bỏ `acl_deny_pb`/`acl_deny_nv` số); allow vẫn là
+> `acl_subjects` ["dv_/pb_/nv_"]. `security_acl_payload`: thêm `F_DENY`+`acl_deny_keys_from_acl`+`acl_subject_to_deny_keys`
+> +`_parse_prefixed_ids`; `to_chunk_payload_flat` chỉ còn {acl_subjects, acl_deny}; `from_chunk_payload`/`subject_can_access`
+> hỗ trợ cả mới & cũ; filter flat (Qdrant+ES) must_not dùng `acl_deny` + GIỮ `acl_deny_pb/nv` cũ (tương thích dữ liệu chưa
+> reindex — KHÔNG lộ quyền). Cập nhật `DofficeBm25DocumentStore` (mapping+upsert+update_acl), unified ingestor `_resolve_acl`,
+> `vector_store` payload index (+acl_deny keyword). Verify allow/deny/round-trip. (B) FE: viewer Qdrant dùng `formatCompactJson`
+> — mảng toàn primitive (acl_subjects/don_vi_list...) gom về 1 DÒNG. 429 test pass, tsc OK. CHƯA reindex dữ liệu cũ.
+>
+> Cập nhật trước: 2026-06-28 (h) — **Gọn metadata Qdrant + gộp tiêu đề Phụ lục 02**.
+> (1) ACL gọn: `DofficeUnifiedIngestor._resolve_acl` chỉ ghi `acl_subjects`(=allow_list prefixed)+`acl_deny_pb`
+> +`acl_deny_nv`, BỎ `acl_allow_dv/pb/nv` (trùng `acl_subjects`, filter không dùng — verify `subject_can_access`
+> không nằm ở đường retrieval). (2) `qdrant_payload`: chunk doffice (source_type==doffice_elasticsearch) bỏ
+> `DOFFICE_REDUNDANT_PAYLOAD_FIELDS` (ACL hệ cũ allowed_*/denied_*/owner_*/scope/..., alias doc_code/doc_codes/
+> identifiers/issuer/issuing_org/subject, vài mảng rỗng); GIỮ metadata nghiệp vụ (id_vb/ky_hieu/document_code/
+> trich_yeu/table_name/platform...). Pipeline cũ (non-doffice) KHÔNG đổi. (3) Phụ lục 02: tiêu đề mỏng "Phụ lục NN"
+> không có bảng -> gộp vào dòng "Mục:" của chunk kế (`_merge_appendix_preamble`), hết chunk tiêu đề mỏng đứng riêng.
+> CHỜ chốt: gộp deny thành 1 `deny_list` prefixed (đụng filter chung — cần test bảo mật). 80 test pass.
+>
+> Cập nhật trước: 2026-06-28 (g) — **Gộp tiêu đề Phụ lục vào chunk bảng (không tách)**.
+> Trước: "Phụ lục 01" bị tách 2 chunk — chunk prose tiêu đề + chunk bảng. Fix: (1) `infer_table_name` gộp
+> marker "Phụ lục NN" + dòng mô tả ngay dưới -> tên bảng đầy đủ "Phụ lục 01 — PHƯƠNG ÁN SÁP NHẬP DỮ LIỆU GIS
+> 110kV, GIS TRUNG THẾ"; (2) `build_doffice_chunks` bỏ chunk prose phụ lục có tiêu đề trùng/khớp-prefix tên một
+> chunk bảng (giữ các mục nội dung thật: "1. Mục tiêu", "2. Chi tiết...", "3./4. Khởi tạo..."). Kết quả: Phụ lục
+> 01 = 1 chunk (tiêu đề đầy đủ + bảng). Verify 6515. 52 test pass.
+>
+> Cập nhật trước: 2026-06-28 (f) — **FE tra cứu văn bản: id_vb/ký hiệu/point Qdrant + nút xóa 3-DB**.
+> (1) List API (`GET /api/documents`) trả thêm `id_vb`, `ky_hieu`, `qdrant_point_count` (đếm point collection
+> chunks mới per-doc, best-effort gather); thêm `QdrantVectorStore.count_points_for_document`. (2) Route
+> `DELETE /api/documents/{id}` mở rộng: ngoài Qdrant cũ + ES chunk cũ + storage + PG, nay xóa thêm 2 collection
+> doffice mới (`get_doffice_chunks/docmeta_vector_store`) + ES BM25 doc-level (`DofficeBm25DocumentStore.delete_by_id_vb`).
+> (3) FE `DocumentSearchView`: card hiện ký hiệu + id_vb + "Qdrant: N point" + nút xóa (Trash2, confirm) gọi
+> `deleteDocument` rồi reload; modal subtitle hiện ký hiệu/id_vb. CHẨN ĐOÁN: Qdrant ĐÃ ghi đúng (6515 id_vb=1068586:
+> 34 chunk point + docmeta 3 point) — job chạy OK; trước đây FE chưa hiện count nên tưởng chưa ghi. 49 test pass.
+>
+> Cập nhật trước: 2026-06-28 (e) — **Fix tên bảng phụ lục DOffice (infer_table_name)**.
+> Bug: regex `APPENDIX_TABLE_HEADING_PATTERN` có `\(\d+\)\b` — sau `)` là dấu cách (đều non-word) nên `\b`
+> luôn fail -> heading `(N) F0X_...` trượt, rơi về "Bảng DOffice N" (F01/F03/F02 chỉ khớp tình cờ nhờ
+> `"_HT"`). Thêm: heading OCR có tiền tố `####` không bị gỡ -> bảng quan hệ lấy nhầm caption. Sửa
+> `ingestion_doffice_content_normalizer.py`: `_appendix_heading_name` (gỡ `#/>`, bắt `^(\d+)`, keyword,
+> mã `F\d{2}_`); bảng tách trang (phần 2+, đánh số tiếp >1, cùng cột) kế thừa tên cha + "(tiếp theo)"
+> (`_is_continuation_table`). Verify trên 6515 (id_vb=1068586): 19/19 bảng có tên đúng (F08..F10, Mối quan
+> hệ, HinhAnh), hết "Bảng DOffice N". Phụ lục 01 KHÔNG mất (vẫn là table#0). 26 test pass.
+>
+> Cập nhật trước: 2026-06-28 (d) — **Chunking DOffice tune được qua DB + dọn FE**.
+> (1) Profile **`doffice_admin`** thêm vào `ingestion_profiles.BOOTSTRAP_PROFILE_CONFIGS` với khóa
+> `doffice_body_max_chars=3200` / `doffice_body_overlap=300` / `doffice_table_max_chars=3500`;
+> `build_doffice_chunks` + `_table_chunks`/`_split_table_markdown`/`_rows_per_chunk`/`_expanded_element_chunks`
+> nhận tham số (default = hằng số cũ nên không đổi hành vi nếu không tune); `chunker_chunking_service._chunk_doffice_document`
+> đọc 3 khóa từ `get_profile_config("doffice_admin")`; `unified_runner` gọi `load_profile_configs` (seed+load DB)
+> trước khi chunk. Seed DB ngay: `scripts/seed_doffice_admin_profile.py` (upsert). LƯU Ý: profile thường
+> (`chunk_size/chunk_overlap`) KHÔNG áp dụng cho DOffice — chunker DOffice là chuyên biệt. (2) `.env`/`.env.example`
+> thêm `STORE_CHUNKS_IN_PG` + tên 2 collection + `DOFFICE_DOCUMENTS_INDEX_NAME` + `DOFFICE_RETRIEVAL_ENABLED`.
+> (3) FE `frontend/app/page.tsx`: gỡ 2 form DOffice ("Chạy job DOffice" + "Lấy văn bản") — giờ chỉ chạy job CLI.
+> Văn bản job-ingest **ẩn ở list do ACL** (`_has_explicit_access_metadata` + user ngoài ACL) — dùng super_admin /
+> `DOFFICE_SYNTHETIC_ACL_ENABLED=false` / tài khoản trong ACL để thấy. 70 test liên quan pass.
+>
+> Cập nhật trước: 2026-06-28 (c) — **Thiết kế lại job đồng bộ 3-DB (Phase 1–5 xong)**.
+> Kiến trúc mới: **PG** = văn bản thô (full markdown) + ACL + cấu trúc normalized; **ES** = `hbrag_doffice_documents_v1`
+> BM25 cấp văn bản (mọi trường + full noi_dung ĐÃ LÀM SẠCH, **không vector, không chunk**) + ACL; **Qdrant** = 2
+> collection: `hbrag_doffice_chunks_v1` (vector dense+sparse từng chunk) + `hbrag_doffice_docmeta_v1` (1 point/VB,
+> vector dense+sparse của metadata mọi-trường-trừ-noi_dung), payload mỗi point = ACL + id_vb + metadata truy hồi.
+> Đã thêm: settings (`qdrant_chunks/docmeta_collection_name`, `doffice_documents_index_name`, `store_chunks_in_pg`),
+> `app/services/vector/vector_store.py::get_doffice_chunks/docmeta_vector_store`, `retrieval_doffice_bm25.py`
+> (DofficeBm25DocumentStore), `scripts/reset_all_stores.py` (XÓA 3 DB giữ danh mục/ingestion, cờ `--yes`),
+> `ingestion_doffice_unified.py` (DofficeUnifiedIngestor: 1 VB → 3 DB, idempotent, enrichment TẮT, tái dùng
+> ChunkingService + VectorIndexingService + DofficeIngestionService._document_metadata), `jobs/doffice_sync/
+> sync/unified_runner.py` + `run_unified.py` (modes id lẻ / --don-vi / all + batch + concurrency). 41 test cũ pass.
+> **Phase 5 (retrieval) ĐÃ XONG**: `retrieval_doffice_two_stage.py` — `DofficeStage1Resolver` (RRF hợp nhất ES
+> BM25 doc ∪ Qdrant docmeta → top-N document_id) + `NoOpKeywordSearchService` (ES không còn chunk) + tái dùng
+> `TwoStageHybridSearchService` (Stage-2 = Qdrant chunks dense+sparse trong N văn bản). Cờ `doffice_retrieval_enabled`
+> (mặc định TẮT) bật ở `search.py::get_hybrid_search_service` -> áp cho cả `/search` lẫn chat (qua RerankingService).
+> Env mode job: `DOFFICE_JOB_ID_VB` / `DOFFICE_JOB_DON_VI` / (trống=all) + `DOFFICE_JOB_BATCH_SIZE/WORKERS/LIMIT`
+> (xem `jobs/doffice_sync/run_unified.bat`). 110 test pass. Verify e2e cần PG/ES/Qdrant/DOffice live + `EMBEDDING_DIMENSION=4096`.
+>
+> Cập nhật trước: 2026-06-28 (b) — **Ingest DOffice theo trạng thái PG+ES (đã có job sync)**.
+> Job sync đã đưa văn bản (metadata + ACL + embedding BBQ) vào PG `documents` và ES `hbrag_documents_v1`
+> nhưng KHÔNG đẩy Qdrant. `DofficeIngestionService.ingest_doffice_document` giờ điều phối theo trạng thái:
+> (1) **cả 2 DB đều có** → `_ingest_existing_for_retrieval`: đọc `noi_dung_raw` từ PG (job sync lưu;
+> thiếu thì fetch DOffice 1 lần + cache), normalize → cập nhật document ĐANG CÓ (không tạo mới) → chunk →
+> index Qdrant + chunk BM25 ES `hbrag_chunks_bm25_v1`; gắn ACL chunk-only (`_attach_acl_from_source(...,
+> write_document_index=False)` — KHÔNG đè `hbrag_documents_v1`). Đã có chunk thì skip. (2) **lệch 1 DB
+> (XOR)** → xóa phần thừa (PG `_delete_existing` / ES `DocumentIndexStore.delete_by_id_vb` mới) rồi
+> `_full_ingest_from_doffice`. (3) **cả 2 đều không có** / `force_refresh` → `_full_ingest_from_doffice`
+> (pipeline cũ: tạo Document + chunk + index + ghi `hbrag_documents_v1`). Job sync (`jobs/doffice_sync/
+> sync/processor.py`) nay lưu thêm `document_metadata["noi_dung_raw"]` (full). FE "Lấy văn bản"
+> (`POST /api/documents/doffice/ingest-jobs`) KHÔNG đổi — logic mới hoàn toàn ở server. Ràng buộc mới:
+> ingest cần ES (`hbrag_documents_v1`) reachable để check tồn tại (lỗi kết nối → fail, tránh xóa nhầm).
+> +6 test nhánh (both/both-no-chunk/fallback/XOR-pg/XOR-es) + assert `noi_dung_raw` ở test sync.
+>
+> Cập nhật trước: 2026-06-28 — **Fix chunk phụ lục DOffice (ngữ cảnh bảng + prose phụ lục)**.
+> (1) `_table_context_line` (`chunker_doffice_chunking.py`) giờ dựng khối ngữ cảnh đa dòng giống chunk
+> prose (Văn bản+trích yếu, Ngày ban hành, Cơ quan ban hành, Phụ lục/Mục, Bảng) thay vì 1 dòng
+> `Bảng: X | Văn bản: Y`; mảnh bảng dài dùng dòng `Phần: i/N`. (2) `infer_table_name`
+> (`ingestion_doffice_content_normalizer.py`) nhận diện thêm heading phụ lục (Phụ lục NN, `(N) F0X_...`,
+> "Tên bảng dữ liệu", "Mối quan hệ"...) **chỉ khi bảng nằm sau marker phụ lục** → bảng phụ lục có tên
+> thật, không còn "Bảng DOffice N". (3) `extract_appendix_text` trích prose phụ lục (gỡ placeholder bảng
+> + khối chữ ký) thành element `document_body`/`artifact_type=appendix` → trước đây `split_footer_signature`
+> cắt body tại "PHỤ LỤC" làm mất hẳn tiêu đề/Mục tiêu/heading lớp dữ liệu của phụ lục; appendix bypass
+> `_is_section_title_only_chunk`. +1 test (`test_doffice_appendix_prose_and_table_titles_are_captured`),
+> sửa 2 test format `Phần:`. 101 test chunker/ingest pass.
+>
+> Cập nhật trước: 2026-06-27 — **API DOffice cập nhật ACL** (`POST /api/doffice/acl/update`).
 > Nhận `id_vb` + 3 list (đơn vị/phòng ban/cá nhân) -> nén ACL (dùng chung `resolve_doffice_and_compress`)
 > -> ghi PG (`document_metadata.access`) + ES (3 trường ACL phẳng). **Tự tạo mới** (đơn lẻ, KHÁC sync
 > lấy batch): nếu chưa có ở PG, `_fetch_vanban` (nội dung, `doffice_vanban` term id_vb) + `_fetch_quyen`

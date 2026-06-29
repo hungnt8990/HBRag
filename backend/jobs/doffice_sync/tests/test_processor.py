@@ -115,12 +115,16 @@ def test_case4_acl_updated(monkeypatch) -> None:
 def test_case5_created(monkeypatch) -> None:
     _patch_resolve(monkeypatch)
 
+    created: list = []
+
     class _FakeRepo:
         def __init__(self, session):
             pass
 
         async def create_document(self, *, title, source_type, status, visibility):
-            return SimpleNamespace(id=_DOC_ID, document_metadata={}, document_profile=None)
+            doc = SimpleNamespace(id=_DOC_ID, document_metadata={}, document_profile=None)
+            created.append(doc)
+            return doc
 
     monkeypatch.setattr("app.repositories.documents.DocumentRepository", _FakeRepo)
     store = _FakeStore()
@@ -130,6 +134,8 @@ def test_case5_created(monkeypatch) -> None:
     assert res.action == "created"
     assert res.has_embedding is True
     assert ("upsert_document", "1068586") in store.calls
+    # Job sync phải lưu FULL noi_dung vào PG để nhánh click chunk lại không cần DOffice.
+    assert created[0].document_metadata["noi_dung_raw"] == "content"
 
 
 def test_case5_created_embed_fail(monkeypatch) -> None:

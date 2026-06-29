@@ -299,8 +299,10 @@ def test_vector_payload_excludes_heavy_document_and_debug_fields() -> None:
         "access",
     }
     assert forbidden.isdisjoint(payload)
-    assert payload["scope"] == "corp_wide"
-    assert payload["allowed_user_ids"] == [str(USER_ID)]
+    # Thiết kế DOffice 3-DB: ACL hệ cũ (scope/allowed_*) bị bỏ khỏi payload Qdrant;
+    # quyền nay chỉ qua acl_subjects + acl_deny_* (gắn riêng sau khi upsert).
+    assert "scope" not in payload
+    assert "allowed_user_ids" not in payload
 
 def test_vector_index_can_disable_enriched_content_for_embedding() -> None:
     chunk = FakeDocumentRepository._chunk()

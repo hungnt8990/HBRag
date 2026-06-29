@@ -39,6 +39,10 @@ F_VERSION = "acl_ver"
 # Trường flatten gộp toàn bộ ALLOW vào 1 list keyword ["dv_{id}","pb_{id}","nv_{id}"].
 # Cho phép filter bằng MỘT điều kiện MatchAny/terms thay vì 3 OR riêng -> nhanh + cache tốt.
 F_SUBJECTS = "acl_subjects"
+# Tương tự cho DENY: 1 list keyword ["pb_{id}","nv_{id}"] (gọn, dễ truy vấn/cập nhật
+# hơn 2 trường số acl_deny_pb/acl_deny_nv). Định dạng MỚI; các trường số cũ vẫn được
+# filter đọc để tương thích dữ liệu chưa reindex.
+F_DENY = "acl_deny"
 
 ACL_PAYLOAD_FIELDS = (
     F_ALLOW_DV,
@@ -48,7 +52,36 @@ ACL_PAYLOAD_FIELDS = (
     F_DENY_NV,
     F_VERSION,
     F_SUBJECTS,
+    F_DENY,
 )
+
+
+def acl_deny_keys_from_acl(acl: CompressedAcl) -> list[str]:
+    """Các khóa DENY của 1 chunk (flatten): ["pb_{id}","nv_{id}"]."""
+    keys = [f"pb_{i}" for i in acl.deny_department_ids]
+    keys += [f"nv_{i}" for i in acl.deny_user_ids]
+    return sorted(keys)
+
+
+def acl_subject_to_deny_keys(subject: "AclSubject") -> list[str]:
+    """Khóa DENY của NGƯỜI truy vấn để so với ``acl_deny`` của chunk (nv + pb)."""
+    keys = [f"nv_{subject.id_nv}"]
+    if subject.id_pb is not None:
+        keys.append(f"pb_{subject.id_pb}")
+    return keys
+
+
+def _parse_prefixed_ids(keys: Any, prefix: str) -> list[int]:
+    """Lọc list khóa ``["nv_1","pb_2",...]`` lấy id nguyên theo tiền tố."""
+    out: list[int] = []
+    for key in keys or []:
+        text = str(key)
+        if text.startswith(prefix):
+            try:
+                out.append(int(text[len(prefix):]))
+            except ValueError:
+                continue
+    return out
 
 
 @dataclass(frozen=True)
@@ -126,18 +159,33 @@ def acl_subject_to_keys(subject: AclSubject) -> list[str]:
 
 
 def to_chunk_payload_flat(acl: CompressedAcl, *, version: str | None = None) -> dict[str, Any]:
-    """Như :func:`to_chunk_payload` nhưng thêm ``acl_subjects`` (flatten allow).
+    """Payload ACL GỌN: chỉ 2 list keyword ``acl_subjects`` (allow) + ``acl_deny``.
 
-    Vẫn giữ các trường ``acl_allow_*`` cũ để tương thích ngược.
+    Bỏ các trường số trùng (``acl_allow_*``/``acl_deny_pb``/``acl_deny_nv``); filter
+    flat dưới đây dùng 2 list này (vẫn đọc trường số cũ để tương thích dữ liệu cũ).
     """
-    payload = to_chunk_payload(acl, version=version)
-    payload[F_SUBJECTS] = acl_keys_from_acl(acl)
+    payload: dict[str, Any] = {
+        F_SUBJECTS: acl_keys_from_acl(acl),
+        F_DENY: acl_deny_keys_from_acl(acl),
+    }
+    if version is not None:
+        payload[F_VERSION] = version
     return payload
 
 
 def from_chunk_payload(payload: dict[str, Any]) -> CompressedAcl:
-    """Đọc ngược các trường ``acl_*`` trong payload thành CompressedAcl."""
-    return CompressedAcl(
+    """Đọc ngược ACL trong payload thành CompressedAcl (hỗ trợ cả định dạng mới & cũ)."""
+    subjects = payload.get(F_SUBJECTS)
+    deny = payload.get(F_DENY)
+    if subjects is not None or deny is not None:  # định dạng mới (list keyword)
+        return CompressedAcl(
+            allow_unit_ids=_parse_prefixed_ids(subjects, "dv_"),
+            allow_department_ids=_parse_prefixed_ids(subjects, "pb_"),
+            allow_user_ids=_parse_prefixed_ids(subjects, "nv_"),
+            deny_department_ids=_parse_prefixed_ids(deny, "pb_"),
+            deny_user_ids=_parse_prefixed_ids(deny, "nv_"),
+        )
+    return CompressedAcl(  # định dạng cũ (trường số)
         allow_unit_ids=list(payload.get(F_ALLOW_DV) or []),
         allow_department_ids=list(payload.get(F_ALLOW_PB) or []),
         allow_user_ids=list(payload.get(F_ALLOW_NV) or []),
@@ -149,10 +197,20 @@ def from_chunk_payload(payload: dict[str, Any]) -> CompressedAcl:
 def subject_can_access(payload: dict[str, Any], subject: AclSubject) -> bool:
     """Kiểm tra chính xác một người dùng có được xem chunk (dựa trên payload acl_*).
 
-    Dùng làm trọng tài sau khi hydrate kết quả tìm kiếm.
+    Dùng làm trọng tài sau khi hydrate kết quả tìm kiếm. Hỗ trợ định dạng mới
+    (acl_subjects + acl_deny) lẫn cũ (acl_allow_*/acl_deny_*).
     """
     if subject.is_super_admin:
         return True
+
+    subjects = payload.get(F_SUBJECTS)
+    deny_keys_payload = payload.get(F_DENY)
+    if subjects is not None or deny_keys_payload is not None:  # định dạng mới
+        subjects_set = set(subjects or [])
+        deny_set = set(deny_keys_payload or [])
+        allowed = any(key in subjects_set for key in acl_subject_to_keys(subject))
+        denied = any(key in deny_set for key in acl_subject_to_deny_keys(subject))
+        return allowed and not denied
 
     allow_dv = set(payload.get(F_ALLOW_DV) or [])
     allow_pb = set(payload.get(F_ALLOW_PB) or [])
@@ -228,12 +286,19 @@ def build_qdrant_acl_filter(subject: AclSubject) -> Any | None:
 # ---- Biến thể FLAT (dùng acl_subjects: 1 điều kiện thay vì 3 OR) ----
 
 def build_es_acl_filter_flat(subject: AclSubject) -> dict[str, Any] | None:
-    """Mảnh bool query ES dùng ``acl_subjects`` (1 terms) + deny. None nếu super admin."""
+    """Mảnh bool query ES: ``acl_subjects`` (allow) + ``acl_deny`` (deny). None nếu super admin.
+
+    must_not gồm cả ``acl_deny`` (định dạng mới, list keyword) lẫn ``acl_deny_nv``/
+    ``acl_deny_pb`` (số, dữ liệu cũ chưa reindex) -> chặn đúng cho cả hai.
+    """
     if subject.is_super_admin:
         return None
-    must_not: list[dict[str, Any]] = [{"terms": {F_DENY_NV: [subject.id_nv]}}]
+    must_not: list[dict[str, Any]] = [
+        {"terms": {F_DENY: acl_subject_to_deny_keys(subject)}},
+        {"terms": {F_DENY_NV: [subject.id_nv]}},  # tương thích dữ liệu cũ
+    ]
     if subject.id_pb is not None:
-        must_not.append({"terms": {F_DENY_PB: [subject.id_pb]}})
+        must_not.append({"terms": {F_DENY_PB: [subject.id_pb]}})  # tương thích cũ
     return {
         "bool": {
             "filter": [{"terms": {F_SUBJECTS: acl_subject_to_keys(subject)}}],
@@ -243,15 +308,21 @@ def build_es_acl_filter_flat(subject: AclSubject) -> dict[str, Any] | None:
 
 
 def build_qdrant_acl_conditions_flat(subject: AclSubject) -> tuple[list[Any], list[Any]] | None:
-    """(should, must_not) Qdrant dùng ``acl_subjects`` (1 MatchAny) + deny. None nếu super admin."""
+    """(should, must_not) Qdrant: ``acl_subjects`` (allow) + ``acl_deny`` (deny). None nếu super admin.
+
+    must_not gồm ``acl_deny`` (mới) + ``acl_deny_nv``/``acl_deny_pb`` (số, dữ liệu cũ).
+    """
     if subject.is_super_admin:
         return None
     from qdrant_client.models import FieldCondition, MatchAny
 
     should: list[Any] = [FieldCondition(key=F_SUBJECTS, match=MatchAny(any=acl_subject_to_keys(subject)))]
-    must_not: list[Any] = [FieldCondition(key=F_DENY_NV, match=MatchAny(any=[subject.id_nv]))]
+    must_not: list[Any] = [
+        FieldCondition(key=F_DENY, match=MatchAny(any=acl_subject_to_deny_keys(subject))),
+        FieldCondition(key=F_DENY_NV, match=MatchAny(any=[subject.id_nv])),  # tương thích cũ
+    ]
     if subject.id_pb is not None:
-        must_not.append(FieldCondition(key=F_DENY_PB, match=MatchAny(any=[subject.id_pb])))
+        must_not.append(FieldCondition(key=F_DENY_PB, match=MatchAny(any=[subject.id_pb])))  # cũ
     return should, must_not
 
 

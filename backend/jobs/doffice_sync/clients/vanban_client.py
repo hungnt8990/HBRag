@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
 
 _SOURCE = [
     "id_vb", "ky_hieu", "trich_yeu", "noi_ban_hanh", "nguoi_ky",
-    "ten_file", "tom_tat", "noi_dung", "ngay_vb", "ngay_capnhat",
-    "nam", "thang", "id_dv_ban_hanh",
+    "ten_file", "duong_dan", "tom_tat", "noi_dung", "ngay_vb", "ngay_tao",
+    "ngay_capnhat", "nam", "thang", "id_dv_ban_hanh", "type_ocr",
 ]
 
 
@@ -28,6 +28,9 @@ class VanbanRecord:
     ngay_vb: str | None = None
     ngay_capnhat: str | None = None
     nam: int | None = None
+    # _source thô đầy đủ (gồm duong_dan/type_ocr/ngay_tao/id_dv_ban_hanh/thang) để
+    # ingest 3-DB dựng đúng object metadata/docmeta.
+    raw: dict[str, Any] = field(default_factory=dict)
 
     @property
     def embed_text(self) -> str:
@@ -55,6 +58,7 @@ class VanbanRecord:
             ngay_vb=src.get("ngay_vb"),
             ngay_capnhat=src.get("ngay_capnhat"),
             nam=src.get("nam") if isinstance(src.get("nam"), int) else None,
+            raw=dict(src),
         )
 
 

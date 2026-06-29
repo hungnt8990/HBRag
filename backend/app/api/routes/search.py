@@ -128,6 +128,18 @@ def get_hybrid_search_service(
     ],
     llm_gateway: Annotated[LLMGateway, Depends(get_llm_gateway)],
 ) -> HybridSearchService | TwoStageHybridSearchService:
+    # Retrieval thiết kế DOffice mới (Stage-1 ES BM25 doc ∪ Qdrant docmeta -> Stage-2
+    # Qdrant chunks). Ưu tiên khi bật cờ; tái dùng repository/llm_gateway của vector
+    # service hiện có để dựng 2 service search trên 2 collection mới.
+    if settings.doffice_retrieval_enabled:
+        from app.services.retrieval.retrieval_doffice_two_stage import build_doffice_two_stage_search
+
+        return build_doffice_two_stage_search(
+            repository=vector_search_service._repository,
+            llm_gateway=llm_gateway,
+            retrieval_log_repository=retrieval_log_repository,
+        )
+
     base = HybridSearchService(
         vector_search_service=vector_search_service,
         keyword_search_service=keyword_search_service,
@@ -176,7 +188,7 @@ def get_reranking_service(
     )
 
 
-@router.post("/vector", response_model=VectorSearchResponse)
+@router.post("/vector", response_model=VectorSearchResponse, summary="Tìm kiếm theo vector ngữ nghĩa")
 async def vector_search(
     request: VectorSearchRequest,
     repository: Annotated[DocumentRepository, Depends(get_search_repository)],
@@ -215,7 +227,7 @@ async def vector_search(
         ) from exc
 
 
-@router.post("/hybrid", response_model=HybridSearchResponse)
+@router.post("/hybrid", response_model=HybridSearchResponse, summary="Tìm kiếm hybrid (vector + từ khóa)")
 async def hybrid_search(
     request: HybridSearchRequest,
     repository: Annotated[DocumentRepository, Depends(get_search_repository)],
@@ -273,7 +285,7 @@ async def hybrid_search(
         ) from exc
 
 
-@router.post("/rerank", response_model=RerankSearchResponse)
+@router.post("/rerank", response_model=RerankSearchResponse, summary="Tìm kiếm có xếp hạng lại (rerank)")
 async def rerank_search(
     request: RerankSearchRequest,
     repository: Annotated[DocumentRepository, Depends(get_search_repository)],
@@ -318,7 +330,7 @@ async def rerank_search(
         ) from exc
 
 
-@router.post("/keyword", response_model=KeywordSearchResponse)
+@router.post("/keyword", response_model=KeywordSearchResponse, summary="Tìm kiếm theo từ khóa")
 async def keyword_search(
     request: KeywordSearchRequest,
     repository: Annotated[DocumentRepository, Depends(get_search_repository)],

@@ -681,7 +681,17 @@ class ChunkingService:
             content_hash=str(document_metadata.get("content_hash") or ""),
             metadata_hash=str(document_metadata.get("metadata_hash") or ""),
         )
-        chunk_records = build_doffice_chunks(normalized)
+        # Tham số chunk DOffice tune được qua profile DB ``doffice_admin`` (fallback
+        # = hằng số mặc định của chunker nếu profile/khóa chưa có).
+        from app.services.ingestion.ingestion_profiles import get_profile_config
+
+        doffice_cfg = get_profile_config("doffice_admin")
+        chunk_records = build_doffice_chunks(
+            normalized,
+            body_max_chars=int(doffice_cfg.get("doffice_body_max_chars") or 2800),
+            body_overlap=int(doffice_cfg.get("doffice_body_overlap") or 300),
+            table_max_chars=int(doffice_cfg.get("doffice_table_max_chars") or 3500),
+        )
         preview_chunks = [
             TextChunk(
                 content=chunk.content,
