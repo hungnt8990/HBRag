@@ -56,6 +56,22 @@ class UnifiedIngestResult:
     has_acl: bool
 
 
+@dataclass
+class DofficeJobItem:
+    """Đơn vị công việc đi qua pipeline 3 luồng. Giai đoạn PG sinh ra, giai đoạn ES &
+    Qdrant tiêu thụ (mọi dữ liệu cần thiết đã nằm sẵn đây, không cần truy vấn lại)."""
+
+    id_vb: str
+    document_id: str
+    source: dict[str, Any]
+    acl_subjects: list[str]
+    acl_deny: list[str]
+    acl_payload: dict[str, Any]
+    noi_dung_clean: str | None
+    chunk_count: int
+    has_acl: bool
+
+
 class DofficeUnifiedIngestor:
     def __init__(
         self,
@@ -95,6 +111,36 @@ class DofficeUnifiedIngestor:
         organization_id: Any = None,
         knowledge_base_id: Any = None,
     ) -> UnifiedIngestResult:
+        # Giữ tương thích: chạy tuần tự cả 3 giai đoạn (dùng cho mode id-lẻ/test). Pipeline
+        # 3 luồng ở runner gọi trực tiếp prepare_postgres -> index_qdrant + index_elasticsearch.
+        item = await self.prepare_postgres(
+            source=source,
+            acl_lists=acl_lists,
+            uploaded_by_user_id=uploaded_by_user_id,
+            organization_id=organization_id,
+            knowledge_base_id=knowledge_base_id,
+        )
+        await self.index_qdrant(item)
+        await self.index_elasticsearch(item)
+        logger.info(
+            "Ingest 3-DB xong id_vb=%s document=%s chunks=%s", item.id_vb, item.document_id, item.chunk_count
+        )
+        return UnifiedIngestResult(
+            id_vb=item.id_vb, document_id=item.document_id, chunks=item.chunk_count, has_acl=item.has_acl
+        )
+
+    # ============================ GIAI ĐOẠN 1: PostgreSQL =====================
+    async def prepare_postgres(
+        self,
+        *,
+        source: dict[str, Any],
+        acl_lists: dict[str, Any] | None = None,
+        uploaded_by_user_id: Any = None,
+        organization_id: Any = None,
+        knowledge_base_id: Any = None,
+    ) -> DofficeJobItem:
+        """Luồng 1: ACL + normalize + ghi Document & chunks vào PostgreSQL. Trả DofficeJobItem
+        để đẩy vào hàng đợi cho luồng ES & Qdrant."""
         id_vb = " ".join(str(source.get("id_vb") or "").split()).strip()
         if not id_vb:
             raise ValueError("source.id_vb is required.")
@@ -111,12 +157,11 @@ class DofficeUnifiedIngestor:
         if not normalized.clean_text.strip():
             logger.warning("id_vb=%s không có nội dung sau khi làm sạch -> bỏ qua", id_vb)
 
-        # --- Idempotent: xóa dấu vết cũ ở 3 DB ---
+        # Idempotent: xóa dấu vết cũ ở 3 DB trước khi ghi lại.
         existing = await self._find_existing(id_vb)
         if existing is not None:
             await self._delete_everywhere(existing, id_vb)
 
-        # --- PostgreSQL: Document (raw + metadata normalized + ACL) ---
         source_document = DofficeIngestionService._doffice_document_from_source(source, normalized)
         document = await self._repository.create_document(
             title=(source.get("ten_file") or source.get("ky_hieu") or f"DOffice {id_vb}")[:255],
@@ -139,10 +184,41 @@ class DofficeUnifiedIngestor:
         await self._repository.commit()
         document_id = document.id
 
-        # --- Chunk vào PG (cần normalized_elements để chunker doffice chạy) ---
+        # Chunk vào PG (cần normalized_elements để chunker doffice chạy).
         chunk_response = await self._chunking_service.chunk_document(document_id, profile="auto")
 
-        # --- Qdrant Col 1: embed chunk + đẩy (KHÔNG ES chunk) ---
+        noi_dung_clean = clean_for_chunking(str(source.get("noi_dung") or "")) or None
+        return DofficeJobItem(
+            id_vb=id_vb,
+            document_id=str(document_id),
+            source=source,
+            acl_subjects=acl_subjects,
+            acl_deny=acl_deny,
+            acl_payload=acl_payload,
+            noi_dung_clean=noi_dung_clean,
+            chunk_count=chunk_response.chunk_count,
+            has_acl=acl is not None,
+        )
+
+    # ============================ GIAI ĐOẠN 2: Elasticsearch =================
+    async def index_elasticsearch(self, item: DofficeJobItem) -> None:
+        """Luồng 2: đổ BM25 doc-level (full nội dung đã làm sạch + ACL) vào Elasticsearch."""
+        await self._bm25_store.upsert_document(
+            document_id=item.document_id,
+            id_vb=item.id_vb,
+            fields=item.source,
+            noi_dung_clean=item.noi_dung_clean,
+            acl_subjects=item.acl_subjects,
+            acl_deny=item.acl_deny,
+            acl_ver=self._signature,
+        )
+
+    # ============================ GIAI ĐOẠN 3: Qdrant ========================
+    async def index_qdrant(self, item: DofficeJobItem) -> None:
+        """Luồng 3: embed chunk (đọc từ PG) + đẩy Qdrant Col1 (chunks) & Col2 (docmeta) + ACL."""
+        from uuid import UUID
+
+        document_id = UUID(item.document_id)
         await VectorIndexingService(
             repository=self._repository,
             llm_gateway=self._llm_gateway,
@@ -150,34 +226,14 @@ class DofficeUnifiedIngestor:
             sparse_embedding_provider=self._sparse_provider,
             keyword_index_store=None,
         ).index_document(document_id, use_enriched_content_for_embedding=False)
-        # ACL cho point chunk (payload phẳng), id_vb đã nằm trong payload chunk.
-        await self._chunks_store.set_acl_payload_for_document(document_id, acl_payload)
+        await self._chunks_store.set_acl_payload_for_document(document_id, item.acl_payload)
 
         if not self._store_chunks_in_pg:
             await self._repository.delete_chunks_for_document(document_id)
             await self._repository.commit()
 
-        # --- Qdrant Col 2: docmeta 1 point/văn bản ---
-        await self._index_docmeta(document_id=str(document_id), source=source, acl_payload=acl_payload)
-
-        # --- Elasticsearch BM25 doc-level: full nội dung đã làm sạch + ACL ---
-        noi_dung_clean = clean_for_chunking(str(source.get("noi_dung") or "")) or None
-        await self._bm25_store.upsert_document(
-            document_id=str(document_id),
-            id_vb=id_vb,
-            fields=source,
-            noi_dung_clean=noi_dung_clean,
-            acl_subjects=acl_subjects,
-            acl_deny=acl_deny,
-            acl_ver=self._signature,
-        )
-
-        logger.info("Ingest 3-DB xong id_vb=%s document=%s chunks=%s", id_vb, document_id, chunk_response.chunk_count)
-        return UnifiedIngestResult(
-            id_vb=id_vb,
-            document_id=str(document_id),
-            chunks=chunk_response.chunk_count,
-            has_acl=acl is not None,
+        await self._index_docmeta(
+            document_id=item.document_id, source=item.source, acl_payload=item.acl_payload
         )
 
     # ------------------------------------------------------------------ ACL --
@@ -238,6 +294,25 @@ class DofficeUnifiedIngestor:
         if finder is None:
             return None
         return await finder(source_type=DOFFICE_SOURCE_TYPE, id_vb=id_vb)
+
+    async def delete_by_id_vb(self, id_vb: str) -> bool:
+        """Xóa 1 văn bản khỏi CẢ 3 DB (PostgreSQL + Elasticsearch + Qdrant) theo id_vb.
+
+        True nếu tìm thấy & xóa Document trong PG. Nếu PG không còn doc -> vẫn cố dọn dấu
+        vết ES theo id_vb (Qdrant cần document_id nên không dọn được khi thiếu PG) và trả False.
+        """
+        id_vb = " ".join(str(id_vb or "").split()).strip()
+        if not id_vb:
+            return False
+        document = await self._find_existing(id_vb)
+        if document is None:
+            try:
+                await self._bm25_store.delete_by_id_vb(id_vb)
+            except Exception:
+                logger.exception("Xóa ES doc id_vb=%s thất bại", id_vb)
+            return False
+        await self._delete_everywhere(document, id_vb)
+        return True
 
     async def _delete_everywhere(self, document: Any, id_vb: str) -> None:
         document_id = document.id

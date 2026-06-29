@@ -12,7 +12,21 @@ set "PYTHONIOENCODING=utf-8"
 REM MODE 1: vai van ban le (vd: 1068586,1068587)
 REM set "DOFFICE_JOB_ID_VB=1068586"
 
-REM MODE 2: theo don vi (vd: 251,252) - chi dung khi ID_VB rong
+REM MODE 2: theo don vi (id_dv) - chi dung khi ID_VB rong. Danh sach don vi:
+REM   251  EVNCPC - Tong cong ty (GOC, bao gom moi don vi con)
+REM   122  Truong Cao dang dien luc mien Trung
+REM   252  Ban QLDA Luoi dien mien Trung      254  CTCP dau tu Dien luc 3
+REM   256  Cong ty CNTT DLMT (CPCIT)          257  Cong ty Thi nghiem dien mien Trung
+REM   258  Cong ty Tu van Dien mien Trung     274  Cong ty Dich vu dien luc mien Trung
+REM   259  Dien luc Binh Dinh                 261  Dien luc Dak Lak
+REM   262  Dien luc Gia Lai                   263  Dien luc Kon Tum
+REM   264  Dien luc Phu Yen                   265  Dien luc Quang Binh
+REM   266  Dien luc Quang Nam                 267  Dien luc Quang Ngai
+REM   268  Dien luc Quang Tri                 269  Dien luc Hue
+REM   270  Dien luc Dak Nong                  385  Dien luc Da Nang
+REM   386  CTCP Dien luc Khanh Hoa            1804 Cong ty Dien luc Khanh Hoa
+REM   486  TT Cham soc khach hang DLMT        487  TT SX thiet bi do dien tu DLMT
+REM   (Tong 335 don vi ke ca dien luc cap huyen - tra bang dm_don_vi neu can id con.)
 set "DOFFICE_JOB_DON_VI=256"
 
 REM MODE 3: TAT CA -> de trong ca ID_VB lan DON_VI

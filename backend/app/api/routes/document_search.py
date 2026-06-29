@@ -1,18 +1,21 @@
 """Route mỏng cho API tìm kiếm văn bản.
 
 POST /api/document-search/search — logic ở ``document_search_service``; route chỉ:
-(1) chặn truy cập qua ``require_document_search_access`` (chokepoint quyền),
+(1) BẮT BUỘC đăng nhập (Bearer JWT) qua ``get_current_user`` — không có token -> 401,
 (2) gọi service, (3) ánh xạ exception domain -> HTTP status.
 
-Caller tự truyền identity (id_nv/id_pb/id_dv) qua body để LỌC QUYỀN ở ES; còn việc
-"ai được gọi API này" do dependency xác thực ở trên quyết định.
+Caller truyền identity (id_nv/id_pb/id_dv) qua body để LỌC QUYỀN ở ES; còn việc "ai được
+gọi API này" do xác thực Bearer quyết định (thay cho X-API-Key tĩnh trước đây).
 """
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.api.dependencies.document_search_auth import require_document_search_access
+from app.api.dependencies.auth import get_current_user
+from app.models.user import User
 from app.services.retrieval.document_acl_inspect_service import (
     AclInspectRequest,
     AclInspectResponse,
@@ -34,9 +37,11 @@ router = APIRouter(prefix="/api/document-search", tags=["document-search"])
     "/search",
     response_model=DocumentSearchResponse,
     summary="Tìm kiếm văn bản (exact / BM25 / hybrid kNN+BM25 + ACL)",
-    dependencies=[Depends(require_document_search_access)],
 )
-async def document_search(request: DocumentSearchRequest) -> DocumentSearchResponse:
+async def document_search(
+    request: DocumentSearchRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> DocumentSearchResponse:
     """Tự phát hiện: số ký hiệu -> exact; từ khoá ngắn -> BM25; câu hỏi -> hybrid.
     ACL filter chỉ trả văn bản id_nv/id_pb/id_dv có quyền xem.
     """
@@ -52,9 +57,11 @@ async def document_search(request: DocumentSearchRequest) -> DocumentSearchRespo
     "/acl",
     response_model=AclInspectResponse,
     summary="Soi quyền 1 văn bản (ES hoặc Postgres) để kiểm chứng",
-    dependencies=[Depends(require_document_search_access)],
 )
-async def inspect_acl(request: AclInspectRequest) -> AclInspectResponse:
+async def inspect_acl(
+    request: AclInspectRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> AclInspectResponse:
     """Trả ACL của văn bản (acl_subjects + deny) từ ``source`` (es | postgres).
 
     Truyền thêm ``id_nv`` (kèm id_pb/id_dv) trong body -> tính luôn người đó CÓ xem được không.

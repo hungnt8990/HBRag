@@ -12,8 +12,13 @@ Output gọn (log chi tiết -> file, console chỉ spinner + summary box) như 
 Phụ: DOFFICE_JOB_BATCH_SIZE(200) DOFFICE_JOB_WORKERS(8) DOFFICE_JOB_LIMIT
      DOFFICE_JOB_FULL_SCAN(false) — true = quét lại từ đầu (bỏ qua checkpoint).
 
-Mode "Tất cả"/"Theo đơn vị" có CHECKPOINT: lần chạy sau tiếp tục batch kế tiếp
-(resume search_after), hết thì lần sau chỉ quét văn bản MỚI cập nhật.
+PIPELINE 3 LUỒNG (producer-consumer): Luồng 1 ghi PostgreSQL -> hàng đợi -> Luồng 2 (ES)
++ Luồng 3 (Qdrant) chạy song song. Số worker mỗi luồng (mặc định suy từ WORKERS; Qdrant
+đông nhất vì embed chậm): DOFFICE_JOB_PG_WORKERS / DOFFICE_JOB_ES_WORKERS / DOFFICE_JOB_QDRANT_WORKERS.
+
+Mode "Tất cả"/"Theo đơn vị" có CHECKPOINT incremental: lần chạy sau chỉ quét văn bản MỚI
+cập nhật (mốc updated_after lưu sau khi quét xong). Ngắt giữa chừng -> lần sau quét lại từ
+mốc cũ (idempotent, an toàn).
 
   python -m jobs.doffice_sync.run_unified --id-vb 1068586
   python -m jobs.doffice_sync.run_unified --don-vi 251 --batch-size 200 --limit 50
@@ -66,24 +71,52 @@ def _bool_env(name: str) -> bool:
 
 
 def _quiet_console() -> None:
-    """Console chỉ WARNING+ (giấu httpx/app INFO). Chi tiết -> file log của job."""
-    logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
+    """Console CHỈ ERROR+ (để dashboard 3 luồng không bị WARNING chèn ngang, đứng im).
+
+    Mọi chi tiết (INFO/WARNING) vẫn được ghi đầy đủ vào FILE log của job qua
+    ``setup_job_logging`` — chỉ giấu khỏi màn hình.
+    """
+    logging.basicConfig(level=logging.ERROR, format="%(levelname)s %(message)s")
     for noisy in ("httpx", "httpcore", "qdrant_client", "app", "asyncio", "elasticsearch"):
-        logging.getLogger(noisy).setLevel(logging.WARNING)
+        logging.getLogger(noisy).setLevel(logging.ERROR)
 
 
 def _status_line(runner: UnifiedJobRunner) -> str:
+    """Dashboard 3 luồng (đa dòng, cập nhật tại chỗ): mỗi luồng 1 dòng — xong/đang chờ/lỗi."""
     s = runner.stats
-    return (
-        f"{cs.BOLD}{runner.phase}…{cs.RESET} "
-        f"quét={cs.BOLD}{s.scanned}{cs.RESET}  "
-        f"{cs.GREEN}ingest {s.ingested}{cs.RESET}  "
-        f"{cs.RED}lỗi {s.failed}{cs.RESET}"
-    )
+    sep = cs.color("─" * 50, cs.GREY)
+    # "đang chờ" = đã qua Luồng 1 (PG) nhưng luồng sau chưa xử lý xong.
+    es_wait = max(0, s.scanned - s.es_done - s.es_failed)
+    qd_wait = max(0, s.scanned - s.qdrant_done - s.qdrant_failed)
+
+    def stage(label: str, done: int, code: str, *, wait: int = 0, fail: int = 0, note: str = "") -> str:
+        body = f"{cs.color(f'{done:>6}', code)} xong"
+        if wait:
+            body += f"   {cs.color(f'{wait:>4}', cs.YELLOW)} đang chờ"
+        if fail:
+            body += f"   {cs.color(f'{fail} lỗi', cs.RED)}"
+        if note:
+            body += f"   {note}"
+        return f"  {cs.BOLD}{label:<24}{cs.RESET}{body}"
+
+    # Luồng 1 (PG) chạy ĐỘC LẬP, vượt trước; báo rõ "đã nạp hết" để khỏi tưởng treo.
+    pg_note = cs.color("đã nạp hết ✓", cs.GREEN) if runner.feeding_done else cs.color("đang nạp…", cs.YELLOW)
+    # Luồng 3 (Qdrant/embed) chậm nhất -> hiện id_vb đang embed để thấy còn sống.
+    qd_note = cs.color(f"· đang embed {s.qdrant_current}", cs.GREY) if (qd_wait and s.qdrant_current) else ""
+
+    return "\n".join([
+        f"{cs.BOLD}DOffice Sync · pipeline 3 luồng{cs.RESET}  —  {runner.phase}…",
+        sep,
+        stage("Luồng 1 · PostgreSQL", s.scanned, cs.CYAN, note=pg_note),
+        stage("Luồng 2 · Elasticsearch", s.es_done, cs.GREEN, wait=es_wait, fail=s.es_failed),
+        stage("Luồng 3 · Qdrant", s.qdrant_done, cs.MAGENTA, wait=qd_wait, fail=s.qdrant_failed, note=qd_note),
+        sep,
+    ])
 
 
 def _print_summary(runner: UnifiedJobRunner, *, mode: str, elapsed: float, log_dir: Path) -> None:
     s = runner.stats
+    _err = s.failed + s.es_failed + s.qdrant_failed
     minutes, seconds = divmod(int(elapsed), 60)
     line = cs.color("═" * 46, cs.CYAN)
 
@@ -93,19 +126,21 @@ def _print_summary(runner: UnifiedJobRunner, *, mode: str, elapsed: float, log_d
 
     print(
         "\n".join(
-            [
+            row_line for row_line in [
                 "",
                 line,
                 cs.color("  DOffice Sync 3-DB (PG + ES + Qdrant)", cs.BOLD + cs.CYAN),
                 line,
                 row("Chế độ", mode, cs.BOLD),
                 row("Thời gian", f"{minutes}m {seconds}s", cs.RESET),
-                row("Quét", s.scanned, cs.BOLD),
-                row("Ingest", s.ingested, cs.GREEN),
-                row("Lỗi", s.failed, cs.RED if s.failed else cs.GREEN),
+                row("Luồng 1 (PG)", s.scanned, cs.BOLD),
+                row("Luồng 2 (ES)", s.es_done, cs.CYAN),
+                row("Luồng 3 (Qdrant)", s.qdrant_done, cs.GREEN),
+                row("Bỏ qua", s.skipped, cs.YELLOW, suffix="  (đã xong từ lần trước - resume)") if s.skipped else "",
+                row("Lỗi", _err, cs.RED if _err else cs.GREEN),
                 row("Log", f"{log_dir}/", cs.GREY),
                 line,
-            ]
+            ] if row_line
         )
     )
     for id_vb, err in list(s.errors.items())[:10]:
@@ -128,6 +163,9 @@ async def _main(args: argparse.Namespace) -> None:
     cfg = JobConfig.from_settings(
         id_vb_filter=id_vb, don_vi_filter=don_vi,
         batch_size=batch_size, max_workers=workers, scan_limit=limit, full_scan=full_scan,
+        pg_workers=_int_env("DOFFICE_JOB_PG_WORKERS", None),
+        es_workers=_int_env("DOFFICE_JOB_ES_WORKERS", None),
+        qdrant_workers=_int_env("DOFFICE_JOB_QDRANT_WORKERS", None),
     )
     mode = (
         "Văn bản lẻ" if id_vb

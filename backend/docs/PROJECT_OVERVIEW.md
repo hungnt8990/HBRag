@@ -3,7 +3,78 @@
 > Tài liệu này mô tả tổng thể backend để người mới (hoặc Claude ở phiên sau) đọc là
 > hiểu dự án có gì. **Mỗi khi hoàn thành một thay đổi đáng kể, phải cập nhật file này.**
 >
-> Cập nhật gần nhất: 2026-06-29 (o) — **Fix thứ tự chunk triệt để: thống nhất tọa độ qua `reading_pos`**.
+> Cập nhật gần nhất: 2026-06-29 (x) — **Đăng nhập Active Directory (LDAP) + auto-map dm_nhan_vien**.
+> Thêm `POST /api/auth/login-ad`: (1) xác thực AD bằng LDAP bind `domain\username` (`app/services/ad_auth.py:
+> authenticate_ad`, dùng `ldap3`, tương đương `CheckUserAD` của api_ktht_v2.0; domain `cpc-ad.evncpc.vn`); (2)
+> `lookup_nhan_vien` map username AD -> `dm_nhan_vien` lấy `id_nv` (xử lý tiền tố `evncpc\`, hoa/thường, email);
+> (3) `_provision_ad_user` TỰ TẠO/cập nhật User gắn `id_nv` + vai trò UNIT_USER (không mật khẩu local, không cần
+> tạo tài khoản thủ công); (4) trả JWT thường -> chat dùng `id_nv` áp ACL. Config `ad_*` + .env `AD_ENABLED=true`/
+> `AD_DOMAIN`. Verify map hungnt->id_nv=90288, provision không trùng, luồng login-ad (mock bind) ra token đúng.
+> 429 test pass. (Bind AD thật chỉ test được trong mạng có AD.)
+>
+> Cập nhật trước: 2026-06-29 (w) — **FIX HIỆU NĂNG O(n²): normalize văn bản lớn 45s -> 2.6s**.
+> Luồng 1 (PG) chậm vì `infer_table_name` gọi `html_to_plain_text(raw_text[:table_start])` cho MỖI bảng -> chuyển
+> TOÀN BỘ nội dung trước bảng sang plain text (bảng cuối ~3.3MB) = O(bảng × kích thước) = O(n²); 10/974 văn bản
+> >500KB (max 3.3MB) mất 25-45s/cái -> nghẽn cả PG. Fix: (1) `infer_table_name` chỉ chuyển CỬA SỔ `_TABLE_NAME_WINDOW
+> =8000` ký tự trước bảng (đủ lấy heading); (2) gate `has_appendix` tính 1 LẦN ở `parse_html_tables` thay vì search
+> `before` mỗi bảng. id_vb=220697: 45.7s -> 2.66s (~17×). Tên bảng giữ nguyên (52 test pass). + thêm retry Qdrant
+> (ReadTimeout gateway) 3 lần backoff. (Lưu ý pg_workers=2 khi WORKERS=8 -> tăng `DOFFICE_JOB_PG_WORKERS` nếu cần.)
+>
+> Cập nhật trước: 2026-06-29 (v) — **Resume theo từng VB + fix delete-theo-đơn-vị + xoá .bat job cũ**.
+> (1) FIX QUAN TRỌNG delete-theo-đơn-vị: `run_delete._id_vbs_for_don_vi` đổi từ `id_dv_ban_hanh` (đơn vị BAN HÀNH,
+> sai) sang `access.raw_assignment.don_vi_list` (đơn vị QUẢN LÝ/NHẬN — KHỚP với `--don-vi` lúc sync). Trước: VB do
+> 251 ban hành gửi tới 256 -> `delete --don-vi 256` (id_dv_ban_hanh) chỉ khớp 4 VB; nay khớp 436 VB. Đã verify
+> Qdrant delete THẬT (3 point -> 0). (2) RESUME: `ProgressStore` (file `logs/doffice_unified/.progress.txt`) ghi
+> id_vb đã xong CẢ ES+Qdrant; runner load lúc đầu -> feeder bỏ qua; ghi từng VB hoàn tất; xoá file khi cả run xong
+> (kill giữa chừng -> file còn -> lần sau resume, VB đang embed làm lại từ đầu vì idempotent). `--full-scan` xoá tiến
+> độ. Summary thêm "Bỏ qua". (3) Xoá `jobs/run_doffice_sync.bat` (job CŨ run.py, đã thay bằng run_unified). 41 test pass.
+>
+> Cập nhật trước: 2026-06-29 (u) — **Dashboard job: chỉ báo "đang nạp/đã nạp hết" + "đang embed" (không tưởng treo)**.
+> Job KHÔNG treo — Luồng 3 (Qdrant/embed) là nút cổ chai (~5s/VB) nên số chạy chậm, dễ tưởng dừng. PG (Luồng 1)
+> CHẠY ĐỘC LẬP vượt trước (backpressure maxsize=200). Thêm: `UnifiedStats.qdrant_current` (id_vb đang embed),
+> `runner.feeding_done` (True khi nạp hết). Dashboard: Luồng 1 hiện "đang nạp…/đã nạp hết ✓", Luồng 3 hiện
+> "· đang embed <id_vb>" -> thấy rõ còn sống + 3 luồng độc lập (PG=200 / ES=180 / Qdrant=15). Verify --don-vi 256
+> --limit 10 hoàn tất 10/10/10 51s. 15 job-test pass.
+>
+> Cập nhật trước: 2026-06-29 (t) — **Thêm CLI + .bat XOÁ văn bản DOffice (PG + ES + Qdrant)**.
+> `jobs/doffice_sync/run_delete.py` + `run_delete.bat` (ASCII/CRLF): xoá theo **văn bản** (`--id-vb` /
+> `DOFFICE_DEL_ID_VB`) hoặc theo **đơn vị** (`--don-vi` / `DOFFICE_DEL_DON_VI` = lọc theo `id_dv_ban_hanh` trong PG).
+> Mỗi văn bản xoá khỏi PostgreSQL (Document+chunks) + Elasticsearch (theo id_vb) + Qdrant (chunks+docmeta theo
+> document_id) — tái dùng method mới `DofficeUnifiedIngestor.delete_by_id_vb`. Có xác nhận 'yes' (trừ `--yes` /
+> `DOFFICE_DEL_YES=1`), spinner + summary box. Verify: xoá 1479029 -> PG=0/ES=404, re-ingest khôi phục OK. 41 test pass.
+>
+> Cập nhật trước: 2026-06-29 (s) — **Job: dashboard 3 luồng "đứng im" + hết WARNING spam**.
+> Trước: console job bị flood `WARNING Unable to determine exact DOffice source_span...` (chèn ngang spinner ->
+> "chạy loạn"). Fix: (1) hạ warning source_span -> `logger.debug` (fallback bình thường của summary/header/footer);
+> (2) `_quiet_console` console-level -> ERROR (chi tiết vẫn vào file qua `setup_job_logging`, logger `doffice_sync.*`
+> propagate=False nên không mất); (3) `cs.Spinner` nâng cấp ĐA DÒNG — render khối nhiều dòng cập nhật TẠI CHỖ (cursor
+> up), frame quay ở dòng đầu, xóa sạch khi stop; (4) `_status_line` -> dashboard 3 luồng (PG/ES/Qdrant) mỗi dòng:
+> xong / đang chờ (scanned - done) / lỗi. Job chạy thật sạch, 444 test pass.
+>
+> Cập nhật trước: 2026-06-29 (r) — **`/api/document-search` bắt buộc Bearer auth (bỏ X-API-Key)**.
+> Trước: `require_document_search_access` chỉ chặn khi `document_search_api_key` được cấu hình; chưa cấu hình ->
+> gọi TỰ DO không cần auth (lỗ hổng). Fix: 2 route (`/search`, `/acl`) dùng `Depends(get_current_user)` (Bearer JWT
+> bắt buộc -> 401 nếu thiếu token), bỏ X-API-Key. Test cũ (X-API-Key) rewrite -> kiểm Bearer (pop override
+> get_current_user -> 401). 429 test pass. CHƯA làm: body vẫn nhận `id_nv` tự do -> user đăng nhập vẫn tra theo
+> id_nv bất kỳ (nên gắn id_nv theo token để chống giả mạo — TODO).
+>
+> Cập nhật trước: 2026-06-29 (q) — **Chunk thân giữ heading cha trong "Mục:" (vd "1. CPCIT")**.
+> Triệu chứng: chunk "1.1. GIS 110kV..." mất "CPCIT" (đơn vị chịu trách nhiệm). Gốc: `section_path` ĐÃ chứa cha
+> `['1. CPCIT:', '1.1...']` nhưng dòng "Mục:" (build_body_evidence_chunks) chỉ in `section_title` (con). Fix: dòng
+> "Mục:" nối CẢ `section_path` (cha > con) cho chunk thân (artifact != appendix; appendix giữ section_title vì
+> `_merge_appendix_preamble` lo tiền tố "Phụ lục NN"). Verify 6515: "Mục: 1. CPCIT: > 1.1...", "2. Các CTĐL > 2.1",
+> "3. KHoPC: > 3.1". 429 test pass.
+>
+> Cập nhật trước: 2026-06-29 (p) — **Job unified thành PIPELINE 3 LUỒNG (producer-consumer)**.
+> `DofficeUnifiedIngestor.ingest()` tách 3 giai đoạn: `prepare_postgres` (Luồng 1: ACL+normalize+ghi PG Document&chunks,
+> trả `DofficeJobItem`) -> `index_elasticsearch` (Luồng 2: BM25 doc) + `index_qdrant` (Luồng 3: embed chunk từ PG +
+> Qdrant chunks/docmeta+ACL). `UnifiedJobRunner` dựng 3 pool worker + hàng đợi asyncio (`q_pg`→`q_es`+`q_qdrant`,
+> maxsize=200 backpressure); Luồng 1 đẩy item vào CẢ 2 hàng đợi cho Luồng 2&3 chạy song song. Mỗi worker session DB
+> riêng. Số worker: `pg_workers`/`es_workers`/`qdrant_workers` (mặc định suy từ max_workers; Qdrant đông nhất) qua env
+> `DOFFICE_JOB_PG/ES/QDRANT_WORKERS`. Checkpoint LƯU CUỐI (incremental updated_after; ngắt giữa chừng -> quét lại từ mốc
+> cũ, idempotent). Summary/spinner hiện 3 luồng (PG/ES/Qdrant). Smoke-test 50 item qua đủ 3 luồng, không deadlock; 41 test pass.
+>
+> Cập nhật trước: 2026-06-29 (o) — **Fix thứ tự chunk triệt để: thống nhất tọa độ qua `reading_pos`**.
 > Gốc: source_span ở 3 hệ tọa độ khác nhau (body theo base_clean_text, prose phụ lục theo tọa độ CỤC BỘ của
 > appendix_text 0..N, bảng theo raw_text HTML) -> prose phụ lục (vd "1. Mục tiêu" start=181) chen vào GIỮA body.
 > Fix: thêm `reading_pos` (vị trí trong base_plain_text — hệ nhất quán có placeholder [[TABLE_N]]): bảng lấy vị trí

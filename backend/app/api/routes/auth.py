@@ -1,14 +1,19 @@
-﻿from typing import Annotated
+﻿import secrets
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.api.dependencies.auth import get_current_user
-from app.core.security import create_access_token, verify_password
+from app.core.config import settings
+from app.core.security import create_access_token, hash_password, verify_password
 from app.db.session import get_db_session
 from app.models.document import Document
-from app.models.user import User
+from app.models.user import Role, User
 from app.repositories.auth import AuthRepository
+from app.services.ad_auth import authenticate_ad, lookup_nhan_vien
 from app.repositories.documents import DocumentRepository
 from app.schemas.auth import (
     AccessCatalogResponse,
@@ -49,6 +54,77 @@ async def login(
             detail="Invalid username or password.",
         )
     return TokenResponse(access_token=create_access_token(subject=str(user.id)))
+
+
+@router.post("/login-ad", response_model=TokenResponse, summary="Đăng nhập bằng Active Directory (LDAP)")
+async def login_ad(
+    request: LoginRequest,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> TokenResponse:
+    """Xác thực AD rồi tra ``dm_nhan_vien`` lấy ``id_nv`` để áp ACL.
+
+    KHÔNG cần tạo tài khoản/phân quyền thủ công: User được TỰ TẠO (hoặc gắn id_nv) khi
+    đăng nhập AD lần đầu. ACL khi chat dựa trên ``id_nv`` map từ tài khoản.
+    """
+    if not settings.ad_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Đăng nhập AD chưa được bật (đặt AD_ENABLED=true).",
+        )
+    if not authenticate_ad(request.username, request.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sai tài khoản hoặc mật khẩu AD.",
+        )
+    nv = await lookup_nhan_vien(session, request.username)
+    if nv is None or nv.get("id_nv") is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản AD không có trong danh mục nhân viên (dm_nhan_vien) -> không xác định được quyền.",
+        )
+    user = await _provision_ad_user(
+        session, username=request.username.split("\\")[-1].strip(), nv=nv
+    )
+    return TokenResponse(access_token=create_access_token(subject=str(user.id)))
+
+
+async def _provision_ad_user(session: AsyncSession, *, username: str, nv: dict) -> User:
+    """Tìm User theo username; nếu chưa có -> tạo mới (gắn id_nv, vai trò UNIT_USER).
+
+    AD đã xác thực nên KHÔNG cần mật khẩu local (đặt hash ngẫu nhiên không dùng tới).
+    """
+    user = (
+        await session.execute(
+            select(User).options(selectinload(User.roles)).where(User.username == username)
+        )
+    ).scalar_one_or_none()
+    if user is not None:
+        if user.id_nv != nv["id_nv"] or not user.is_active:
+            user.id_nv = nv["id_nv"]
+            user.is_active = True
+            await session.commit()
+        return user
+
+    org_id = (
+        await session.execute(
+            text("SELECT id FROM organizations ORDER BY (parent_id IS NULL) DESC, dvi_level ASC LIMIT 1")
+        )
+    ).scalar()
+    role = (await session.execute(select(Role).where(Role.name == "UNIT_USER"))).scalar_one_or_none()
+    user = User(
+        username=username,
+        email=nv.get("email"),
+        full_name=nv.get("ho_ten"),
+        hashed_password=hash_password(secrets.token_urlsafe(32)),
+        organization_id=org_id,
+        id_nv=nv["id_nv"],
+        is_active=True,
+    )
+    if role is not None:
+        user.roles = [role]
+    session.add(user)
+    await session.commit()
+    return user
 
 
 @router.get("/me", response_model=UserResponse, summary="Lấy thông tin người dùng hiện tại")

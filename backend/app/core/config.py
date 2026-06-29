@@ -131,6 +131,15 @@ class Settings(BaseSettings):
     # API cập nhật ACL cho DOffice gọi: API key tĩnh (rỗng = mở, cho dev).
     doffice_acl_api_key: str | None = None
 
+    # Đăng nhập bằng Active Directory (LDAP). Khi bật, /api/auth/login-ad xác thực tài
+    # khoản AD rồi tra dm_nhan_vien lấy id_nv để áp ACL (tự tạo User nếu chưa có).
+    ad_enabled: bool = False
+    ad_domain: str = "cpc-ad.evncpc.vn"  # = DomainAd .NET; bind dạng domain\\username
+    ad_port: int = 389
+    ad_use_ssl: bool = False
+    ad_timeout_seconds: int = 8
+    ad_email_suffix: str = "@cpc.vn"  # suy email từ username khi tra dm_nhan_vien
+
     memory_provider: str = "local"
     memory_enabled: bool = True
     mem0_enabled: bool = False

@@ -21,6 +21,11 @@ class JobConfig:
     # Hiệu năng
     batch_size: int = 500
     max_workers: int = 20
+    # Pipeline 3 luồng: số worker mỗi giai đoạn. Qdrant (embed) là nút cổ chai nên đông
+    # nhất; PG/ES nhẹ hơn. None -> suy ra từ max_workers ở runner.
+    pg_workers: int | None = None
+    es_workers: int | None = None
+    qdrant_workers: int | None = None
 
     # Chế độ
     full_scan: bool = False

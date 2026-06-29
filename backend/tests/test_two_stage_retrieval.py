@@ -105,6 +105,7 @@ def test_two_stage_search_method_also_limits() -> None:
 def test_get_hybrid_search_service_plain_when_disabled(monkeypatch) -> None:
     from app.api.routes import search as search_module
 
+    monkeypatch.setattr(search_module.settings, "doffice_retrieval_enabled", False)
     monkeypatch.setattr(search_module.settings, "two_stage_retrieval_enabled", False)
     svc = search_module.get_hybrid_search_service(
         vector_search_service=object(),
@@ -119,6 +120,7 @@ def test_get_hybrid_search_service_plain_when_disabled(monkeypatch) -> None:
 def test_get_hybrid_search_service_wraps_when_enabled(monkeypatch) -> None:
     from app.api.routes import search as search_module
 
+    monkeypatch.setattr(search_module.settings, "doffice_retrieval_enabled", False)
     monkeypatch.setattr(search_module.settings, "two_stage_retrieval_enabled", True)
     svc = search_module.get_hybrid_search_service(
         vector_search_service=object(),

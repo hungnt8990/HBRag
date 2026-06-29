@@ -11,6 +11,9 @@ from typing import Any
 FOOTER_MARKER_PATTERN = re.compile(r"(?im)^\s*(Nơi nhận|KT\.\s*GIÁM ĐỐC|PHÓ GIÁM ĐỐC|Lưu:\s*VT)\b")
 PAGE_MARKER_PATTERN = re.compile(r"(?im)^\s*---\s*Page\s+\d+\s*---\s*$")
 APPENDIX_MARKER_PATTERN = re.compile(r"(?im)^\s*(PHỤ\s*LỤC|PHU\s*LUC)\b")
+# Cửa sổ HTML (ký tự) ngay TRƯỚC mỗi bảng để suy tên bảng — đủ lấy vài dòng heading,
+# tránh chuyển toàn bộ nội dung trước bảng (O(n²) trên văn bản lớn).
+_TABLE_NAME_WINDOW = 8000
 ASCII_FOOTER_MARKER_PATTERN = re.compile(
     r"(?im)^\s*(Noi\s+nhan|N[ơo]i\s+nhận|KT\.\s*GIAM\s+DOC|PHO\s+GIAM\s+DOC|Luu:\s*VT)\b"
 )
@@ -382,14 +385,20 @@ def _source_span_for_text(clean_text: str, text: str, *, chunk_type: str) -> dic
         index = haystack.find(needle)
         if index >= 0:
             return {"start": index, "end": index + len(needle)}
-    logger.warning("Unable to determine exact DOffice source_span for %s; using document-scope fallback.", chunk_type)
+    # Fallback BÌNH THƯỜNG cho chunk tổng hợp (summary/header/footer) -> debug, không
+    # spam WARNING ra console job.
+    logger.debug("Unable to determine exact DOffice source_span for %s; using document-scope fallback.", chunk_type)
     return {"start": 0, "end": len(haystack)}
 
 
 def parse_html_tables(raw_text: str) -> list[NormalizedTable]:
     tables: list[NormalizedTable] = []
+    # Tính 1 LẦN cho cả văn bản (thay vì search trong infer_table_name mỗi bảng).
+    has_appendix = bool(APPENDIX_MARKER_PATTERN.search(raw_text or ""))
     for table_index, match in enumerate(TABLE_PATTERN.finditer(raw_text or "")):
-        table_name = infer_table_name(raw_text or "", match.start(), table_index=table_index)
+        table_name = infer_table_name(
+            raw_text or "", match.start(), table_index=table_index, has_appendix=has_appendix
+        )
         parser = DofficeHTMLTableParser()
         parser.feed(match.group(0))
         parser.close()
@@ -550,8 +559,12 @@ def _is_continuation_table(prev_headers: list[str], headers: list[str], data_row
     return bool(re.fullmatch(r"\d+", first)) and int(first) > 1
 
 
-def infer_table_name(raw_text: str, table_start: int, *, table_index: int) -> str:
-    before = html_to_plain_text((raw_text or "")[:table_start])
+def infer_table_name(raw_text: str, table_start: int, *, table_index: int, has_appendix: bool = False) -> str:
+    # Chỉ chuyển CỬA SỔ ~8000 ký tự HTML ngay trước bảng sang plain text (đủ lấy ~8 dòng
+    # heading). Trước đây chuyển TOÀN BỘ ``[:table_start]`` cho MỖI bảng -> O(bảng × kích
+    # thước) = O(n²): văn bản 3MB / 80 bảng mất ~45s. Cửa sổ -> O(n), nhanh ~160 lần.
+    window_start = max(0, table_start - _TABLE_NAME_WINDOW)
+    before = html_to_plain_text((raw_text or "")[window_start:table_start])
     lines = [line.strip(" :-") for line in before.splitlines() if line.strip(" :-")]
     for line in reversed(lines[-8:]):
         lowered = line.casefold()
@@ -563,8 +576,9 @@ def infer_table_name(raw_text: str, table_start: int, *, table_index: int) -> st
             return clean_inline_text(line)
     # Bảng trong PHỤ LỤC thường có heading riêng (Phụ lục NN, (N) F0X_..., (N) Mối quan
     # hệ..., Tên bảng dữ liệu...) -> lấy heading gần nhất làm tên bảng thay vì rơi về
-    # "Bảng DOffice N". Chỉ áp dụng khi bảng nằm sau marker phụ lục.
-    if APPENDIX_MARKER_PATTERN.search(before):
+    # "Bảng DOffice N". Gate ``has_appendix`` tính 1 LẦN ở parse_html_tables (tránh search
+    # toàn bộ mỗi bảng); heading cụ thể vẫn tìm trong cửa sổ ``before``.
+    if has_appendix:
         window = lines[-6:]
         for idx in range(len(window) - 1, -1, -1):
             name = _appendix_heading_name(window[idx])

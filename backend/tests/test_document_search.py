@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from app.api.dependencies import document_search_auth as auth_mod
+from app.api.dependencies import document_search_auth as auth_mod  # noqa: F401 (giữ cho _patch)
+from app.api.dependencies.auth import get_current_user
 from app.main import app
 from app.services.retrieval import document_search_service as dss
 from app.services.retrieval.retrieval_document_index import DocumentIndexStore
@@ -259,8 +260,9 @@ def test_endpoint_503_when_es_disabled(monkeypatch) -> None:
 
 # --- auth hook -------------------------------------------------------------
 
-def test_auth_blocks_without_key(monkeypatch) -> None:
-    monkeypatch.setattr(auth_mod.settings, "document_search_api_key", "secret")
+def test_auth_blocks_without_token() -> None:
+    # Bỏ override get_current_user -> kiểm auth THẬT: không có Bearer token -> 401.
+    app.dependency_overrides.pop(get_current_user, None)
     resp = TestClient(app).post("/api/document-search/search", json={"query": "GIS", "id_nv": 1})
     assert resp.status_code == 401
 
@@ -323,7 +325,8 @@ def test_inspect_acl_not_found(monkeypatch) -> None:
     assert r.json()["found"] is False
 
 
-def test_inspect_acl_requires_auth(monkeypatch) -> None:
-    monkeypatch.setattr(auth_mod.settings, "document_search_api_key", "secret")
+def test_inspect_acl_requires_auth() -> None:
+    # Bỏ override get_current_user -> không có Bearer token -> 401.
+    app.dependency_overrides.pop(get_current_user, None)
     r = TestClient(app).post("/api/document-search/acl", json={"id_vb": "1300411", "source": "es"})
     assert r.status_code == 401

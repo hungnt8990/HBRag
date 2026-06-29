@@ -392,9 +392,17 @@ def _bounded_chunks(
         return []
     context = standard_document_context(base_metadata)
     section_title = base_metadata.get("section_title")
+    # Dùng CẢ section_path (cha > con) cho dòng "Mục:" -> giữ heading cha (vd "1. CPCIT:")
+    # cho các mục con ("1.1.", "1.2."), tránh mất ngữ cảnh đơn vị chịu trách nhiệm.
+    # Phụ lục giữ section_title vì tiền tố "Phụ lục NN" do _merge_appendix_preamble lo.
+    section_path = base_metadata.get("section_path")
+    if base_metadata.get("artifact_type") != "appendix" and isinstance(section_path, (list, tuple)):
+        muc = " > ".join(str(part).strip() for part in section_path if str(part).strip())
+    else:
+        muc = section_title
     prefix = [*context]
-    if section_title and f"Mục: {section_title}" not in prefix:
-        prefix.append(f"Mục: {section_title}")
+    if muc and f"Mục: {muc}" not in prefix:
+        prefix.append(f"Mục: {muc}")
     body_budget = max(500, max_chars - len("\n".join(prefix)) - 2)
     raw_parts = _split_by_boundaries(clean, max_chars=body_budget, overlap_chars=overlap_chars)
     chunks: list[EvidenceChunk] = []
