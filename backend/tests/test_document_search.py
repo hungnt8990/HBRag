@@ -134,11 +134,12 @@ class _FakeClient:
         return self._resp
 
 
-def _patch(monkeypatch, resp, *, api_key=None, org=(None, None)):
+def _patch(monkeypatch, resp, *, nv=117058, org=(None, None)):
+    from app.api.routes import document_search as route_mod
+
     monkeypatch.setattr(dss.settings, "elasticsearch_enabled", True)
     # Test logic hybrid/kNN gốc -> tắt BM25-only (mặc định production=True khi gateway embed chết).
     monkeypatch.setattr(dss.settings, "document_search_bm25_only", False)
-    monkeypatch.setattr(auth_mod.settings, "document_search_api_key", api_key)
     monkeypatch.setattr(dss.httpx, "AsyncClient", lambda *a, **k: _FakeClient(resp))
 
     async def _noop(self):
@@ -153,6 +154,17 @@ def _patch(monkeypatch, resp, *, api_key=None, org=(None, None)):
         return AclSubject(id_nv=id_nv, id_pb=org[0], id_dv=org[1], is_super_admin=False)
 
     monkeypatch.setattr(dss, "_resolve_subject_from_db", _fake_resolve)
+
+    # type=DO: route parse jwtToken -> id_nv. Mock để test khỏi cần token/DB thật.
+    async def _fake_idnv(session, token):
+        return nv
+
+    monkeypatch.setattr(route_mod, "_id_nv_from_jwt", _fake_idnv)
+
+
+def _do(query, **extra):
+    """Body chuẩn flow mới: type=DO + jwtToken (id_nv lấy từ token đã mock)."""
+    return {"query": query, "type": "DO", "jwtToken": "x", **extra}
 
 
 def _hits():
@@ -172,10 +184,8 @@ def _hits():
 # --- endpoint --------------------------------------------------------------
 
 def test_endpoint_exact(monkeypatch) -> None:
-    _patch(monkeypatch, _FakeResp(_hits()))
-    resp = TestClient(app).post(
-        "/api/document-search/search", json={"query": "6515/EVNCPC-VTCNTT", "id_nv": 117058}
-    )
+    _patch(monkeypatch, _FakeResp(_hits()), nv=117058)
+    resp = TestClient(app).post("/api/document-search/search", json=_do("6515/EVNCPC-VTCNTT"))
     assert resp.status_code == 200
     data = resp.json()
     assert data["search_type"] == "exact"
@@ -183,11 +193,10 @@ def test_endpoint_exact(monkeypatch) -> None:
 
 
 def test_search_resolves_pb_dv_from_nhan_vien(monkeypatch) -> None:
-    # id_nv -> (id_pb, id_dv) thật từ dm_nhan_vien; ACL filter phải có cả 3 key.
-    _patch(monkeypatch, _FakeResp(_hits()), org=(43038, 1833))
+    # id_nv (từ token) -> (id_pb, id_dv) thật từ dm_nhan_vien; ACL filter phải có cả 3 key.
+    _patch(monkeypatch, _FakeResp(_hits()), nv=117058, org=(43038, 1833))
     resp = TestClient(app).post(
-        "/api/document-search/search",
-        json={"query": "GIS lưới điện", "id_nv": 117058, "prefer_recent": False},
+        "/api/document-search/search", json=_do("GIS lưới điện", prefer_recent=False)
     )
     assert resp.status_code == 200
     keys = _FakeClient.captured["query"]["bool"]["filter"][0]["bool"]["filter"][0]["terms"][
@@ -200,10 +209,9 @@ def test_search_resolves_pb_dv_from_nhan_vien(monkeypatch) -> None:
 
 def test_search_unknown_nhan_vien_nv_only(monkeypatch) -> None:
     # id_nv không có trong dm_nhan_vien -> chỉ key nv_, không có pb_/dv_.
-    _patch(monkeypatch, _FakeResp(_hits()), org=(None, None))
+    _patch(monkeypatch, _FakeResp(_hits()), nv=87, org=(None, None))
     resp = TestClient(app).post(
-        "/api/document-search/search",
-        json={"query": "GIS lưới điện", "id_nv": 87, "prefer_recent": False},
+        "/api/document-search/search", json=_do("GIS lưới điện", prefer_recent=False)
     )
     assert resp.status_code == 200
     keys = _FakeClient.captured["query"]["bool"]["filter"][0]["bool"]["filter"][0]["terms"][
@@ -214,7 +222,7 @@ def test_search_unknown_nhan_vien_nv_only(monkeypatch) -> None:
 
 
 def test_endpoint_hybrid_uses_knn(monkeypatch) -> None:
-    _patch(monkeypatch, _FakeResp(_hits()))
+    _patch(monkeypatch, _FakeResp(_hits()), nv=1)
 
     class _G:
         async def embed_query(self, q):
@@ -223,7 +231,7 @@ def test_endpoint_hybrid_uses_knn(monkeypatch) -> None:
     monkeypatch.setattr("app.services.llm_gateway.get_llm_gateway", lambda: _G())
     resp = TestClient(app).post(
         "/api/document-search/search",
-        json={"query": "quy trình đồng bộ dữ liệu địa lý lưới điện là gì", "id_nv": 1},
+        json=_do("quy trình đồng bộ dữ liệu địa lý lưới điện là gì"),
     )
     assert resp.status_code == 200
     assert resp.json()["used_vector"] is True
@@ -231,7 +239,7 @@ def test_endpoint_hybrid_uses_knn(monkeypatch) -> None:
 
 
 def test_endpoint_embed_fail_fallback(monkeypatch) -> None:
-    _patch(monkeypatch, _FakeResp(_hits()))
+    _patch(monkeypatch, _FakeResp(_hits()), nv=1)
 
     class _G:
         async def embed_query(self, q):
@@ -240,7 +248,7 @@ def test_endpoint_embed_fail_fallback(monkeypatch) -> None:
     monkeypatch.setattr("app.services.llm_gateway.get_llm_gateway", lambda: _G())
     resp = TestClient(app).post(
         "/api/document-search/search",
-        json={"query": "quy trình đồng bộ dữ liệu địa lý lưới điện là gì", "id_nv": 1},
+        json=_do("quy trình đồng bộ dữ liệu địa lý lưới điện là gì"),
     )
     assert resp.status_code == 200
     assert resp.json()["search_type"] == "bm25"
@@ -248,35 +256,43 @@ def test_endpoint_embed_fail_fallback(monkeypatch) -> None:
 
 
 def test_endpoint_es_error_502(monkeypatch) -> None:
-    _patch(monkeypatch, _FakeResp({"error": "boom"}, status_code=400))
-    resp = TestClient(app).post("/api/document-search/search", json={"query": "GIS", "id_nv": 1})
+    _patch(monkeypatch, _FakeResp({"error": "boom"}, status_code=400), nv=1)
+    resp = TestClient(app).post("/api/document-search/search", json=_do("GIS"))
     assert resp.status_code == 502
 
 
 def test_endpoint_503_when_es_disabled(monkeypatch) -> None:
-    monkeypatch.setattr(auth_mod.settings, "document_search_api_key", None)
+    _patch(monkeypatch, _FakeResp(_hits()), nv=1)
     monkeypatch.setattr(dss.settings, "elasticsearch_enabled", False)
-    resp = TestClient(app).post("/api/document-search/search", json={"query": "GIS", "id_nv": 1})
+    resp = TestClient(app).post("/api/document-search/search", json=_do("GIS"))
     assert resp.status_code == 503
 
 
-# --- auth hook -------------------------------------------------------------
+# --- flow type (DO/EO), không còn Bearer auth ------------------------------
 
-def test_auth_blocks_without_token() -> None:
-    # Bỏ override get_current_user -> kiểm auth THẬT: không có Bearer token -> 401.
-    app.dependency_overrides.pop(get_current_user, None)
-    resp = TestClient(app).post("/api/document-search/search", json={"query": "GIS", "id_nv": 1})
-    assert resp.status_code == 401
-
-
-def test_auth_allows_with_correct_key(monkeypatch) -> None:
-    _patch(monkeypatch, _FakeResp(_hits()), api_key="secret")
+def test_type_eo_returns_empty() -> None:
+    # EO chưa hỗ trợ -> trả rỗng (không gọi ES, không cần token hợp lệ).
     resp = TestClient(app).post(
-        "/api/document-search/search",
-        json={"query": "GIS lưới điện", "id_nv": 1},
-        headers={"X-API-Key": "secret"},
+        "/api/document-search/search", json={"query": "GIS", "type": "EO", "jwtToken": "x"}
     )
     assert resp.status_code == 200
+    body = resp.json()
+    assert body["search_type"] == "eo" and body["total"] == 0 and body["results"] == []
+
+
+def test_type_missing_422() -> None:
+    # Thiếu type -> 422 (phải DO|EO).
+    resp = TestClient(app).post("/api/document-search/search", json={"query": "GIS"})
+    assert resp.status_code == 422
+
+
+def test_type_do_bad_token_401(monkeypatch) -> None:
+    # type=DO + token rác -> 401 (không parse được id_nv). Không mock _id_nv_from_jwt.
+    monkeypatch.setattr(dss.settings, "elasticsearch_enabled", True)
+    resp = TestClient(app).post(
+        "/api/document-search/search", json={"query": "GIS", "type": "DO", "jwtToken": "rac"}
+    )
+    assert resp.status_code == 401
 
 
 # --- inspect ACL endpoint --------------------------------------------------

@@ -68,6 +68,7 @@ class DofficeBm25DocumentStore:
         self.url = (url or settings.elasticsearch_url).rstrip("/")
         self.index_name = index_name or settings.doffice_documents_index_name
         self.timeout_seconds = timeout_seconds
+        self._index_ready = False  # cache: ensure_index chỉ thật sự chạy 1 lần/process
 
     @staticmethod
     def _index_definition() -> dict[str, Any]:
@@ -111,18 +112,25 @@ class DofficeBm25DocumentStore:
         }
 
     async def ensure_index(self) -> None:
+        # Cache: bỏ HEAD/PUT lặp lại mỗi lần upsert (upsert_document gọi hàm này mỗi doc ->
+        # nếu không cache sẽ là 1 round-trip ES thừa/văn bản, rất chậm khi ES tải nặng).
+        if self._index_ready:
+            return
         async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
             resp = await client.head(f"{self.url}/{self.index_name}")
             if resp.status_code == 200:
+                self._index_ready = True
                 return
             resp = await client.put(f"{self.url}/{self.index_name}", json=self._index_definition())
             if resp.status_code < 400 or "resource_already_exists" in resp.text:
+                self._index_ready = True
                 return
             raise RuntimeError(
                 f"Tạo index {self.index_name} lỗi: HTTP {resp.status_code} {resp.text[:300]}"
             )
 
     async def delete_index(self) -> None:
+        self._index_ready = False
         async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
             resp = await client.delete(f"{self.url}/{self.index_name}")
         if resp.status_code not in (200, 404):

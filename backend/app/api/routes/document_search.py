@@ -11,11 +11,16 @@ gọi API này" do xác thực Bearer quyết định (thay cho X-API-Key tĩnh 
 from __future__ import annotations
 
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies.auth import get_current_user
+from app.core.security import TokenError, decode_jwt
+from app.db.session import get_db_session
 from app.models.user import User
+from app.repositories.auth import AuthRepository
 from app.services.retrieval.document_acl_inspect_service import (
     AclInspectRequest,
     AclInspectResponse,
@@ -33,18 +38,52 @@ from app.services.security.security_acl_payload import AclSubject
 router = APIRouter(prefix="/api/document-search", tags=["document-search"])
 
 
+async def _id_nv_from_jwt(session: AsyncSession, token: str | None) -> int:
+    """Parse jwtToken -> User (theo sub=UUID) -> id_nv. Token phải hợp lệ + còn hạn."""
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Thiếu jwtToken.")
+    try:
+        payload = decode_jwt(token)
+        user_id = UUID(str(payload.get("sub")))
+    except (TokenError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="jwtToken không hợp lệ hoặc hết hạn."
+        ) from exc
+    user = await AuthRepository(session).get_user_by_id(user_id)
+    if user is None or user.id_nv is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Không xác định được id_nv từ jwtToken."
+        )
+    return user.id_nv
+
+
 @router.post(
     "/search",
     response_model=DocumentSearchResponse,
-    summary="Tìm kiếm văn bản (exact / BM25 / hybrid kNN+BM25 + ACL)",
+    summary="Tìm kiếm văn bản theo type (DO = DOffice, parse jwtToken lấy id_nv; EO = làm sau)",
 )
 async def document_search(
     request: DocumentSearchRequest,
-    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> DocumentSearchResponse:
-    """Tự phát hiện: số ký hiệu -> exact; từ khoá ngắn -> BM25; câu hỏi -> hybrid.
-    ACL filter chỉ trả văn bản id_nv/id_pb/id_dv có quyền xem.
+    """KHÔNG yêu cầu Bearer. Body: ``query``, ``top_n``, ``jwtToken``, ``type`` (EO|DO).
+
+    - ``type=DO``: parse ``jwtToken`` -> ``id_nv`` -> tra cứu DOffice (ES BM25 + ACL).
+    - ``type=EO``: chưa hỗ trợ (trả rỗng) — làm sau.
     """
+    doc_type = (request.type or "").upper()
+    if doc_type == "EO":
+        return DocumentSearchResponse(
+            query=request.query, id_nv=None, id_pb=None, id_dv=None,
+            search_type="eo", mode_used="list", used_vector=False, total=0, results=[],
+        )
+    if doc_type != "DO":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="type phải là 'DO' hoặc 'EO'."
+        )
+
+    id_nv = await _id_nv_from_jwt(session, request.jwtToken)
+    request = request.model_copy(update={"id_nv": id_nv})
     try:
         return await execute_document_search(request)
     except DocumentSearchUnavailable as exc:

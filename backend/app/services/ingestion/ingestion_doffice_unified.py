@@ -16,6 +16,7 @@ Tái dùng VectorIndexingService (embed + Qdrant Col1). Runner gọi 4 luồng s
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import uuid
 from dataclasses import dataclass, field
@@ -202,7 +203,9 @@ class DofficeUnifiedIngestor:
         Điền vào item: ``normalized`` (để chunk), ``clean_noi_dung``, ``clean_tom_tat``,
         ACL đã nén. KHÔNG ghi DB — chỉ làm giàu item để đẩy sang Luồng 3 (ES) & Luồng 4 (Qdrant).
         """
-        normalized = normalize_doffice_source(item.source)
+        # normalize là CPU nặng (doc lớn 1-7s) -> chạy ở THREAD để KHÔNG chặn event loop
+        # (các luồng PG/ES + dashboard vẫn chạy khi đang normalize 1 doc lớn).
+        normalized = await asyncio.to_thread(normalize_doffice_source, item.source)
         item.normalized = normalized
         item.clean_noi_dung = (normalized.clean_text or "").strip() or None
         item.clean_tom_tat = clean_for_chunking(str(item.source.get("tom_tat") or "")) or None
@@ -247,7 +250,8 @@ class DofficeUnifiedIngestor:
             await self.clean_data(item)  # an toàn nếu gọi trực tiếp (ngoài pipeline)
 
         cfg = get_profile_config("doffice_admin")
-        chunk_records = build_doffice_chunks(
+        chunk_records = await asyncio.to_thread(
+            build_doffice_chunks,
             item.normalized,
             body_max_chars=int(cfg.get("doffice_body_max_chars") or 2800),
             body_overlap=int(cfg.get("doffice_body_overlap") or 300),

@@ -3,7 +3,16 @@
 > Tài liệu này mô tả tổng thể backend để người mới (hoặc Claude ở phiên sau) đọc là
 > hiểu dự án có gì. **Mỗi khi hoàn thành một thay đổi đáng kể, phải cập nhật file này.**
 >
-> Cập nhật gần nhất: 2026-06-29 (aa) — **API document-search: BM25 + ACL only (bỏ embed) + sửa nhầm index**.
+> Cập nhật gần nhất: 2026-06-29 (ab) — **document-search đổi hợp đồng: bỏ Bearer, nhận type + jwtToken**.
+> `POST /api/document-search/search` KHÔNG còn yêu cầu Bearer (bỏ `get_current_user`). Body mới: `query`, `top_n`,
+> `jwtToken`, `type` (Literal EO|DO). `type=DO` -> `_id_nv_from_jwt` decode jwtToken (verify chữ ký+hạn) lấy
+> `sub`=User UUID -> load User -> `id_nv` -> tra cứu DOffice (ES BM25 + ACL). `type=EO` -> trả rỗng (làm sau).
+> `type` khác -> 422; token rác/hết hạn -> 401; user không có id_nv -> 403. `DocumentSearchRequest`: id_nv thành
+> optional (tự lấy từ token), thêm jwtToken+type. Test rewrite: mock `_id_nv_from_jwt`, bỏ 2 test Bearer/X-API-Key
+> cũ, thêm test EO/missing-type/bad-token. Verify: DO+token hungnt -> id_nv=90288 -> 20 kết quả (top 108/QĐ-IT).
+> 430 test pass.
+>
+> Cập nhật trước: 2026-06-29 (aa) — **API document-search: BM25 + ACL only (bỏ embed) + sửa nhầm index**.
 > `/api/document-search/search` chậm (treo 30s) vì: (1) embed câu hỏi cho hybrid kNN nhưng model embedding chết;
 > (2) query NHẦM index rỗng `hbrag_documents_v1` (dữ liệu DOffice ở `hbrag_doffice_documents_v1`). Sửa: thêm cờ
 > `document_search_bm25_only` (mặc định True, env `DOCUMENT_SEARCH_BM25_ONLY`) → `execute_document_search` hạ

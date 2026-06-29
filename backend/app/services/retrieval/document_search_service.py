@@ -34,8 +34,13 @@ class DocumentSearchError(RuntimeError):
 
 class DocumentSearchRequest(BaseModel):
     query: str = Field(min_length=1, max_length=2000, description="Từ khoá, số ký hiệu, hoặc câu hỏi")
-    id_nv: int = Field(description="Mã nhân viên — bắt buộc; id_pb/id_dv được resolve từ dm_nhan_vien")
     top_n: int = Field(default=20, ge=1, le=100, description="Số văn bản trả về")
+    jwtToken: str | None = Field(default=None, description="JWT để lấy id_nv (bắt buộc khi type=DO)")
+    type: Literal["EO", "DO"] | None = Field(
+        default=None, description="DO = tra cứu DOffice (parse token lấy id_nv); EO = làm sau"
+    )
+    # id_nv KHÔNG truyền trực tiếp nữa: với type=DO route tự parse từ jwtToken rồi gán vào đây.
+    id_nv: int | None = Field(default=None, description="Tự lấy từ jwtToken khi type=DO")
     use_vector: bool = Field(default=True, description="Dùng BBQ kNN (False = BM25-only)")
     prefer_recent: bool = Field(
         default=True, description="Ưu tiên văn bản mới (gauss decay theo ngay_vb) — vẫn giữ độ liên quan"
@@ -59,7 +64,7 @@ class DocumentSearchHit(BaseModel):
 
 class DocumentSearchResponse(BaseModel):
     query: str
-    id_nv: int
+    id_nv: int | None
     id_pb: int | None
     id_dv: int | None
     search_type: str  # exact | bm25 | hybrid
