@@ -3,7 +3,14 @@
 > Tài liệu này mô tả tổng thể backend để người mới (hoặc Claude ở phiên sau) đọc là
 > hiểu dự án có gì. **Mỗi khi hoàn thành một thay đổi đáng kể, phải cập nhật file này.**
 >
-> Cập nhật gần nhất: 2026-06-29 (ab) — **document-search đổi hợp đồng: bỏ Bearer, nhận type + jwtToken**.
+> Cập nhật gần nhất: 2026-06-29 (ac) — **document-search: jwtToken là token NGOÀI (CPC), decode-only lấy ID_NV**.
+> `_id_nv_from_jwt` đổi từ verify-HS256-của-mình sang **decode payload KHÔNG verify** (token do hệ thống ngoài cấp:
+> iss=CPC, RS256 — mình không giữ khóa). Lấy field `ID_NV` trong payload (vd ID_NV="90288", IDDONVI="256") -> int ->
+> lọc ACL. Hàm thành sync, bỏ get_db_session/AuthRepository khỏi route. Verify: token thật của user -> ID_NV=90288
+> -> trả đúng VB quỹ phúc lợi (108/QĐ-IT). Lỗi: thiếu/sai định dạng -> 401; không có ID_NV -> 403. Test mock
+> `_id_nv_from_jwt` (sync). 430 test pass. (LƯU Ý: decode-only KHÔNG verify chữ ký -> chỉ tin token từ upstream CPC.)
+>
+> Cập nhật trước: 2026-06-29 (ab) — **document-search đổi hợp đồng: bỏ Bearer, nhận type + jwtToken**.
 > `POST /api/document-search/search` KHÔNG còn yêu cầu Bearer (bỏ `get_current_user`). Body mới: `query`, `top_n`,
 > `jwtToken`, `type` (Literal EO|DO). `type=DO` -> `_id_nv_from_jwt` decode jwtToken (verify chữ ký+hạn) lấy
 > `sub`=User UUID -> load User -> `id_nv` -> tra cứu DOffice (ES BM25 + ACL). `type=EO` -> trả rỗng (làm sau).

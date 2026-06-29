@@ -10,17 +10,14 @@ gọi API này" do xác thực Bearer quyết định (thay cho X-API-Key tĩnh 
 
 from __future__ import annotations
 
+import base64
+import json
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies.auth import get_current_user
-from app.core.security import TokenError, decode_jwt
-from app.db.session import get_db_session
 from app.models.user import User
-from app.repositories.auth import AuthRepository
 from app.services.retrieval.document_acl_inspect_service import (
     AclInspectRequest,
     AclInspectResponse,
@@ -38,37 +35,40 @@ from app.services.security.security_acl_payload import AclSubject
 router = APIRouter(prefix="/api/document-search", tags=["document-search"])
 
 
-async def _id_nv_from_jwt(session: AsyncSession, token: str | None) -> int:
-    """Parse jwtToken -> User (theo sub=UUID) -> id_nv. Token phải hợp lệ + còn hạn."""
+def _id_nv_from_jwt(token: str | None) -> int:
+    """Decode payload JWT (KHÔNG verify chữ ký) để lấy ``ID_NV``.
+
+    Token do hệ thống NGOÀI cấp (vd iss=CPC, RS256) — mình không quản lý khóa ký, chỉ
+    decode payload như jwt.io để lấy ``ID_NV`` rồi dùng làm id_nv lọc ACL.
+    """
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Thiếu jwtToken.")
+    parts = token.split(".")
+    if len(parts) != 3:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="jwtToken không đúng định dạng JWT.")
     try:
-        payload = decode_jwt(token)
-        user_id = UUID(str(payload.get("sub")))
-    except (TokenError, ValueError) as exc:
+        seg = parts[1] + "=" * (-len(parts[1]) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(seg).decode("utf-8"))
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="jwtToken không decode được.") from exc
+    raw = payload.get("ID_NV", payload.get("id_nv"))
+    try:
+        return int(str(raw).strip())
+    except (TypeError, ValueError) as exc:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="jwtToken không hợp lệ hoặc hết hạn."
+            status_code=status.HTTP_403_FORBIDDEN, detail="jwtToken không chứa ID_NV hợp lệ."
         ) from exc
-    user = await AuthRepository(session).get_user_by_id(user_id)
-    if user is None or user.id_nv is None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Không xác định được id_nv từ jwtToken."
-        )
-    return user.id_nv
 
 
 @router.post(
     "/search",
     response_model=DocumentSearchResponse,
-    summary="Tìm kiếm văn bản theo type (DO = DOffice, parse jwtToken lấy id_nv; EO = làm sau)",
+    summary="Tìm kiếm văn bản theo type (DO = DOffice, decode jwtToken lấy ID_NV; EO = làm sau)",
 )
-async def document_search(
-    request: DocumentSearchRequest,
-    session: Annotated[AsyncSession, Depends(get_db_session)],
-) -> DocumentSearchResponse:
+async def document_search(request: DocumentSearchRequest) -> DocumentSearchResponse:
     """KHÔNG yêu cầu Bearer. Body: ``query``, ``top_n``, ``jwtToken``, ``type`` (EO|DO).
 
-    - ``type=DO``: parse ``jwtToken`` -> ``id_nv`` -> tra cứu DOffice (ES BM25 + ACL).
+    - ``type=DO``: decode ``jwtToken`` (không verify) lấy ``ID_NV`` -> tra cứu DOffice (ES BM25 + ACL).
     - ``type=EO``: chưa hỗ trợ (trả rỗng) — làm sau.
     """
     doc_type = (request.type or "").upper()
@@ -82,7 +82,7 @@ async def document_search(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="type phải là 'DO' hoặc 'EO'."
         )
 
-    id_nv = await _id_nv_from_jwt(session, request.jwtToken)
+    id_nv = _id_nv_from_jwt(request.jwtToken)
     request = request.model_copy(update={"id_nv": id_nv})
     try:
         return await execute_document_search(request)

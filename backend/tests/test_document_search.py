@@ -155,11 +155,8 @@ def _patch(monkeypatch, resp, *, nv=117058, org=(None, None)):
 
     monkeypatch.setattr(dss, "_resolve_subject_from_db", _fake_resolve)
 
-    # type=DO: route parse jwtToken -> id_nv. Mock để test khỏi cần token/DB thật.
-    async def _fake_idnv(session, token):
-        return nv
-
-    monkeypatch.setattr(route_mod, "_id_nv_from_jwt", _fake_idnv)
+    # type=DO: route decode jwtToken -> ID_NV (sync). Mock để test khỏi cần token thật.
+    monkeypatch.setattr(route_mod, "_id_nv_from_jwt", lambda token: nv)
 
 
 def _do(query, **extra):
