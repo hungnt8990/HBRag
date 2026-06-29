@@ -23,7 +23,13 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://127.0.0.1:3000",
     ]
-    cors_allowed_origin_regex: str | None = r"http://(localhost|127\.0\.0\.1):[0-9]+"
+    # Cho phép localhost + mọi IP nội bộ (10.x.x.x, 172.16-31.x, 192.168.x.x) trên mọi
+    # cổng -> FE chạy ở bất kỳ máy nội bộ nào (vd http://10.72.113.21:3000) đều gọi được,
+    # khỏi phải liệt kê từng IP trong cors_allowed_origins.
+    cors_allowed_origin_regex: str | None = (
+        r"https?://(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|"
+        r"172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+)(:\d+)?"
+    )
 
     database_url: str = "postgresql://hbrag:hbrag_password@localhost:5432/hbrag"
     database_echo: bool = False
