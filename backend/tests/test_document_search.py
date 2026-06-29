@@ -136,6 +136,8 @@ class _FakeClient:
 
 def _patch(monkeypatch, resp, *, api_key=None, org=(None, None)):
     monkeypatch.setattr(dss.settings, "elasticsearch_enabled", True)
+    # Test logic hybrid/kNN gốc -> tắt BM25-only (mặc định production=True khi gateway embed chết).
+    monkeypatch.setattr(dss.settings, "document_search_bm25_only", False)
     monkeypatch.setattr(auth_mod.settings, "document_search_api_key", api_key)
     monkeypatch.setattr(dss.httpx, "AsyncClient", lambda *a, **k: _FakeClient(resp))
 

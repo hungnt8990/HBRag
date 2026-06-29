@@ -360,6 +360,10 @@ async def execute_document_search(request: DocumentSearchRequest) -> DocumentSea
     # id_nv là nguồn sự thật: id_pb/id_dv resolve từ dm_nhan_vien (không tin client).
     acl_subject = await resolve_acl_subject(request.id_nv)
     search_type = detect_search_type(request.query)
+    # BM25-only: hạ "hybrid" -> "bm25" để KHÔNG gọi embed (tránh treo khi gateway embedding
+    # chết). API chỉ truy vấn ES BM25 + ACL filter.
+    if settings.document_search_bm25_only and search_type == "hybrid":
+        search_type = "bm25"
     mode_used = detect_mode(request.query, request.mode)
     acl_filters = build_acl_filters(acl_subject)
 
@@ -382,7 +386,9 @@ async def execute_document_search(request: DocumentSearchRequest) -> DocumentSea
         prefer_recent=request.prefer_recent,
     )
     store = DocumentIndexStore(url=settings.two_stage_document_index_url or settings.elasticsearch_url)
-    await store.ensure_index()
+    # Tìm trên index DOffice (BM25 doc-level + ACL) — nơi job đồng bộ đổ dữ liệu, KHÔNG phải
+    # index two-stage cũ (hbrag_documents_v1, rỗng). KHÔNG ensure_index ở đây (job tạo/quản lý).
+    store.index_name = settings.doffice_documents_index_name
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:

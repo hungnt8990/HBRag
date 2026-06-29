@@ -197,6 +197,19 @@ class QdrantVectorStore:
             await self._ensure_payload_indexes()
             self._payload_indexes_ready = True
 
+    async def _collection_present(self) -> bool:
+        """True nếu collection tồn tại; CACHE qua ``_collection_validated`` để khỏi gọi
+        ``collection_exists`` lặp lại mỗi văn bản khi sync.
+
+        Mỗi văn bản trước đây gọi ``collection_exists`` 1-2 lần (xóa + count...) -> với
+        8 worker dùng CHUNG 1 client, tải dồn làm Qdrant đứt kết nối (RemoteProtocolError
+        "Server disconnected"). Sau khi ``ensure_collection`` xác thực 1 lần, collection
+        chắc chắn tồn tại trong cả run -> trả True ngay, không gọi Qdrant.
+        """
+        if self._collection_validated:
+            return True
+        return await self._client.collection_exists(collection_name=self.collection_name)
+
     async def validate_collection_config(
         self,
         *,
@@ -268,8 +281,7 @@ class QdrantVectorStore:
         *,
         tenant_id: UUID | str | None = None,
     ) -> None:
-        exists = await self._client.collection_exists(collection_name=self.collection_name)
-        if not exists:
+        if not await self._collection_present():
             return
 
         must = [
@@ -303,8 +315,7 @@ class QdrantVectorStore:
         Dùng cho UI "xem metadata Qdrant theo chunk": scroll theo ``document_id``,
         trả list payload — FE map sang chunk PG theo ``chunk_index``/``chunk_id``.
         """
-        exists = await self._client.collection_exists(collection_name=self.collection_name)
-        if not exists:
+        if not await self._collection_present():
             return []
         must = [FieldCondition(key="document_id", match=MatchValue(value=str(document_id)))]
         if tenant_id is not None:
@@ -325,8 +336,7 @@ class QdrantVectorStore:
         tenant_id: UUID | str | None = None,
     ) -> int:
         """Đếm số point của 1 văn bản (nhẹ — dùng cho UI hiển thị 'N point Qdrant')."""
-        exists = await self._client.collection_exists(collection_name=self.collection_name)
-        if not exists:
+        if not await self._collection_present():
             return 0
         must = [FieldCondition(key="document_id", match=MatchValue(value=str(document_id)))]
         if tenant_id is not None:
@@ -353,8 +363,7 @@ class QdrantVectorStore:
         """
         if not acl_payload:
             return
-        exists = await self._client.collection_exists(collection_name=self.collection_name)
-        if not exists:
+        if not await self._collection_present():
             return
 
         must = [FieldCondition(key="document_id", match=MatchValue(value=str(document_id)))]

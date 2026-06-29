@@ -134,6 +134,9 @@ class Settings(BaseSettings):
     two_stage_document_embedding_text: str = "trich_yeu_tom_tat"  # nguồn text để embed
     # API tìm kiếm văn bản: API key tĩnh để chặn truy cập (rỗng = mở, cho dev).
     document_search_api_key: str | None = None
+    # Tìm kiếm văn bản CHỈ qua ES BM25 + ACL (bỏ kNN/embed) — bật khi model embedding
+    # chết/chậm để API không treo chờ embed. False = cho phép hybrid (kNN+BM25) như cũ.
+    document_search_bm25_only: bool = True
     # API cập nhật ACL cho DOffice gọi: API key tĩnh (rỗng = mở, cho dev).
     doffice_acl_api_key: str | None = None
 

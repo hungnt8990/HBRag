@@ -33,8 +33,13 @@ REM MODE 3: TAT CA -> de trong ca ID_VB lan DON_VI
 
 REM Tham so phu
 set "DOFFICE_JOB_BATCH_SIZE=200"
-set "DOFFICE_JOB_WORKERS=8"
+set "DOFFICE_JOB_WORKERS=4"
 set "DOFFICE_JOB_LIMIT="
+
+REM So worker rieng cho luong 3 (Qdrant/embed). Qdrant dung CHUNG 1 client cho moi
+REM worker -> qua nhieu worker lam Qdrant dut ket noi (RemoteProtocolError). De 4 cho on
+REM dinh (tang dan neu Qdrant chiu tai tot). De trong = bang DOFFICE_JOB_WORKERS.
+set "DOFFICE_JOB_QDRANT_WORKERS=4"
 
 REM Ve thu muc goc backend (2 cap tren so voi file .bat)
 pushd "%~dp0..\.."

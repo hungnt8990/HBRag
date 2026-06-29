@@ -58,10 +58,12 @@ _QDRANT_RETRIES = 3
 
 @dataclass
 class UnifiedStats:
-    scanned: int = 0       # đã chuẩn bị xong PostgreSQL (luồng 1)
-    es_done: int = 0       # đã đổ Elasticsearch (luồng 2)
-    qdrant_done: int = 0   # đã đẩy Qdrant (luồng 3)
+    scanned: int = 0       # đã lưu RAW vào PostgreSQL (luồng 1)
+    cleaned: int = 0       # đã làm sạch + nén ACL (luồng 2)
+    es_done: int = 0       # đã đổ Elasticsearch (luồng 3)
+    qdrant_done: int = 0   # đã đẩy Qdrant (luồng 4)
     failed: int = 0        # lỗi luồng 1 (PG)
+    clean_failed: int = 0  # lỗi luồng 2 (làm sạch)
     es_failed: int = 0
     qdrant_failed: int = 0
     qdrant_current: str = ""  # id_vb Qdrant ĐANG embed (chỉ báo còn sống)
@@ -106,8 +108,9 @@ class UnifiedJobRunner:
         self.phase = "Khởi tạo"
         self.feeding_done = False  # True khi luồng 1 đã NẠP HẾT văn bản (PG xong toàn bộ)
         mw = max(1, config.max_workers)
-        # Qdrant (embed) là nút cổ chai -> đông nhất; PG/ES nhẹ hơn.
+        # Qdrant (embed) là nút cổ chai -> đông nhất; PG/Clean/ES nhẹ hơn.
         self._pg_workers = config.pg_workers or max(2, mw // 4)
+        self._clean_workers = config.clean_workers or max(2, mw // 4)
         self._es_workers = config.es_workers or max(2, mw // 4)
         self._qdrant_workers = config.qdrant_workers or mw
 
@@ -117,7 +120,9 @@ class UnifiedJobRunner:
             self._es_ok.add(id_vb)
         if qdrant:
             self._qdrant_ok.add(id_vb)
-        if id_vb in self._es_ok and id_vb in self._qdrant_ok and id_vb not in self._completed:
+        # Job PG+ES (skip_qdrant): "hoàn tất" = chỉ cần ES xong (không chờ Qdrant).
+        qdrant_ok = self.config.skip_qdrant or id_vb in self._qdrant_ok
+        if id_vb in self._es_ok and qdrant_ok and id_vb not in self._completed:
             self._completed.add(id_vb)
             self._progress.mark_done(id_vb)
 
@@ -158,34 +163,50 @@ class UnifiedJobRunner:
         await ctx["docmeta_store"].ensure_collection()
         await ctx["bm25_store"].ensure_index()
 
-        # --- Dựng pipeline 3 luồng ---
+        # --- Dựng pipeline: PG (raw) -> Clean -> {ES, [Qdrant]} ---
+        # skip_qdrant -> Job PG+ES: KHÔNG dựng luồng Qdrant (chạy được khi model embedding chết).
+        skip_qdrant = self.config.skip_qdrant
         q_pg: asyncio.Queue = asyncio.Queue(maxsize=_QUEUE_MAXSIZE)
+        q_clean: asyncio.Queue = asyncio.Queue(maxsize=_QUEUE_MAXSIZE)
         q_es: asyncio.Queue = asyncio.Queue(maxsize=_QUEUE_MAXSIZE)
-        q_qdrant: asyncio.Queue = asyncio.Queue(maxsize=_QUEUE_MAXSIZE)
+        q_qdrant: asyncio.Queue | None = None if skip_qdrant else asyncio.Queue(maxsize=_QUEUE_MAXSIZE)
 
         pg_tasks = [
-            asyncio.create_task(self._pg_worker(q_pg, q_es, q_qdrant, ctx))
+            asyncio.create_task(self._pg_worker(q_pg, q_clean, ctx))
             for _ in range(self._pg_workers)
         ]
-        es_tasks = [asyncio.create_task(self._es_worker(q_es, ctx)) for _ in range(self._es_workers)]
-        qdrant_tasks = [
-            asyncio.create_task(self._qdrant_worker(q_qdrant, ctx)) for _ in range(self._qdrant_workers)
+        clean_tasks = [
+            asyncio.create_task(self._clean_worker(q_clean, q_es, q_qdrant, ctx))
+            for _ in range(self._clean_workers)
         ]
+        es_tasks = [asyncio.create_task(self._es_worker(q_es, ctx)) for _ in range(self._es_workers)]
+        qdrant_tasks = (
+            []
+            if skip_qdrant
+            else [
+                asyncio.create_task(self._qdrant_worker(q_qdrant, ctx))
+                for _ in range(self._qdrant_workers)
+            ]
+        )
 
         try:
             await self._feed_records(q_pg)
-            self.feeding_done = True  # đã nạp hết -> PG không còn việc, chỉ chờ ES/Qdrant
+            self.feeding_done = True  # đã nạp hết -> PG không còn việc, chỉ chờ các luồng sau
         finally:
-            # Đóng luồng 1: gửi sentinel, chờ PG xong (mọi item đã đẩy sang q_es/q_qdrant).
+            # Đóng theo thứ tự pipeline: PG -> Clean -> ES & Qdrant.
             for _ in pg_tasks:
                 await q_pg.put(None)
             await asyncio.gather(*pg_tasks)
-            # Đóng luồng 2 & 3 sau khi luồng 1 đã đẩy hết.
+            for _ in clean_tasks:
+                await q_clean.put(None)
+            await asyncio.gather(*clean_tasks)
             for _ in es_tasks:
                 await q_es.put(None)
-            for _ in qdrant_tasks:
-                await q_qdrant.put(None)
-            await asyncio.gather(*es_tasks, *qdrant_tasks)
+            await asyncio.gather(*es_tasks)
+            if qdrant_tasks:
+                for _ in qdrant_tasks:
+                    await q_qdrant.put(None)
+                await asyncio.gather(*qdrant_tasks)
         # Run chạy tới đây (không bị kill) -> xóa file tiến độ: lần sau bắt đầu sạch (dựa
         # vào checkpoint incremental). Bị tắt giữa chừng -> không tới đây -> file còn -> resume.
         self._progress.clear()
@@ -208,7 +229,8 @@ class UnifiedJobRunner:
             unit_tree=ctx["unit_tree"], signature=ctx["signature"],
         )
 
-    async def _pg_worker(self, q_pg: asyncio.Queue, q_es: asyncio.Queue, q_qdrant: asyncio.Queue, ctx: dict) -> None:
+    async def _pg_worker(self, q_pg: asyncio.Queue, q_clean: asyncio.Queue, ctx: dict) -> None:
+        """Luồng 1: lưu RAW vào PG -> đẩy item sang luồng Làm sạch."""
         while True:
             task = await q_pg.get()
             try:
@@ -222,14 +244,36 @@ class UnifiedJobRunner:
                         item = await ingestor.prepare_postgres(
                             source=rec.raw or {}, acl_lists=_acl_lists(quyen)
                         )
-                    await q_es.put(item)
-                    await q_qdrant.put(item)
+                    await q_clean.put(item)
                 except Exception as exc:
                     self.stats.failed += 1
                     self.stats.errors[rec.id_vb] = f"PG {type(exc).__name__}: {exc}"
                     logger.error("id_vb=%s PG lỗi: %s", rec.id_vb, exc, exc_info=True)
             finally:
                 q_pg.task_done()
+
+    async def _clean_worker(
+        self, q_clean: asyncio.Queue, q_es: asyncio.Queue, q_qdrant: asyncio.Queue, ctx: dict
+    ) -> None:
+        """Luồng 2: làm sạch noi_dung + tom_tat & nén ACL (in-memory) -> đẩy sang ES & Qdrant."""
+        ingestor = self._make_ingestor(None, ctx)  # không cần session (chỉ xử lý in-memory)
+        while True:
+            item = await q_clean.get()
+            try:
+                if item is None:
+                    break
+                try:
+                    await ingestor.clean_data(item)
+                    self.stats.cleaned += 1
+                    await q_es.put(item)
+                    if q_qdrant is not None:  # None khi skip_qdrant (Job PG+ES)
+                        await q_qdrant.put(item)
+                except Exception as exc:  # noqa: BLE001
+                    self.stats.clean_failed += 1
+                    self.stats.errors[item.id_vb] = f"Clean {type(exc).__name__}: {exc}"
+                    logger.error("id_vb=%s Làm sạch lỗi: %s", item.id_vb, exc, exc_info=True)
+            finally:
+                q_clean.task_done()
 
     async def _es_worker(self, q_es: asyncio.Queue, ctx: dict) -> None:
         ingestor = self._make_ingestor(None, ctx)  # ES không cần session DB

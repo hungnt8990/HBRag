@@ -21,9 +21,10 @@ class JobConfig:
     # Hiệu năng
     batch_size: int = 500
     max_workers: int = 20
-    # Pipeline 3 luồng: số worker mỗi giai đoạn. Qdrant (embed) là nút cổ chai nên đông
-    # nhất; PG/ES nhẹ hơn. None -> suy ra từ max_workers ở runner.
+    # Pipeline 4 luồng: số worker mỗi giai đoạn (PG raw -> Clean -> ES, Qdrant). Qdrant
+    # (embed) là nút cổ chai nên đông nhất; PG/Clean/ES nhẹ hơn. None -> suy từ max_workers.
     pg_workers: int | None = None
+    clean_workers: int | None = None
     es_workers: int | None = None
     qdrant_workers: int | None = None
 
@@ -32,6 +33,7 @@ class JobConfig:
     dry_run: bool = False
     retry_only: bool = False
     scan_limit: int | None = None
+    skip_qdrant: bool = False  # Job PG+ES: bỏ luồng Qdrant (embed) -> chạy được khi model embedding chết
 
     # Retry
     retry_delay_minutes: int = 60

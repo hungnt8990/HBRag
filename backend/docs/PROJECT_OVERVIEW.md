@@ -3,7 +3,38 @@
 > Tài liệu này mô tả tổng thể backend để người mới (hoặc Claude ở phiên sau) đọc là
 > hiểu dự án có gì. **Mỗi khi hoàn thành một thay đổi đáng kể, phải cập nhật file này.**
 >
-> Cập nhật gần nhất: 2026-06-29 (x) — **Đăng nhập Active Directory (LDAP) + auto-map dm_nhan_vien**.
+> Cập nhật gần nhất: 2026-06-29 (aa) — **API document-search: BM25 + ACL only (bỏ embed) + sửa nhầm index**.
+> `/api/document-search/search` chậm (treo 30s) vì: (1) embed câu hỏi cho hybrid kNN nhưng model embedding chết;
+> (2) query NHẦM index rỗng `hbrag_documents_v1` (dữ liệu DOffice ở `hbrag_doffice_documents_v1`). Sửa: thêm cờ
+> `document_search_bm25_only` (mặc định True, env `DOCUMENT_SEARCH_BM25_ONLY`) → `execute_document_search` hạ
+> "hybrid"→"bm25" (KHÔNG embed); và trỏ store sang `settings.doffice_documents_index_name` (bỏ ensure_index, job
+> quản lý index). Kết quả: 0.5–1.2s, BM25 + ACL filter, trả đúng (query "chi quỹ phúc lợi" → "108/QĐ-IT Về việc chi
+> từ Quỹ phúc lợi"). Đổi cờ về false để dùng lại hybrid khi gateway embed khỏe. 429 test pass.
+>
+> Cập nhật trước: 2026-06-29 (z) — **Tách 2 JOB riêng (PG+ES) và (Qdrant) + chạy lặp định kỳ**.
+> Vì model embedding `Qwen3-Embedding-8B` chập chờn (gateway treo, model khác + chat OK), tách ingest thành 2 job
+> độc lập: **Job 1 `run_pg_es.bat`** (`run_unified --skip-qdrant`): source ES → PG (raw) + Làm sạch + ES, KHÔNG embed
+> → chạy được cả khi model embedding chết. **Job 2 `run_qdrant.bat`** (`run_qdrant.py` MỚI): đọc PG (doc có cờ
+> `qdrant_indexed != true`) → clean → chunk → embed → Qdrant Col1+Col2 → set `qdrant_indexed=true`. Cờ điều phối:
+> `prepare_postgres` đặt False (re-sync tạo lại doc → False → embed lại), `index_qdrant` set True sau khi embed.
+> Cả 2 job **chạy LẶP định kỳ**: quét xong đứng im chờ `--interval` giây (mặc định 300s) rồi quét lại; env
+> `DOFFICE_JOB_INTERVAL`/`DOFFICE_QDRANT_INTERVAL`. `JobConfig.skip_qdrant`; runner bỏ luồng Qdrant khi skip
+> (`_on_stage_done` coi xong = chỉ cần ES). Verify: Job 1 chạy PG+ES không kẹt gateway; Job 2 scan pending→embed
+> (mock)→cờ flip→pending giảm. 444 test pass. (run_unified.bat 4-luồng vẫn dùng được khi gateway khỏe.)
+>
+> Cập nhật trước: 2026-06-29 (y) — **Pipeline ingest DOffice 4 LUỒNG tách bạch (PG raw → Clean → ES → Qdrant)**.
+> Đổi từ 3 luồng (PG làm hết: normalize+chunk) sang 4 luồng theo trách nhiệm: (1) **PG** lưu THÔ — parsed_text=
+> noi_dung thô, metadata=trường source thô + ACL THÔ (raw_assignment), KHÔNG sạch/nén/chunk; (2) **Làm sạch** (mới,
+> in-memory) normalize noi_dung + làm sạch tom_tat + NÉN ACL (allow[]/deny[]); (3) **ES** lưu nội dung ĐÃ SẠCH +
+> ACL ĐÃ NÉN (bỏ ACL thô); (4) **Qdrant** chunk in-memory (`build_doffice_chunks`) → embed → Col1+Col2 (chunk ghi
+> PG tạm để embed rồi xóa → PG chỉ giữ raw). `DofficeUnifiedIngestor`: 4 method `prepare_postgres/clean_data/
+> index_elasticsearch/index_qdrant`; `DofficeJobItem` mang dữ liệu 4 giai đoạn. Runner thêm `_clean_worker` +
+> `q_clean` (PG→Clean→{ES,Qdrant}); `JobConfig.clean_workers`, env `DOFFICE_JOB_CLEAN_WORKERS`; dashboard 4 dòng.
+> **ĐÃ XOÁ sạch dữ liệu DOffice 3 DB** (PG 3316→0, Qdrant 2 collection, ES index) + checkpoint/progress để đồng bộ
+> lại. Verify: PG raw, ES sạch+ACL nén, chunk sinh ra, ACL nén đúng với quyền thật. 444 test pass. (Lỗi embed khi
+> chạy = gateway ReadTimeout, hạ tầng — không phải pipeline.)
+>
+> Cập nhật trước: 2026-06-29 (x) — **Đăng nhập Active Directory (LDAP) + auto-map dm_nhan_vien**.
 > Thêm `POST /api/auth/login-ad`: (1) xác thực AD bằng LDAP bind `domain\username` (`app/services/ad_auth.py:
 > authenticate_ad`, dùng `ldap3`, tương đương `CheckUserAD` của api_ktht_v2.0; domain `cpc-ad.evncpc.vn`); (2)
 > `lookup_nhan_vien` map username AD -> `dm_nhan_vien` lấy `id_nv` (xử lý tiền tố `evncpc\`, hoa/thường, email);

@@ -82,12 +82,13 @@ def _quiet_console() -> None:
 
 
 def _status_line(runner: UnifiedJobRunner) -> str:
-    """Dashboard 3 luồng (đa dòng, cập nhật tại chỗ): mỗi luồng 1 dòng — xong/đang chờ/lỗi."""
+    """Dashboard 4 luồng (đa dòng, cập nhật tại chỗ): mỗi luồng 1 dòng — xong/đang chờ/lỗi."""
     s = runner.stats
     sep = cs.color("─" * 50, cs.GREY)
-    # "đang chờ" = đã qua Luồng 1 (PG) nhưng luồng sau chưa xử lý xong.
-    es_wait = max(0, s.scanned - s.es_done - s.es_failed)
-    qd_wait = max(0, s.scanned - s.qdrant_done - s.qdrant_failed)
+    # "đang chờ" = đã qua luồng trước nhưng luồng này chưa xử lý xong.
+    clean_wait = max(0, s.scanned - s.cleaned - s.clean_failed)
+    es_wait = max(0, s.cleaned - s.es_done - s.es_failed)
+    qd_wait = max(0, s.cleaned - s.qdrant_done - s.qdrant_failed)
 
     def stage(label: str, done: int, code: str, *, wait: int = 0, fail: int = 0, note: str = "") -> str:
         body = f"{cs.color(f'{done:>6}', code)} xong"
@@ -104,19 +105,24 @@ def _status_line(runner: UnifiedJobRunner) -> str:
     # Luồng 3 (Qdrant/embed) chậm nhất -> hiện id_vb đang embed để thấy còn sống.
     qd_note = cs.color(f"· đang embed {s.qdrant_current}", cs.GREY) if (qd_wait and s.qdrant_current) else ""
 
-    return "\n".join([
-        f"{cs.BOLD}DOffice Sync · pipeline 3 luồng{cs.RESET}  —  {runner.phase}…",
+    skip_qdrant = runner.config.skip_qdrant
+    title = "pipeline PG+ES (bỏ Qdrant)" if skip_qdrant else "pipeline 4 luồng"
+    lines = [
+        f"{cs.BOLD}DOffice Sync · {title}{cs.RESET}  —  {runner.phase}…",
         sep,
-        stage("Luồng 1 · PostgreSQL", s.scanned, cs.CYAN, note=pg_note),
-        stage("Luồng 2 · Elasticsearch", s.es_done, cs.GREEN, wait=es_wait, fail=s.es_failed),
-        stage("Luồng 3 · Qdrant", s.qdrant_done, cs.MAGENTA, wait=qd_wait, fail=s.qdrant_failed, note=qd_note),
-        sep,
+        stage("Luồng 1 · PostgreSQL (raw)", s.scanned, cs.CYAN, note=pg_note),
+        stage("Luồng 2 · Làm sạch", s.cleaned, cs.YELLOW, wait=clean_wait, fail=s.clean_failed),
+        stage("Luồng 3 · Elasticsearch", s.es_done, cs.GREEN, wait=es_wait, fail=s.es_failed),
+    ]
+    if not skip_qdrant:
+        lines.append(stage("Luồng 4 · Qdrant", s.qdrant_done, cs.MAGENTA, wait=qd_wait, fail=s.qdrant_failed, note=qd_note))
+    return "\n".join([*lines, sep,
     ])
 
 
 def _print_summary(runner: UnifiedJobRunner, *, mode: str, elapsed: float, log_dir: Path) -> None:
     s = runner.stats
-    _err = s.failed + s.es_failed + s.qdrant_failed
+    _err = s.failed + s.clean_failed + s.es_failed + s.qdrant_failed
     minutes, seconds = divmod(int(elapsed), 60)
     line = cs.color("═" * 46, cs.CYAN)
 
@@ -133,9 +139,10 @@ def _print_summary(runner: UnifiedJobRunner, *, mode: str, elapsed: float, log_d
                 line,
                 row("Chế độ", mode, cs.BOLD),
                 row("Thời gian", f"{minutes}m {seconds}s", cs.RESET),
-                row("Luồng 1 (PG)", s.scanned, cs.BOLD),
-                row("Luồng 2 (ES)", s.es_done, cs.CYAN),
-                row("Luồng 3 (Qdrant)", s.qdrant_done, cs.GREEN),
+                row("Luồng 1 (PG raw)", s.scanned, cs.BOLD),
+                row("Luồng 2 (Làm sạch)", s.cleaned, cs.YELLOW),
+                row("Luồng 3 (ES)", s.es_done, cs.CYAN),
+                row("Luồng 4 (Qdrant)", s.qdrant_done, cs.GREEN),
                 row("Bỏ qua", s.skipped, cs.YELLOW, suffix="  (đã xong từ lần trước - resume)") if s.skipped else "",
                 row("Lỗi", _err, cs.RED if _err else cs.GREEN),
                 row("Log", f"{log_dir}/", cs.GREY),
@@ -159,11 +166,14 @@ async def _main(args: argparse.Namespace) -> None:
     workers = args.workers if args.workers is not None else _int_env("DOFFICE_JOB_WORKERS", 8)
     limit = args.limit if args.limit is not None else _int_env("DOFFICE_JOB_LIMIT", None)
     full_scan = bool(args.full_scan or _bool_env("DOFFICE_JOB_FULL_SCAN"))
+    skip_qdrant = bool(getattr(args, "skip_qdrant", False) or _bool_env("DOFFICE_JOB_SKIP_QDRANT"))
 
     cfg = JobConfig.from_settings(
         id_vb_filter=id_vb, don_vi_filter=don_vi,
         batch_size=batch_size, max_workers=workers, scan_limit=limit, full_scan=full_scan,
+        skip_qdrant=skip_qdrant,
         pg_workers=_int_env("DOFFICE_JOB_PG_WORKERS", None),
+        clean_workers=_int_env("DOFFICE_JOB_CLEAN_WORKERS", None),
         es_workers=_int_env("DOFFICE_JOB_ES_WORKERS", None),
         qdrant_workers=_int_env("DOFFICE_JOB_QDRANT_WORKERS", None),
     )
@@ -176,18 +186,42 @@ async def _main(args: argparse.Namespace) -> None:
         mode, id_vb, don_vi, batch_size, workers, limit, full_scan,
     )
 
+    interval = args.interval if args.interval is not None else _int_env("DOFFICE_JOB_INTERVAL", 0)
     await ensure_job_tables()
-    runner = UnifiedJobRunner(cfg)
-    start = time.monotonic()
-    spinner = cs.Spinner(lambda: _status_line(runner))
-    spinner.start()
+    # LẶP định kỳ: quét xong đứng im chờ ``interval`` giây rồi quét lần sau (incremental).
+    # id-lẻ -> chạy 1 lần (không lặp). interval<=0 -> chạy 1 lần.
+    loop = interval > 0 and not id_vb
+    while True:
+        runner = UnifiedJobRunner(cfg)
+        start = time.monotonic()
+        spinner = cs.Spinner(lambda: _status_line(runner))
+        spinner.start()
+        try:
+            await runner.run()
+        except Exception:
+            loggers.get("run").error("Job lỗi nghiêm trọng", exc_info=True)
+        finally:
+            await spinner.stop()
+            _print_summary(runner, mode=mode, elapsed=time.monotonic() - start, log_dir=loggers.log_dir)
+        if not loop:
+            break
+        await _idle_countdown(interval)
+
+
+async def _idle_countdown(seconds: int) -> None:
+    """Đứng im hiển thị đếm ngược rồi quét lần sau (không spam log)."""
+    deadline = time.monotonic() + seconds
+    sp = cs.Spinner(
+        lambda: cs.color(
+            f"Đã quét xong — chờ {max(0, int(deadline - time.monotonic()))}s rồi quét lần sau "
+            f"(Ctrl-C để dừng)…", cs.GREY,
+        )
+    )
+    sp.start()
     try:
-        await runner.run()
-    except Exception:
-        loggers.get("run").error("Job lỗi nghiêm trọng", exc_info=True)
+        await asyncio.sleep(seconds)
     finally:
-        await spinner.stop()
-        _print_summary(runner, mode=mode, elapsed=time.monotonic() - start, log_dir=loggers.log_dir)
+        await sp.stop()
 
 
 if __name__ == "__main__":
@@ -198,4 +232,6 @@ if __name__ == "__main__":
     parser.add_argument("--workers", type=int, default=None)
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--full-scan", action="store_true", help="Quet lai tu dau (bo qua checkpoint).")
+    parser.add_argument("--skip-qdrant", action="store_true", help="Job PG+ES: bo luong Qdrant (embed).")
+    parser.add_argument("--interval", type=int, default=None, help="Giay cho giua 2 lan quet (0=chay 1 lan).")
     asyncio.run(_main(parser.parse_args()))
