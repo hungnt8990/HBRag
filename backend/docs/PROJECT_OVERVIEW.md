@@ -10,9 +10,18 @@
 > (`next_start = end`) để bảo đảm tiến cửa sổ. Sau fix: 412876 -> **33 chunk**. 26 test chunker pass. **Văn bản đã
 > ingest trước fix (có điều/mục dài) cần re-sync để dọn chunk rác.** Đã reset toàn bộ (script
 > `scripts/reset_doffice_for_rechunk.py`): 192 cờ `qdrant_indexed` -> false + wipe Col1 Qdrant -> 15.569 doc chờ
-> chunk lại. `jobs/doffice_sync/run_qdrant.py`: dashboard 2 cột (trái tiến độ, **phải = ô "Nhiều chunk (>N)"**),
-> theo dõi văn bản > ngưỡng (env `DOFFICE_QDRANT_BIG_CHUNK`/`--big-chunk`, mặc định 100) + ghi **log riêng
-> `chunks_big.log`** (logger con `doffice_sync.chunks`). Script soi: `scripts/inspect_doffice_chunk_state.py`.
+> chunk lại. `jobs/doffice_sync/run_qdrant.py` (mặc định TUẦN TỰ — 1 văn bản/lần, embed TỪNG chunk, KHÔNG song
+> song để tránh gãy gateway embedding): dashboard cập nhật tại chỗ `_status_seq` 2 cột — trái = tiến độ + văn bản
+> đang chạy (embed d/N) + vài văn bản gần đây kèm số chunk; **phải = ô "view" văn bản nhiều chunk (>N)**. Theo dõi
+> văn bản > ngưỡng (env `DOFFICE_QDRANT_BIG_CHUNK`/`--big-chunk`, mặc định 100) + ghi **log riêng `chunks_big.log`**
+> (logger con `doffice_sync.chunks`). Mode song song (`_status`) dùng chung ô qua `_big_chunk_box`. stdout không phải
+> tty -> in gọn 1 dòng/văn bản. Script soi: `scripts/inspect_doffice_chunk_state.py`.
+>
+> **Bỏ qua văn bản quá nhiều chunk**: `index_qdrant(max_chunks=...)` — nếu số chunk > ngưỡng (env
+> `DOFFICE_QDRANT_MAX_CHUNK`/`--max-chunk`, mặc định **500**) thì đặt `item.skipped=True` và **return sớm**: KHÔNG
+> embed, KHÔNG đụng PG/Qdrant, **KHÔNG đánh dấu `qdrant_indexed`** (văn bản giữ pending để đánh giá sau). Job đếm
+> riêng `stats.skipped`, hiện đỏ ⊘ trong ô "view" + ghi `chunks_big.log`. Vì không đánh dấu, văn bản bỏ qua sẽ
+> được quét lại mỗi vòng (re-chunk nhanh rồi bỏ qua tiếp).
 >
 > **Làm sạch trước chunk** (`chunker_text_cleaning.clean_for_chunking`, tham khảo `clean_text.py`): thêm chuẩn hoá
 > dấu câu/khoảng trắng đặc biệt về ASCII (NBSP, soft hyphen, smart-quote, en/em dash — qua `_PUNCT_TRANS` khoá
@@ -20,7 +29,16 @@
 > `preserve_markdown=True` (giữ `| --- |`, `*`, dòng-chỉ-số trong ô). KHÔNG dùng TCVN3-convert (0/800 doc, marker
 > `© « » µ` trùng Latin-1 hợp lệ -> hỏng text), KHÔNG gỡ HTML (normalizer đã strip), KHÔNG bỏ quốc hiệu (header đã
 > tách). ⚠️ KHÔNG dùng Write ghi đè cả file này — `_FOREIGN_SCRIPT_RE`/`_CONTROL_RE` chứa dải Unicode hiếm dễ lệch
-> byte; chỉ Edit chèn thêm.
+> byte; chỉ Edit chèn thêm. **ES cũng làm sạch**: `clean_data` đổi `clean_noi_dung = clean_for_chunking(clean_text)`
+> (trước chỉ `.strip()`) -> token BM25 sạch & nhất quán với chunk Qdrant + `tom_tat`.
+>
+> **Sơ đồ kiến trúc real-time đồng chỉnh (React Flow + Yjs)**: trang FE `/architecture-flow` (`app/architecture-flow/`,
+> `@xyflow/react` + `yjs` + `y-websocket`, render client-only) — nhiều người kéo thả/sửa/nối node thấy nhau real-time
+> + con trỏ + presence. Backend nhúng **Yjs WebSocket server TRONG FastAPI** (1 process): `app/services/collab/`
+> (`pycrdt` + `pycrdt-websocket`) + route WS `/collab/{room}` (`app/api/routes/collab.py`). Lưu trữ thủ công:
+> `Doc.observe` -> snapshot `Doc.get_update()` ra `backend/data/collab/<room>.ybin` mỗi ~2s, khôi phục bằng
+> `apply_update` khi tạo lại room. Khởi/tắt trong lifespan `main.py`. Đã verify E2E (2 client Python: sync 2 chiều +
+> persist + restore PASS). FE build/tsc/lint pass. Sơ đồ tĩnh cũ vẫn ở `GET /architecture` (`app/static/architecture.html`).
 >
 > **Filter "đã có point Qdrant" (FE + API)**: `GET /api/documents` thêm query `qdrant_indexed` (true/false) ->
 > `DocumentRepository.list_documents` lọc SQL `coalesce(document_metadata->>'qdrant_indexed','false')='true'`.

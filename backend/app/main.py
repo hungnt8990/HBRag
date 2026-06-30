@@ -6,8 +6,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.admin import router as admin_router
+from app.api.routes.architecture import router as architecture_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.chat import router as chat_router
+from app.api.routes.collab import router as collab_router
 from app.api.routes.document_search import router as document_search_router
 from app.api.routes.documents import router as documents_router
 from app.api.routes.doffice_acl import router as doffice_acl_router
@@ -19,6 +21,7 @@ from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 from app.repositories.ingestion_profiles import IngestionProfileRepository
 from app.repositories.rag_runtime_config import RagRuntimeConfigRepository
+from app.services.collab import diagram_collab
 from app.services.graph import get_neo4j_client
 from app.services.ingestion.ingestion_profiles import load_profile_configs
 from app.services.rag.rag_runtime_config import load_rag_runtime_config
@@ -34,8 +37,16 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     await _validate_vector_store_on_startup()
     await _validate_graph_store_on_startup()
     try:
+        await diagram_collab.start()
+    except Exception:
+        logger.exception("Failed to start diagram collaboration server.")
+    try:
         yield
     finally:
+        try:
+            await diagram_collab.stop()
+        except Exception:
+            logger.exception("Failed to stop diagram collaboration server.")
         try:
             await get_neo4j_client().close()
         except Exception:
@@ -144,8 +155,10 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(admin_router)
+    app.include_router(architecture_router)
     app.include_router(auth_router)
     app.include_router(chat_router)
+    app.include_router(collab_router)
     app.include_router(documents_router)
     app.include_router(document_search_router)
     app.include_router(doffice_acl_router)

@@ -16,9 +16,18 @@ set "DOFFICE_QDRANT_INTERVAL=300"
 REM So worker embed (chi dung khi KHONG tuan tu). Qdrant dung CHUNG 1 client.
 set "DOFFICE_QDRANT_WORKERS=1"
 
-REM TUAN TU: 1 van ban/lan + IN log chi tiet tung buoc (lam sach -> chunk -> embed ->
-REM Qdrant) + so giay + tien do cong don. 1 = bat (de theo doi/khong song song), 0 = song song.
+REM TUAN TU (1 = mac dinh, NEN giu): xu ly 1 van ban/lan, embed TUNG chunk, KHONG song song
+REM (tranh gay API gateway embedding). Hien dashboard cap nhat TAI CHO: cot trai tien do +
+REM van ban dang chay + embed tung chunk + vai van ban gan day; cot phai O liet ke van ban
+REM NHIEU CHUNK (>nguong). 0 = song song (nhanh hon nhung de gay gateway — chi dung khi gateway khoe).
 set "DOFFICE_QDRANT_SEQUENTIAL=1"
+
+REM Nguong "nhieu chunk" -> o "view" + chunks_big.log (mac dinh 100).
+set "DOFFICE_QDRANT_BIG_CHUNK=100"
+
+REM Nguong BO QUA: van ban > so chunk nay se KHONG embed va KHONG danh dau PG (giu pending
+REM de xu ly/danh gia sau). Mac dinh 500. 0 = khong gioi han (embed het).
+set "DOFFICE_QDRANT_MAX_CHUNK=500"
 
 REM Chi xu ly toi da N van ban roi dung (de TEST vai van ban truoc). De trong = chay het.
 set "DOFFICE_QDRANT_LIMIT="

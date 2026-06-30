@@ -52,6 +52,9 @@ _QDRANT_RETRIES = 3
 # Văn bản có > ngưỡng này chunk -> đưa vào ô "nhiều chunk" + ghi log riêng. Override bằng
 # env DOFFICE_QDRANT_BIG_CHUNK.
 _BIG_CHUNK_THRESHOLD = 100
+# Văn bản có > ngưỡng này chunk -> BỎ QUA (không embed, không đánh dấu PG). Override bằng
+# env DOFFICE_QDRANT_MAX_CHUNK. 0 = không giới hạn (embed hết).
+_MAX_CHUNK_THRESHOLD = 500
 # Truy vấn doc chưa embed (cờ qdrant_indexed != 'true').
 _WHERE_PENDING = (
     "source_type = :t AND coalesce(document_metadata->>'qdrant_indexed','false') <> 'true'"
@@ -82,26 +85,49 @@ class QStats:
     chunks: int = 0    # tổng chunk đã embed (cộng dồn)
     current: str = ""  # id_vb đang embed (chỉ báo còn sống)
     errors: dict[str, str] = field(default_factory=dict)
-    # Văn bản nhiều chunk (> _BIG_CHUNK_THRESHOLD): (id_vb, số chunk) — hiển thị ô bên cạnh.
+    # Văn bản nhiều chunk (> _BIG_CHUNK_THRESHOLD) ĐÃ embed: (id_vb, số chunk) — ô "view".
     big_chunks: list[tuple[str, int]] = field(default_factory=list)
+    # Văn bản BỎ QUA vì > max_chunks (không embed, không đánh dấu PG): (id_vb, số chunk).
+    skipped: list[tuple[str, int]] = field(default_factory=list)
+    # Tiến độ embed TỪNG CHUNK của văn bản đang xử lý (chế độ tuần tự).
+    embed_done: int = 0
+    embed_total: int = 0
+    # Vài văn bản GẦN ĐÂY đã xong (id_vb, số chunk, giây) — cuộn trong dashboard tuần tự.
+    recent: list[tuple[str, int, float]] = field(default_factory=list)
 
     def record_chunks(self, id_vb: str, nchunk: int, threshold: int) -> None:
-        """Cộng dồn chunk + ghi nhận văn bản nhiều chunk (ô bên + log riêng)."""
+        """Cộng dồn chunk + ghi nhận văn bản nhiều chunk (ô "view" + log riêng)."""
         self.chunks += nchunk
         if nchunk > threshold:
             self.big_chunks.append((id_vb, nchunk))
             chunks_logger.warning("id_vb=%s nhiều chunk: %s (> %s)", id_vb, nchunk, threshold)
+
+    def push_recent(self, id_vb: str, nchunk: int, secs: float, keep: int = 7) -> None:
+        """Đưa 1 văn bản vừa xong vào danh sách gần đây (giữ tối đa ``keep`` mục mới nhất)."""
+        self.recent.append((id_vb, nchunk, secs))
+        if len(self.recent) > keep:
+            del self.recent[: len(self.recent) - keep]
+
+    def record_skip(self, id_vb: str, nchunk: int, max_chunks: int) -> None:
+        """Ghi nhận văn bản BỎ QUA (> max_chunks): vào danh sách skip + log riêng."""
+        self.skipped.append((id_vb, nchunk))
+        chunks_logger.warning(
+            "id_vb=%s BỎ QUA: %s chunk (> max %s) — không embed, không đánh dấu PG",
+            id_vb, nchunk, max_chunks,
+        )
 
 
 class QdrantJobRunner:
     def __init__(
         self, *, workers: int, batch_size: int, limit: int = 0,
         big_chunk_threshold: int = _BIG_CHUNK_THRESHOLD,
+        max_chunks: int = _MAX_CHUNK_THRESHOLD,
     ) -> None:
         self._workers = max(1, workers)
         self._batch_size = max(1, batch_size)
         self._limit = max(0, limit)  # >0: chỉ xử lý tối đa N văn bản rồi dừng (debug)
         self._big_threshold = max(1, big_chunk_threshold)
+        self._max_chunks = max(0, max_chunks)  # >0: bỏ qua doc vượt ngưỡng; 0 = không giới hạn
         self.stats = QStats()
         self.phase = "Khởi tạo"
         self.feeding_done = False
@@ -159,10 +185,12 @@ class QdrantJobRunner:
         return self.stats
 
     async def run_sequential(self) -> QStats:
-        """TUẦN TỰ: 1 văn bản/lần (KHÔNG song song) + IN log chi tiết từng bước.
+        """TUẦN TỰ: 1 văn bản/lần, embed TỪNG chunk (KHÔNG song song -> không gãy gateway).
 
-        Mỗi văn bản: làm sạch -> chunk (in số chunk) -> embed + đẩy Qdrant -> in thời gian +
-        tiến độ cộng dồn. Dừng ngay ở bước nào treo thì thấy rõ (vd 'đang embed…').
+        Hiển thị dashboard cập nhật TẠI CHỖ (``_status_seq``): trái = tiến độ + văn bản đang
+        chạy (embed từng chunk d/N) + vài văn bản gần đây kèm số chunk; phải = ô "view" văn
+        bản NHIỀU CHUNK (>ngưỡng). Văn bản nhiều chunk cũng ghi ``chunks_big.log``.
+        Nếu stdout KHÔNG phải terminal (vd pipe ra file) -> in gọn 1 dòng/văn bản thay dashboard.
         """
         from app.services.chunkers.chunker_doffice_chunking import build_doffice_chunks
         from app.services.ingestion.ingestion_profiles import get_profile_config
@@ -175,59 +203,87 @@ class QdrantJobRunner:
             body_overlap=int(cfg.get("doffice_body_overlap") or 300),
             table_max_chars=int(cfg.get("doffice_table_max_chars") or 3500),
         )
-        start = time.monotonic()
-        print(cs.color(f"\n== CHẠY TUẦN TỰ == tổng cần embed: {self.stats.total} văn bản\n", cs.BOLD + cs.CYAN), flush=True)
-        last_id = None
-        while True:
-            params = {"t": DOFFICE_SOURCE_TYPE, "lim": self._batch_size}
-            sql = f"SELECT id, document_metadata, parsed_text FROM documents WHERE {_WHERE_PENDING} "
-            if last_id is not None:
-                sql += "AND id > :last "
-                params["last"] = last_id
-            sql += "ORDER BY id LIMIT :lim"
-            async with AsyncSessionLocal() as s:
-                rows = (await s.execute(text(sql), params)).all()
-            if not rows:
-                break
-            for doc_id, meta, parsed in rows:
-                if self._limit and (self.stats.done + self.stats.failed) >= self._limit:
-                    return self.stats
-                meta = meta or {}
-                idx = self.stats.done + self.stats.failed + 1
-                id_vb = str(meta.get("id_vb") or "")
-                self.stats.current = id_vb
-                t0 = time.monotonic()
-                print(f"[{idx}/{self.stats.total}] id_vb={id_vb}  — làm sạch…", flush=True)
-                try:
-                    source = {k: v for k, v in meta.items() if k not in ("access", "has_embedding", "qdrant_indexed")}
-                    source["noi_dung"] = parsed or ""
-                    acl_lists = (meta.get("access") or {}).get("raw_assignment") or {}
-                    item = DofficeJobItem(id_vb=id_vb, document_id=str(doc_id), source=source, acl_lists=acl_lists)
-                    async with AsyncSessionLocal() as session:
-                        ing = self._make_ingestor(session, ctx)
-                        await ing.clean_data(item)
-                        nchunk = len(build_doffice_chunks(item.normalized, **kw))
-                        print(f"           chunk={nchunk} | lưu PG + embed TỪNG chunk + đẩy Qdrant…", flush=True)
+        live = sys.stdout.isatty()
+        spinner = cs.Spinner(lambda: _status_seq(self)) if live else None
+        if spinner is not None:
+            spinner.start()
+        else:
+            print(cs.color(f"== TUẦN TỰ == tổng cần embed: {self.stats.total} văn bản", cs.BOLD + cs.CYAN), flush=True)
+        try:
+            last_id = None
+            while True:
+                params = {"t": DOFFICE_SOURCE_TYPE, "lim": self._batch_size}
+                sql = f"SELECT id, document_metadata, parsed_text FROM documents WHERE {_WHERE_PENDING} "
+                if last_id is not None:
+                    sql += "AND id > :last "
+                    params["last"] = last_id
+                sql += "ORDER BY id LIMIT :lim"
+                async with AsyncSessionLocal() as s:
+                    rows = (await s.execute(text(sql), params)).all()
+                if not rows:
+                    break
+                for doc_id, meta, parsed in rows:
+                    processed = self.stats.done + self.stats.failed + len(self.stats.skipped)
+                    if self._limit and processed >= self._limit:
+                        return self.stats
+                    meta = meta or {}
+                    idx = processed + 1
+                    id_vb = str(meta.get("id_vb") or "")
+                    self.stats.current = id_vb
+                    self.stats.embed_done = self.stats.embed_total = 0
+                    t0 = time.monotonic()
+                    try:
+                        source = {k: v for k, v in meta.items() if k not in ("access", "has_embedding", "qdrant_indexed")}
+                        source["noi_dung"] = parsed or ""
+                        acl_lists = (meta.get("access") or {}).get("raw_assignment") or {}
+                        item = DofficeJobItem(id_vb=id_vb, document_id=str(doc_id), source=source, acl_lists=acl_lists)
+                        skipped = False
+                        async with AsyncSessionLocal() as session:
+                            ing = self._make_ingestor(session, ctx)
+                            await ing.clean_data(item)
+                            nchunk = len(build_doffice_chunks(item.normalized, **kw))
+                            self.stats.embed_total = nchunk
+                            if self._max_chunks and nchunk > self._max_chunks:
+                                # > max -> BỎ QUA: không embed, không đụng PG (giữ pending).
+                                self.stats.record_skip(id_vb, nchunk, self._max_chunks)
+                                skipped = True
+                            else:
+                                def _cb(done: int, total: int) -> None:  # tiến độ embed TỪNG chunk -> dashboard
+                                    self.stats.embed_done = done
+                                    self.stats.embed_total = total
 
-                        def _cb(done: int, total: int) -> None:  # in tiến độ embed từng chunk (cập nhật tại chỗ)
-                            print(f"\r             · đã embed {done}/{total} chunk", end="", flush=True)
-
-                        await ing.index_qdrant(item, embed_progress=_cb)
-                        if nchunk:
-                            print("", flush=True)  # xuống dòng sau dòng tiến độ \r
-                    self.stats.done += 1
-                    self.stats.record_chunks(id_vb, item.chunk_count, self._big_threshold)
-                    print(cs.color(
-                        f"           ✓ XONG {item.chunk_count} chunk trong {time.monotonic() - t0:.1f}s "
-                        f"| tổng: {self.stats.done}/{self.stats.total} doc · {self.stats.chunks} chunk · "
-                        f"{int(time.monotonic() - start)}s", cs.GREEN), flush=True)
-                except Exception as exc:  # noqa: BLE001
-                    self.stats.failed += 1
-                    print(cs.color(
-                        f"           ✗ LỖI sau {time.monotonic() - t0:.1f}s: {type(exc).__name__}: {exc}", cs.RED),
-                        flush=True)
-                    logger.error("id_vb=%s tuần tự lỗi: %s", id_vb, exc, exc_info=True)
-                last_id = doc_id
+                                await ing.index_qdrant(item, embed_progress=_cb, max_chunks=self._max_chunks)
+                        if skipped:
+                            if not live:
+                                print(
+                                    f"[{idx}/{self.stats.total}] id_vb={id_vb} · BỎ QUA {nchunk} chunk "
+                                    f"(> {self._max_chunks}) — không embed/không đánh dấu",
+                                    flush=True,
+                                )
+                        else:
+                            self.stats.done += 1
+                            secs = time.monotonic() - t0
+                            self.stats.record_chunks(id_vb, item.chunk_count, self._big_threshold)
+                            self.stats.push_recent(id_vb, item.chunk_count, secs)
+                            if not live:
+                                warn = "  ⚠ nhiều chunk" if item.chunk_count > self._big_threshold else ""
+                                print(
+                                    f"[{idx}/{self.stats.total}] id_vb={id_vb} · {item.chunk_count} chunk · "
+                                    f"{secs:.1f}s · tổng {self.stats.done}/{self.stats.total}{warn}",
+                                    flush=True,
+                                )
+                    except Exception as exc:  # noqa: BLE001
+                        self.stats.failed += 1
+                        if not live:
+                            print(f"[{idx}/{self.stats.total}] id_vb={id_vb} · ✗ {type(exc).__name__}: {exc}", flush=True)
+                        logger.error("id_vb=%s tuần tự lỗi: %s", id_vb, exc, exc_info=True)
+                    finally:
+                        self.stats.current = ""
+                        self.stats.embed_done = self.stats.embed_total = 0
+                    last_id = doc_id
+        finally:
+            if spinner is not None:
+                await spinner.stop()
         return self.stats
 
     async def _feed(self, q: asyncio.Queue) -> None:
@@ -283,9 +339,13 @@ class QdrantJobRunner:
                                 unit_tree=ctx["unit_tree"], signature=ctx["signature"],
                             )
                             await ing.clean_data(item)
-                            await ing.index_qdrant(item)
-                        self.stats.done += 1
-                        self.stats.record_chunks(id_vb, item.chunk_count, self._big_threshold)
+                            await ing.index_qdrant(item, max_chunks=self._max_chunks)
+                        if item.skipped:
+                            # > max -> KHÔNG embed, KHÔNG đánh dấu PG (giữ pending).
+                            self.stats.record_skip(id_vb, item.chunk_count, self._max_chunks)
+                        else:
+                            self.stats.done += 1
+                            self.stats.record_chunks(id_vb, item.chunk_count, self._big_threshold)
                         last_exc = None
                         break
                     except Exception as exc:  # noqa: BLE001
@@ -360,15 +420,60 @@ def _status(runner: QdrantJobRunner) -> str:
     ]
     left = _box(f"Embed Qdrant · {runner.phase}", left_rows, width=46, color=cs.CYAN)
     # --- Ô PHẢI: văn bản nhiều chunk (> ngưỡng) ---
-    big = sorted(s.big_chunks, key=lambda kv: -kv[1])
-    if big:
-        right_rows = [f"{cs.color(f'{n:>5}', cs.YELLOW)}  id_vb={vb}" for vb, n in big[:10]]
-        if len(big) > 10:
-            right_rows.append(f"{cs.GREY}… và {len(big) - 10} văn bản khác{cs.RESET}")
-    else:
-        right_rows = [f"{cs.GREY}(chưa có văn bản > {runner._big_threshold} chunk){cs.RESET}"]
-    right = _box(f"Nhiều chunk (> {runner._big_threshold})", right_rows, width=40, color=cs.MAGENTA)
+    right = _big_chunk_box(runner, top=10)
     head = f"{cs.BOLD}DOffice Qdrant · chunk + embed{cs.RESET}"
+    return "\n".join([head, *_join_cols(left, right)])
+
+
+def _big_chunk_box(runner: QdrantJobRunner, *, top: int = 12, width: int = 44) -> list[str]:
+    """Ô "view" văn bản nhiều chunk — dùng chung 2 chế độ.
+
+    Hiển thị TRƯỚC các văn bản BỎ QUA (>max, đỏ ⊘ — không embed), rồi đến văn bản nhiều
+    chunk ĐÃ embed (>big_threshold, vàng). Sắp giảm dần theo số chunk.
+    """
+    s = runner.stats
+    skipped = sorted(s.skipped, key=lambda kv: -kv[1])
+    big = sorted(s.big_chunks, key=lambda kv: -kv[1])
+    rows = [f"{cs.color(f'{n:>5} ⊘ bỏ', cs.RED)} id_vb={vb}" for vb, n in skipped[:top]]
+    for vb, n in big[: max(0, top - len(rows))]:
+        rows.append(f"{cs.color(f'{n:>5}', cs.YELLOW)}     id_vb={vb}")
+    extra = (len(skipped) + len(big)) - len(rows)
+    if extra > 0:
+        rows.append(f"{cs.GREY}… và {extra} văn bản khác{cs.RESET}")
+    if not rows:
+        rows = [f"{cs.GREY}(chưa có văn bản > {runner._big_threshold} chunk){cs.RESET}"]
+    if runner._max_chunks:
+        title = f"Nhiều chunk >{runner._big_threshold} · ⊘ bỏ qua >{runner._max_chunks}"
+    else:
+        title = f"Nhiều chunk (> {runner._big_threshold})"
+    return _box(title, rows, width=width, color=cs.MAGENTA)
+
+
+def _status_seq(runner: QdrantJobRunner) -> str:
+    """Dashboard TUẦN TỰ (in-place): trái = tiến độ + văn bản đang chạy (embed từng chunk) +
+    vài văn bản gần đây kèm số chunk; phải = ô "view" văn bản nhiều chunk."""
+    s = runner.stats
+    pending = max(0, s.total - s.done - s.failed - len(s.skipped))
+    left_rows = [
+        f"{cs.color(f'{s.done:>6}', cs.GREEN)} xong   "
+        f"{cs.color(f'{pending:>6}', cs.YELLOW)} chờ"
+        + (f"   {cs.color(f'{s.failed} lỗi', cs.RED)}" if s.failed else "")
+        + (f"   {cs.color(f'{len(s.skipped)} ⊘ bỏ', cs.RED)}" if s.skipped else ""),
+        f"{cs.GREY}tổng {s.chunks} chunk đã embed   (cần: {s.total}){cs.RESET}",
+    ]
+    if pending and s.current:
+        prog = f" · chunk {s.embed_done}/{s.embed_total}" if s.embed_total else " · làm sạch…"
+        left_rows.append(f"{cs.CYAN}▶ đang xử lý {s.current}{prog}{cs.RESET}")
+    else:
+        left_rows.append(f"{cs.GREEN}✓ hoàn tất lượt này{cs.RESET}")
+    if s.recent:
+        left_rows.append(f"{cs.GREY}─ văn bản gần đây ─{cs.RESET}")
+        for vb, n, secs in reversed(s.recent):
+            color = cs.YELLOW if n > runner._big_threshold else cs.GREEN
+            left_rows.append(f"{cs.color(f'{n:>5}', color)} chunk  {cs.GREY}{vb} · {secs:.1f}s{cs.RESET}")
+    left = _box("Tuần tự · embed từng chunk", left_rows, width=48, color=cs.CYAN)
+    right = _big_chunk_box(runner)
+    head = f"{cs.BOLD}DOffice Qdrant · chunk + embed (TUẦN TỰ){cs.RESET}"
     return "\n".join([head, *_join_cols(left, right)])
 
 
@@ -386,11 +491,15 @@ def _print_summary(runner: QdrantJobRunner, elapsed: float, log_dir: Path) -> No
         f"  Lỗi         : {cs.color(str(s.failed), cs.RED if s.failed else cs.GREEN)}",
         f"  Tổng chunk  : {cs.color(str(s.chunks), cs.BOLD)}",
         f"  Nhiều chunk : {cs.color(str(len(s.big_chunks)), cs.YELLOW if s.big_chunks else cs.GREEN)}"
-        f"  {cs.GREY}(> ngưỡng -> chunks_big.log){cs.RESET}",
+        f"  {cs.GREY}(> {runner._big_threshold} -> chunks_big.log){cs.RESET}",
+        f"  Bỏ qua >{runner._max_chunks} : {cs.color(str(len(s.skipped)), cs.RED if s.skipped else cs.GREEN)}"
+        f"  {cs.GREY}(không embed, KHÔNG đánh dấu PG -> vẫn pending){cs.RESET}",
         f"  Thời gian   : {minutes}m {seconds}s",
         f"  Log         : {cs.color(f'{log_dir}/', cs.GREY)}",
         line,
     ]))
+    for id_vb, n in sorted(s.skipped, key=lambda kv: -kv[1])[:15]:
+        print(f"  {cs.color('⊘ BỎ QUA ' + id_vb, cs.RED)}: {n} chunk (> {runner._max_chunks})")
     for id_vb, n in sorted(s.big_chunks, key=lambda kv: -kv[1])[:15]:
         print(f"  {cs.color('▶ ' + id_vb, cs.YELLOW)}: {n} chunk")
     for id_vb, err in list(s.errors.items())[:10]:
@@ -424,16 +533,17 @@ async def _main(args: argparse.Namespace) -> None:
     sequential = bool(args.sequential or _int_env("DOFFICE_QDRANT_SEQUENTIAL", 0))
     limit = args.limit if args.limit is not None else _int_env("DOFFICE_QDRANT_LIMIT", 0)
     big_threshold = args.big_chunk if args.big_chunk is not None else _int_env("DOFFICE_QDRANT_BIG_CHUNK", _BIG_CHUNK_THRESHOLD)
+    max_chunks = args.max_chunk if args.max_chunk is not None else _int_env("DOFFICE_QDRANT_MAX_CHUNK", _MAX_CHUNK_THRESHOLD)
 
     loggers.get("run").info(
-        "Job Qdrant: workers=%s batch=%s interval=%ss sequential=%s limit=%s big_chunk>%s",
-        workers, batch, interval, sequential, limit, big_threshold,
+        "Job Qdrant: workers=%s batch=%s interval=%ss sequential=%s limit=%s big_chunk>%s max_chunk>%s(bỏ qua)",
+        workers, batch, interval, sequential, limit, big_threshold, max_chunks,
     )
     while True:
         # Tuần tự -> 1 worker (không song song).
         runner = QdrantJobRunner(
             workers=1 if sequential else workers, batch_size=batch, limit=limit,
-            big_chunk_threshold=big_threshold,
+            big_chunk_threshold=big_threshold, max_chunks=max_chunks,
         )
         start = time.monotonic()
         try:
@@ -473,5 +583,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--big-chunk", type=int, default=None,
         help="Nguong chunk de coi la 'nhieu chunk' (mac dinh 100) -> o ben canh + chunks_big.log.",
+    )
+    parser.add_argument(
+        "--max-chunk", type=int, default=None,
+        help="Nguong chunk de BO QUA (mac dinh 500): doc > nguong nay KHONG embed va KHONG danh dau PG. 0 = khong gioi han.",
     )
     asyncio.run(_main(parser.parse_args()))

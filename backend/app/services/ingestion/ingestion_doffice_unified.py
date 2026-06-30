@@ -80,6 +80,8 @@ class DofficeJobItem:
     acl_payload: dict[str, Any] = field(default_factory=dict)
     has_acl: bool = False
     chunk_count: int = 0
+    # True nếu BỎ QUA vì vượt ngưỡng max_chunks (KHÔNG embed, KHÔNG đánh dấu qdrant_indexed).
+    skipped: bool = False
 
 
 class DofficeUnifiedIngestor:
@@ -209,7 +211,10 @@ class DofficeUnifiedIngestor:
         # (các luồng PG/ES + dashboard vẫn chạy khi đang normalize 1 doc lớn).
         normalized = await asyncio.to_thread(normalize_doffice_source, item.source)
         item.normalized = normalized
-        item.clean_noi_dung = (normalized.clean_text or "").strip() or None
+        # Làm sạch nội dung cho ES (BM25) GIỐNG cách chunk Qdrant: chuẩn hoá smart-quote/dash,
+        # bỏ marker phân trang, ký tự ngoại lai, nhấn mạnh markdown... -> token BM25 sạch &
+        # nhất quán với vector. (Trước đây ES chỉ .strip() -> lệch với chunk + tom_tat.)
+        item.clean_noi_dung = clean_for_chunking(normalized.clean_text or "") or None
         item.clean_tom_tat = clean_for_chunking(str(item.source.get("tom_tat") or "")) or None
         if not item.clean_noi_dung:
             logger.warning("id_vb=%s không có nội dung sau khi làm sạch", item.id_vb)
@@ -239,10 +244,16 @@ class DofficeUnifiedIngestor:
         )
 
     # ===================== LUỒNG 4: Qdrant (chunk + embed) ====================
-    async def index_qdrant(self, item: DofficeJobItem, *, embed_progress: Any = None) -> None:
+    async def index_qdrant(
+        self, item: DofficeJobItem, *, embed_progress: Any = None, max_chunks: int | None = None
+    ) -> None:
         """Luồng 4: chunk nội dung đã làm sạch (in-memory) -> embed -> Qdrant Col1 (chunks)
         & Col2 (docmeta) + ACL nén. Làm sạch -> chunk -> LƯU chunk vào PG -> embed (giữ
-        chunk nếu doffice_store_chunks_in_pg=True; False = xoá sau khi embed)."""
+        chunk nếu doffice_store_chunks_in_pg=True; False = xoá sau khi embed).
+
+        ``max_chunks``: nếu số chunk > ngưỡng này -> BỎ QUA (đặt ``item.skipped=True``,
+        KHÔNG embed, KHÔNG ghi/đụng PG, KHÔNG đánh dấu ``qdrant_indexed``) -> văn bản giữ
+        trạng thái pending để xử lý/đánh giá sau."""
         from uuid import UUID
 
         from app.services.chunkers.chunker_doffice_chunking import build_doffice_chunks
@@ -261,6 +272,15 @@ class DofficeUnifiedIngestor:
             table_max_chars=int(cfg.get("doffice_table_max_chars") or 3500),
         )
         item.chunk_count = len(chunk_records)
+
+        # Quá nhiều chunk -> BỎ QUA: không embed, không đụng PG/Qdrant, không đánh dấu.
+        if max_chunks and item.chunk_count > max_chunks:
+            item.skipped = True
+            logger.warning(
+                "id_vb=%s BỎ QUA: %s chunk > max %s -> không embed, không đánh dấu qdrant_indexed",
+                item.id_vb, item.chunk_count, max_chunks,
+            )
+            return
 
         # Lưu chunk vào PG (xoá chunk cũ của doc -> ghi mới) để VectorIndexingService embed.
         await self._repository.delete_chunks_for_document(document_id)
