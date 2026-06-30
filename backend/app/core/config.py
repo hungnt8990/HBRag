@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     qdrant_upsert_retry_count: int = 2
     qdrant_hybrid_candidate_multiplier: int = 4
     auto_recreate_collection: bool = False
+    # Validate/tạo collection RAG GENERIC (non-doffice) khi startup. Dự án chỉ dùng DOffice
+    # -> TẮT để không tự tạo lại hbrag_chunks_qwen3_8b_v1 rỗng. Bật True nếu cần RAG generic.
+    validate_generic_vector_store_on_startup: bool = False
 
     # Qdrant performance — mặc định TẮT/an toàn; chỉ có hiệu lực khi tạo/recreate
     # collection mới (hnsw/quantization/on_disk) hoặc khi query (search_hnsw_ef).

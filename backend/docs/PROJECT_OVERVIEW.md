@@ -10,6 +10,11 @@
 > `ngay_vb/loai_vb/linh_vuc/trang_thai_hieu_luc/acl_subjects/acl_deny` keyword) trong `vector_store.PAYLOAD_*`.
 > **HOÃN** strip field debug (nằm trong hợp đồng payload + retrieval dùng; lợi ích dung lượng ~0).
 >
+> 🧹 **Dọn Qdrant + startup**: chỉ dùng 2 collection DOffice (`hbrag_doffice_chunks_v1`, `hbrag_doffice_docmeta_v1`).
+> Đã xóa 2 collection generic rỗng (`hbrag_chunks_qwen3_8b_v1`, `hbrag_artifacts_qwen3_8b_v1`). Tắt validate generic
+> khi startup: setting `validate_generic_vector_store_on_startup=False` + guard ở `main._validate_vector_store_on_startup`
+> -> không tự tạo lại collection generic. (Bảng PG rỗng GIỮ NGUYÊN — đều gắn ORM model + query, drop sẽ vỡ app/alembic.)
+>
 > 🔁 **Tái cấu trúc pipeline (Giai đoạn 1)** — PG là NGUỒN SỰ THẬT: `run_unified` làm sạch + chunk + nén ACL rồi
 > **GHI PG** (`persist_to_postgres`: `metadata["clean"]` nội dung sạch, `metadata["access"].acl_subjects/acl_deny`
 > nén cạnh raw, bảng `chunks`, cờ `pg_prepared`); `run_qdrant` **chỉ ĐỌC PG** (`embed_to_qdrant`: chunk/clean/ACL từ

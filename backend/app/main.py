@@ -72,6 +72,11 @@ async def _load_rag_runtime_config_on_startup() -> None:
 
 
 async def _validate_vector_store_on_startup() -> None:
+    # Dự án chỉ dùng DOffice (2 collection riêng tự ensure_collection). Bỏ qua validate
+    # collection RAG generic -> KHÔNG tự tạo lại hbrag_chunks_qwen3_8b_v1 rỗng khi startup.
+    if not settings.validate_generic_vector_store_on_startup:
+        logger.info("Bỏ qua validate Qdrant collection generic khi startup (chỉ dùng DOffice).")
+        return
     try:
         collection_info = await get_vector_store().validate_collection_config(
             auto_recreate=settings.auto_recreate_collection,
