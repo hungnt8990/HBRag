@@ -272,3 +272,177 @@ class DofficeBm25DocumentStore:
             if source.get("document_id"):
                 results.append({**source, "_score": hit.get("_score")})
         return results
+
+
+# Trường text BM25 cấp CHUNK (boost): chunk_text là chính, kèm ngữ cảnh heading + ký hiệu.
+_CHUNK_TEXT_SEARCH_FIELDS = (
+    ("chunk_text", 1.0),
+    ("section_path", 1.5),
+    ("ky_hieu", 4.0),
+    ("trich_yeu", 2.0),
+)
+
+
+class DofficeChunkBm25Store:
+    """Index ES BM25 cấp CHUNK (nhánh 2): mỗi chunk = 1 record + ACL nén.
+
+    Dùng để BM25 đúng ĐOẠN/căn cứ (bổ sung cho nhánh full doc-level). Không vector.
+    """
+
+    def __init__(self, *, url: str | None = None, index_name: str | None = None, timeout_seconds: float = 30.0) -> None:
+        self.url = (url or settings.elasticsearch_url).rstrip("/")
+        self.index_name = index_name or settings.doffice_chunks_index_name
+        self.timeout_seconds = timeout_seconds
+        self._index_ready = False
+
+    @staticmethod
+    def _index_definition() -> dict[str, Any]:
+        text = {"type": "text", "analyzer": "vi_bm25", "search_analyzer": "vi_bm25_search"}
+        kw_text = {"type": "text", "analyzer": "vi_bm25", "fields": {"raw": {"type": "keyword"}}}
+        properties: dict[str, Any] = {
+            "document_id": {"type": "keyword"},
+            "id_vb": {"type": "keyword"},
+            "chunk_id": {"type": "keyword"},
+            "chunk_index": {"type": "integer"},
+            "chunk_type": {"type": "keyword"},
+            "chunk_text": {**text, "index_options": "offsets"},
+            "section_path": kw_text,
+            "table_name": kw_text,
+            # Doc-level kế thừa (filter + dẫn nguồn).
+            "ky_hieu": kw_text,
+            "trich_yeu": text,
+            "noi_ban_hanh": kw_text,
+            "id_dv_ban_hanh": {"type": "keyword"},
+            "nam": {"type": "integer"},
+            "thang": {"type": "integer"},
+            "ngay_vb": {
+                "type": "keyword",
+                "fields": {"date": {"type": "date", "format": "yyyy-MM-dd", "ignore_malformed": True}},
+            },
+            # ACL phẳng — lọc cùng cách Qdrant/doc-level.
+            "acl_subjects": {"type": "keyword", "doc_values": True},
+            "acl_deny": {"type": "keyword", "doc_values": True},
+            "acl_ver": {"type": "keyword"},
+        }
+        return {
+            "settings": {
+                "number_of_shards": settings.elasticsearch_number_of_shards,
+                "number_of_replicas": settings.elasticsearch_number_of_replicas,
+                "refresh_interval": "60s",
+                "index.queries.cache.enabled": True,
+                "analysis": _vi_analysis(),
+            },
+            "mappings": {"properties": properties},
+        }
+
+    async def ensure_index(self) -> None:
+        if self._index_ready:
+            return
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            resp = await client.head(f"{self.url}/{self.index_name}")
+            if resp.status_code == 200:
+                self._index_ready = True
+                return
+            resp = await client.put(f"{self.url}/{self.index_name}", json=self._index_definition())
+            if resp.status_code < 400 or "resource_already_exists" in resp.text:
+                self._index_ready = True
+                return
+            raise RuntimeError(
+                f"Tạo index {self.index_name} lỗi: HTTP {resp.status_code} {resp.text[:300]}"
+            )
+
+    async def delete_index(self) -> None:
+        self._index_ready = False
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            resp = await client.delete(f"{self.url}/{self.index_name}")
+        if resp.status_code not in (200, 404):
+            raise RuntimeError(
+                f"Xóa index {self.index_name} lỗi: HTTP {resp.status_code} {resp.text[:300]}"
+            )
+
+    async def delete_by_id_vb(self, id_vb: str) -> None:
+        """Xoá MỌI chunk của 1 văn bản (idempotent trước khi ghi lại)."""
+        await self.ensure_index()
+        body = {"query": {"term": {"id_vb": str(id_vb)}}}
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            resp = await client.post(
+                f"{self.url}/{self.index_name}/_delete_by_query?conflicts=proceed",
+                content=json.dumps(body, ensure_ascii=False).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
+        if resp.status_code not in (200, 404):
+            raise RuntimeError(
+                f"delete_by_id_vb (chunk) ES lỗi id_vb={id_vb}: HTTP {resp.status_code} {resp.text[:300]}"
+            )
+
+    async def bulk_upsert_chunks(self, records: list[dict[str, Any]]) -> None:
+        """Ghi/đè nhiều chunk (mỗi record phải có ``chunk_id`` làm _id) qua ES _bulk."""
+        if not records:
+            return
+        await self.ensure_index()
+        lines: list[str] = []
+        for rec in records:
+            chunk_id = rec.get("chunk_id")
+            if not chunk_id:
+                continue
+            lines.append(json.dumps({"index": {"_index": self.index_name, "_id": chunk_id}}))
+            lines.append(json.dumps(rec, ensure_ascii=False))
+        if not lines:
+            return
+        body = "\n".join(lines) + "\n"
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            resp = await client.post(
+                f"{self.url}/_bulk",
+                content=body.encode("utf-8"),
+                headers={"Content-Type": "application/x-ndjson"},
+            )
+        if resp.status_code >= 400:
+            raise RuntimeError(
+                f"bulk_upsert_chunks ES lỗi: HTTP {resp.status_code} {resp.text[:300]}"
+            )
+        result = resp.json()
+        if result.get("errors"):
+            first = next(
+                (it["index"].get("error") for it in result.get("items", []) if it.get("index", {}).get("error")),
+                None,
+            )
+            raise RuntimeError(f"bulk_upsert_chunks ES có lỗi item: {str(first)[:300]}")
+
+    async def search_chunks(
+        self,
+        query: str,
+        *,
+        top_n: int = 50,
+        acl_subject: "AclSubject | None" = None,
+    ) -> list[dict[str, Any]]:
+        """BM25 cấp chunk + lọc ACL cứng. Trả [{document_id,id_vb,chunk_id,chunk_text,_score,...}]."""
+        await self.ensure_index()
+        filters: list[dict[str, Any]] = []
+        if acl_subject is not None:
+            from app.services.security.security_acl_payload import build_es_acl_filter_flat
+
+            clause = build_es_acl_filter_flat(acl_subject)
+            if clause is not None:
+                filters.append(clause)
+        should = [
+            {"match": {field: {"query": query, "boost": boost}}}
+            for field, boost in _CHUNK_TEXT_SEARCH_FIELDS
+        ]
+        body = {
+            "size": top_n,
+            "_source": ["document_id", "id_vb", "chunk_id", "chunk_index", "chunk_type", "chunk_text", "ky_hieu", "trich_yeu", "ngay_vb"],
+            "query": {"bool": {"should": should, "minimum_should_match": 1, "filter": filters}},
+        }
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            resp = await client.post(f"{self.url}/{self.index_name}/_search", json=body)
+        if resp.status_code == 404:
+            return []
+        if resp.status_code >= 400:
+            raise RuntimeError(f"search_chunks ES lỗi: HTTP {resp.status_code} {resp.text[:300]}")
+        hits = resp.json().get("hits", {}).get("hits", [])
+        results: list[dict[str, Any]] = []
+        for hit in hits:
+            source = hit.get("_source") or {}
+            if source.get("document_id"):
+                results.append({**source, "_score": hit.get("_score")})
+        return results

@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     qdrant_docmeta_collection_name: str = "hbrag_doffice_docmeta_v1"
     # ES BM25 cấp văn bản (không vector, không chunk).
     doffice_documents_index_name: str = "hbrag_doffice_documents_v1"
+    # ES BM25 cấp CHUNK (nhánh 2): mỗi chunk = 1 record + ACL nén, để BM25 đúng đoạn/căn cứ.
+    doffice_chunks_index_name: str = "hbrag_doffice_chunks_es_v1"
     # Dev: vẫn ghi chunk vào PostgreSQL để soi; product có thể tắt.
     store_chunks_in_pg: bool = True
     # DOffice job Qdrant: làm sạch -> chunk -> LƯU chunk vào PG -> embedding. True = giữ

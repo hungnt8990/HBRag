@@ -1,17 +1,17 @@
-"""Ingest 1 văn bản DOffice qua pipeline 4 GIAI ĐOẠN tách bạch.
+"""Ingest 1 văn bản DOffice — PG là NGUỒN SỰ THẬT (raw + sạch + chunk + ACL nén).
 
-1. ``prepare_postgres`` (PG): lưu dữ liệu THÔ — lấy thế nào lưu thế đó. parsed_text =
-   noi_dung thô; metadata = trường source thô + ACL THÔ (raw_assignment). KHÔNG làm sạch,
-   KHÔNG nén ACL, KHÔNG chunk.
-2. ``clean_data`` (Làm sạch, in-memory): normalize noi_dung + làm sạch tom_tat + NÉN ACL
-   (allow[]/deny[]). Không ghi DB — chỉ làm giàu item.
-3. ``index_elasticsearch`` (ES, BM25 doc-level): nội dung ĐÃ SẠCH + ACL ĐÃ NÉN (không lưu
-   ACL thô).
-4. ``index_qdrant`` (Qdrant): chunk nội dung đã sạch (in-memory) -> embed -> Col1 (chunks)
-   + Col2 (docmeta), payload kèm ACL nén. Chunk ghi PG TẠM để embed rồi xóa (PG chỉ giữ raw).
+1. ``prepare_postgres`` (PG): lưu THÔ. parsed_text = noi_dung thô; metadata = source thô +
+   ACL THÔ (raw_assignment). KHÔNG làm sạch/nén/chunk.
+2. ``clean_data`` (in-memory): normalize noi_dung + làm sạch tom_tat + NÉN ACL (allow/deny).
+3. ``persist_to_postgres`` (PG): GHI nội dung SẠCH (``metadata["clean"]``) + ACL ĐÃ NÉN
+   (``metadata["access"].acl_subjects/acl_deny``, cạnh raw) + CHUNK (bảng ``chunks``).
+   Đặt ``metadata["pg_prepared"]=True``. (> max_chunks -> skip: lưu clean+ACL, không chunk.)
+4. ``index_elasticsearch`` (ES doc-level): nội dung SẠCH + ACL NÉN (KHÔNG lưu ACL thô).
+5. ``embed_to_qdrant`` (Qdrant): ĐỌC PG (chunk/clean/ACL) -> embed Col1 (chunks) + Col2
+   (docmeta) + ACL/filter payload. KHÔNG re-chunk/re-clean. Dùng cho run_qdrant ("chỉ đọc PG").
 
-Enrichment TẮT. Idempotent: chạy lại 1 văn bản -> xóa dấu vết cũ (PG/ES/Qdrant) rồi ghi lại.
-Tái dùng VectorIndexingService (embed + Qdrant Col1). Runner gọi 4 luồng song song qua hàng đợi.
+``index_qdrant`` = persist_to_postgres + embed_to_qdrant (tương thích đường gọi cũ/legacy).
+Enrichment TẮT. Idempotent. Runner: PG-raw -> Clean+Chunk(ghi PG) -> {ES, Qdrant đọc PG}.
 """
 
 from __future__ import annotations
@@ -48,6 +48,32 @@ _DOCMETA_FIELDS = (
 # Text để embed docmeta: ngữ nghĩa (trich_yeu/tom_tat/noi_ban_hanh) + ký hiệu (ky_hieu).
 _DOCMETA_EMBED_FIELDS = ("ky_hieu", "trich_yeu", "tom_tat", "noi_ban_hanh", "ten_file")
 
+# Trường LỌC cấp văn bản gắn vào MỌI chunk của Col1 (để filter thời gian/đơn vị ở cấp chunk,
+# đồng bộ với Col2). int: nam/thang/id_dv_ban_hanh; chuỗi ISO: ngay_vb. Xem docs/METADATA_SCHEMA.md.
+_C1_DOC_FILTER_INT_FIELDS = ("nam", "thang", "id_dv_ban_hanh")
+_C1_DOC_FILTER_STR_FIELDS = ("ngay_vb",)
+
+
+def _coerce_int(value: Any) -> int | None:
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _build_c1_doc_filter_payload(source: dict[str, Any]) -> dict[str, Any]:
+    """Dựng payload lọc cấp văn bản cho chunk (Col1) từ source thô."""
+    payload: dict[str, Any] = {}
+    for field in _C1_DOC_FILTER_INT_FIELDS:
+        coerced = _coerce_int(source.get(field))
+        if coerced is not None:
+            payload[field] = coerced
+    for field in _C1_DOC_FILTER_STR_FIELDS:
+        value = source.get(field)
+        if value not in (None, ""):
+            payload[field] = str(value)
+    return payload
+
 _DOCMETA_NAMESPACE = uuid.UUID("0d0ff1ce-0000-4000-8000-000000000001")
 
 
@@ -82,6 +108,8 @@ class DofficeJobItem:
     chunk_count: int = 0
     # True nếu BỎ QUA vì vượt ngưỡng max_chunks (KHÔNG embed, KHÔNG đánh dấu qdrant_indexed).
     skipped: bool = False
+    # Chunk vừa dựng (ChunkCreate) — luồng ES chunk dùng để index nhánh 2 (in-memory).
+    chunk_records: list[Any] = field(default_factory=list)
 
 
 class DofficeUnifiedIngestor:
@@ -99,6 +127,7 @@ class DofficeUnifiedIngestor:
         unit_tree: Any,
         signature: str | None = None,
         store_chunks_in_pg: bool | None = None,
+        chunk_bm25_store: Any = None,
     ) -> None:
         self._repository = repository
         self._chunking_service = chunking_service
@@ -107,6 +136,7 @@ class DofficeUnifiedIngestor:
         self._chunks_store = chunks_store
         self._docmeta_store = docmeta_store
         self._bm25_store = bm25_store
+        self._chunk_bm25_store = chunk_bm25_store  # nhánh ES chunk (None = không index)
         self._catalog = catalog
         self._unit_tree = unit_tree
         self._signature = signature
@@ -243,17 +273,60 @@ class DofficeUnifiedIngestor:
             acl_ver=self._signature,
         )
 
-    # ===================== LUỒNG 4: Qdrant (chunk + embed) ====================
-    async def index_qdrant(
-        self, item: DofficeJobItem, *, embed_progress: Any = None, max_chunks: int | None = None
-    ) -> None:
-        """Luồng 4: chunk nội dung đã làm sạch (in-memory) -> embed -> Qdrant Col1 (chunks)
-        & Col2 (docmeta) + ACL nén. Làm sạch -> chunk -> LƯU chunk vào PG -> embed (giữ
-        chunk nếu doffice_store_chunks_in_pg=True; False = xoá sau khi embed).
+    # ============== LUỒNG 3b: Elasticsearch CHUNK (nhánh 2) ===================
+    async def index_elasticsearch_chunks(self, item: DofficeJobItem) -> None:
+        """Nhánh ES thứ 2: index TỪNG chunk (chunk_text + ngữ cảnh + ACL nén) để BM25 đúng
+        đoạn/căn cứ. Dùng ``item.chunk_records`` (đã dựng ở persist_to_postgres). Idempotent:
+        xoá chunk cũ theo id_vb rồi bulk ghi. KHÔNG lưu ACL thô."""
+        if self._chunk_bm25_store is None:
+            return
+        chunk_records = item.chunk_records or []
+        if not chunk_records:
+            # Văn bản bỏ qua/không có chunk -> vẫn dọn chunk ES cũ (idempotent).
+            await self._chunk_bm25_store.delete_by_id_vb(item.id_vb)
+            return
+        src = item.source
+        doc_filter = _build_c1_doc_filter_payload(src)  # nam/thang/ngay_vb/id_dv_ban_hanh
+        records: list[dict[str, Any]] = []
+        for chunk in chunk_records:
+            meta = chunk.metadata or {}
+            section = meta.get("section_path")
+            record: dict[str, Any] = {
+                "document_id": item.document_id,
+                "id_vb": str(item.id_vb),
+                "chunk_id": f"{item.id_vb}:{chunk.chunk_index}",
+                "chunk_index": chunk.chunk_index,
+                "chunk_type": meta.get("chunk_type"),
+                "chunk_text": chunk.content,
+                "section_path": " > ".join(str(p) for p in section) if isinstance(section, (list, tuple)) else section,
+                "table_name": meta.get("table_name"),
+                "ky_hieu": src.get("ky_hieu"),
+                "trich_yeu": src.get("trich_yeu"),
+                "noi_ban_hanh": src.get("noi_ban_hanh"),
+                **doc_filter,
+            }
+            record = {k: v for k, v in record.items() if v not in (None, "", [])}
+            # ACL luôn ghi (kể cả rỗng) để lọc nhất quán.
+            record["acl_subjects"] = item.acl_subjects
+            record["acl_deny"] = item.acl_deny
+            if self._signature:
+                record["acl_ver"] = self._signature
+            records.append(record)
+        await self._chunk_bm25_store.delete_by_id_vb(item.id_vb)
+        await self._chunk_bm25_store.bulk_upsert_chunks(records)
 
-        ``max_chunks``: nếu số chunk > ngưỡng này -> BỎ QUA (đặt ``item.skipped=True``,
-        KHÔNG embed, KHÔNG ghi/đụng PG, KHÔNG đánh dấu ``qdrant_indexed``) -> văn bản giữ
-        trạng thái pending để xử lý/đánh giá sau."""
+    # ============ LUỒNG Làm sạch + Chunk + Nén ACL -> GHI PostgreSQL ==========
+    async def persist_to_postgres(
+        self, item: DofficeJobItem, *, max_chunks: int | None = None
+    ) -> DofficeJobItem:
+        """Làm sạch + nén ACL + CHUNK -> LƯU TẤT CẢ vào PostgreSQL (không embed).
+
+        Ghi vào PG: ``metadata["clean"]`` (noi_dung/tom_tat đã sạch), ``metadata["access"]``
+        thêm ACL ĐÃ NÉN (acl_subjects/acl_deny, cạnh raw_assignment), và bảng ``chunks``.
+        Đặt ``metadata["pg_prepared"]=True`` để ``run_qdrant`` biết chỉ cần ĐỌC PG rồi embed.
+
+        ``max_chunks``: > ngưỡng -> ``item.skipped=True``, KHÔNG chunk/embed, KHÔNG đánh dấu
+        pg_prepared (giữ pending). Vẫn lưu clean + ACL nén để tra cứu."""
         from uuid import UUID
 
         from app.services.chunkers.chunker_doffice_chunking import build_doffice_chunks
@@ -261,8 +334,21 @@ class DofficeUnifiedIngestor:
 
         document_id = UUID(item.document_id)
         if item.normalized is None:
-            await self.clean_data(item)  # an toàn nếu gọi trực tiếp (ngoài pipeline)
+            await self.clean_data(item)  # normalize + làm sạch tom_tat + nén ACL (in-memory)
+        document = await self._repository.get_document(document_id)
+        if document is None:
+            return item
 
+        meta = dict(document.document_metadata or {})
+        # 1) Nội dung ĐÃ SẠCH.
+        meta["clean"] = {"noi_dung": item.clean_noi_dung, "tom_tat": item.clean_tom_tat}
+        # 2) ACL ĐÃ NÉN (cạnh raw_assignment — KHÔNG xoá raw để truy vết).
+        access = dict(meta.get("access") or {})
+        access[F_SUBJECTS] = item.acl_subjects
+        access[F_DENY] = item.acl_deny
+        meta["access"] = access
+
+        # 3) Chunk.
         cfg = get_profile_config("doffice_admin")
         chunk_records = await asyncio.to_thread(
             build_doffice_chunks,
@@ -272,24 +358,64 @@ class DofficeUnifiedIngestor:
             table_max_chars=int(cfg.get("doffice_table_max_chars") or 3500),
         )
         item.chunk_count = len(chunk_records)
+        item.chunk_records = chunk_records  # cho luồng ES chunk (nhánh 2) index in-memory
+        meta["chunk_count"] = item.chunk_count
 
-        # Quá nhiều chunk -> BỎ QUA: không embed, không đụng PG/Qdrant, không đánh dấu.
         if max_chunks and item.chunk_count > max_chunks:
             item.skipped = True
+            meta["pg_prepared"] = False
             logger.warning(
-                "id_vb=%s BỎ QUA: %s chunk > max %s -> không embed, không đánh dấu qdrant_indexed",
+                "id_vb=%s BỎ QUA: %s chunk > max %s -> lưu clean+ACL nhưng KHÔNG chunk/embed",
                 item.id_vb, item.chunk_count, max_chunks,
             )
-            return
+            await self._repository.update_document_metadata(document, meta)
+            await self._repository.commit()
+            return item
 
-        # Lưu chunk vào PG (xoá chunk cũ của doc -> ghi mới) để VectorIndexingService embed.
+        # Ghi chunk (xoá chunk cũ -> ghi mới) + chuyển trạng thái sang "chunked".
         await self._repository.delete_chunks_for_document(document_id)
         await self._repository.create_chunks(document_id=document_id, chunks=chunk_records)
-        # VectorIndexingService chỉ embed document ở trạng thái "chunked"/"indexed".
-        document = await self._repository.get_document(document_id)
-        if document is not None:
-            await self._repository.update_document_status(document, "chunked")
+        await self._repository.update_document_status(document, "chunked")
+        meta["pg_prepared"] = True
+        await self._repository.update_document_metadata(document, meta)
         await self._repository.commit()
+        return item
+
+    def _hydrate_from_pg(self, item: DofficeJobItem, document: Any) -> None:
+        """Điền ACL nén + nội dung sạch từ PG vào item (khi item dựng lại từ PG ở run_qdrant)."""
+        meta = document.document_metadata or {}
+        clean = meta.get("clean") or {}
+        access = meta.get("access") or {}
+        if not item.acl_payload:
+            subs = list(access.get(F_SUBJECTS) or [])
+            deny = list(access.get(F_DENY) or [])
+            item.acl_subjects = subs
+            item.acl_deny = deny
+            item.acl_payload = {F_SUBJECTS: subs, F_DENY: deny}
+            item.has_acl = bool(subs or deny)
+        if item.clean_tom_tat is None:
+            item.clean_tom_tat = clean.get("tom_tat")
+        if item.clean_noi_dung is None:
+            item.clean_noi_dung = clean.get("noi_dung")
+
+    # ================ LUỒNG Qdrant: ĐỌC PG (chunk+clean+ACL) -> embed ==========
+    async def embed_to_qdrant(self, item: DofficeJobItem, *, embed_progress: Any = None) -> None:
+        """Embed lên Qdrant Col1 (chunks) + Col2 (docmeta) bằng dữ liệu ĐÃ CÓ TRONG PG.
+
+        KHÔNG re-chunk, KHÔNG re-clean: chunk đọc từ bảng ``chunks`` (qua VectorIndexingService),
+        ACL nén + tom_tat sạch đọc từ ``metadata``. Dùng cho run_qdrant ("chỉ đọc PG")."""
+        from uuid import UUID
+
+        document_id = UUID(item.document_id)
+        document = await self._repository.get_document(document_id)
+        if document is None:
+            return
+        self._hydrate_from_pg(item, document)
+
+        # VectorIndexingService chỉ embed document ở trạng thái "chunked"/"indexed".
+        if document.status not in ("chunked", "indexed"):
+            await self._repository.update_document_status(document, "chunked")
+            await self._repository.commit()
         await VectorIndexingService(
             repository=self._repository,
             llm_gateway=self._llm_gateway,
@@ -302,7 +428,9 @@ class DofficeUnifiedIngestor:
             embed_batch_size=settings.doffice_embed_request_batch_size,
             on_embed_progress=embed_progress,
         )
-        await self._chunks_store.set_acl_payload_for_document(document_id, item.acl_payload)
+        # Gắn ACL + trường LỌC cấp văn bản (nam/thang/ngay_vb/id_dv_ban_hanh) lên MỌI chunk.
+        c1_doc_payload = {**item.acl_payload, **_build_c1_doc_filter_payload(item.source)}
+        await self._chunks_store.set_acl_payload_for_document(document_id, c1_doc_payload)
 
         if not self._store_chunks_in_pg:
             await self._repository.delete_chunks_for_document(document_id)
@@ -323,6 +451,18 @@ class DofficeUnifiedIngestor:
             meta["qdrant_indexed"] = True
             await self._repository.update_document_metadata(doc, meta)
             await self._repository.commit()
+
+    # ============ Tương thích: chuẩn bị PG rồi embed (1 lượt) =================
+    async def index_qdrant(
+        self, item: DofficeJobItem, *, embed_progress: Any = None, max_chunks: int | None = None
+    ) -> None:
+        """Tương thích cũ: persist_to_postgres (sạch+chunk+ACL -> PG) RỒI embed_to_qdrant.
+
+        Dùng cho đường gọi tuần tự/legacy. ``max_chunks`` > ngưỡng -> bỏ qua (không embed)."""
+        await self.persist_to_postgres(item, max_chunks=max_chunks)
+        if item.skipped:
+            return
+        await self.embed_to_qdrant(item, embed_progress=embed_progress)
 
     # ------------------------------------------------------------------ ACL --
     def _resolve_acl(self, acl_lists: dict[str, Any]):
@@ -414,5 +554,10 @@ class DofficeUnifiedIngestor:
             await self._bm25_store.delete_by_id_vb(id_vb)
         except Exception:
             logger.exception("Xóa ES doc cũ thất bại id_vb=%s", id_vb)
+        if self._chunk_bm25_store is not None:
+            try:
+                await self._chunk_bm25_store.delete_by_id_vb(id_vb)
+            except Exception:
+                logger.exception("Xóa ES chunk cũ thất bại id_vb=%s", id_vb)
         await self._repository.delete_document(document)
         await self._repository.commit()

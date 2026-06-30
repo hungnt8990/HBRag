@@ -238,21 +238,30 @@ class QdrantJobRunner:
                         acl_lists = (meta.get("access") or {}).get("raw_assignment") or {}
                         item = DofficeJobItem(id_vb=id_vb, document_id=str(doc_id), source=source, acl_lists=acl_lists)
                         skipped = False
+                        nchunk = 0
+
+                        def _cb(done: int, total: int) -> None:  # tiến độ embed TỪNG chunk -> dashboard
+                            self.stats.embed_done = done
+                            self.stats.embed_total = total
+
                         async with AsyncSessionLocal() as session:
                             ing = self._make_ingestor(session, ctx)
-                            await ing.clean_data(item)
-                            nchunk = len(build_doffice_chunks(item.normalized, **kw))
-                            self.stats.embed_total = nchunk
-                            if self._max_chunks and nchunk > self._max_chunks:
-                                # > max -> BỎ QUA: không embed, không đụng PG (giữ pending).
-                                self.stats.record_skip(id_vb, nchunk, self._max_chunks)
-                                skipped = True
+                            if meta.get("pg_prepared"):
+                                # ĐÃ chuẩn bị ở run_unified -> CHỈ ĐỌC PG (chunk/clean/ACL) rồi embed.
+                                nchunk = int(meta.get("chunk_count") or 0)
+                                self.stats.embed_total = nchunk
+                                await ing.embed_to_qdrant(item, embed_progress=_cb)
                             else:
-                                def _cb(done: int, total: int) -> None:  # tiến độ embed TỪNG chunk -> dashboard
-                                    self.stats.embed_done = done
-                                    self.stats.embed_total = total
-
-                                await ing.index_qdrant(item, embed_progress=_cb, max_chunks=self._max_chunks)
+                                # Legacy/chưa chuẩn bị: clean + chunk + ghi PG + embed (1 lượt).
+                                await ing.clean_data(item)
+                                nchunk = len(build_doffice_chunks(item.normalized, **kw))
+                                self.stats.embed_total = nchunk
+                                if self._max_chunks and nchunk > self._max_chunks:
+                                    self.stats.record_skip(id_vb, nchunk, self._max_chunks)
+                                    skipped = True
+                                else:
+                                    await ing.index_qdrant(item, embed_progress=_cb, max_chunks=self._max_chunks)
+                                    nchunk = item.chunk_count
                         if skipped:
                             if not live:
                                 print(
@@ -263,12 +272,12 @@ class QdrantJobRunner:
                         else:
                             self.stats.done += 1
                             secs = time.monotonic() - t0
-                            self.stats.record_chunks(id_vb, item.chunk_count, self._big_threshold)
-                            self.stats.push_recent(id_vb, item.chunk_count, secs)
+                            self.stats.record_chunks(id_vb, nchunk, self._big_threshold)
+                            self.stats.push_recent(id_vb, nchunk, secs)
                             if not live:
-                                warn = "  ⚠ nhiều chunk" if item.chunk_count > self._big_threshold else ""
+                                warn = "  ⚠ nhiều chunk" if nchunk > self._big_threshold else ""
                                 print(
-                                    f"[{idx}/{self.stats.total}] id_vb={id_vb} · {item.chunk_count} chunk · "
+                                    f"[{idx}/{self.stats.total}] id_vb={id_vb} · {nchunk} chunk · "
                                     f"{secs:.1f}s · tổng {self.stats.done}/{self.stats.total}{warn}",
                                     flush=True,
                                 )
@@ -338,14 +347,21 @@ class QdrantJobRunner:
                                 bm25_store=ctx["bm25_store"], catalog=ctx["catalog"],
                                 unit_tree=ctx["unit_tree"], signature=ctx["signature"],
                             )
-                            await ing.clean_data(item)
-                            await ing.index_qdrant(item, max_chunks=self._max_chunks)
+                            if meta.get("pg_prepared"):
+                                # ĐÃ chuẩn bị ở run_unified -> CHỈ ĐỌC PG rồi embed.
+                                await ing.embed_to_qdrant(item)
+                                nchunk = int(meta.get("chunk_count") or 0)
+                            else:
+                                # Legacy/chưa chuẩn bị: clean + chunk + ghi PG + embed.
+                                await ing.clean_data(item)
+                                await ing.index_qdrant(item, max_chunks=self._max_chunks)
+                                nchunk = item.chunk_count
                         if item.skipped:
                             # > max -> KHÔNG embed, KHÔNG đánh dấu PG (giữ pending).
-                            self.stats.record_skip(id_vb, item.chunk_count, self._max_chunks)
+                            self.stats.record_skip(id_vb, nchunk, self._max_chunks)
                         else:
                             self.stats.done += 1
-                            self.stats.record_chunks(id_vb, item.chunk_count, self._big_threshold)
+                            self.stats.record_chunks(id_vb, nchunk, self._big_threshold)
                         last_exc = None
                         break
                     except Exception as exc:  # noqa: BLE001

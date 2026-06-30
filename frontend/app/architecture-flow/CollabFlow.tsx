@@ -34,7 +34,7 @@ import {
   TONE_STYLE,
 } from "./initialDiagram";
 
-const ROOM = "architecture";
+const ROOM = "architecture-v11-fields-3";
 const LOCAL_ORIGIN = "local-edit";
 
 // ws(s)://<api-host>/collab — y-websocket sẽ nối thêm "/<room>".
@@ -65,11 +65,16 @@ function edgesFromY(yEdges: Y.Map<Edge>): Edge[] {
 
 // -------------------------------------------------------------- custom node --
 function CardNode({ data, selected }: NodeProps<Node<CardData>>) {
+  if (data.invisible) {
+    return <div style={{ width: data.width ?? 1, height: data.minHeight ?? 1, opacity: 0, pointerEvents: "none" }} />;
+  }
+
   const tone = TONE_STYLE[data.tone ?? "process"];
   return (
     <div
       style={{
-        width: 210,
+        width: data.width ?? 210,
+        minHeight: data.minHeight,
         background: tone.bg,
         border: `1px solid ${tone.border}`,
         borderRadius: 14,
@@ -82,6 +87,71 @@ function CardNode({ data, selected }: NodeProps<Node<CardData>>) {
       <div style={{ fontSize: 14, fontWeight: 700, color: "#142033", lineHeight: 1.25 }}>{data.title}</div>
       {data.desc ? (
         <div style={{ marginTop: 5, fontSize: 11.6, color: "#475569", lineHeight: 1.4 }}>{data.desc}</div>
+      ) : null}
+      {data.tags?.length ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
+          {data.tags.map((tag) => (
+            <span
+              key={tag}
+              style={{
+                border: "1px solid rgba(148,163,184,.52)",
+                background: "rgba(255,255,255,.78)",
+                borderRadius: 999,
+                color: "#334155",
+                fontSize: 10.4,
+                fontWeight: 700,
+                lineHeight: 1.1,
+                padding: "4px 7px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {data.sections?.length ? (
+        <div style={{ display: "grid", gridTemplateColumns: data.sections.length > 1 ? "1fr 1fr" : "1fr", gap: 8, marginTop: 10 }}>
+          {data.sections.map((section) => (
+            <div
+              key={section.title}
+              style={{
+                background: "rgba(255,255,255,.7)",
+                border: "1px solid rgba(148,163,184,.42)",
+                borderRadius: 12,
+                padding: "8px 9px",
+              }}
+            >
+              <div style={{ color: "#1e293b", fontSize: 11.5, fontWeight: 800, marginBottom: 5 }}>{section.title}</div>
+              <ul style={{ margin: "0 0 0 15px", padding: 0, color: "#334155", fontSize: 10.8, lineHeight: 1.35 }}>
+                {section.items.map((item) => (
+                  <li key={item} style={{ margin: "2px 0" }}>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {data.rows?.length ? (
+        <div style={{ display: "grid", gap: 7, marginTop: 10 }}>
+          {data.rows.map((row) => (
+            <div
+              key={row.label}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "92px 1fr",
+                gap: 8,
+                borderTop: "1px solid rgba(148,163,184,.3)",
+                paddingTop: 7,
+              }}
+            >
+              <span style={{ color: "#0f172a", fontSize: 10.8, fontWeight: 800 }}>{row.label}</span>
+              <span style={{ color: "#334155", fontSize: 10.8, lineHeight: 1.35 }}>{row.value}</span>
+            </div>
+          ))}
+        </div>
       ) : null}
       <Handle type="source" position={Position.Right} style={{ background: "#64748b" }} />
     </div>
@@ -120,8 +190,8 @@ function RemoteCursors({ peers }: { peers: Peer[] }) {
 
 // --------------------------------------------------------------- main canvas --
 function FlowCanvas() {
-  const [nodes, setNodes] = useState<Node[]>([]);
-  const [edges, setEdges] = useState<Edge[]>([]);
+  const [nodes, setNodes] = useState<Node[]>(initialNodes);
+  const [edges, setEdges] = useState<Edge[]>(initialEdges);
   const [status, setStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const [peers, setPeers] = useState<Peer[]>([]);
 
@@ -303,6 +373,24 @@ function FlowCanvas() {
     doc.transact(() => yNodes.set(id, node), LOCAL_ORIGIN);
   }, []);
 
+  const restoreDefaultDiagram = useCallback(() => {
+    const doc = docRef.current;
+    const yNodes = yNodesRef.current;
+    const yEdges = yEdgesRef.current;
+    if (!doc || !yNodes || !yEdges) return;
+    if (!window.confirm("Khôi phục sơ đồ kiến trúc v11? Các chỉnh sửa hiện tại trong room này sẽ được thay bằng bản mặc định.")) {
+      return;
+    }
+    doc.transact(() => {
+      yNodes.clear();
+      yEdges.clear();
+      initialNodes.forEach((n) => yNodes.set(n.id, n));
+      initialEdges.forEach((ed) => yEdges.set(ed.id, ed));
+    }, LOCAL_ORIGIN);
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+  }, []);
+
   const statusInfo = {
     connecting: { text: "Đang kết nối…", color: "#d97706" },
     connected: { text: "Đã kết nối", color: "#059669" },
@@ -321,6 +409,7 @@ function FlowCanvas() {
         onNodeDoubleClick={onNodeDoubleClick}
         onPaneMouseMove={onPaneMouseMove}
         fitView
+        fitViewOptions={{ padding: 0.42 }}
         proOptions={{ hideAttribution: true }}
       >
         <Background gap={18} color="#e2e8f0" />
@@ -332,19 +421,22 @@ function FlowCanvas() {
       {/* Thanh công cụ */}
       <div
         style={{
-          position: "fixed", top: 14, left: 14, display: "flex", gap: 10, alignItems: "center",
+          position: "fixed", top: 14, right: 14, display: "flex", gap: 10, alignItems: "center",
           background: "rgba(255,255,255,.92)", border: "1px solid #d8e1ee", borderRadius: 12,
           padding: "8px 12px", boxShadow: "0 8px 18px rgba(15,23,42,.08)",
           fontFamily: "Inter, Segoe UI, Roboto, Arial, sans-serif", zIndex: 40,
         }}
       >
-        <strong style={{ fontSize: 14, color: "#142033" }}>Kiến trúc RAG · đồng chỉnh</strong>
+        <strong style={{ fontSize: 14, color: "#142033" }}>Kiến trúc RAG văn bản v11 · đồng chỉnh</strong>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: statusInfo.color, fontWeight: 700 }}>
           <span style={{ width: 9, height: 9, borderRadius: "50%", background: statusInfo.color, display: "inline-block" }} />
           {statusInfo.text}
         </span>
         <button onClick={addCard} style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #b8ccff", background: "#eaf1ff", color: "#1d4ed8", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>
           + Thêm node
+        </button>
+        <button onClick={restoreDefaultDiagram} style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d6c2ff", background: "#f2ebff", color: "#6d28d9", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>
+          Khôi phục sơ đồ v11
         </button>
         <button onClick={() => navigator.clipboard?.writeText(window.location.href)} style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d8e1ee", background: "#fff", color: "#334155", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>
           Sao chép link chia sẻ

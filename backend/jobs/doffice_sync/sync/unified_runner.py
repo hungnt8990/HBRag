@@ -31,7 +31,10 @@ from app.services.ingestion.ingestion_doffice_unified import (
     DofficeUnifiedIngestor,
 )
 from app.services.llm_gateway import get_llm_gateway
-from app.services.retrieval.retrieval_doffice_bm25 import DofficeBm25DocumentStore
+from app.services.retrieval.retrieval_doffice_bm25 import (
+    DofficeBm25DocumentStore,
+    DofficeChunkBm25Store,
+)
 from app.services.security.security_acl_compressor import OrgCatalog
 from app.services.security.security_acl_recompress import catalog_signature
 from app.services.security.security_acl_resolver import UnitTree
@@ -54,6 +57,8 @@ JOB_NAME = "doffice_unified"
 _QUEUE_MAXSIZE = 200
 # Số lần thử lại Qdrant/embed khi lỗi nhất thời (ReadTimeout do gateway tải cao).
 _QDRANT_RETRIES = 3
+# Văn bản > ngưỡng chunk -> BỎ QUA (không chunk/embed). Đồng bộ run_qdrant _MAX_CHUNK_THRESHOLD.
+_MAX_CHUNK = 500
 
 
 @dataclass
@@ -158,10 +163,12 @@ class UnifiedJobRunner:
             chunks_store=get_doffice_chunks_vector_store(),
             docmeta_store=get_doffice_docmeta_vector_store(),
             bm25_store=DofficeBm25DocumentStore(),
+            chunk_bm25_store=DofficeChunkBm25Store(),  # nhánh ES chunk (nhánh 2)
         )
         await ctx["chunks_store"].ensure_collection()
         await ctx["docmeta_store"].ensure_collection()
         await ctx["bm25_store"].ensure_index()
+        await ctx["chunk_bm25_store"].ensure_index()
 
         # --- Dựng pipeline: PG (raw) -> Clean -> {ES, [Qdrant]} ---
         # skip_qdrant -> Job PG+ES: KHÔNG dựng luồng Qdrant (chạy được khi model embedding chết).
@@ -227,6 +234,7 @@ class UnifiedJobRunner:
             chunks_store=ctx["chunks_store"], docmeta_store=ctx["docmeta_store"],
             bm25_store=ctx["bm25_store"], catalog=ctx["catalog"],
             unit_tree=ctx["unit_tree"], signature=ctx["signature"],
+            chunk_bm25_store=ctx.get("chunk_bm25_store"),
         )
 
     async def _pg_worker(self, q_pg: asyncio.Queue, q_clean: asyncio.Queue, ctx: dict) -> None:
@@ -255,23 +263,29 @@ class UnifiedJobRunner:
     async def _clean_worker(
         self, q_clean: asyncio.Queue, q_es: asyncio.Queue, q_qdrant: asyncio.Queue, ctx: dict
     ) -> None:
-        """Luồng 2: làm sạch noi_dung + tom_tat & nén ACL (in-memory) -> đẩy sang ES & Qdrant."""
-        ingestor = self._make_ingestor(None, ctx)  # không cần session (chỉ xử lý in-memory)
+        """Luồng 2: làm sạch + nén ACL + CHUNK -> GHI PostgreSQL, rồi đẩy sang ES & Qdrant.
+
+        Toàn bộ phần nặng (normalize/chunk/nén ACL) làm ở đây và LƯU PG. ES đọc nội dung sạch
+        + ACL nén (in-memory item). Qdrant (luồng sau) chỉ ĐỌC PG để embed."""
         while True:
             item = await q_clean.get()
             try:
                 if item is None:
                     break
                 try:
-                    await ingestor.clean_data(item)
+                    async with AsyncSessionLocal() as session:
+                        ingestor = self._make_ingestor(session, ctx)
+                        await ingestor.clean_data(item)  # in-memory: normalize + tom_tat + nén ACL
+                        await ingestor.persist_to_postgres(item, max_chunks=_MAX_CHUNK)  # ghi PG
                     self.stats.cleaned += 1
-                    await q_es.put(item)
-                    if q_qdrant is not None:  # None khi skip_qdrant (Job PG+ES)
+                    await q_es.put(item)  # ES dùng item.clean_* + acl_* (in-memory)
+                    # Bỏ qua văn bản quá nhiều chunk: không đẩy sang Qdrant (không embed).
+                    if q_qdrant is not None and not item.skipped:
                         await q_qdrant.put(item)
                 except Exception as exc:  # noqa: BLE001
                     self.stats.clean_failed += 1
                     self.stats.errors[item.id_vb] = f"Clean {type(exc).__name__}: {exc}"
-                    logger.error("id_vb=%s Làm sạch lỗi: %s", item.id_vb, exc, exc_info=True)
+                    logger.error("id_vb=%s Làm sạch/chunk lỗi: %s", item.id_vb, exc, exc_info=True)
             finally:
                 q_clean.task_done()
 
@@ -283,7 +297,8 @@ class UnifiedJobRunner:
                 if item is None:
                     break
                 try:
-                    await ingestor.index_elasticsearch(item)
+                    await ingestor.index_elasticsearch(item)        # nhánh full (doc-level)
+                    await ingestor.index_elasticsearch_chunks(item)  # nhánh chunk (nhánh 2)
                     self.stats.es_done += 1
                     self._on_stage_done(item.id_vb, es=True)
                 except Exception as exc:
@@ -307,7 +322,8 @@ class UnifiedJobRunner:
                     try:
                         async with AsyncSessionLocal() as session:
                             ingestor = self._make_ingestor(session, ctx)
-                            await ingestor.index_qdrant(item)
+                            # Chunk + clean + ACL đã được luồng Làm sạch ghi PG -> chỉ ĐỌC PG & embed.
+                            await ingestor.embed_to_qdrant(item)
                         self.stats.qdrant_done += 1
                         self._on_stage_done(item.id_vb, qdrant=True)
                         last_exc = None

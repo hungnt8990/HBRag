@@ -60,6 +60,9 @@ DOFFICE_REDUNDANT_PAYLOAD_FIELDS = {
     "business_domains", "project_codes", "areas", "source_systems", "staff",
     "staff_names", "screen_names", "cross_references", "convertible_fields",
     "field_names", "rule_enrichment", "validation_issues", "dates",
+    # Lưu ý: KHÔNG strip parser/chunker/enriched/quality_status/document_title/... — chúng nằm
+    # trong HỢP ĐỒNG payload đã có test + được retrieval/citation dùng; lợi ích dung lượng không
+    # đáng kể (vector chiếm ~98%). Xem docs/METADATA_SCHEMA.md §9 (đã hoãn việc strip).
 }
 
 

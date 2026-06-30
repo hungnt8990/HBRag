@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kiến trúc RAG văn bản - v11</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --page: #ffffff;
+      --ink: #142033;
+      --muted: #5e6b7e;
+      --line: #c8d3e3;
+      --blue: #1d4ed8;
+      --blue-soft: #eaf1ff;
+      --green: #047857;
+      --green-soft: #e8f7f1;
+      --orange: #c2410c;
+      --orange-soft: #fff1e8;
+      --purple: #6d28d9;
+      --purple-soft: #f2ebff;
+      --amber: #b45309;
+      --amber-soft: #fff7df;
+      --red: #b91c1c;
+      --red-soft: #fff0f0;
+      --slate-soft: #f1f5f9;
+      --radius: 18px;
+      --shadow: 0 12px 28px rgba(15, 23, 42, .09);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% 5%, rgba(29, 78, 216, .10), transparent 24%),
+        radial-gradient(circle at 85% 10%, rgba(109, 40, 217, .08), transparent 24%),
+        var(--bg);
+    }
+
+    .page {
+      width: min(1680px, calc(100vw - 28px));
+      margin: 22px auto 34px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(25px, 2vw, 36px);
+      letter-spacing: -.03em;
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.5;
+      max-width: 1040px;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+      min-width: 360px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid #d8e1ee;
+      background: rgba(255,255,255,.78);
+      color: #4b5563;
+      font-size: 12.5px;
+      font-weight: 700;
+      box-shadow: 0 4px 10px rgba(15,23,42,.04);
+      white-space: nowrap;
+    }
+
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .dot.blue { background: var(--blue); }
+    .dot.green { background: var(--green); }
+    .dot.orange { background: var(--orange); }
+    .dot.purple { background: var(--purple); }
+
+    .canvas {
+      background: rgba(255,255,255,.92);
+      border: 1px solid #d7e0ec;
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+      overflow-x: auto;
+    }
+
+    .diagram {
+      min-width: 1520px;
+    }
+
+    .lane {
+      border: 1px solid #dbe4f0;
+      border-radius: 24px;
+      padding: 18px;
+      margin-bottom: 18px;
+      background: linear-gradient(180deg, rgba(248,250,252,.95), rgba(255,255,255,.96));
+    }
+
+    .lane.ingest {
+      background:
+        linear-gradient(180deg, rgba(234,241,255,.92), rgba(255,255,255,.96));
+    }
+
+    .lane.query {
+      background:
+        linear-gradient(180deg, rgba(242,235,255,.92), rgba(255,255,255,.96));
+    }
+
+    .lane-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 14px;
+      padding: 0 4px;
+    }
+
+    .lane-title {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: -.02em;
+    }
+
+    .lane-desc {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13.5px;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: 205px 34px 190px 34px 220px 34px 270px 34px 1fr;
+      align-items: stretch;
+      gap: 0;
+    }
+
+    .query-flow {
+      grid-template-columns: 180px 34px 180px 34px 265px 34px 270px 34px 240px 34px 230px 34px 230px 34px 230px;
+    }
+
+    .arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      font-size: 28px;
+      font-weight: 800;
+      user-select: none;
+    }
+
+    .card {
+      min-height: 150px;
+      border: 1px solid #d8e1ee;
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 14px 14px 13px;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, .055);
+      position: relative;
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      line-height: 1.25;
+      letter-spacing: -.01em;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .card p {
+      margin: 0 0 9px;
+      color: var(--muted);
+      font-size: 12.8px;
+      line-height: 1.45;
+    }
+
+    .card ul {
+      margin: 8px 0 0 18px;
+      padding: 0;
+      color: #334155;
+      font-size: 12.6px;
+      line-height: 1.45;
+    }
+
+    .card li { margin: 2px 0; }
+
+    .source { background: var(--blue-soft); border-color: #b8ccff; }
+    .process { background: #f8fafc; border-color: #cad6e4; }
+    .raw { background: #eff9ff; border-color: #b9e2f7; }
+    .pg { background: var(--green-soft); border-color: #a6ddc7; }
+    .es { background: var(--orange-soft); border-color: #fed0b7; }
+    .qdrant { background: var(--amber-soft); border-color: #f5d28e; }
+    .rag { background: var(--purple-soft); border-color: #d6c2ff; }
+    .warn { background: var(--red-soft); border-color: #fecaca; }
+    .answer { background: #ecfdf5; border-color: #a7f3d0; }
+
+    .stack {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .subgrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin-top: 9px;
+    }
+
+    .subcard {
+      border: 1px solid rgba(148,163,184,.48);
+      border-radius: 14px;
+      background: rgba(255,255,255,.70);
+      padding: 10px;
+      min-height: 126px;
+    }
+
+    .subcard b {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: #1e293b;
+    }
+
+    .subcard p, .subcard li {
+      font-size: 12.2px;
+      line-height: 1.38;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 8px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(148,163,184,.52);
+      background: rgba(255,255,255,.78);
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11.3px;
+      font-weight: 700;
+      color: #334155;
+      white-space: nowrap;
+    }
+
+    .key {
+      font-family: Consolas, Monaco, monospace;
+      font-size: 11.2px;
+      padding: 1px 5px;
+      border-radius: 6px;
+      background: rgba(15,23,42,.07);
+      color: #0f172a;
+      white-space: nowrap;
+    }
+
+    .detail-zone {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr 1fr;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .note-card {
+      border: 1px dashed #cbd5e1;
+      border-radius: 20px;
+      background: #fbfdff;
+      padding: 14px 16px;
+    }
+
+    .note-card h3 {
+      margin: 0 0 9px;
+      font-size: 16px;
+      letter-spacing: -.01em;
+    }
+
+    .note-card ul {
+      margin: 0 0 0 18px;
+      padding: 0;
+      color: #334155;
+      font-size: 12.9px;
+      line-height: 1.5;
+    }
+
+    .note-card li { margin: 3px 0; }
+
+    .summary {
+      margin: 14px 4px 0;
+      color: var(--muted);
+      font-size: 13.2px;
+      line-height: 1.5;
+    }
+
+
+
+    .field-zone {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .schema-card {
+      border: 1px solid #dbe4f0;
+      border-radius: 22px;
+      background: #ffffff;
+      padding: 15px 16px;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, .045);
+    }
+
+    .schema-card h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      letter-spacing: -.01em;
+    }
+
+    .schema-card .hint {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12.7px;
+      line-height: 1.42;
+    }
+
+    .field-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      border: 1px solid #dbe4f0;
+      border-radius: 14px;
+      font-size: 12.15px;
+      line-height: 1.35;
+      background: #fff;
+    }
+
+    .field-table th {
+      text-align: left;
+      background: #f1f5f9;
+      color: #334155;
+      font-size: 11.7px;
+      padding: 7px 8px;
+      border-bottom: 1px solid #dbe4f0;
+    }
+
+    .field-table td {
+      padding: 7px 8px;
+      border-bottom: 1px solid #edf2f7;
+      vertical-align: top;
+      color: #334155;
+    }
+
+    .field-table tr:last-child td { border-bottom: 0; }
+
+    .embed-box {
+      margin-top: 10px;
+      padding: 10px 11px;
+      border-radius: 14px;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      color: #334155;
+      font-size: 12.35px;
+      line-height: 1.45;
+    }
+
+    .embed-box b { color: #0f172a; }
+
+    .schema-card.es-border { border-color: #fed0b7; background: linear-gradient(180deg, #fff7f0, #fff); }
+    .schema-card.qdrant-border { border-color: #f5d28e; background: linear-gradient(180deg, #fff9e8, #fff); }
+    .schema-card.meta-border { border-color: #a6ddc7; background: linear-gradient(180deg, #effaf5, #fff); }
+    .schema-card.flow-border { border-color: #d6c2ff; background: linear-gradient(180deg, #f7f1ff, #fff); }
+
+    .small-note {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 12.4px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 900px) {
+      .header { flex-direction: column; }
+      .badge-row { justify-content: flex-start; min-width: 0; }
+      .page { width: calc(100vw - 16px); margin-top: 12px; }
+      .canvas { padding: 12px; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .page { width: 100%; margin: 0; }
+      .canvas { box-shadow: none; }
+      .diagram { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="header">
+      <div>
+        <h1>Kiến trúc RAG văn bản</h1>
+        <p class="subtitle">
+          Bản v11 tách rõ <b>luồng xử lý/index dữ liệu</b> và <b>luồng truy hồi/trả lời</b>; bổ sung chi tiết trường của Elasticsearch/Qdrant, metadata dùng để filter và trường dùng để embedding.
+        </p>
+      </div>
+      <div class="badge-row" aria-label="Chú giải">
+        <span class="badge"><i class="dot blue"></i>Nguồn & ingest</span>
+        <span class="badge"><i class="dot green"></i>Metadata / ACL</span>
+        <span class="badge"><i class="dot orange"></i>ES / Qdrant</span>
+        <span class="badge"><i class="dot purple"></i>RAG runtime</span>
+      </div>
+    </header>
+
+    <section class="canvas" aria-label="Sơ đồ kiến trúc RAG văn bản">
+      <div class="diagram">
+        <section class="lane ingest">
+          <div class="lane-head">
+            <div>
+              <h2 class="lane-title">01. Luồng xử lý dữ liệu & xây dựng chỉ mục</h2>
+              <p class="lane-desc">Mục tiêu: chuẩn hóa tài liệu, metadata, phân quyền, chunk và vector trước khi phục vụ truy hồi.</p>
+            </div>
+            <span class="badge"><i class="dot blue"></i>Ingestion / Indexing flow</span>
+          </div>
+
+          <div class="flow">
+            <article class="card source">
+              <h3>📄 Nguồn văn bản</h3>
+              <p>Hệ thống phát sinh/quản lý văn bản.</p>
+              <div class="tags">
+                <span class="tag">D-Office</span>
+                <span class="tag">E-Office</span>
+                <span class="tag">Pháp chế</span>
+                <span class="tag">Quy chế</span>
+                <span class="tag">Hồ sơ khác</span>
+              </div>
+            </article>
+
+            <div class="arrow">→</div>
+
+            <article class="card process">
+              <h3>🔌 Connector / API</h3>
+              <p>Lấy dữ liệu, giữ mã nguồn, mã văn bản, metadata và quyền truy cập gốc.</p>
+              <div class="tags">
+                <span class="tag">source_id</span>
+                <span class="tag">raw_acl</span>
+                <span class="tag">source metadata</span>
+              </div>
+            </article>
+
+            <div class="arrow">→</div>
+
+            <article class="card raw">
+              <h3>🗂️ Kho tài liệu gốc</h3>
+              <p>Lưu bản gốc để kiểm tra, tái xử lý, re-index hoặc đổi embedding model.</p>
+              <div class="tags">
+                <span class="tag">file gốc</span>
+                <span class="tag">text OCR</span>
+                <span class="tag">hash</span>
+                <span class="tag">version nếu có</span>
+              </div>
+            </article>
+
+            <div class="arrow">→</div>
+
+            <article class="card process">
+              <h3>⚙️ Processing Pipeline</h3>
+              <p>Chuẩn hóa tài liệu trước khi index.</p>
+              <div class="tags">
+                <span class="tag">OCR / Parser</span>
+                <span class="tag">Clean text</span>
+                <span class="tag">Metadata schema</span>
+                <span class="tag">Tóm tắt / trích yếu</span>
+                <span class="tag">Chunking theo cấu trúc</span>
+                <span class="tag">Contextual chunking</span>
+                <span class="tag">Embedding</span>
+              </div>
+            </article>
+
+            <div class="arrow">→</div>
+
+            <div class="stack">
+              <article class="card pg">
+                <h3>🐘 PostgreSQL</h3>
+                <p>Danh mục và phân quyền dùng để tạo scope truy hồi.</p>
+                <div class="tags">
+                  <span class="tag">dm_don_vi</span>
+                  <span class="tag">dm_phong_ban</span>
+                  <span class="tag">dm_user</span>
+                  <span class="tag">role/group</span>
+                  <span class="tag">document_acl</span>
+                </div>
+              </article>
+
+              <article class="card es">
+                <h3>🔎 Elasticsearch</h3>
+                <p>Full-text/BM25, lọc metadata và tìm keyword theo cả văn bản full lẫn từng chunk.</p>
+                <div class="subgrid">
+                  <div class="subcard">
+                    <b>ES Full Index</b>
+                    <ul>
+                      <li><span class="key">id_vb</span>, số/ký hiệu</li>
+                      <li>tiêu đề, trích yếu, tóm tắt</li>
+                      <li>nội dung full, từ khóa</li>
+                      <li>metadata nghiệp vụ + ACL</li>
+                    </ul>
+                  </div>
+                  <div class="subcard">
+                    <b>ES Chunk Index</b>
+                    <ul>
+                      <li><span class="key">chunk_id</span>, <span class="key">id_vb</span></li>
+                      <li>chunk text, contextual text</li>
+                      <li>heading path, vị trí/trang</li>
+                      <li>metadata chunk + ACL</li>
+                    </ul>
+                  </div>
+                </div>
+              </article>
+
+              <article class="card qdrant">
+                <h3>🧠 Qdrant</h3>
+                <p>Vector search ở cấp văn bản và cấp đoạn; payload dùng để filter quyền, hiệu lực, lĩnh vực.</p>
+                <div class="subgrid">
+                  <div class="subcard">
+                    <b>Full Collection</b>
+                    <ul>
+                      <li><span class="key">point_id=id_vb</span></li>
+                      <li><span class="key">vector_full</span></li>
+                      <li>embed: tiêu đề + trích yếu + tóm tắt</li>
+                      <li>+ loại VB, lĩnh vực, từ khóa</li>
+                    </ul>
+                  </div>
+                  <div class="subcard">
+                    <b>Chunk Collection</b>
+                    <ul>
+                      <li><span class="key">point_id=chunk_id</span></li>
+                      <li><span class="key">vector_chunk</span></li>
+                      <li>embed: heading + chunk text</li>
+                      <li>+ tiêu đề/trích yếu ngắn</li>
+                    </ul>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="lane query">
+          <div class="lane-head">
+            <div>
+              <h2 class="lane-title">02. Luồng truy hồi & sinh trả lời</h2>
+              <p class="lane-desc">Mục tiêu: hiểu câu hỏi, áp filter phân quyền, truy hồi hybrid, kiểm tra evidence và trả lời có dẫn nguồn.</p>
+            </div>
+            <span class="badge"><i class="dot purple"></i>Query / Retrieval flow</span>
+          </div>
+
+          <div class="flow query-flow">
+            <article class="card rag">
+              <h3>👤 Người dùng hỏi</h3>
+              <p>Câu hỏi tự nhiên, có thể kèm đơn vị, lĩnh vực, thời gian, loại văn bản.</p>
+            </article>
+
+            <div class="arrow">→</div>
+
+            <article class="card rag">
+              <h3>🔐 Auth / Scope</h3>
+              <p>Lấy quyền từ PostgreSQL để tạo filter trước khi search.</p>
+              <div class="tags">
+                <span class="tag">user_scope</span>
+                <span class="tag">ACL</span>
+                <span class="tag">effective_status</span>
+              </div>
+            </article>
+
+            <div class="arrow">→</div>
+
+            <article class="card rag">
+              <h3>🧭 Query Understanding</h3>
+              <p>Không đưa câu hỏi thô đi search ngay.</p>
+              <div class="tags">
+                <span class="tag">rewrite</span>
+                <span class="tag">multi-query</span>
+                <span class="tag">intent</span>
+                <span class="tag">metadata filter</span>
+                <span class="tag">router full/chunk/hybrid</span>
+              </div>
+            </article>
+
+            <div class="arrow">→</div>
+
+            <article class="card rag">
+              <h3>⚡ Hybrid Retrieval</h3>
+              <p>Tìm song song theo điều hướng, luôn áp filter quyền/hiệu lực.</p>
+              <div class="tags">
+                <span class="tag">ES BM25</span>
+                <span class="tag">ES Chunk</span>
+                <span class="tag">Qdrant Full</span>
+                <span class="tag">Qdrant Chunk</span>
+              </div>
+            </article>
+
+            <div class="arrow">→</div>
+
+            <article class="card rag">
+              <h3>🧮 Fusion + Reranker</h3>
+              <p>Gộp BM25/vector bằng RRF hoặc weighted fusion, loại trùng và xếp hạng lại.</p>
+            </article>
+
+            <div class="arrow">→</div>
+
+            <article class="card warn">
+              <h3>🧪 CRAG-lite</h3>
+              <p>Kiểm tra evidence: mạnh / yếu / mơ hồ. Yếu thì retrieve lại hoặc báo thiếu căn cứ.</p>
+            </article>
+
+            <div class="arrow">→</div>
+
+            <article class="card rag">
+              <h3>📦 Context Builder</h3>
+              <p>Ghép chunk, kéo metadata full, mở rộng theo parent-child: heading cha, điều/mục, đoạn trước/sau.</p>
+            </article>
+
+            <div class="arrow">→</div>
+
+            <article class="card answer">
+              <h3>✅ RAG Answer</h3>
+              <p>LLM trả lời có dẫn nguồn, trạng thái hiệu lực và đoạn trích làm căn cứ.</p>
+            </article>
+          </div>
+        </section>
+
+
+        <section class="field-zone" aria-label="Chi tiết trường Elasticsearch và Qdrant">
+          <article class="schema-card es-border">
+            <h3>🔎 Elasticsearch — mô tả trường index</h3>
+            <p class="hint">ES lưu text để tìm kiếm chính xác/từ khóa/BM25; metadata dùng để filter, sort, facet và kiểm soát quyền.</p>
+            <table class="field-table">
+              <thead><tr><th>Index</th><th>Trường text để search</th><th>Metadata/filter bắt buộc</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><b>ES Full</b></td>
+                  <td>
+                    <span class="key">title</span>, <span class="key">so_ky_hieu</span>, <span class="key">trich_yeu</span>,
+                    <span class="key">tom_tat</span>, <span class="key">noi_dung_full</span>, <span class="key">keywords</span>.
+                    Có thể boost: title/trích yếu/tóm tắt cao hơn nội dung full.
+                  </td>
+                  <td>
+                    <span class="key">id_vb</span>, <span class="key">source_system</span>, loại VB, lĩnh vực, đơn vị ban hành,
+                    ngày ban hành/hiệu lực, trạng thái hiệu lực, độ mật, <span class="key">acl_scope</span>.
+                  </td>
+                </tr>
+                <tr>
+                  <td><b>ES Chunk</b></td>
+                  <td>
+                    <span class="key">chunk_text</span>, <span class="key">contextual_text</span>, <span class="key">heading_path</span>,
+                    số điều/khoản/mục nếu trích được. Dùng để tìm đúng đoạn/căn cứ.
+                  </td>
+                  <td>
+                    <span class="key">chunk_id</span>, <span class="key">id_vb</span>, <span class="key">chunk_index</span>, page/position,
+                    heading cha, metadata văn bản kế thừa, <span class="key">acl_scope</span>.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="embed-box"><b>Lưu ý:</b> ES không lưu vector là chính; ES dùng cho BM25/keyword/hybrid filter. Nếu có dense_vector trong ES thì chỉ là phương án mở rộng, không phải lõi khi đã có Qdrant.</div>
+          </article>
+
+          <article class="schema-card qdrant-border">
+            <h3>🧠 Qdrant — embed trường nào</h3>
+            <p class="hint">Qdrant lưu vector + payload. Vector chỉ sinh từ nội dung có ý nghĩa ngữ nghĩa; không embed quyền, ngày tháng, ID kỹ thuật.</p>
+            <table class="field-table">
+              <thead><tr><th>Collection</th><th>Text dùng để embedding</th><th>Payload/filter</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><b>Full</b></td>
+                  <td>
+                    <span class="key">representative_text</span> = tiêu đề + số/ký hiệu + trích yếu + tóm tắt + loại VB + lĩnh vực/chủ đề + từ khóa chính.
+                    Không nhồi toàn bộ nội dung dài vào <span class="key">vector_full</span>.
+                  </td>
+                  <td>
+                    <span class="key">id_vb</span>, source, loại VB, lĩnh vực, đơn vị ban hành, ngày ban hành/hiệu lực,
+                    trạng thái hiệu lực, độ mật, <span class="key">acl_scope</span>, quan hệ VB.
+                  </td>
+                </tr>
+                <tr>
+                  <td><b>Chunk</b></td>
+                  <td>
+                    <span class="key">contextual_chunk_text</span> = tiêu đề/trích yếu ngắn + heading path/chương/mục/điều + chunk text.
+                    Đây là dữ liệu sinh <span class="key">vector_chunk</span>.
+                  </td>
+                  <td>
+                    <span class="key">chunk_id</span>, <span class="key">id_vb</span>, chunk_index, heading_path,
+                    page/char_start/char_end nếu có, metadata văn bản kế thừa, <span class="key">acl_scope</span>.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="embed-box"><b>Nguyên tắc:</b> Full vector để tìm văn bản liên quan ở mức tổng thể; Chunk vector để tìm đoạn chứng cứ. Metadata/payload chỉ để lọc, map, dẫn nguồn; không đưa các trường phân quyền vào embedding.</div>
+          </article>
+
+          <article class="schema-card meta-border">
+            <h3>🧾 Metadata chung nên chuẩn hóa</h3>
+            <p class="hint">Áp dụng nhất quán cho PostgreSQL, ES và Qdrant payload để filter không lệch nhau.</p>
+            <table class="field-table">
+              <thead><tr><th>Nhóm</th><th>Trường đề xuất</th></tr></thead>
+              <tbody>
+                <tr><td><b>Định danh</b></td><td><span class="key">id_vb</span>, source_system, source_doc_id, so_ky_hieu, hash, version nếu có.</td></tr>
+                <tr><td><b>Nghiệp vụ</b></td><td>title, trich_yeu, loai_vb, linh_vuc, don_vi_ban_hanh, nguoi_ky nếu cần.</td></tr>
+                <tr><td><b>Hiệu lực</b></td><td>ngay_ban_hanh, ngay_hieu_luc, ngay_het_hieu_luc, trang_thai_hieu_luc.</td></tr>
+                <tr><td><b>Phân quyền</b></td><td>don_vi_id, phong_ban_id, security_level, permission_group, acl_scope, visibility_scope.</td></tr>
+                <tr><td><b>Quan hệ</b></td><td>can_cu_vb, tham_chieu_vb, vb_thay_the, vb_bi_thay_the, vb_lien_quan.</td></tr>
+              </tbody>
+            </table>
+          </article>
+
+          <article class="schema-card flow-border">
+            <h3>🧭 Cách dùng trường khi truy hồi</h3>
+            <p class="hint">Tách rõ search field, vector field và metadata filter để tránh nhầm “trường nào cũng embedding”.</p>
+            <table class="field-table">
+              <thead><tr><th>Mục đích</th><th>Dùng trường nào</th></tr></thead>
+              <tbody>
+                <tr><td><b>Keyword/BM25</b></td><td>ES: title, so_ky_hieu, trich_yeu, tom_tat, noi_dung_full, chunk_text, heading_path.</td></tr>
+                <tr><td><b>Vector Full</b></td><td>Qdrant: representative_text → <span class="key">vector_full</span>.</td></tr>
+                <tr><td><b>Vector Chunk</b></td><td>Qdrant: contextual_chunk_text → <span class="key">vector_chunk</span>.</td></tr>
+                <tr><td><b>Filter quyền/hiệu lực</b></td><td>Metadata/payload: acl_scope, security_level, don_vi_id, phong_ban_id, trang_thai_hieu_luc, ngày hiệu lực.</td></tr>
+                <tr><td><b>Dẫn nguồn</b></td><td>id_vb, chunk_id, chunk_index, heading_path, page/position, source_system.</td></tr>
+              </tbody>
+            </table>
+          </article>
+        </section>
+
+        <section class="detail-zone" aria-label="Ghi chú kỹ thuật">
+          <article class="note-card">
+            <h3>🔑 Khóa liên kết & schema chung</h3>
+            <ul>
+              <li><span class="key">id_vb</span>: khóa chung giữa kho gốc, PostgreSQL, ES Full/Chunk và Qdrant Full/Chunk.</li>
+              <li><span class="key">chunk_id</span> + <span class="key">chunk_index</span>: truy vết từng đoạn về văn bản gốc.</li>
+              <li>Schema chung: số/ký hiệu, loại VB, lĩnh vực, đơn vị ban hành, hiệu lực, ACL, nguồn dữ liệu.</li>
+              <li><span class="key">version</span> chỉ đưa vào metadata khi hệ thống có quản lý phiên bản.</li>
+            </ul>
+          </article>
+
+          <article class="note-card">
+            <h3>📌 Hiệu lực & quan hệ văn bản</h3>
+            <ul>
+              <li>Gắn metadata hiệu lực vào cả full và chunk: ngày ban hành, ngày hiệu lực, ngày hết hiệu lực, trạng thái hiệu lực.</li>
+              <li>Quan hệ văn bản: <span class="key">can_cu_vb</span>, <span class="key">tham_chieu_vb</span>, <span class="key">vb_thay_the</span>, <span class="key">vb_bi_thay_the</span>, <span class="key">vb_lien_quan</span>.</li>
+              <li>Filter quyền và hiệu lực phải áp ngay khi search ES/Qdrant, không chỉ lọc sau.</li>
+            </ul>
+          </article>
+
+          <article class="note-card">
+            <h3>🧩 Thuật toán RAG giữ lại</h3>
+            <ul>
+              <li><b>Multi-query retrieval:</b> rewrite thành nhiều truy vấn tương đương, truy hồi song song rồi fusion/rerank.</li>
+              <li><b>Contextual chunking:</b> chunk kèm tiêu đề, chương/mục/điều và trích yếu ngắn trước khi index.</li>
+              <li><b>CRAG-lite:</b> kiểm tra kết quả truy hồi; nếu yếu thì retrieve lại hoặc trả lời không đủ căn cứ.</li>
+            </ul>
+          </article>
+        </section>
+      </div>
+    </section>
+
+    <p class="summary">
+      Bản này là <b>executive/technical view có field detail</b>: sơ đồ chính vẫn gọn, nhưng bổ sung rõ Elasticsearch/Qdrant lưu trường nào, metadata nào để filter và trường nào dùng để sinh embedding.
+    </p>
+  </main>
+</body>
+</html>

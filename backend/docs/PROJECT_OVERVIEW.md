@@ -3,6 +3,26 @@
 > Tài liệu này mô tả tổng thể backend để người mới (hoặc Claude ở phiên sau) đọc là
 > hiểu dự án có gì. **Mỗi khi hoàn thành một thay đổi đáng kể, phải cập nhật file này.**
 >
+> 📐 **Schema metadata chuẩn hoá** (PG/ES/Qdrant C1+C2): xem [`docs/METADATA_SCHEMA.md`](METADATA_SCHEMA.md).
+> **Đã áp**: Col1 chunk gắn thêm field lọc cấp văn bản `nam/thang/ngay_vb/id_dv_ban_hanh` (qua
+> `_build_c1_doc_filter_payload` + `set_acl_payload_for_document` trong `index_qdrant`) — filter thời gian/đơn vị
+> ở cấp chunk, đồng bộ Col2. Tạo **payload index** cả 2 collection (`nam/thang/id_dv_ban_hanh` integer;
+> `ngay_vb/loai_vb/linh_vuc/trang_thai_hieu_luc/acl_subjects/acl_deny` keyword) trong `vector_store.PAYLOAD_*`.
+> **HOÃN** strip field debug (nằm trong hợp đồng payload + retrieval dùng; lợi ích dung lượng ~0).
+>
+> 🔁 **Tái cấu trúc pipeline (Giai đoạn 1)** — PG là NGUỒN SỰ THẬT: `run_unified` làm sạch + chunk + nén ACL rồi
+> **GHI PG** (`persist_to_postgres`: `metadata["clean"]` nội dung sạch, `metadata["access"].acl_subjects/acl_deny`
+> nén cạnh raw, bảng `chunks`, cờ `pg_prepared`); `run_qdrant` **chỉ ĐỌC PG** (`embed_to_qdrant`: chunk/clean/ACL từ
+> PG -> embed, không re-chunk/re-clean; legacy chưa prepared thì tự persist). ES nhánh full giữ nguyên (đã ACL nén,
+> không lưu ACL raw). Verify: persist 1 doc -> PG có clean+chunk+ACL nén; 181 test pass.
+>
+> 🔁 **Giai đoạn 2 — nhánh ES CHUNK** (`DofficeChunkBm25Store`, index `hbrag_doffice_chunks_es_v1`): `run_unified`
+> index TỪNG chunk vào ES ngay sau khi chunk (`index_elasticsearch_chunks`: chunk_text + section_path + chunk_type +
+> doc-level kế thừa `ky_hieu/trich_yeu/nam/thang/ngay_vb/id_dv_ban_hanh` + **ACL nén**, KHÔNG ACL raw). Mapping
+> `vi_bm25` + ACL keyword. `_es_worker` gọi cả 2 nhánh (full + chunk); `_delete_everywhere` dọn cả ES chunk; idempotent
+> (delete_by_id_vb trước bulk). Verify E2E trên ES live: ensure_index + bulk + search BM25 + ACL fields + 1 doc thật
+> 3 chunk khớp. 183 test pass. (run_qdrant KHÔNG index ES — chỉ embed Qdrant.)
+>
 > Cập nhật gần nhất: 2026-06-30 — **Sửa bug nổ chunk ở `_split_by_boundaries`** (`chunker_adaptive_chunking.py`).
 > Khi đuôi văn bản có 1 đoạn ngắn hơn `overlap_chars` sau ranh giới cuối, `_best_boundary` luôn trả về cùng vị trí
 > `end` còn `start = max(end - overlap, start + 1)` chỉ tiến +1 ký tự/vòng -> nổ hàng trăm chunk gần trùng (vd

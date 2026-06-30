@@ -125,6 +125,12 @@ class QdrantVectorStore:
         "noi_ban_hanh",
         "issuing_org",
         "ten_file",
+        # Schema chuẩn (docs/METADATA_SCHEMA.md §4,§10): filter thời gian/loại/hiệu lực.
+        # ngay_vb index keyword (khớp chính xác/dẫn nguồn); range theo nam/thang (integer).
+        "ngay_vb",
+        "loai_vb",
+        "linh_vuc",
+        "trang_thai_hieu_luc",
         # ACL flatten (2 list keyword): allow ["dv_/pb_/nv_"] + deny ["pb_/nv_"].
         "acl_subjects",
         "acl_deny",
@@ -133,6 +139,10 @@ class QdrantVectorStore:
         "page_start",
         "page_end",
         "chunk_index",
+        # Filter cấp văn bản (đồng bộ Col1/Col2): năm/tháng + đơn vị ban hành.
+        "nam",
+        "thang",
+        "id_dv_ban_hanh",
         # ACL cũ (id nguyên) — giữ index cho dữ liệu chưa reindex; bản mới dùng
         # acl_subjects + acl_deny (keyword) ở trên.
         "acl_allow_dv",
