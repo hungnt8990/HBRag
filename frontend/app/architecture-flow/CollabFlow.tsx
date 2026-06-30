@@ -624,6 +624,10 @@ function FlowCanvas() {
     connected: { text: "Đã kết nối", color: "#059669" },
     disconnected: { text: "Mất kết nối", color: "#dc2626" },
   }[status];
+  const selectedNodeData = selectedNode?.data;
+  const edgeColor = String(selectedEdge?.style?.stroke ?? "#64748b");
+  const edgeWidth = Number(selectedEdge?.style?.strokeWidth ?? 2);
+  const edgeDashed = Boolean(selectedEdge?.style?.strokeDasharray);
 
   return (
     <div style={{ position: "fixed", inset: 0 }}>
@@ -636,6 +640,7 @@ function FlowCanvas() {
         onConnect={onConnect}
         onNodeDoubleClick={onNodeDoubleClick}
         onPaneMouseMove={onPaneMouseMove}
+        onSelectionChange={onSelectionChange}
         fitView
         fitViewOptions={{ padding: 0.42 }}
         proOptions={{ hideAttribution: true }}
@@ -660,8 +665,17 @@ function FlowCanvas() {
           <span style={{ width: 9, height: 9, borderRadius: "50%", background: statusInfo.color, display: "inline-block" }} />
           {statusInfo.text}
         </span>
-        <button onClick={addCard} style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #b8ccff", background: "#eaf1ff", color: "#1d4ed8", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>
-          + Thêm node
+        <button onClick={() => addCard("rounded")} title="Thêm node bo góc" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #b8ccff", background: "#eaf1ff", color: "#1d4ed8", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>
+          + Bo góc
+        </button>
+        <button onClick={() => addCard("square")} title="Thêm node vuông" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d8e1ee", background: "#fff", color: "#334155", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>
+          □ Vuông
+        </button>
+        <button onClick={() => addCard("circle")} title="Thêm node tròn" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d8e1ee", background: "#fff", color: "#334155", borderRadius: 999, padding: "5px 10px", cursor: "pointer" }}>
+          ○ Tròn
+        </button>
+        <button onClick={() => addCard("diamond")} title="Thêm node hình thoi" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d8e1ee", background: "#fff", color: "#334155", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>
+          ◇ Thoi
         </button>
         <button onClick={restoreDefaultDiagram} style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d6c2ff", background: "#f2ebff", color: "#6d28d9", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>
           Khôi phục sơ đồ v11
@@ -682,8 +696,166 @@ function FlowCanvas() {
         </div>
       </div>
 
+      <aside
+        style={{
+          position: "fixed",
+          top: 78,
+          right: 14,
+          width: 340,
+          maxHeight: "calc(100vh - 110px)",
+          overflowY: "auto",
+          background: "rgba(255,255,255,.96)",
+          border: "1px solid #d8e1ee",
+          borderRadius: 14,
+          boxShadow: "0 12px 26px rgba(15,23,42,.12)",
+          padding: 14,
+          fontFamily: "Inter, Segoe UI, Roboto, Arial, sans-serif",
+          zIndex: 39,
+        }}
+      >
+        {selectedNode && selectedNodeData ? (
+          <div style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+              <strong style={{ color: "#142033", fontSize: 14 }}>Chỉnh node</strong>
+              <button onClick={deleteSelectedNode} style={{ border: "1px solid #fecaca", background: "#fff0f0", color: "#b91c1c", borderRadius: 8, padding: "5px 8px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                Xóa
+              </button>
+            </div>
+
+            <label style={{ display: "grid", gap: 5, color: "#334155", fontSize: 12, fontWeight: 700 }}>
+              Tiêu đề
+              <input value={selectedNodeData.title} onChange={(event) => updateSelectedNodeData({ title: event.target.value })} style={{ border: "1px solid #cbd5e1", borderRadius: 8, padding: "8px 9px", fontSize: 13 }} />
+            </label>
+
+            <label style={{ display: "grid", gap: 5, color: "#334155", fontSize: 12, fontWeight: 700 }}>
+              Mô tả
+              <textarea value={selectedNodeData.desc ?? ""} onChange={(event) => updateSelectedNodeData({ desc: event.target.value })} rows={3} style={{ border: "1px solid #cbd5e1", borderRadius: 8, padding: "8px 9px", fontSize: 13, resize: "vertical" }} />
+            </label>
+
+            <label style={{ display: "grid", gap: 5, color: "#334155", fontSize: 12, fontWeight: 700 }}>
+              Hình dạng
+              <select value={selectedNodeData.shape ?? "rounded"} onChange={(event) => updateSelectedNodeData({ shape: event.target.value as CardData["shape"] })} style={{ border: "1px solid #cbd5e1", borderRadius: 8, padding: "8px 9px", fontSize: 13 }}>
+                <option value="rounded">Bo góc</option>
+                <option value="square">Vuông</option>
+                <option value="circle">Tròn</option>
+                <option value="diamond">Hình thoi</option>
+              </select>
+            </label>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <label style={{ display: "grid", gap: 5, color: "#334155", fontSize: 12, fontWeight: 700 }}>
+                Rộng
+                <input type="number" min={80} max={760} value={selectedNodeData.width ?? 210} onChange={(event) => updateSelectedNodeSize({ width: Number(event.target.value) })} style={{ border: "1px solid #cbd5e1", borderRadius: 8, padding: "8px 9px", fontSize: 13 }} />
+              </label>
+              <label style={{ display: "grid", gap: 5, color: "#334155", fontSize: 12, fontWeight: 700 }}>
+                Cao tối thiểu
+                <input type="number" min={60} max={760} value={selectedNodeData.minHeight ?? 120} onChange={(event) => updateSelectedNodeSize({ minHeight: Number(event.target.value) })} style={{ border: "1px solid #cbd5e1", borderRadius: 8, padding: "8px 9px", fontSize: 13 }} />
+              </label>
+            </div>
+
+            <div style={{ display: "grid", gap: 9 }}>
+              <strong style={{ color: "#334155", fontSize: 12 }}>Màu nền</strong>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                {COLOR_SWATCHES.map((color) => (
+                  <button key={color} onClick={() => updateSelectedNodeData({ fillColor: color })} title={color} style={{ width: 24, height: 24, borderRadius: 7, border: `2px solid ${selectedNodeData.fillColor === color ? "#0f172a" : "#cbd5e1"}`, background: color, cursor: "pointer" }} />
+                ))}
+                <input type="color" value={selectedNodeData.fillColor ?? TONE_STYLE[selectedNodeData.tone ?? "process"].bg} onChange={(event) => updateSelectedNodeData({ fillColor: event.target.value })} style={{ width: 32, height: 26, border: "0", background: "transparent" }} />
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gap: 9 }}>
+              <strong style={{ color: "#334155", fontSize: 12 }}>Màu viền</strong>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                {BORDER_SWATCHES.map((color) => (
+                  <button key={color} onClick={() => updateSelectedNodeData({ borderColor: color })} title={color} style={{ width: 24, height: 24, borderRadius: 7, border: `2px solid ${selectedNodeData.borderColor === color ? "#0f172a" : "#cbd5e1"}`, background: color, cursor: "pointer" }} />
+                ))}
+                <input type="color" value={selectedNodeData.borderColor ?? TONE_STYLE[selectedNodeData.tone ?? "process"].border} onChange={(event) => updateSelectedNodeData({ borderColor: event.target.value })} style={{ width: 32, height: 26, border: "0", background: "transparent" }} />
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gap: 9 }}>
+              <strong style={{ color: "#334155", fontSize: 12 }}>Màu chữ</strong>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                {TEXT_SWATCHES.map((color) => (
+                  <button key={color} onClick={() => updateSelectedNodeData({ textColor: color })} title={color} style={{ width: 24, height: 24, borderRadius: 7, border: `2px solid ${selectedNodeData.textColor === color ? "#0f172a" : "#cbd5e1"}`, background: color, cursor: "pointer" }} />
+                ))}
+                <input type="color" value={selectedNodeData.textColor ?? "#142033"} onChange={(event) => updateSelectedNodeData({ textColor: event.target.value })} style={{ width: 32, height: 26, border: "0", background: "transparent" }} />
+              </div>
+            </div>
+
+            <label style={{ display: "grid", gap: 5, color: "#334155", fontSize: 12, fontWeight: 700 }}>
+              Tag bên trong node
+              <textarea value={tagsToText(selectedNodeData.tags)} onChange={(event) => updateSelectedNodeData({ tags: textToTags(event.target.value) })} rows={2} placeholder="D-Office, ACL, Qdrant" style={{ border: "1px solid #cbd5e1", borderRadius: 8, padding: "8px 9px", fontSize: 13, resize: "vertical" }} />
+            </label>
+
+            <label style={{ display: "grid", gap: 5, color: "#334155", fontSize: 12, fontWeight: 700 }}>
+              Nhóm con
+              <textarea value={sectionsToText(selectedNodeData.sections)} onChange={(event) => updateSelectedNodeData({ sections: textToSections(event.target.value) })} rows={4} placeholder="ES Full Index: title | trich_yeu | ACL" style={{ border: "1px solid #cbd5e1", borderRadius: 8, padding: "8px 9px", fontSize: 13, resize: "vertical" }} />
+            </label>
+
+            <label style={{ display: "grid", gap: 5, color: "#334155", fontSize: 12, fontWeight: 700 }}>
+              Dòng chi tiết
+              <textarea value={rowsToText(selectedNodeData.rows)} onChange={(event) => updateSelectedNodeData({ rows: textToRows(event.target.value) })} rows={4} placeholder="Filter: acl_scope, security_level" style={{ border: "1px solid #cbd5e1", borderRadius: 8, padding: "8px 9px", fontSize: 13, resize: "vertical" }} />
+            </label>
+          </div>
+        ) : selectedEdge ? (
+          <div style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+              <strong style={{ color: "#142033", fontSize: 14 }}>Chỉnh mũi tên</strong>
+              <button onClick={deleteSelectedEdge} style={{ border: "1px solid #fecaca", background: "#fff0f0", color: "#b91c1c", borderRadius: 8, padding: "5px 8px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                Xóa
+              </button>
+            </div>
+
+            <label style={{ display: "grid", gap: 5, color: "#334155", fontSize: 12, fontWeight: 700 }}>
+              Nhãn mũi tên
+              <input value={String(selectedEdge.label ?? "")} onChange={(event) => updateSelectedEdge({ label: event.target.value })} style={{ border: "1px solid #cbd5e1", borderRadius: 8, padding: "8px 9px", fontSize: 13 }} />
+            </label>
+
+            <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#334155", fontSize: 12, fontWeight: 700 }}>
+              <input type="checkbox" checked={Boolean(selectedEdge.animated)} onChange={(event) => updateSelectedEdge({ animated: event.target.checked })} />
+              Chạy animation
+            </label>
+
+            <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#334155", fontSize: 12, fontWeight: 700 }}>
+              <input type="checkbox" checked={edgeDashed} onChange={(event) => updateSelectedEdgeDashed(event.target.checked)} />
+              Nét đứt
+            </label>
+
+            <label style={{ display: "grid", gap: 5, color: "#334155", fontSize: 12, fontWeight: 700 }}>
+              Đầu mũi tên
+              <select value={selectedEdge.markerEnd ? "arrow" : "none"} onChange={(event) => updateSelectedEdge({ markerEnd: event.target.value === "arrow" ? { type: MarkerType.ArrowClosed, color: edgeColor } : undefined })} style={{ border: "1px solid #cbd5e1", borderRadius: 8, padding: "8px 9px", fontSize: 13 }}>
+                <option value="arrow">Có đầu mũi tên</option>
+                <option value="none">Không đầu mũi tên</option>
+              </select>
+            </label>
+
+            <label style={{ display: "grid", gap: 5, color: "#334155", fontSize: 12, fontWeight: 700 }}>
+              Độ dày: {edgeWidth}px
+              <input type="range" min={1} max={8} value={edgeWidth} onChange={(event) => updateSelectedEdgeWidth(Number(event.target.value))} />
+            </label>
+
+            <div style={{ display: "grid", gap: 9 }}>
+              <strong style={{ color: "#334155", fontSize: 12 }}>Màu mũi tên</strong>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                {EDGE_SWATCHES.map((color) => (
+                  <button key={color} onClick={() => updateSelectedEdgeColor(color)} title={color} style={{ width: 24, height: 24, borderRadius: 7, border: `2px solid ${edgeColor === color ? "#0f172a" : "#cbd5e1"}`, background: color, cursor: "pointer" }} />
+                ))}
+                <input type="color" value={edgeColor} onChange={(event) => updateSelectedEdgeColor(event.target.value)} style={{ width: 32, height: 26, border: "0", background: "transparent" }} />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gap: 8, color: "#64748b", fontSize: 12.5, lineHeight: 1.45 }}>
+            <strong style={{ color: "#142033", fontSize: 14 }}>Bảng chỉnh sửa</strong>
+            <span>Chọn một node để sửa chữ, tag, nhóm con, dòng chi tiết, màu sắc và hình dạng.</span>
+            <span>Chọn một mũi tên để sửa nhãn, màu, nét đứt, độ dày, animation và đầu mũi tên.</span>
+          </div>
+        )}
+      </aside>
+
       <div style={{ position: "fixed", bottom: 14, left: 14, fontSize: 11.5, color: "#64748b", background: "rgba(255,255,255,.9)", border: "1px solid #e2e8f0", borderRadius: 10, padding: "6px 10px", fontFamily: "Inter, Segoe UI, Roboto, Arial, sans-serif", zIndex: 40 }}>
-        Kéo node để di chuyển · kéo từ chấm bên phải sang node khác để nối · nhấp đúp để sửa · Delete để xóa. Mọi thay đổi tự lưu &amp; đồng bộ real-time.
+        Kéo node để di chuyển · kéo từ chấm bên phải sang node khác để nối · chọn node/mũi tên để sửa trong panel. Mọi thay đổi tự lưu &amp; đồng bộ real-time khi backend collab kết nối.
       </div>
     </div>
   );
