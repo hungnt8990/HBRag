@@ -156,7 +156,7 @@ def _print_summary(runner: UnifiedJobRunner, *, mode: str, elapsed: float, log_d
 
 async def _main(args: argparse.Namespace) -> None:
     cs.enable_ansi()
-    loggers = setup_job_logging("logs/doffice_unified", run_stamp())
+    loggers = setup_job_logging("logs/jobs/doffice_unified", run_stamp())
     _quiet_console()
 
     id_vb = args.id_vb or _split_env("DOFFICE_JOB_ID_VB")

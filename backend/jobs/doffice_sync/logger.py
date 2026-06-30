@@ -44,6 +44,16 @@ def setup_job_logging(base_dir: str, run_stamp: str) -> JobLoggers:
     logger.addHandler(_file("warning.log", logging.WARNING))
     logger.addHandler(_file("error.log", logging.ERROR))
 
+    # Log RIÊNG cho văn bản nhiều chunk: gắn handler vào logger con ``doffice_sync.chunks``.
+    # File này CHỈ nhận record phát qua logger đó (code phát hiện chunk lớn) -> không lẫn
+    # log thường. propagate vẫn True -> các dòng này cũng vào full.log/info.log.
+    chunks_logger = logging.getLogger(f"{LOGGER_ROOT}.chunks")
+    chunks_logger.setLevel(logging.INFO)
+    for handler in list(chunks_logger.handlers):
+        chunks_logger.removeHandler(handler)
+        handler.close()
+    chunks_logger.addHandler(_file("chunks_big.log", logging.INFO))
+
     # KHÔNG gắn StreamHandler: log chi tiết chỉ vào file; console do spinner phụ trách
     # (chỉ hiện tiến độ + summary), tránh log chi tiết làm rối màn hình.
     return JobLoggers(logger=logger, log_dir=log_dir)

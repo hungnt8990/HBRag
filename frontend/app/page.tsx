@@ -868,24 +868,30 @@ function DocumentSearchView() {
   const [error, setError] = useState<string | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<DocumentListItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  // Lọc "chỉ văn bản đã có point trên Qdrant (đã embed)" -> để soi chất lượng point sau khi chạy job.
+  const [embeddedOnly, setEmbeddedOnly] = useState(false);
 
-  const load = useCallback(async (term: string, pageIndex: number) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await listDocuments({
-        search: term || undefined,
-        limit: PAGE_SIZE,
-        offset: pageIndex * PAGE_SIZE,
-      });
-      setData(res);
-    } catch (err) {
-      setError(getErrorMessage(err));
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (term: string, pageIndex: number) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await listDocuments({
+          search: term || undefined,
+          qdrantIndexed: embeddedOnly ? true : undefined,
+          limit: PAGE_SIZE,
+          offset: pageIndex * PAGE_SIZE,
+        });
+        setData(res);
+      } catch (err) {
+        setError(getErrorMessage(err));
+        setData(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [embeddedOnly],
+  );
 
   useEffect(() => {
     void load(search, page);
@@ -960,6 +966,19 @@ function DocumentSearchView() {
               <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
             </Button>
           </form>
+
+          <label className="flex w-fit cursor-pointer items-center gap-2 text-xs text-slate-600">
+            <input
+              checked={embeddedOnly}
+              className="h-4 w-4 cursor-pointer accent-emerald-600"
+              onChange={(event) => {
+                setPage(0);
+                setEmbeddedOnly(event.target.checked);
+              }}
+              type="checkbox"
+            />
+            Chỉ văn bản đã có point trên Qdrant (đã embed)
+          </label>
 
           {error ? (
             <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">

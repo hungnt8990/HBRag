@@ -3,7 +3,50 @@
 > Tài liệu này mô tả tổng thể backend để người mới (hoặc Claude ở phiên sau) đọc là
 > hiểu dự án có gì. **Mỗi khi hoàn thành một thay đổi đáng kể, phải cập nhật file này.**
 >
-> Cập nhật gần nhất: 2026-06-29 (ac) — **document-search: jwtToken là token NGOÀI (CPC), decode-only lấy ID_NV**.
+> Cập nhật gần nhất: 2026-06-30 — **Sửa bug nổ chunk ở `_split_by_boundaries`** (`chunker_adaptive_chunking.py`).
+> Khi đuôi văn bản có 1 đoạn ngắn hơn `overlap_chars` sau ranh giới cuối, `_best_boundary` luôn trả về cùng vị trí
+> `end` còn `start = max(end - overlap, start + 1)` chỉ tiến +1 ký tự/vòng -> nổ hàng trăm chunk gần trùng (vd
+> id_vb=412876, 24K ký tự, 0 bảng, 3 điều dài -> **1336 chunk**). Fix: nếu `end - overlap <= start` thì bỏ overlap
+> (`next_start = end`) để bảo đảm tiến cửa sổ. Sau fix: 412876 -> **33 chunk**. 26 test chunker pass. **Văn bản đã
+> ingest trước fix (có điều/mục dài) cần re-sync để dọn chunk rác.** Đã reset toàn bộ (script
+> `scripts/reset_doffice_for_rechunk.py`): 192 cờ `qdrant_indexed` -> false + wipe Col1 Qdrant -> 15.569 doc chờ
+> chunk lại. `jobs/doffice_sync/run_qdrant.py`: dashboard 2 cột (trái tiến độ, **phải = ô "Nhiều chunk (>N)"**),
+> theo dõi văn bản > ngưỡng (env `DOFFICE_QDRANT_BIG_CHUNK`/`--big-chunk`, mặc định 100) + ghi **log riêng
+> `chunks_big.log`** (logger con `doffice_sync.chunks`). Script soi: `scripts/inspect_doffice_chunk_state.py`.
+>
+> **Làm sạch trước chunk** (`chunker_text_cleaning.clean_for_chunking`, tham khảo `clean_text.py`): thêm chuẩn hoá
+> dấu câu/khoảng trắng đặc biệt về ASCII (NBSP, soft hyphen, smart-quote, en/em dash — qua `_PUNCT_TRANS` khoá
+> ordinal) cho CẢ prose lẫn bảng; riêng PROSE bỏ thêm nhấn mạnh `**`/`*` + dòng số trang trần. Bảng gọi với
+> `preserve_markdown=True` (giữ `| --- |`, `*`, dòng-chỉ-số trong ô). KHÔNG dùng TCVN3-convert (0/800 doc, marker
+> `© « » µ` trùng Latin-1 hợp lệ -> hỏng text), KHÔNG gỡ HTML (normalizer đã strip), KHÔNG bỏ quốc hiệu (header đã
+> tách). ⚠️ KHÔNG dùng Write ghi đè cả file này — `_FOREIGN_SCRIPT_RE`/`_CONTROL_RE` chứa dải Unicode hiếm dễ lệch
+> byte; chỉ Edit chèn thêm.
+>
+> **Filter "đã có point Qdrant" (FE + API)**: `GET /api/documents` thêm query `qdrant_indexed` (true/false) ->
+> `DocumentRepository.list_documents` lọc SQL `coalesce(document_metadata->>'qdrant_indexed','false')='true'`.
+> FE `lib/api.ts:listDocuments({qdrantIndexed})` + checkbox "Chỉ văn bản đã có point trên Qdrant" trong
+> `DocumentSearchView` (`app/page.tsx`). Mục đích: lọc văn bản đã embed để soi chất lượng point sau khi chạy job.
+>
+> Cập nhật trước: 2026-06-29 (af) — **Job Qdrant: embed TỪNG chunk (1 request/chunk) + log tiến độ chunk**.
+> `VectorIndexingService.index_document` thêm `embed_batch_size` + `on_embed_progress` -> embed theo lô (=1 -> từng
+> chunk, request nhỏ dễ qua gateway yếu; None -> cả doc 1 lần như cũ, không đổi ingestion khác). Config
+> `doffice_embed_request_batch_size=1`. `index_qdrant` truyền batch_size + callback; `run_sequential` in
+> `· đã embed i/n chunk`. Lưu ý: 50 chunk = **50 point** Qdrant (batch chỉ gộp lúc TÍNH embedding, không đổi số
+> point). Verify (mock): 7 embed call cho 7 chunk. 430 test pass.
+>
+> Cập nhật trước: 2026-06-29 (ae) — **Job Qdrant: chế độ TUẦN TỰ + log chi tiết + --limit**.
+> Thêm `run_sequential()` (cờ `--sequential` / `DOFFICE_QDRANT_SEQUENTIAL=1`): xử lý 1 văn bản/lần (KHÔNG song
+> song), IN log từng bước: `[n/total] id_vb=X — làm sạch… | chunk=Y | lưu PG + đang embed… | ✓ XONG Y chunk
+> trong Zs | tổng: a/total doc · b chunk · cs`. Lỗi -> in `✗ LỖI sau Zs: <loại>` -> thấy rõ kẹt ở bước nào. Thêm
+> `--limit`/`DOFFICE_QDRANT_LIMIT` (xử lý tối đa N văn bản rồi dừng — test). Tách `_build_ctx`/`_make_ingestor`.
+> run_qdrant.bat: bật SEQUENTIAL=1, WORKERS=1. Verify (mock embed): log đúng, done=2 chunk=9. 430 test pass.
+>
+> Cập nhật trước: 2026-06-29 (ad) — **Job Qdrant: LƯU chunk vào PG (đổi yêu cầu)**.
+> Yêu cầu mới: run_qdrant = làm sạch -> chunk -> **lưu chunk vào PostgreSQL** -> embedding. Thêm cờ
+> `doffice_store_chunks_in_pg` (giờ = **True** = giữ chunk; trước thử False/xoá). `index_qdrant`: xoá chunk cũ của
+> doc -> create_chunks (lưu PG) -> VectorIndexingService embed -> GIỮ chunk (không xoá khi flag True). 430 test pass.
+>
+> Cập nhật trước: 2026-06-29 (ac) — **document-search: jwtToken là token NGOÀI (CPC), decode-only lấy ID_NV**.
 > `_id_nv_from_jwt` đổi từ verify-HS256-của-mình sang **decode payload KHÔNG verify** (token do hệ thống ngoài cấp:
 > iss=CPC, RS256 — mình không giữ khóa). Lấy field `ID_NV` trong payload (vd ID_NV="90288", IDDONVI="256") -> int ->
 > lọc ACL. Hàm thành sync, bỏ get_db_session/AuthRepository khỏi route. Verify: token thật của user -> ID_NV=90288

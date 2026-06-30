@@ -108,8 +108,10 @@ class DofficeUnifiedIngestor:
         self._catalog = catalog
         self._unit_tree = unit_tree
         self._signature = signature
+        # DOffice: PG chỉ giữ RAW -> mặc định KHÔNG giữ chunk (xoá sau khi embed). Dùng
+        # cờ riêng doffice_store_chunks_in_pg (KHÔNG dùng store_chunks_in_pg chung).
         self._store_chunks_in_pg = (
-            settings.store_chunks_in_pg if store_chunks_in_pg is None else store_chunks_in_pg
+            settings.doffice_store_chunks_in_pg if store_chunks_in_pg is None else store_chunks_in_pg
         )
 
     async def ingest(
@@ -237,9 +239,10 @@ class DofficeUnifiedIngestor:
         )
 
     # ===================== LUỒNG 4: Qdrant (chunk + embed) ====================
-    async def index_qdrant(self, item: DofficeJobItem) -> None:
+    async def index_qdrant(self, item: DofficeJobItem, *, embed_progress: Any = None) -> None:
         """Luồng 4: chunk nội dung đã làm sạch (in-memory) -> embed -> Qdrant Col1 (chunks)
-        & Col2 (docmeta) + ACL nén. Chunk ghi PG TẠM rồi xóa (PG chỉ giữ raw)."""
+        & Col2 (docmeta) + ACL nén. Làm sạch -> chunk -> LƯU chunk vào PG -> embed (giữ
+        chunk nếu doffice_store_chunks_in_pg=True; False = xoá sau khi embed)."""
         from uuid import UUID
 
         from app.services.chunkers.chunker_doffice_chunking import build_doffice_chunks
@@ -259,7 +262,7 @@ class DofficeUnifiedIngestor:
         )
         item.chunk_count = len(chunk_records)
 
-        # Ghi chunk TẠM vào PG để VectorIndexingService embed (đọc chunk từ PG), rồi xóa.
+        # Lưu chunk vào PG (xoá chunk cũ của doc -> ghi mới) để VectorIndexingService embed.
         await self._repository.delete_chunks_for_document(document_id)
         await self._repository.create_chunks(document_id=document_id, chunks=chunk_records)
         # VectorIndexingService chỉ embed document ở trạng thái "chunked"/"indexed".
@@ -273,7 +276,12 @@ class DofficeUnifiedIngestor:
             vector_store=self._chunks_store,
             sparse_embedding_provider=self._sparse_provider,
             keyword_index_store=None,
-        ).index_document(document_id, use_enriched_content_for_embedding=False)
+        ).index_document(
+            document_id,
+            use_enriched_content_for_embedding=False,
+            embed_batch_size=settings.doffice_embed_request_batch_size,
+            on_embed_progress=embed_progress,
+        )
         await self._chunks_store.set_acl_payload_for_document(document_id, item.acl_payload)
 
         if not self._store_chunks_in_pg:

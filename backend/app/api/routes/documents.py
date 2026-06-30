@@ -919,6 +919,10 @@ async def list_documents(
     status_filter: Annotated[str | None, Query(alias="status")] = None,
     uploaded_by: UUID | None = None,
     search: str | None = None,
+    qdrant_indexed: Annotated[
+        bool | None,
+        Query(description="Lọc theo đã embed Qdrant: true=chỉ văn bản CÓ point, false=chưa có."),
+    ] = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> DocumentListResponse:
@@ -935,6 +939,7 @@ async def list_documents(
         status=status_filter,
         uploaded_by=uploaded_by,
         search=search,
+        qdrant_indexed=qdrant_indexed,
         limit=None,
         offset=0,
     )

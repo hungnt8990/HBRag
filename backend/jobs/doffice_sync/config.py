@@ -40,7 +40,7 @@ class JobConfig:
     max_retry_count: int = 5
 
     # Log
-    log_dir: str = "logs/doffice_sync"
+    log_dir: str = "logs/jobs/doffice_sync"
 
     def snapshot(self) -> dict:
         data = asdict(self)

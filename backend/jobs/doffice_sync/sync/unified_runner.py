@@ -100,7 +100,7 @@ class UnifiedJobRunner:
         self._checkpoint = CheckpointStore()
         # Tiến độ theo từng văn bản (resume khi tắt giữa chừng). File CHUNG cho mọi lần
         # chạy job 3-DB; chỉ ghi id_vb đã xong CẢ ES + Qdrant.
-        self._progress = ProgressStore("logs/doffice_unified/.progress.txt")
+        self._progress = ProgressStore("logs/jobs/doffice_unified/.progress.txt")
         self._completed: set[str] = set()  # id_vb đã hoàn tất ở lần trước -> bỏ qua
         self._es_ok: set[str] = set()      # id_vb đã xong luồng ES (lần này)
         self._qdrant_ok: set[str] = set()  # id_vb đã xong luồng Qdrant (lần này)

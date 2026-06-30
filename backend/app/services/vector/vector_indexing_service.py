@@ -74,6 +74,8 @@ class VectorIndexingService:
         document_id: UUID,
         *,
         use_enriched_content_for_embedding: bool | None = None,
+        embed_batch_size: int | None = None,
+        on_embed_progress: Any = None,
     ) -> DocumentVectorIndexResponse:
         document = await self._repository.get_document(document_id)
         if document is None:
@@ -128,7 +130,21 @@ class VectorIndexingService:
                 total_chunks=len(rag_chunks),
                 indexable_chunks=len(indexable_chunks),
             )
-            dense_vectors = await self._llm_gateway.embed_texts(embedding_texts)
+            # Embed theo LÔ ``embed_batch_size``: =1 -> embed TỪNG chunk (request nhỏ, dễ qua
+            # gateway yếu); None/0 -> cả doc trong 1 request (như cũ). ``on_embed_progress(done,
+            # total)`` được gọi sau mỗi lô để báo tiến độ (vd in 'embed chunk i/n').
+            _total = len(embedding_texts)
+            _bs = embed_batch_size if (embed_batch_size and embed_batch_size > 0) else _total
+            _use_sparse = self._sparse_embedding_provider is not None and bool(indexable_chunks)
+            dense_vectors: list = []
+            sparse_vectors: list | None = [] if _use_sparse else None
+            for _start in range(0, _total, max(1, _bs)):
+                _batch = embedding_texts[_start:_start + max(1, _bs)]
+                dense_vectors.extend(await self._llm_gateway.embed_texts(_batch))
+                if _use_sparse:
+                    sparse_vectors.extend(await self._sparse_embedding_provider.embed_texts(_batch))
+                if on_embed_progress is not None:
+                    on_embed_progress(min(_start + max(1, _bs), _total), _total)
             if len(dense_vectors) != len(indexable_chunks):
                 raise ValueError(
                     "Dense embedding count does not match the number of indexable chunks."
@@ -139,16 +155,10 @@ class VectorIndexingService:
                         "Dense embedding dimension mismatch: "
                         f"got {len(vector)}, expected {self._vector_store.vector_size}."
                     )
-
-            sparse_vectors = None
-            if self._sparse_embedding_provider is not None and indexable_chunks:
-                sparse_vectors = await self._sparse_embedding_provider.embed_texts(
-                    embedding_texts
+            if sparse_vectors is not None and len(sparse_vectors) != len(indexable_chunks):
+                raise ValueError(
+                    "Sparse embedding count does not match the number of indexable chunks."
                 )
-                if len(sparse_vectors) != len(indexable_chunks):
-                    raise ValueError(
-                        "Sparse embedding count does not match the number of indexable chunks."
-                    )
 
             points = []
             for index, (chunk, dense_vector) in enumerate(

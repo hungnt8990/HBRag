@@ -624,6 +624,7 @@ export async function listDocuments(options?: {
   organization_id?: string;
   include_descendants?: boolean;
   search?: string;
+  qdrantIndexed?: boolean;
   limit?: number;
   offset?: number;
 }): Promise<DocumentListResponse> {
@@ -639,6 +640,9 @@ export async function listDocuments(options?: {
   }
   if (options?.search) {
     params.set("search", options.search);
+  }
+  if (options?.qdrantIndexed !== undefined) {
+    params.set("qdrant_indexed", options.qdrantIndexed ? "true" : "false");
   }
   params.set("limit", String(options?.limit ?? 50));
   params.set("offset", String(options?.offset ?? 0));

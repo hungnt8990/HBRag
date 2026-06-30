@@ -13,9 +13,15 @@ set "PYTHONIOENCODING=utf-8"
 REM Quet lai dinh ky (giay). 0 = chay 1 lan roi thoat. Mac dinh 300 (5 phut).
 set "DOFFICE_QDRANT_INTERVAL=300"
 
-REM So worker embed. Qdrant dung CHUNG 1 client -> nhieu worker qua de dut ket noi.
-REM De 4 cho on dinh (tang dan neu gateway/Qdrant chiu tai tot).
-set "DOFFICE_QDRANT_WORKERS=4"
+REM So worker embed (chi dung khi KHONG tuan tu). Qdrant dung CHUNG 1 client.
+set "DOFFICE_QDRANT_WORKERS=1"
+
+REM TUAN TU: 1 van ban/lan + IN log chi tiet tung buoc (lam sach -> chunk -> embed ->
+REM Qdrant) + so giay + tien do cong don. 1 = bat (de theo doi/khong song song), 0 = song song.
+set "DOFFICE_QDRANT_SEQUENTIAL=1"
+
+REM Chi xu ly toi da N van ban roi dung (de TEST vai van ban truoc). De trong = chay het.
+set "DOFFICE_QDRANT_LIMIT="
 
 REM Lo quet PG moi vong.
 set "DOFFICE_QDRANT_BATCH_SIZE=200"

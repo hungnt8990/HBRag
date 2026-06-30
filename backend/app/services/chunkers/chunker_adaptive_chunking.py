@@ -432,7 +432,14 @@ def _split_by_boundaries(text: str, *, max_chars: int, overlap_chars: int) -> li
             parts.append(part)
         if end >= len(text):
             break
-        start = max(end - overlap_chars, start + 1)
+        # Tiến cửa sổ. Nếu overlap kéo start về TRƯỚC ``end`` mà ``end`` lại đứng yên
+        # (đuôi văn bản có 1 đoạn ngắn hơn overlap sau ranh giới cuối -> _best_boundary
+        # luôn trả cùng 1 vị trí), thì bỏ overlap để tránh bò +1 ký tự/vòng -> nổ hàng
+        # trăm chunk gần trùng. Bình thường (end-overlap > start) giữ nguyên overlap.
+        next_start = end - overlap_chars
+        if next_start <= start:
+            next_start = end
+        start = next_start
     return parts
 
 

@@ -482,7 +482,9 @@ def _table_chunks(
 ) -> list[tuple[str, dict[str, Any]]]:
     """Sinh các chunk cho một bảng (1 chunk nếu ngắn, cắt theo dòng nếu dài)."""
 
-    markdown = clean_for_chunking(table.markdown or "")
+    # preserve_markdown=True: GIỮ cấu trúc bảng (| --- |) cho TableChunker + nội
+    # dung ô (không bỏ '*' hay dòng chỉ-là-số vốn có thể là dữ liệu ô).
+    markdown = clean_for_chunking(table.markdown or "", preserve_markdown=True)
     if not markdown.strip():
         return []
 

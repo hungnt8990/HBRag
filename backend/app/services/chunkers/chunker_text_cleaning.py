@@ -70,6 +70,29 @@ _CONTROL_RE = re.compile(
 )
 
 
+# --- Chuẩn hoá dấu câu / khoảng trắng đặc biệt (tham khảo clean_text.py) ------
+# Quy về ASCII để embedding & so khớp ổn định. AN TOÀN cho cả prose lẫn markdown
+# bảng (không đụng '|', '-', ':' cấu trúc). Khoá là ORDINAL tường minh -> không lẫn
+# các ký tự khoảng trắng nhìn giống nhau, không phụ thuộc cách hiển thị file.
+_PUNCT_TRANS: dict[int, str | None] = {
+    0x00A0: " ", 0x2007: " ", 0x2008: " ", 0x2009: " ", 0x200A: " ", 0x202F: " ",  # space lạ -> space
+    0x00AD: None,  # soft hyphen -> bỏ hẳn
+    0x2018: "'", 0x2019: "'", 0x201A: "'", 0x201B: "'", 0x2032: "'",  # single quote / prime -> '
+    0x201C: '"', 0x201D: '"', 0x201E: '"', 0x201F: '"', 0x2033: '"',  # double quote / double prime -> "
+    0x2013: "-", 0x2014: "-", 0x2015: "-", 0x2212: "-",  # en/em/horizontal/minus dash -> '-'
+}
+
+# Dòng CHỈ chứa số trang trần: "12", "- 12 -", "12/100" (khác marker "--- Page N ---").
+# Chỉ áp dụng cho PROSE để không xoá nhầm ô bảng.
+_BARE_PAGENUM_RE = re.compile(
+    r"(?m)^[ \t]*(?:\d{1,4}\s*/\s*\d{1,4}|-\s*\d{1,3}\s*-|\d{1,3})[ \t]*$"
+)
+
+# Nhấn mạnh markdown ``**``/``*`` do bước HTML->markdown sinh ra. Bỏ ở PROSE; GIỮ
+# trong bảng (preserve_markdown=True) để không lỡ phá nội dung ô.
+_MD_EMPHASIS_RE = re.compile(r"\*{1,3}")
+
+
 def _replace_page_marker(match: re.Match[str]) -> str:
     """Quyết định cách nối lại hai mảnh quanh marker phân trang."""
 
@@ -85,12 +108,19 @@ def _replace_page_marker(match: re.Match[str]) -> str:
     return f"{before}{separator}{after}"
 
 
-def clean_for_chunking(text: str) -> str:
+def clean_for_chunking(text: str, *, preserve_markdown: bool = False) -> str:
     """Làm sạch ``text`` trước khi chunk.
 
-    Các bước: NFC hoá -> bỏ ký tự điều khiển -> bỏ marker phân trang (nối câu nếu
-    marker cắt giữa câu) -> gỡ ký tự ngoại lai -> chuẩn hoá khoảng trắng. Hàm
-    idempotent: ``clean_for_chunking(clean_for_chunking(x)) == clean_for_chunking(x)``.
+    Các bước (cả hai chế độ): NFC hoá -> chuẩn hoá dấu câu/khoảng trắng đặc biệt
+    (NBSP, soft hyphen, smart-quote, en/em dash) -> bỏ ký tự điều khiển -> bỏ marker
+    phân trang (nối câu nếu marker cắt giữa câu) -> gỡ ký tự ngoại lai -> chuẩn hoá
+    khoảng trắng.
+
+    ``preserve_markdown=False`` (PROSE, mặc định): bỏ thêm nhấn mạnh ``**``/``*`` và
+    các DÒNG chỉ là số trang. ``preserve_markdown=True`` (markdown BẢNG): GIỮ nguyên
+    ``*`` và dòng số (có thể là dữ liệu ô) để không phá cấu trúc/nội dung bảng.
+
+    Hàm idempotent: ``clean_for_chunking(clean_for_chunking(x)) == clean_for_chunking(x)``.
     """
 
     if not text:
@@ -98,6 +128,8 @@ def clean_for_chunking(text: str) -> str:
 
     # 1) Chuẩn hoá Unicode về dạng dựng sẵn (NFC) + thống nhất ký tự xuống dòng.
     cleaned = unicodedata.normalize("NFC", str(text))
+    # 1b) Chuẩn hoá dấu câu/khoảng trắng đặc biệt về ASCII (sớm để bước sau thấy ký tự chuẩn).
+    cleaned = cleaned.translate(_PUNCT_TRANS)
     cleaned = cleaned.replace("\r\n", "\n").replace("\r", "\n").replace(" ", " ")
 
     # 2) Bỏ ký tự điều khiển / vô hình.
@@ -108,6 +140,12 @@ def clean_for_chunking(text: str) -> str:
 
     # 4) Gỡ các block ký tự ngoại lai do OCR chèn.
     cleaned = _FOREIGN_SCRIPT_RE.sub("", cleaned)
+
+    # 4b) PROSE: bỏ nhấn mạnh markdown + gộp `""` + bỏ dòng số trang trần. BẢNG giữ nguyên.
+    if not preserve_markdown:
+        cleaned = _MD_EMPHASIS_RE.sub("", cleaned)
+        cleaned = cleaned.replace('""', '"')
+        cleaned = _BARE_PAGENUM_RE.sub("", cleaned)
 
     # 5) Chuẩn hoá khoảng trắng theo từng dòng.
     lines = [re.sub(r"[ \t]+", " ", line).rstrip() for line in cleaned.split("\n")]
@@ -153,6 +191,23 @@ def _selfcheck() -> None:
     table = "| STT | Tên |\n| --- | --- |\n| 1 | Nguyễn Văn A |"
     out = clean_for_chunking(table)
     assert "| STT | Tên |" in out and "| --- | --- |" in out, out
+
+    # Chuẩn hoá smart quote / en-dash về ASCII.
+    out = clean_for_chunking("“Trích” – mục A’B")
+    assert '"Trích"' in out and " - " in out and "mục A'B" in out, repr(out)
+
+    # PROSE: bỏ nhấn mạnh markdown ** / *.
+    out = clean_for_chunking("Đây là **đậm** và *nghiêng*.")
+    assert "*" not in out and "đậm" in out and "nghiêng" in out, out
+
+    # PROSE: bỏ DÒNG chỉ là số trang, giữ số nằm trong câu.
+    out = clean_for_chunking("Điều 5\n12\nKhoản 3/2024 vẫn còn.")
+    assert "\n12\n" not in ("\n" + out + "\n") and "3/2024 vẫn còn" in out, repr(out)
+
+    # BẢNG (preserve_markdown=True): GIỮ '*' và dòng-chỉ-số trong ô.
+    tbl2 = "| STT | Mã |\n| --- | --- |\n| 1 | A* |\n| 12 | B |"
+    out = clean_for_chunking(tbl2, preserve_markdown=True)
+    assert "A*" in out and "| 12 | B |" in out and "| --- | --- |" in out, out
 
     # Gộp dòng trống.
     out = clean_for_chunking("Dòng 1\n\n\n\nDòng 2   ")

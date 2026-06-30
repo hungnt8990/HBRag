@@ -46,6 +46,12 @@ class Settings(BaseSettings):
     doffice_documents_index_name: str = "hbrag_doffice_documents_v1"
     # Dev: vẫn ghi chunk vào PostgreSQL để soi; product có thể tắt.
     store_chunks_in_pg: bool = True
+    # DOffice job Qdrant: làm sạch -> chunk -> LƯU chunk vào PG -> embedding. True = giữ
+    # chunk trong PostgreSQL (đặt False nếu chỉ muốn PG giữ raw, chunk xoá sau khi embed).
+    doffice_store_chunks_in_pg: bool = True
+    # Số chunk/1 request embed khi job Qdrant chạy. 1 = embed TỪNG chunk (request nhỏ, dễ
+    # qua gateway yếu, thấy tiến độ từng chunk). Tăng lên để gộp lô (nhanh hơn nếu gateway khỏe).
+    doffice_embed_request_batch_size: int = 1
     qdrant_upsert_batch_size: int = 64
     qdrant_upsert_retry_count: int = 2
     qdrant_hybrid_candidate_multiplier: int = 4

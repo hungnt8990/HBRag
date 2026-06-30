@@ -102,7 +102,7 @@ async def _id_vbs_for_don_vi(session, don_vi: list[str]) -> list[str]:
 
 async def _main(args: argparse.Namespace) -> None:
     cs.enable_ansi()
-    loggers = setup_job_logging("logs/doffice_delete", run_stamp())
+    loggers = setup_job_logging("logs/jobs/doffice_delete", run_stamp())
     _quiet_console()
 
     id_vb = args.id_vb or _split_env("DOFFICE_DEL_ID_VB")

@@ -433,6 +433,7 @@ class DocumentRepository:
         uploaded_by: UUID | None = None,
         knowledge_base_ids: set[UUID] | None = None,
         search: str | None = None,
+        qdrant_indexed: bool | None = None,
         limit: int | None = 50,
         offset: int = 0,
     ) -> list[DocumentListRow]:
@@ -539,6 +540,14 @@ class DocumentRepository:
             statement = statement.where(
                 or_(Document.title.ilike(search_value), DocumentFile.filename.ilike(search_value))
             )
+        if qdrant_indexed is not None:
+            # Cờ document_metadata->>'qdrant_indexed' = 'true' được đặt khi đã embed
+            # lên Qdrant (có point). coalesce -> doc cũ thiếu key coi như 'false'.
+            indexed_expr = (
+                func.coalesce(Document.document_metadata["qdrant_indexed"].astext, "false")
+                == "true"
+            )
+            statement = statement.where(indexed_expr if qdrant_indexed else ~indexed_expr)
 
         result = await self._session.execute(statement)
         return [
