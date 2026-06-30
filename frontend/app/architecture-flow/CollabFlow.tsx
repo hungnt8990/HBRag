@@ -5,20 +5,26 @@ import {
   applyEdgeChanges,
   applyNodeChanges,
   Background,
+  BaseEdge,
   Controls,
+  EdgeLabelRenderer,
   Handle,
   MarkerType,
   MiniMap,
+  NodeResizer,
   Position,
   ReactFlow,
   ReactFlowProvider,
+  getSmoothStepPath,
   useReactFlow,
+  useStore,
   useViewport,
 } from "@xyflow/react";
 import type {
   Connection,
   Edge,
   EdgeChange,
+  EdgeProps,
   Node,
   NodeChange,
   NodeProps,
@@ -35,7 +41,7 @@ import {
   TONE_STYLE,
 } from "./initialDiagram";
 
-const ROOM = "architecture-v11-fields-3";
+const ROOM = "architecture-v12-editor";
 const LOCAL_ORIGIN = "local-edit";
 
 // ws(s)://<api-host>/collab — y-websocket sẽ nối thêm "/<room>".
@@ -118,6 +124,25 @@ function nodesFromY(yNodes: Y.Map<Node>, prev: Node[]): Node[] {
 
 function edgesFromY(yEdges: Y.Map<Edge>): Edge[] {
   return Array.from(yEdges.values());
+}
+
+const HIDDEN_HANDLE_STYLE = { opacity: 0 };
+const HANDLE_STYLE = {
+  width: 8,
+  height: 8,
+  background: "#64748b",
+  border: "2px solid #fff",
+  opacity: 0.6,
+  zIndex: 20,
+};
+
+function DualHandle({ position, sourceId, targetId }: { position: Position; sourceId: string; targetId: string }) {
+  return (
+    <>
+      <Handle type="target" position={position} id={targetId} style={{ ...HANDLE_STYLE, ...HIDDEN_HANDLE_STYLE }} />
+      <Handle type="source" position={position} id={sourceId} style={HANDLE_STYLE} />
+    </>
+  );
 }
 
 // -------------------------------------------------------------- custom node --
@@ -210,7 +235,10 @@ function CardNode({ data, selected }: NodeProps<Node<CardData>>) {
   if (shape === "diamond") {
     return (
       <div style={{ position: "relative", width, height: minHeight }}>
-        <Handle type="target" position={Position.Left} style={{ background: "#64748b" }} />
+        <NodeResizer color="#2563eb" isVisible={selected} minWidth={120} minHeight={120} />
+        <DualHandle position={Position.Top} sourceId="top" targetId="top-target" />
+        <DualHandle position={Position.Left} sourceId="left" targetId="left-target" />
+        <DualHandle position={Position.Right} sourceId="right" targetId="right-target" />
         <div
           style={{
             position: "absolute",
@@ -233,7 +261,7 @@ function CardNode({ data, selected }: NodeProps<Node<CardData>>) {
         >
           <div style={{ maxWidth: width * 0.64 }}>{content}</div>
         </div>
-        <Handle type="source" position={Position.Right} style={{ background: "#64748b" }} />
+        <DualHandle position={Position.Bottom} sourceId="bottom" targetId="bottom-target" />
       </div>
     );
   }
@@ -241,6 +269,7 @@ function CardNode({ data, selected }: NodeProps<Node<CardData>>) {
   return (
     <div
       style={{
+        position: "relative",
         width,
         minHeight,
         background: fillColor,
@@ -254,9 +283,12 @@ function CardNode({ data, selected }: NodeProps<Node<CardData>>) {
         textAlign: shape === "circle" ? "center" : "left",
       }}
     >
-      <Handle type="target" position={Position.Left} style={{ background: "#64748b" }} />
+      <NodeResizer color="#2563eb" isVisible={selected} minWidth={80} minHeight={60} />
+      <DualHandle position={Position.Top} sourceId="top" targetId="top-target" />
+      <DualHandle position={Position.Left} sourceId="left" targetId="left-target" />
+      <DualHandle position={Position.Right} sourceId="right" targetId="right-target" />
       <div style={{ maxWidth: shape === "circle" ? width * 0.74 : undefined }}>{content}</div>
-      <Handle type="source" position={Position.Right} style={{ background: "#64748b" }} />
+      <DualHandle position={Position.Bottom} sourceId="bottom" targetId="bottom-target" />
     </div>
   );
 }
@@ -290,6 +322,176 @@ function RemoteCursors({ peers }: { peers: Peer[] }) {
     </>
   );
 }
+
+function EditableEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  style = {},
+  label,
+  markerEnd,
+  selected,
+  labelStyle,
+  data,
+}: EdgeProps) {
+  const { setEdges } = useReactFlow();
+  const zoom = useStore((store) => store.transform[2]) || 1;
+  const [isEditing, setIsEditing] = useState(false);
+  const rawLabel = typeof label === "string" ? label : "";
+  const textStyle = (labelStyle ?? {}) as { fill?: string; fontSize?: number; fontStyle?: string; fontWeight?: number | string };
+  const hasOffset = (data as { segOffset?: number } | undefined)?.segOffset !== undefined;
+  const segOffset = Number((data as { segOffset?: number } | undefined)?.segOffset ?? 0);
+  const isVertical = sourcePosition === Position.Bottom || sourcePosition === Position.Top;
+  const midY = (sourceY + targetY) / 2 + (isVertical ? segOffset : 0);
+  const midX = (sourceX + targetX) / 2 + (!isVertical ? segOffset : 0);
+  const [fallbackPath] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+    borderRadius: 12,
+  });
+  const edgePath = isVertical
+    ? `M ${sourceX} ${sourceY} L ${sourceX} ${midY} L ${targetX} ${midY} L ${targetX} ${targetY}`
+    : `M ${sourceX} ${sourceY} L ${midX} ${sourceY} L ${midX} ${targetY} L ${targetX} ${targetY}`;
+  const finalPath = hasOffset ? edgePath : fallbackPath;
+  const labelX = hasOffset ? (isVertical ? (sourceX + targetX) / 2 : midX) : (sourceX + targetX) / 2;
+  const labelY = hasOffset ? (isVertical ? midY : (sourceY + targetY) / 2) : (sourceY + targetY) / 2;
+  const handleX = isVertical ? labelX : midX;
+  const handleY = isVertical ? midY : labelY;
+
+  useEffect(() => {
+    if (!selected) setIsEditing(false);
+  }, [selected]);
+
+  const updateEdge = useCallback((patch: Partial<Edge>) => {
+    setEdges((current) => current.map((edge) => (edge.id === id ? { ...edge, ...patch } : edge)));
+  }, [id, setEdges]);
+
+  const updateOffset = useCallback((nextOffset: number) => {
+    setEdges((current) =>
+      current.map((edge) =>
+        edge.id === id ? { ...edge, data: { ...(edge.data ?? {}), segOffset: nextOffset } } : edge,
+      ),
+    );
+  }, [id, setEdges]);
+
+  const onHandleDrag = useCallback((event: React.MouseEvent) => {
+    event.stopPropagation();
+    event.preventDefault();
+    const start = isVertical ? event.clientY : event.clientX;
+    const startOffset = segOffset;
+
+    const onMove = (moveEvent: MouseEvent) => {
+      const current = isVertical ? moveEvent.clientY : moveEvent.clientX;
+      updateOffset(startOffset + (current - start) / zoom);
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, [isVertical, segOffset, updateOffset, zoom]);
+
+  return (
+    <>
+      <BaseEdge path={finalPath} markerEnd={markerEnd} style={{ ...style, strokeWidth: Number(style.strokeWidth ?? 2) }} />
+      <path d={finalPath} fill="none" stroke="transparent" strokeWidth={18} style={{ pointerEvents: "stroke" }} />
+      {selected ? (
+        <EdgeLabelRenderer>
+          <div
+            className="nodrag nopan"
+            onMouseDown={onHandleDrag}
+            onDoubleClick={(event) => {
+              event.stopPropagation();
+              updateOffset(0);
+            }}
+            title={isVertical ? "Kéo lên/xuống để chỉnh đoạn nối" : "Kéo trái/phải để chỉnh đoạn nối"}
+            style={{
+              position: "absolute",
+              transform: `translate(-50%, -50%) translate(${handleX}px,${handleY}px)`,
+              width: 12,
+              height: 12,
+              borderRadius: 999,
+              background: "#2563eb",
+              border: "2px solid #fff",
+              boxShadow: "0 2px 8px rgba(37,99,235,.35)",
+              cursor: isVertical ? "ns-resize" : "ew-resize",
+              pointerEvents: "all",
+              zIndex: 20,
+            }}
+          />
+        </EdgeLabelRenderer>
+      ) : null}
+      {(rawLabel.trim() || selected) ? (
+        <EdgeLabelRenderer>
+          <div
+            className="nodrag nopan"
+            onDoubleClick={(event) => {
+              event.stopPropagation();
+              setIsEditing(true);
+            }}
+            style={{
+              position: "absolute",
+              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+              pointerEvents: "all",
+              background: "#fff",
+              border: selected ? "2px solid #2563eb" : "1px solid #cbd5e1",
+              borderRadius: 8,
+              boxShadow: "0 6px 16px rgba(15,23,42,.12)",
+              padding: "4px 8px",
+              zIndex: 21,
+            }}
+          >
+            {isEditing ? (
+              <input
+                autoFocus
+                value={rawLabel}
+                onChange={(event) => updateEdge({ label: event.target.value })}
+                onBlur={() => setIsEditing(false)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === "Escape") setIsEditing(false);
+                }}
+                style={{
+                  width: Math.max(70, rawLabel.length * 8 + 24),
+                  border: 0,
+                  outline: 0,
+                  color: textStyle.fill ?? "#334155",
+                  fontSize: textStyle.fontSize ?? 11,
+                  fontStyle: textStyle.fontStyle ?? "normal",
+                  fontWeight: textStyle.fontWeight ?? 800,
+                  textAlign: "center",
+                }}
+                placeholder="Nhãn"
+              />
+            ) : (
+              <span
+                style={{
+                  color: textStyle.fill ?? "#334155",
+                  fontSize: textStyle.fontSize ?? 11,
+                  fontStyle: textStyle.fontStyle ?? "normal",
+                  fontWeight: textStyle.fontWeight ?? 800,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {rawLabel || "Nhãn"}
+              </span>
+            )}
+          </div>
+        </EdgeLabelRenderer>
+      ) : null}
+    </>
+  );
+}
+
+const edgeTypes = { editable: EditableEdge };
 
 // --------------------------------------------------------------- main canvas --
 function FlowCanvas() {
@@ -419,6 +621,15 @@ function FlowCanvas() {
     };
   }, [me]);
 
+  useEffect(() => {
+    const doc = docRef.current;
+    const yEdges = yEdgesRef.current;
+    if (!doc || !yEdges) return;
+    doc.transact(() => {
+      edges.forEach((edge) => yEdges.set(edge.id, edge));
+    }, LOCAL_ORIGIN);
+  }, [edges]);
+
   // --- handlers React Flow -> Yjs (đọc tài nguyên từ ref) ---
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     const doc = docRef.current;
@@ -429,7 +640,7 @@ function FlowCanvas() {
         doc.transact(() => {
           for (const ch of changes) {
             if (ch.type === "remove") yNodes.delete(ch.id);
-            else if (ch.type === "position") {
+            else if (ch.type !== "select" && "id" in ch) {
               const n = next.find((x) => x.id === ch.id);
               if (n) yNodes.set(n.id, stripEphemeral(n));
             }
@@ -466,6 +677,7 @@ function FlowCanvas() {
     const edge: Edge = {
       ...conn,
       id,
+      type: "editable",
       animated: false,
       markerEnd: { type: MarkerType.ArrowClosed, color: "#64748b" },
       style: { stroke: "#64748b", strokeWidth: 2 },
@@ -501,12 +713,12 @@ function FlowCanvas() {
     [screenToFlowPosition],
   );
 
-  const addCard = useCallback((shape: CardData["shape"] = "rounded") => {
+  const addCard = useCallback((shape: CardData["shape"] = "rounded", position?: { x: number; y: number }) => {
     const id = `n-${Math.random().toString(36).slice(2, 10)}`;
     const node: Node<CardData> = {
       id,
       type: "card",
-      position: { x: 120, y: 200 + Math.random() * 60 },
+      position: position ?? { x: 120, y: 200 + Math.random() * 60 },
       data: {
         title: "Node mới",
         desc: "Chọn node để sửa nội dung, màu sắc và hình dạng.",
@@ -523,6 +735,23 @@ function FlowCanvas() {
     const yNodes = yNodesRef.current;
     if (doc && yNodes) doc.transact(() => yNodes.set(id, node), LOCAL_ORIGIN);
   }, []);
+
+  const onShapeDragStart = useCallback((event: React.DragEvent, shape: NonNullable<CardData["shape"]>) => {
+    event.dataTransfer.setData("application/hbrag-architecture-shape", shape);
+    event.dataTransfer.effectAllowed = "move";
+  }, []);
+
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }, []);
+
+  const onDrop = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    const shape = event.dataTransfer.getData("application/hbrag-architecture-shape") as CardData["shape"];
+    if (!shape) return;
+    addCard(shape, screenToFlowPosition({ x: event.clientX, y: event.clientY }));
+  }, [addCard, screenToFlowPosition]);
 
   const restoreDefaultDiagram = useCallback(() => {
     const doc = docRef.current;
@@ -635,12 +864,15 @@ function FlowCanvas() {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeDoubleClick={onNodeDoubleClick}
         onPaneMouseMove={onPaneMouseMove}
         onSelectionChange={onSelectionChange}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
         fitView
         fitViewOptions={{ padding: 0.42 }}
         proOptions={{ hideAttribution: true }}
@@ -665,16 +897,16 @@ function FlowCanvas() {
           <span style={{ width: 9, height: 9, borderRadius: "50%", background: statusInfo.color, display: "inline-block" }} />
           {statusInfo.text}
         </span>
-        <button onClick={() => addCard("rounded")} title="Thêm node bo góc" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #b8ccff", background: "#eaf1ff", color: "#1d4ed8", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>
+        <button draggable onDragStart={(event) => onShapeDragStart(event, "rounded")} onClick={() => addCard("rounded")} title="Bấm để thêm, hoặc kéo thả vào canvas" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #b8ccff", background: "#eaf1ff", color: "#1d4ed8", borderRadius: 8, padding: "5px 10px", cursor: "grab" }}>
           + Bo góc
         </button>
-        <button onClick={() => addCard("square")} title="Thêm node vuông" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d8e1ee", background: "#fff", color: "#334155", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>
+        <button draggable onDragStart={(event) => onShapeDragStart(event, "square")} onClick={() => addCard("square")} title="Bấm để thêm, hoặc kéo thả vào canvas" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d8e1ee", background: "#fff", color: "#334155", borderRadius: 8, padding: "5px 10px", cursor: "grab" }}>
           □ Vuông
         </button>
-        <button onClick={() => addCard("circle")} title="Thêm node tròn" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d8e1ee", background: "#fff", color: "#334155", borderRadius: 999, padding: "5px 10px", cursor: "pointer" }}>
+        <button draggable onDragStart={(event) => onShapeDragStart(event, "circle")} onClick={() => addCard("circle")} title="Bấm để thêm, hoặc kéo thả vào canvas" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d8e1ee", background: "#fff", color: "#334155", borderRadius: 999, padding: "5px 10px", cursor: "grab" }}>
           ○ Tròn
         </button>
-        <button onClick={() => addCard("diamond")} title="Thêm node hình thoi" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d8e1ee", background: "#fff", color: "#334155", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>
+        <button draggable onDragStart={(event) => onShapeDragStart(event, "diamond")} onClick={() => addCard("diamond")} title="Bấm để thêm, hoặc kéo thả vào canvas" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d8e1ee", background: "#fff", color: "#334155", borderRadius: 8, padding: "5px 10px", cursor: "grab" }}>
           ◇ Thoi
         </button>
         <button onClick={restoreDefaultDiagram} style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d6c2ff", background: "#f2ebff", color: "#6d28d9", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>

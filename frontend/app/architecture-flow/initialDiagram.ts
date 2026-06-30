@@ -1,4 +1,4 @@
-import type { Edge, Node } from "@xyflow/react";
+import { MarkerType, type Edge, type Node } from "@xyflow/react";
 
 export type CardTone =
   | "source"
@@ -325,7 +325,10 @@ const e = (id: string, source: string, target: string, animated = false): Edge =
   id,
   source,
   target,
+  type: "editable",
   animated,
+  markerEnd: { type: MarkerType.ArrowClosed, color: "#64748b" },
+  style: { stroke: "#64748b", strokeWidth: 2 },
 });
 
 export const initialEdges: Edge[] = [

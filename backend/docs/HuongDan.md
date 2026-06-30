@@ -94,6 +94,16 @@ Một lưu ý rất quan trọng: file `.env` của bạn đang có API key/pass
 
 Sau khi tạo service, bạn chỉ cần nhớ 3 lệnh này là đủ dùng hằng ngày:
 
+
+    #debug backend
+    cd /home/ragteam/hbrag-project/HBRag/backend
+    . .venv/bin/activate
+    python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --log-level debug
+
     sudo systemctl status hbrag-backend
     sudo systemctl restart hbrag-backend
     journalctl -u hbrag-backend -f
+
+
+    npm run build
+    pm2 restart hbrag-frontend
