@@ -15,11 +15,15 @@ export type CardData = {
   title: string;
   desc?: string;
   tone?: CardTone;
+  shape?: "rounded" | "square" | "circle" | "diamond";
   tags?: string[];
   sections?: { title: string; items: string[] }[];
   rows?: { label: string; value: string }[];
   width?: number;
   minHeight?: number;
+  fillColor?: string;
+  borderColor?: string;
+  textColor?: string;
   invisible?: boolean;
 };
 

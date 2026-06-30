@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dữ liệu các store — HBRag</title>
+<style>
+  :root{
+    --ink:#142033;--muted:#5e6b7e;--bg:#f5f7fb;
+    --pg:#e8f7f1;--pgb:#a6ddc7;--es:#fff1e8;--esb:#fed0b7;--qd:#fff7df;--qdb:#f5d28e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+  .page{max-width:1500px;margin:20px auto 40px;padding:0 16px}
+  h1{font-size:24px;margin:0 0 4px;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px;font-size:12px}
+  .lg{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid #dbe4f0;border-radius:999px;padding:4px 9px;font-weight:600;color:#475569}
+  .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:start}
+  @media(max-width:1100px){.grid{grid-template-columns:1fr}}
+  .col{display:flex;flex-direction:column;gap:14px}
+  .card{border-radius:16px;border:1px solid #dbe4f0;background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.05);overflow:hidden}
+  .card.pg{border-color:var(--pgb)} .card.es{border-color:var(--esb)} .card.qd{border-color:var(--qdb)}
+  .hd{padding:11px 14px;font-weight:800;font-size:15px;display:flex;align-items:center;gap:8px}
+  .card.pg .hd{background:var(--pg)} .card.es .hd{background:var(--es)} .card.qd .hd{background:var(--qd)}
+  .hd .name{font-family:Consolas,Monaco,monospace;font-size:11.5px;font-weight:700;color:#475569;background:rgba(255,255,255,.6);border:1px solid rgba(148,163,184,.4);border-radius:6px;padding:1px 6px;margin-left:auto}
+  .body{padding:6px 14px 12px}
+  .sect{font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin:11px 0 5px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  td{padding:4px 6px;border-bottom:1px solid #eef2f7;vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  .k{font-family:Consolas,Monaco,monospace;font-size:11.3px;color:#0f172a;white-space:nowrap;width:1%;padding-right:10px}
+  .v{color:#475569;line-height:1.35}
+  .t{display:inline-block;font-size:10px;font-weight:800;border-radius:5px;padding:0 4px;margin-right:4px}
+  .acl{background:#fee2e2;color:#b91c1c}.flt{background:#dbeafe;color:#1d4ed8}.cite{background:#dcfce7;color:#15803d}
+  .emb{background:#f3e8ff;color:#7c3aed}.raw{background:#f1f5f9;color:#475569}.vec{background:#fef9c3;color:#a16207}
+  .note{font-size:11.5px;color:var(--muted);margin:6px 0 0}
+</style>
+</head>
+<body>
+<main class="page">
+  <h1>Dữ liệu các store — HBRag</h1>
+  <p class="sub">Liệt kê data thực tế trong PostgreSQL, Elasticsearch (2 nhánh), Qdrant (2 collection).</p>
+  <div class="legend">
+    <span class="lg"><span class="t raw">RAW</span>thô</span>
+    <span class="lg"><span class="t cite">CITE</span>dẫn nguồn/hiển thị</span>
+    <span class="lg"><span class="t flt">FILTER</span>lọc/sort</span>
+    <span class="lg"><span class="t acl">ACL</span>phân quyền</span>
+    <span class="lg"><span class="t emb">EMBED</span>sinh vector</span>
+    <span class="lg"><span class="t vec">VECTOR</span>4096 chiều</span>
+  </div>
+
+  <div class="grid">
+    <!-- ===================== PostgreSQL ===================== -->
+    <div class="col">
+      <div class="card pg">
+        <div class="hd">🐘 PostgreSQL · documents <span class="name">bảng documents</span></div>
+        <div class="body">
+          <table>
+            <tr><td class="k">parsed_text</td><td class="v"><span class="t raw">RAW</span>noi_dung THÔ (nguồn sự thật)</td></tr>
+            <tr><td class="k">title</td><td class="v">tiêu đề</td></tr>
+            <tr><td class="k">source_type</td><td class="v">doffice_elasticsearch</td></tr>
+            <tr><td class="k">status</td><td class="v">uploaded → parsed → chunked</td></tr>
+            <tr><td class="k">visibility</td><td class="v">phạm vi hiển thị</td></tr>
+            <tr><td class="k">created/updated_at</td><td class="v">thời điểm</td></tr>
+          </table>
+          <div class="sect">document_metadata (JSONB)</div>
+          <table>
+            <tr><td class="k">source thô</td><td class="v"><span class="t raw">RAW</span>id_vb, ky_hieu, trich_yeu, id_dv_ban_hanh, noi_ban_hanh, nguoi_ky, ten_file, duong_dan, tom_tat, type_ocr, nam, thang, ngay_vb, ngay_tao, ngay_capnhat</td></tr>
+            <tr><td class="k">clean</td><td class="v">{ noi_dung (đã sạch), tom_tat (đã sạch) }</td></tr>
+            <tr><td class="k">access</td><td class="v"><span class="t raw">RAW</span>raw_assignment · <span class="t acl">ACL</span>acl_subjects, acl_deny (nén) · acl_ver</td></tr>
+            <tr><td class="k">cờ</td><td class="v">pg_prepared, chunk_count, qdrant_indexed, has_embedding</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="card pg">
+        <div class="hd">🐘 PostgreSQL · chunks <span class="name">bảng chunks</span></div>
+        <div class="body">
+          <table>
+            <tr><td class="k">chunk_index</td><td class="v">thứ tự đoạn</td></tr>
+            <tr><td class="k">content</td><td class="v">nội dung đoạn (đã sạch + ngữ cảnh)</td></tr>
+            <tr><td class="k">metadata</td><td class="v">chunk_type, section_path, table_name, table_columns, row_start/end, id_vb, ky_hieu, trich_yeu...</td></tr>
+          </table>
+          <p class="note">1 văn bản → N chunk. Đây là nguồn để embed Qdrant + index ES chunk.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== Elasticsearch ===================== -->
+    <div class="col">
+      <div class="card es">
+        <div class="hd">🔎 ES · nhánh FULL <span class="name">hbrag_doffice_documents_v1</span></div>
+        <div class="body">
+          <p class="note">1 record / văn bản · BM25 toàn văn · KHÔNG vector, KHÔNG ACL raw.</p>
+          <table>
+            <tr><td class="k">noi_dung</td><td class="v"><span class="t cite">CITE</span>full nội dung ĐÃ SẠCH (BM25)</td></tr>
+            <tr><td class="k">ky_hieu</td><td class="v"><span class="t cite">CITE</span><span class="t flt">FILTER</span>BM25 boost cao</td></tr>
+            <tr><td class="k">trich_yeu, tom_tat</td><td class="v"><span class="t cite">CITE</span>BM25</td></tr>
+            <tr><td class="k">noi_ban_hanh, nguoi_ky</td><td class="v">BM25 + raw keyword</td></tr>
+            <tr><td class="k">ten_file, duong_dan</td><td class="v"><span class="t cite">CITE</span></td></tr>
+            <tr><td class="k">nam, thang</td><td class="v"><span class="t flt">FILTER</span>integer</td></tr>
+            <tr><td class="k">ngay_vb</td><td class="v"><span class="t flt">FILTER</span>keyword + date</td></tr>
+            <tr><td class="k">id_dv_ban_hanh, type_ocr</td><td class="v"><span class="t flt">FILTER</span>keyword</td></tr>
+            <tr><td class="k">acl_subjects, acl_deny</td><td class="v"><span class="t acl">ACL</span>keyword (nén) · acl_ver</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="card es">
+        <div class="hd">🔎 ES · nhánh CHUNK <span class="name">hbrag_doffice_chunks_es_v1</span></div>
+        <div class="body">
+          <p class="note">1 record / chunk · BM25 đúng đoạn/căn cứ · ACL nén, không raw.</p>
+          <table>
+            <tr><td class="k">chunk_text</td><td class="v"><span class="t cite">CITE</span>nội dung đoạn (BM25)</td></tr>
+            <tr><td class="k">chunk_id, chunk_index</td><td class="v"><span class="t cite">CITE</span>id_vb:index</td></tr>
+            <tr><td class="k">chunk_type</td><td class="v"><span class="t flt">FILTER</span>legal_clause/table/...</td></tr>
+            <tr><td class="k">section_path</td><td class="v"><span class="t cite">CITE</span>chương &gt; điều (BM25)</td></tr>
+            <tr><td class="k">table_name</td><td class="v">chunk bảng</td></tr>
+            <tr><td class="k">document_id, id_vb</td><td class="v"><span class="t cite">CITE</span></td></tr>
+            <tr><td class="k">ky_hieu, trich_yeu</td><td class="v">kế thừa văn bản (BM25)</td></tr>
+            <tr><td class="k">nam, thang, ngay_vb</td><td class="v"><span class="t flt">FILTER</span></td></tr>
+            <tr><td class="k">id_dv_ban_hanh, noi_ban_hanh</td><td class="v"><span class="t flt">FILTER</span></td></tr>
+            <tr><td class="k">acl_subjects, acl_deny</td><td class="v"><span class="t acl">ACL</span>nén · acl_ver</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== Qdrant ===================== -->
+    <div class="col">
+      <div class="card qd">
+        <div class="hd">🧠 Qdrant · Col1 CHUNK <span class="name">hbrag_doffice_chunks_v1</span></div>
+        <div class="body">
+          <p class="note">1 point / chunk · vector tìm ĐOẠN chứng cứ.</p>
+          <table>
+            <tr><td class="k">vector</td><td class="v"><span class="t vec">VECTOR</span><span class="t emb">EMBED</span>heading + chunk text (4096)</td></tr>
+            <tr><td class="k">text</td><td class="v"><span class="t cite">CITE</span>nội dung chunk</td></tr>
+            <tr><td class="k">chunk_id, chunk_index</td><td class="v"><span class="t cite">CITE</span></td></tr>
+            <tr><td class="k">chunk_type</td><td class="v"><span class="t flt">FILTER</span></td></tr>
+            <tr><td class="k">section_path, table_name</td><td class="v"><span class="t cite">CITE</span>table_columns, row_start/end, pages</td></tr>
+            <tr><td class="k">document_id, id_vb</td><td class="v"><span class="t cite">CITE</span><span class="t flt">FILTER</span></td></tr>
+            <tr><td class="k">ky_hieu, trich_yeu</td><td class="v"><span class="t cite">CITE</span>document_title, document_code</td></tr>
+            <tr><td class="k">noi_ban_hanh, ten_file, duong_dan</td><td class="v"><span class="t cite">CITE</span>issued_date, source_type, content_hash</td></tr>
+            <tr><td class="k">nam, thang, id_dv_ban_hanh</td><td class="v"><span class="t flt">FILTER</span>integer (index)</td></tr>
+            <tr><td class="k">ngay_vb</td><td class="v"><span class="t flt">FILTER</span>keyword (index)</td></tr>
+            <tr><td class="k">acl_subjects, acl_deny</td><td class="v"><span class="t acl">ACL</span>keyword (index)</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="card qd">
+        <div class="hd">🧠 Qdrant · Col2 DOCMETA <span class="name">hbrag_doffice_docmeta_v1</span></div>
+        <div class="body">
+          <p class="note">1 point / văn bản · vector tìm VĂN BẢN tổng thể.</p>
+          <table>
+            <tr><td class="k">vector</td><td class="v"><span class="t vec">VECTOR</span><span class="t emb">EMBED</span>ky_hieu + trich_yeu + tom_tat + noi_ban_hanh + ten_file (4096)</td></tr>
+            <tr><td class="k">document_id, id_vb</td><td class="v"><span class="t cite">CITE</span></td></tr>
+            <tr><td class="k">ky_hieu, trich_yeu, tom_tat</td><td class="v"><span class="t cite">CITE</span></td></tr>
+            <tr><td class="k">noi_ban_hanh, nguoi_ky</td><td class="v"><span class="t cite">CITE</span></td></tr>
+            <tr><td class="k">ten_file, duong_dan, type_ocr</td><td class="v"><span class="t cite">CITE</span></td></tr>
+            <tr><td class="k">nam, thang, id_dv_ban_hanh</td><td class="v"><span class="t flt">FILTER</span>integer (index)</td></tr>
+            <tr><td class="k">ngay_vb, ngay_tao, ngay_capnhat</td><td class="v"><span class="t flt">FILTER</span></td></tr>
+            <tr><td class="k">acl_subjects, acl_deny</td><td class="v"><span class="t acl">ACL</span>keyword (index)</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</body>
+</html>

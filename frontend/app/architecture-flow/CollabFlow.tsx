@@ -7,6 +7,7 @@ import {
   Background,
   Controls,
   Handle,
+  MarkerType,
   MiniMap,
   Position,
   ReactFlow,
@@ -44,8 +45,64 @@ function wsBaseUrl(): string {
 }
 
 const COLORS = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#db2777", "#0891b2"];
+const COLOR_SWATCHES = ["#eaf1ff", "#e8f7f1", "#fff1e8", "#fff7df", "#f2ebff", "#fff0f0", "#ecfdf5", "#ffffff", "#f8fafc"];
+const BORDER_SWATCHES = ["#b8ccff", "#a6ddc7", "#fed0b7", "#f5d28e", "#d6c2ff", "#fecaca", "#a7f3d0", "#94a3b8", "#334155"];
+const TEXT_SWATCHES = ["#142033", "#1d4ed8", "#047857", "#c2410c", "#6d28d9", "#b91c1c", "#334155", "#ffffff"];
+const EDGE_SWATCHES = ["#64748b", "#1d4ed8", "#047857", "#c2410c", "#6d28d9", "#b91c1c", "#0f172a"];
 
 type Peer = { clientId: number; name: string; color: string; cursor?: { x: number; y: number } };
+
+function tagsToText(tags?: string[]): string {
+  return (tags ?? []).join(", ");
+}
+
+function textToTags(value: string): string[] {
+  return value
+    .split(/[,\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function sectionsToText(sections?: CardData["sections"]): string {
+  return (sections ?? [])
+    .map((section) => `${section.title}: ${section.items.join(" | ")}`)
+    .join("\n");
+}
+
+function textToSections(value: string): CardData["sections"] {
+  return value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [rawTitle, ...rest] = line.split(":");
+      const title = rawTitle.trim() || "Nhóm";
+      const items = rest
+        .join(":")
+        .split("|")
+        .map((item) => item.trim())
+        .filter(Boolean);
+      return { title, items };
+    });
+}
+
+function rowsToText(rows?: CardData["rows"]): string {
+  return (rows ?? []).map((row) => `${row.label}: ${row.value}`).join("\n");
+}
+
+function textToRows(value: string): CardData["rows"] {
+  return value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [rawLabel, ...rest] = line.split(":");
+      return {
+        label: rawLabel.trim() || "Mục",
+        value: rest.join(":").trim(),
+      };
+    });
+}
 
 function stripEphemeral(node: Node): Node {
   const clone = { ...node } as Record<string, unknown>;
@@ -70,26 +127,20 @@ function CardNode({ data, selected }: NodeProps<Node<CardData>>) {
   }
 
   const tone = TONE_STYLE[data.tone ?? "process"];
-  return (
-    <div
-      style={{
-        width: data.width ?? 210,
-        minHeight: data.minHeight,
-        background: tone.bg,
-        border: `1px solid ${tone.border}`,
-        borderRadius: 14,
-        padding: "10px 12px",
-        boxShadow: selected ? "0 0 0 2px #1d4ed8" : "0 6px 14px rgba(15,23,42,.08)",
-        fontFamily: "Inter, Segoe UI, Roboto, Arial, sans-serif",
-      }}
-    >
-      <Handle type="target" position={Position.Left} style={{ background: "#64748b" }} />
-      <div style={{ fontSize: 14, fontWeight: 700, color: "#142033", lineHeight: 1.25 }}>{data.title}</div>
+  const shape = data.shape ?? "rounded";
+  const fillColor = data.fillColor ?? tone.bg;
+  const borderColor = data.borderColor ?? tone.border;
+  const textColor = data.textColor ?? "#142033";
+  const width = data.width ?? (shape === "circle" || shape === "diamond" ? 190 : 210);
+  const minHeight = data.minHeight ?? (shape === "circle" || shape === "diamond" ? width : undefined);
+  const content = (
+    <>
+      <div style={{ fontSize: 14, fontWeight: 700, color: textColor, lineHeight: 1.25 }}>{data.title}</div>
       {data.desc ? (
-        <div style={{ marginTop: 5, fontSize: 11.6, color: "#475569", lineHeight: 1.4 }}>{data.desc}</div>
+        <div style={{ marginTop: 5, fontSize: 11.6, color: textColor, opacity: 0.78, lineHeight: 1.4 }}>{data.desc}</div>
       ) : null}
       {data.tags?.length ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: shape === "circle" || shape === "diamond" ? "center" : "flex-start", gap: 5, marginTop: 8 }}>
           {data.tags.map((tag) => (
             <span
               key={tag}
@@ -153,6 +204,58 @@ function CardNode({ data, selected }: NodeProps<Node<CardData>>) {
           ))}
         </div>
       ) : null}
+    </>
+  );
+
+  if (shape === "diamond") {
+    return (
+      <div style={{ position: "relative", width, height: minHeight }}>
+        <Handle type="target" position={Position.Left} style={{ background: "#64748b" }} />
+        <div
+          style={{
+            position: "absolute",
+            inset: 18,
+            background: fillColor,
+            border: `1px solid ${borderColor}`,
+            boxShadow: selected ? "0 0 0 2px #1d4ed8" : "0 6px 14px rgba(15,23,42,.08)",
+            transform: "rotate(45deg)",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: 28,
+            display: "grid",
+            placeItems: "center",
+            fontFamily: "Inter, Segoe UI, Roboto, Arial, sans-serif",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ maxWidth: width * 0.64 }}>{content}</div>
+        </div>
+        <Handle type="source" position={Position.Right} style={{ background: "#64748b" }} />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        width,
+        minHeight,
+        background: fillColor,
+        border: `1px solid ${borderColor}`,
+        borderRadius: shape === "circle" ? "50%" : shape === "square" ? 4 : 14,
+        padding: "10px 12px",
+        boxShadow: selected ? "0 0 0 2px #1d4ed8" : "0 6px 14px rgba(15,23,42,.08)",
+        display: shape === "circle" ? "grid" : "block",
+        placeItems: shape === "circle" ? "center" : undefined,
+        fontFamily: "Inter, Segoe UI, Roboto, Arial, sans-serif",
+        textAlign: shape === "circle" ? "center" : "left",
+      }}
+    >
+      <Handle type="target" position={Position.Left} style={{ background: "#64748b" }} />
+      <div style={{ maxWidth: shape === "circle" ? width * 0.74 : undefined }}>{content}</div>
       <Handle type="source" position={Position.Right} style={{ background: "#64748b" }} />
     </div>
   );
@@ -194,6 +297,8 @@ function FlowCanvas() {
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
   const [status, setStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const [peers, setPeers] = useState<Peer[]>([]);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
 
   const me = useMemo(
     () => ({
@@ -208,6 +313,33 @@ function FlowCanvas() {
   const providerRef = useRef<WebsocketProvider | null>(null);
   const yNodesRef = useRef<Y.Map<Node> | null>(null);
   const yEdgesRef = useRef<Y.Map<Edge> | null>(null);
+
+  const commitNode = useCallback((node: Node) => {
+    setNodes((current) => current.map((item) => (item.id === node.id ? node : item)));
+    const doc = docRef.current;
+    const yNodes = yNodesRef.current;
+    if (doc && yNodes) {
+      doc.transact(() => yNodes.set(node.id, stripEphemeral(node)), LOCAL_ORIGIN);
+    }
+  }, []);
+
+  const commitEdge = useCallback((edge: Edge) => {
+    setEdges((current) => current.map((item) => (item.id === edge.id ? edge : item)));
+    const doc = docRef.current;
+    const yEdges = yEdgesRef.current;
+    if (doc && yEdges) {
+      doc.transact(() => yEdges.set(edge.id, edge), LOCAL_ORIGIN);
+    }
+  }, []);
+
+  const selectedNode = useMemo(
+    () => nodes.find((node) => node.id === selectedNodeId) as Node<CardData> | undefined,
+    [nodes, selectedNodeId],
+  );
+  const selectedEdge = useMemo(
+    () => edges.find((edge) => edge.id === selectedEdgeId),
+    [edges, selectedEdgeId],
+  );
 
   // --- vòng đời: tạo doc/provider, đồng bộ, presence; dọn khi unmount ---
   useEffect(() => {
@@ -306,7 +438,10 @@ function FlowCanvas() {
       }
       return next;
     });
-  }, []);
+    if (changes.some((ch) => ch.type === "remove" && ch.id === selectedNodeId)) {
+      setSelectedNodeId(null);
+    }
+  }, [selectedNodeId]);
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
     const doc = docRef.current;
@@ -320,32 +455,39 @@ function FlowCanvas() {
       }
       return next;
     });
-  }, []);
+    if (changes.some((ch) => ch.type === "remove" && ch.id === selectedEdgeId)) {
+      setSelectedEdgeId(null);
+    }
+  }, [selectedEdgeId]);
 
   const onConnect = useCallback((conn: Connection) => {
-    const doc = docRef.current;
-    const yEdges = yEdgesRef.current;
-    if (!doc || !yEdges) return;
+    if (!conn.source || !conn.target) return;
+    const id = `e-${conn.source}-${conn.sourceHandle ?? "out"}-${conn.target}-${conn.targetHandle ?? "in"}-${Date.now()}`;
+    const edge: Edge = {
+      ...conn,
+      id,
+      animated: false,
+      markerEnd: { type: MarkerType.ArrowClosed, color: "#64748b" },
+      style: { stroke: "#64748b", strokeWidth: 2 },
+    };
     setEdges((eds) => {
-      const next = addEdge(conn, eds);
-      const added = next.find((e) => !eds.some((x) => x.id === e.id));
-      if (added) doc.transact(() => yEdges.set(added.id, added), LOCAL_ORIGIN);
+      const next = addEdge(edge, eds);
+      const doc = docRef.current;
+      const yEdges = yEdgesRef.current;
+      if (doc && yEdges) doc.transact(() => yEdges.set(edge.id, edge), LOCAL_ORIGIN);
       return next;
     });
   }, []);
 
   const onNodeDoubleClick = useCallback((_e: React.MouseEvent, node: Node) => {
-    const doc = docRef.current;
-    const yNodes = yNodesRef.current;
-    if (!doc || !yNodes) return;
-    const data = node.data as CardData;
-    const title = window.prompt("Sửa tiêu đề node:", data.title);
-    if (title == null) return;
-    const desc = window.prompt("Sửa mô tả:", data.desc ?? "") ?? "";
-    doc.transact(
-      () => yNodes.set(node.id, { ...stripEphemeral(node), data: { ...data, title, desc } }),
-      LOCAL_ORIGIN,
-    );
+    setSelectedNodeId(node.id);
+    setSelectedEdgeId(null);
+  }, []);
+
+  const onSelectionChange = useCallback(({ nodes: selectedNodes, edges: selectedEdges }: { nodes: Node[]; edges: Edge[] }) => {
+    const node = selectedNodes.find((item) => !(item.data as CardData | undefined)?.invisible);
+    setSelectedNodeId(node?.id ?? null);
+    setSelectedEdgeId(node ? null : selectedEdges[0]?.id ?? null);
   }, []);
 
   const { screenToFlowPosition } = useReactFlow();
@@ -359,18 +501,27 @@ function FlowCanvas() {
     [screenToFlowPosition],
   );
 
-  const addCard = useCallback(() => {
-    const doc = docRef.current;
-    const yNodes = yNodesRef.current;
-    if (!doc || !yNodes) return;
+  const addCard = useCallback((shape: CardData["shape"] = "rounded") => {
     const id = `n-${Math.random().toString(36).slice(2, 10)}`;
     const node: Node<CardData> = {
       id,
       type: "card",
       position: { x: 120, y: 200 + Math.random() * 60 },
-      data: { title: "Node mới", desc: "Nhấp đúp để sửa", tone: "process" },
+      data: {
+        title: "Node mới",
+        desc: "Chọn node để sửa nội dung, màu sắc và hình dạng.",
+        tone: "process",
+        shape,
+        width: shape === "circle" || shape === "diamond" ? 190 : 210,
+        minHeight: shape === "circle" || shape === "diamond" ? 190 : undefined,
+      },
     };
-    doc.transact(() => yNodes.set(id, node), LOCAL_ORIGIN);
+    setNodes((current) => [...current, node]);
+    setSelectedNodeId(id);
+    setSelectedEdgeId(null);
+    const doc = docRef.current;
+    const yNodes = yNodesRef.current;
+    if (doc && yNodes) doc.transact(() => yNodes.set(id, node), LOCAL_ORIGIN);
   }, []);
 
   const restoreDefaultDiagram = useCallback(() => {
@@ -390,6 +541,83 @@ function FlowCanvas() {
     setNodes(initialNodes);
     setEdges(initialEdges);
   }, []);
+
+  const updateSelectedNodeData = useCallback((patch: Partial<CardData>) => {
+    if (!selectedNode) return;
+    commitNode({
+      ...selectedNode,
+      data: { ...selectedNode.data, ...patch },
+    });
+  }, [commitNode, selectedNode]);
+
+  const updateSelectedNodeSize = useCallback((patch: { width?: number; minHeight?: number }) => {
+    if (!selectedNode) return;
+    commitNode({
+      ...selectedNode,
+      data: { ...selectedNode.data, ...patch },
+    });
+  }, [commitNode, selectedNode]);
+
+  const deleteSelectedNode = useCallback(() => {
+    if (!selectedNode) return;
+    setNodes((current) => current.filter((node) => node.id !== selectedNode.id));
+    setEdges((current) => current.filter((edge) => edge.source !== selectedNode.id && edge.target !== selectedNode.id));
+    const doc = docRef.current;
+    const yNodes = yNodesRef.current;
+    const yEdges = yEdgesRef.current;
+    if (doc && yNodes && yEdges) {
+      doc.transact(() => {
+        yNodes.delete(selectedNode.id);
+        Array.from(yEdges.values()).forEach((edge) => {
+          if (edge.source === selectedNode.id || edge.target === selectedNode.id) yEdges.delete(edge.id);
+        });
+      }, LOCAL_ORIGIN);
+    }
+    setSelectedNodeId(null);
+  }, [selectedNode]);
+
+  const updateSelectedEdge = useCallback((patch: Partial<Edge>) => {
+    if (!selectedEdge) return;
+    commitEdge({ ...selectedEdge, ...patch });
+  }, [commitEdge, selectedEdge]);
+
+  const updateSelectedEdgeColor = useCallback((color: string) => {
+    if (!selectedEdge) return;
+    const hasMarker = selectedEdge.markerEnd !== undefined;
+    commitEdge({
+      ...selectedEdge,
+      style: { ...(selectedEdge.style ?? {}), stroke: color },
+      markerEnd: hasMarker ? { type: MarkerType.ArrowClosed, color } : undefined,
+    });
+  }, [commitEdge, selectedEdge]);
+
+  const updateSelectedEdgeWidth = useCallback((strokeWidth: number) => {
+    if (!selectedEdge) return;
+    commitEdge({
+      ...selectedEdge,
+      style: { ...(selectedEdge.style ?? {}), strokeWidth },
+    });
+  }, [commitEdge, selectedEdge]);
+
+  const updateSelectedEdgeDashed = useCallback((dashed: boolean) => {
+    if (!selectedEdge) return;
+    commitEdge({
+      ...selectedEdge,
+      style: {
+        ...(selectedEdge.style ?? {}),
+        strokeDasharray: dashed ? "6 4" : undefined,
+      },
+    });
+  }, [commitEdge, selectedEdge]);
+
+  const deleteSelectedEdge = useCallback(() => {
+    if (!selectedEdge) return;
+    setEdges((current) => current.filter((edge) => edge.id !== selectedEdge.id));
+    const doc = docRef.current;
+    const yEdges = yEdgesRef.current;
+    if (doc && yEdges) doc.transact(() => yEdges.delete(selectedEdge.id), LOCAL_ORIGIN);
+    setSelectedEdgeId(null);
+  }, [selectedEdge]);
 
   const statusInfo = {
     connecting: { text: "Đang kết nối…", color: "#d97706" },
