@@ -8,6 +8,7 @@ from sqlalchemy import Integer, String, cast, delete, func, literal_column, or_,
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.chunk_ids import deterministic_chunk_id
 from app.models.chunk import Chunk
 from app.models.document import Document, DocumentFile
 from app.models.document_log import DocumentPipelineLog
@@ -293,6 +294,7 @@ class DocumentRepository:
         document = await self.get_document(document_id)
         chunk_models = [
             Chunk(
+                id=deterministic_chunk_id(document_id, chunk.chunk_index),
                 document_id=document_id,
                 chunk_index=chunk.chunk_index,
                 content=chunk.content,

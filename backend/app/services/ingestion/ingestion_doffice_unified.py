@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from app.core.chunk_ids import deterministic_chunk_id
 from app.core.config import settings
 from app.services.chunkers.chunker_text_cleaning import clean_for_chunking
 from app.services.document_sources import DOFFICE_SOURCE_TYPE
@@ -360,7 +361,7 @@ class DofficeUnifiedIngestor:
             record: dict[str, Any] = {
                 "document_id": item.document_id,
                 "id_vb": str(item.id_vb),
-                "chunk_id": f"{item.id_vb}:{chunk.chunk_index}",
+                "chunk_id": str(deterministic_chunk_id(item.document_id, chunk.chunk_index)),
                 "chunk_index": chunk.chunk_index,
                 "chunk_type": meta.get("chunk_type"),
                 "chunk_text": chunk.content,

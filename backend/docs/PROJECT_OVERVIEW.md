@@ -10,6 +10,14 @@
 > `ngay_vb/loai_vb/linh_vuc/trang_thai_hieu_luc/acl_subjects/acl_deny` keyword) trong `vector_store.PAYLOAD_*`.
 > **HOÃN** strip field debug (nằm trong hợp đồng payload + retrieval dùng; lợi ích dung lượng ~0).
 >
+> 🔗 **chunk_id CHUNG 3 store (2026-07-01)**: trước đây `chunks.id` (PG) là `uuid4` ngẫu nhiên, ES đặt
+> `chunk_id="{id_vb}:{index}"`, Qdrant payload `chunk_id=str(chunks.id)` → ES ≠ Qdrant, và 2 job chạy tách thời
+> điểm dễ lệch. Giờ `chunks.id` **tất định** = `uuid5(document_id, chunk_index)` (helper `app/core/chunk_ids.py`
+> `deterministic_chunk_id`, dùng ở `create_chunks`). ES `chunk_id`/`_id` tính lại theo CÙNG công thức
+> (`index_elasticsearch_chunks`); Qdrant tự khớp vì payload `chunk_id`=`str(chunks.id)`. `document_id` vốn đã chung
+> (`documents.id`). Cả `run_pg_es` và `run_qdrant` đi qua code lõi này (KHÔNG sửa .bat). Backfill dữ liệu cũ:
+> `reset_all_stores.py --yes` rồi chạy lại 2 job (id tất định ⇒ re-ingest là upsert sạch theo từng văn bản).
+>
 > 🗑️ **run_delete — chọn store**: trước đây luôn xóa cả 3 (PG+ES+Qdrant). Giờ `delete_by_id_vb(pg/es/qdrant)`
 > xóa CHỌN LỌC từng store (`_delete_stores`). `run_delete` có **menu tương tác** (gõ 1/2/3 bật/tắt, 4=xác nhận, q=hủy)
 > hoặc `--stores pg es qdrant` (+`--yes`) / env `DOFFICE_DEL_STORES`. Vẫn target theo `--id-vb`/`--don-vi`.
