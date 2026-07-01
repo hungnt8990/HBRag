@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 from app.services.retrieval.retrieval_document_index import DocumentIndexStore
+from app.services.security.acl_bypass_users import is_bypass_user
 from app.services.security.security_acl_payload import AclSubject, acl_subject_to_keys
 
 logger = logging.getLogger("document_search")
@@ -194,13 +195,23 @@ async def resolve_acl_subject(id_nv: int) -> AclSubject:
 
     KHÔNG tin id_pb/id_dv do client gửi -> chống leo thang quyền. id_nv không có trong danh
     mục (hoặc DB lỗi) -> fallback nv-only: chỉ khớp văn bản cấp đích danh nhân viên đó (~0).
+
+    id_nv nằm trong danh sách bỏ qua ACL (``config/acl_bypass_users.txt``, đọc động) ->
+    ``is_super_admin=True`` -> không lọc quyền, xem được TẤT CẢ.
     """
+    bypass = is_bypass_user(id_nv)
     try:
         subject = await _resolve_subject_from_db(id_nv)
     except Exception:
         logger.warning("Không resolve được phòng/đơn vị cho id_nv=%s -> nv-only", id_nv, exc_info=True)
         subject = None
-    return subject or AclSubject(id_nv=id_nv, is_super_admin=False)
+    if subject is None:
+        return AclSubject(id_nv=id_nv, is_super_admin=bypass)
+    if bypass and not subject.is_super_admin:
+        return AclSubject(
+            id_nv=subject.id_nv, id_dv=subject.id_dv, id_pb=subject.id_pb, is_super_admin=True
+        )
+    return subject
 
 
 def build_acl_filters(acl_subject: AclSubject) -> list[dict]:

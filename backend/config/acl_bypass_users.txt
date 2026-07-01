@@ -1,0 +1,13 @@
+# Danh sách ID nhân viên (id_nv) được BỎ QUA ACL cho API /api/document-search/search.
+# Người có id_nv trong danh sách này sẽ tìm/lọc được TẤT CẢ văn bản, không qua kiểm tra quyền.
+#
+# Quy tắc:
+#   - Mỗi dòng một id_nv (số nguyên). Ví dụ: 258
+#   - Dòng trống và dòng bắt đầu bằng '#' bị bỏ qua.
+#   - Cho phép ghi chú cuối dòng sau '#'. Ví dụ: 258   # Trưởng phòng CNTT
+#
+# LƯU Ý: File được đọc ĐỘNG (theo mtime) — thêm/bớt id có hiệu lực NGAY,
+# KHÔNG cần khởi động lại backend.
+
+# Thêm các id_nv vào bên dưới:
+132569
