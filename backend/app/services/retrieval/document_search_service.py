@@ -159,6 +159,17 @@ def _extract_orgs(query: str) -> list[str]:
     return [t for t in toks if t in _ORG_CODES]
 
 
+def _strip_org_tokens(query: str) -> str:
+    """Bỏ token tên đơn vị khỏi chuỗi nội dung (org xử lý riêng bằng boost ky_hieu).
+
+    Tránh double-count: 'tiền lương cpcit' -> nội dung chỉ còn 'tiền lương' (org 'cpcit'
+    KHÔNG còn khớp lung tung trong noi_dung), org boost nhẹ ở ky_hieu lo phần ưu tiên đơn vị.
+    Nếu query CHỈ gồm token org (vd 'CPCIT') -> giữ nguyên để không thành chuỗi rỗng.
+    """
+    kept = [t for t in query.split() if _fold_lower(t) not in _ORG_CODES]
+    return " ".join(kept) if kept else query
+
+
 def detect_search_type(query: str) -> str:
     if _is_ky_hieu_lookup(query):
         return "ref"  # tra cứu số/ký hiệu rời (qd 258) -> ưu tiên ky_hieu, không nhiễu noi_dung
@@ -305,14 +316,19 @@ def build_query_body(
             },
         }
 
+    # Tách token đơn vị khỏi CHUỖI NỘI DUNG: org được ưu tiên riêng bằng boost ky_hieu (dưới),
+    # không để 'cpcit' vừa khớp lung tung trong noi_dung vừa boost ky_hieu (double-count) ->
+    # trước đây kéo mọi văn bản của đơn vị lên top bất kể chủ đề. Nội dung giờ chỉ còn chủ đề thật.
+    content_query = _strip_org_tokens(query)
+
     # ký hiệu: match thường (KHÔNG fuzzy — là mã, fuzzy dễ khớp sai số văn bản).
     # nội dung: fuzzy (gõ sai 1-2 ký tự) + minimum_should_match (chịu được gõ thiếu/nhiễu vài từ).
     # phrase_prefix: bắt kiểu gõ dở từ cuối ("kế hoạch cung cấp đi…").
     should = [
-        {"match": {"ky_hieu": {"query": query, "boost": 6.0}}},
+        {"match": {"ky_hieu": {"query": content_query, "boost": 6.0}}},
         {
             "multi_match": {
-                "query": query,
+                "query": content_query,
                 "type": "best_fields",
                 "fields": ["trich_yeu^3", "tom_tat^2", "keywords^1.5", "noi_dung^1", "noi_ban_hanh^0.5"],
                 "fuzziness": "AUTO",
@@ -324,7 +340,7 @@ def build_query_body(
         },
         {
             "multi_match": {
-                "query": query,
+                "query": content_query,
                 "type": "phrase_prefix",
                 "fields": ["trich_yeu^3", "tom_tat^2", "noi_dung^1"],
                 "boost": 0.6,
@@ -332,13 +348,29 @@ def build_query_body(
         },
     ]
 
+    # Thưởng cụm liền đúng chủ đề (vd "tiền lương") -> kéo văn bản đúng nghĩa lên trên nhiễu do
+    # asciifolding fold thanh điệu ("lương" khớp nhầm "năng lượng"/"chất lượng"). Chỉ khi ≥2 từ.
+    if len(content_query.split()) >= 2:
+        should.append(
+            {
+                "multi_match": {
+                    "query": content_query,
+                    "type": "phrase",
+                    "fields": ["trich_yeu^3", "tom_tat^2", "noi_dung^1"],
+                    "boost": 4.0,
+                }
+            }
+        )
+
     # Năm tường minh -> FILTER CỨNG theo `nam` (áp cả lên knn) vì vector ngữ nghĩa KHÔNG phân
     # biệt được năm; chỉ boost trong phần BM25 sẽ bị điểm knn lấn át ở chế độ hybrid.
     years = _extract_years(query)
     extra_filters = [{"terms": {"nam": years}}] if years else []
-    # Org được nhắc -> boost văn bản CỦA đơn vị đó (ky_hieu chứa mã org) — giữ mềm (ưu tiên, không loại).
+    # Org được nhắc -> boost NHẸ văn bản CỦA đơn vị đó (ky_hieu chứa mã org) như tie-breaker:
+    # ưu tiên trong nhóm ĐÃ liên quan chủ đề, KHÔNG kéo văn bản lạc chủ đề lên top (trước boost=8.0
+    # lấn cả điểm BM25 nội dung -> 'tiền lương cpcit' ra toàn văn bản CPCIT bất kỳ, không về lương).
     for o in _extract_orgs(query):
-        should.append({"match": {"ky_hieu": {"query": _ORG_ALIAS.get(o, o), "boost": 8.0}}})
+        should.append({"match": {"ky_hieu": {"query": _ORG_ALIAS.get(o, o), "boost": 2.0}}})
 
     # Có năm tường minh -> KHÔNG ép "mới nhất" (người dùng đã chỉ định năm; filter nam lo việc đó).
     apply_recency = prefer_recent and not years
