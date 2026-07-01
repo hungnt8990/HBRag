@@ -129,13 +129,18 @@ Không đưa vào payload Qdrant/ES; truy vấn PG khi cần dựng "căn cứ/s
 
 ---
 
-## 9. BỎ khỏi payload Qdrant — **ĐÃ HOÃN** (không thực hiện)
+## 9. BỎ khỏi payload Qdrant — **ĐÃ DỌN NHÓM AN TOÀN** (2026-07-02)
 
-Ban đầu định loại các trường debug (`parser`, `chunker`, `enriched`, `quality_status`,
-`document_version`, `content_format`, `source_file`, `visibility`, `semantic_chunk_id`,
-`database_chunk_id`, `document_code`, `document_title`). **Kết luận sau khi kiểm chứng: KHÔNG strip.**
+**Đã strip (chỉ nhánh chunk doffice, `qdrant_payload` → `DOFFICE_REDUNDANT_PAYLOAD_FIELDS`):**
+`database_chunk_id` (trùng `chunk_id`), `parser`/`chunker` (luôn `"unknown"`), `source_file` (hằng `"document"`),
+và ẩn list rỗng `section_path`/`pages`/`table_columns`/`enrichment_keywords` + `enriched=false`
+(`DOFFICE_EMPTY_SUPPRESS_FIELDS`). Đã verify không nơi nào ở `app/services/retrieval/` đọc các key này.
 
-Lý do:
+**VẪN GIỮ (retrieval/citation/boost dùng — để dành "dọn sâu"):** `quality_status`, `document_version`,
+`content_format`, `visibility`, `semantic_chunk_id`, `document_code`, `document_title`, `issued_date`,
+`structure_path` (boost `retrieval_hybrid_search.py`/`retrieval_keyword_search.py`).
+
+Lý do (nhóm giữ):
 - `document_title`/`document_code`/`source_file`/`visibility`/`content_format`/`document_version`/
   `semantic_chunk_id`/`database_chunk_id` **được retrieval/citation đọc** (ES boost + dựng nguồn).
 - `enriched` (và nhóm trên) nằm trong **hợp đồng payload đã có test** (`tests/test_vector_indexing.py`).

@@ -55,7 +55,10 @@
 - Làm sạch `clean_for_chunking` (`chunker_text_cleaning.py`): chuẩn hoá smart-quote/dash/NBSP qua `_PUNCT_TRANS`
   (ordinal); prose bỏ `**`/`*` + dòng số trang; **bảng dùng `preserve_markdown=True`** (giữ `| --- |`). KHÔNG TCVN3,
   KHÔNG gỡ HTML, KHÔNG bỏ quốc hiệu. ⚠️ KHÔNG Write đè file này (regex chứa dải Unicode hiếm dễ lệch byte; chỉ Edit).
-- KHÔNG strip field debug khỏi Qdrant payload (nằm trong hợp đồng test + retrieval dùng; vector chiếm ~98% dung lượng).
+- Payload chunk Qdrant (nhánh doffice): ĐÃ bỏ nhóm an toàn (`database_chunk_id`/`parser`/`chunker`/`source_file` +
+  list rỗng + `enriched=false`) qua `DOFFICE_REDUNDANT_PAYLOAD_FIELDS`+`DOFFICE_EMPTY_SUPPRESS_FIELDS` (`rag_chunk.py`).
+  VẪN GIỮ field retrieval/citation/boost dùng (`structure_path`/`document_code`/`document_title`/`issued_date`/
+  `quality_status`...) — muốn bỏ tiếp phải sửa kèm code retrieval. Xem `docs/METADATA_SCHEMA.md §9`.
 - Startup KHÔNG tạo lại collection Qdrant generic: `validate_generic_vector_store_on_startup=False` (config) + guard ở
   `main._validate_vector_store_on_startup`. Chỉ dùng DOffice.
 - Bảng PG rỗng (citations, graph_*, document_files...) ĐỪNG drop: gắn ORM model + query (list_documents), drop sẽ vỡ app + lệch alembic.

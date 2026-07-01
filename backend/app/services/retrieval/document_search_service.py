@@ -246,24 +246,47 @@ _RECENCY_OFFSET = "30d"
 _RECENCY_SCALE = "365d"
 _RECENCY_DECAY = 0.5
 
+# Ưu tiên đơn vị được nhắc trong query: NHÂN điểm (weight) thay vì CỘNG (should boost). Vì nhân
+# theo score_mode=multiply nên chỉ khuếch đại VB ĐÃ có điểm nội dung -> VB đúng đơn vị nhưng lạc
+# chủ đề (điểm ~0) nhân lên vẫn ~0, KHÔNG lọt top (trước đây should boost cộng 8.0 kéo cả VB lạc
+# chủ đề của đơn vị lên đầu). 3.0 đủ đưa VB đơn vị lên trên VB đơn vị khác cùng chủ đề — tinh chỉnh.
+_ORG_BOOST_WEIGHT = 3.0
 
-def _wrap_recency(query_block: dict) -> dict:
-    """Bọc query bằng function_score gauss decay theo ngay_vb -> điểm = liên_quan × độ_mới."""
+
+def _recency_function() -> dict:
+    """Hàm gauss decay theo ngay_vb (điểm ~1 trong OFFSET ngày, giảm dần còn ~DECAY tại SCALE)."""
+    return {
+        "gauss": {
+            _RECENCY_FIELD: {
+                "origin": "now",
+                "offset": _RECENCY_OFFSET,
+                "scale": _RECENCY_SCALE,
+                "decay": _RECENCY_DECAY,
+            }
+        }
+    }
+
+
+def _org_boost_functions(query: str) -> list[dict]:
+    """Hàm NHÂN điểm cho VB CỦA đơn vị được nhắc (mã đơn vị nằm trong ``ky_hieu``, vd '-IT').
+
+    ``filter`` + ``weight`` trong function_score (score_mode=multiply) -> ưu tiên đơn vị TRONG
+    nhóm đã liên quan chủ đề, không kéo VB lạc chủ đề lên top.
+    """
+    return [
+        {"filter": {"match": {"ky_hieu": _ORG_ALIAS.get(o, o)}}, "weight": _ORG_BOOST_WEIGHT}
+        for o in _extract_orgs(query)
+    ]
+
+
+def _wrap_score_functions(query_block: dict, functions: list[dict]) -> dict:
+    """Bọc query bằng function_score (nhân điểm) khi có hàm; không có hàm -> trả nguyên query."""
+    if not functions:
+        return query_block
     return {
         "function_score": {
             "query": query_block,
-            "functions": [
-                {
-                    "gauss": {
-                        _RECENCY_FIELD: {
-                            "origin": "now",
-                            "offset": _RECENCY_OFFSET,
-                            "scale": _RECENCY_SCALE,
-                            "decay": _RECENCY_DECAY,
-                        }
-                    }
-                }
-            ],
+            "functions": functions,
             "boost_mode": "multiply",
             "score_mode": "multiply",
         }
@@ -366,22 +389,27 @@ def build_query_body(
     # biệt được năm; chỉ boost trong phần BM25 sẽ bị điểm knn lấn át ở chế độ hybrid.
     years = _extract_years(query)
     extra_filters = [{"terms": {"nam": years}}] if years else []
-    # Org được nhắc -> boost NHẸ văn bản CỦA đơn vị đó (ky_hieu chứa mã org) như tie-breaker:
-    # ưu tiên trong nhóm ĐÃ liên quan chủ đề, KHÔNG kéo văn bản lạc chủ đề lên top (trước boost=8.0
-    # lấn cả điểm BM25 nội dung -> 'tiền lương cpcit' ra toàn văn bản CPCIT bất kỳ, không về lương).
-    for o in _extract_orgs(query):
-        should.append({"match": {"ky_hieu": {"query": _ORG_ALIAS.get(o, o), "boost": 2.0}}})
 
     # Có năm tường minh -> KHÔNG ép "mới nhất" (người dùng đã chỉ định năm; filter nam lo việc đó).
     apply_recency = prefer_recent and not years
+    # Điểm cuối = liên_quan × (recency nếu bật) × (org weight nếu nhắc đơn vị). Cả hai đều NHÂN
+    # (function_score, score_mode=multiply) -> ưu tiên đơn vị/độ mới TRONG nhóm đã liên quan chủ đề,
+    # không kéo VB lạc chủ đề lên top. Org được nhắc đã tách khỏi content_query (khớp org qua weight
+    # trên ky_hieu), nên nội dung chỉ còn chủ đề thật.
+    score_functions: list[dict] = []
+    if apply_recency:
+        score_functions.append(_recency_function())
+    score_functions.extend(_org_boost_functions(query))
+
     combined_filter = acl_filters + extra_filters
     bool_query = {"bool": {"should": should, "filter": combined_filter}}
+    scored_query = _wrap_score_functions(bool_query, score_functions)
     if search_type == "bm25" or query_vector is None:
         return {
             "size": top_n,
             "_source": _SOURCE_FIELDS,
             "highlight": _HIGHLIGHT,
-            "query": _wrap_recency(bool_query) if apply_recency else bool_query,
+            "query": scored_query,
         }
 
     return {
@@ -395,8 +423,8 @@ def build_query_body(
             "num_candidates": top_n * 4,
             "filter": combined_filter,
         },
-        # recency áp lên phần BM25 (knn giữ điểm ngữ nghĩa) -> hybrid vẫn nghiêng về văn bản mới.
-        "query": _wrap_recency(bool_query) if apply_recency else bool_query,
+        # recency + org áp lên phần BM25 (knn giữ điểm ngữ nghĩa) -> hybrid vẫn nghiêng VB mới/đúng đơn vị.
+        "query": scored_query,
     }
 
 

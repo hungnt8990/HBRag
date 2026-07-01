@@ -65,7 +65,25 @@
 > (delete_by_id_vb trước bulk). Verify E2E trên ES live: ensure_index + bulk + search BM25 + ACL fields + 1 doc thật
 > 3 chunk khớp. 183 test pass. (run_qdrant KHÔNG index ES — chỉ embed Qdrant.)
 >
-> Cập nhật gần nhất: 2026-06-30 — **Checkpoint TÁCH theo đơn vị + hiển thị phạm vi quét**. Trước đây checkpoint
+> Cập nhật gần nhất: 2026-07-02 — **Ưu tiên đơn vị bằng NHÂN điểm (org multiplicative boost)**.
+> `build_query_body` (`document_search_service.py`): org được nhắc (`_extract_orgs`, vd 'tiền lương cpcit')
+> KHÔNG còn boost CỘNG mềm `match ky_hieu` trong `should` (2.0 quá yếu; từng để 8.0 lại kéo VB lạc chủ đề
+> của đơn vị lên top) mà chuyển sang **`function_score` weight** (`_org_boost_functions`, `_ORG_BOOST_WEIGHT=3.0`,
+> filter `match ky_hieu <org>`) gộp cùng recency trong `_wrap_score_functions` (score_mode/boost_mode=multiply).
+> Vì NHÂN nên chỉ khuếch đại VB đã có điểm nội dung -> VB đúng đơn vị nhưng lạc chủ đề (điểm ~0) vẫn ~0,
+> KHÔNG lọt top; VB đơn vị đúng chủ đề vượt lên trên VB đơn vị khác cùng chủ đề. Áp cho cả nhánh có/không
+> recency (kể cả khi có năm tường minh). +1 test (`org_multiplicative_boost`), cập nhật `year_org_boost`; 25 pass.
+>
+> Cập nhật trước: 2026-07-02 — **Gọn payload chunk Qdrant (nhóm an toàn) + reset re-embed toàn bộ**.
+> `qdrant_payload` (nhánh doffice) bỏ trường trùng/placeholder: `database_chunk_id`(=chunk_id), `parser`/`chunker`
+> (=`"unknown"`), `source_file`(=`"document"`), và ẩn list rỗng `section_path`/`pages`/`table_columns`/
+> `enrichment_keywords` + `enriched=false` (`DOFFICE_REDUNDANT_PAYLOAD_FIELDS` + `DOFFICE_EMPTY_SUPPRESS_FIELDS`).
+> GIỮ trường retrieval/boost dùng (`structure_path`/`document_code`/`document_title`/`issued_date`...). Đã verify
+> không nơi nào ở `app/services/retrieval/` đọc key bị bỏ; 47 test liên quan pass. Sau đó chạy
+> `reset_doffice_for_rechunk.py --yes` (reset 1568 doc `qdrant_indexed=false` + wipe Col1 chunk) -> re-embed lại
+> 15569 doc theo payload mới. Xem `docs/METADATA_SCHEMA.md §9`.
+>
+> Cập nhật trước: 2026-06-30 — **Checkpoint TÁCH theo đơn vị + hiển thị phạm vi quét**. Trước đây checkpoint
 > incremental dùng CHUNG 1 key `doffice_unified` cho mọi đơn vị -> đổi `DOFFICE_JOB_DON_VI` (vd 268→258) thì tái
 > dùng mốc `updated_after` của đơn vị trước, lọc `ngay_capnhat.keyword >= mốc` loại sạch VB đơn vị mới (cũ hơn) ->
 > **"quét không ra"** dù ES có nhiều VB. Fix: `_scope_suffix()` thêm hậu tố `_dv<id>` (đơn vị) / `_idvb` (id lẻ) /

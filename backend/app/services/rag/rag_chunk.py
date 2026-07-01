@@ -60,10 +60,19 @@ DOFFICE_REDUNDANT_PAYLOAD_FIELDS = {
     "business_domains", "project_codes", "areas", "source_systems", "staff",
     "staff_names", "screen_names", "cross_references", "convertible_fields",
     "field_names", "rule_enrichment", "validation_issues", "dates",
-    # Lưu ý: KHÔNG strip parser/chunker/enriched/quality_status/document_title/... — chúng nằm
-    # trong HỢP ĐỒNG payload đã có test + được retrieval/citation dùng; lợi ích dung lượng không
-    # đáng kể (vector chiếm ~98%). Xem docs/METADATA_SCHEMA.md §9 (đã hoãn việc strip).
+    # Trùng/placeholder cho doffice (đã verify KHÔNG dùng ở app/services/retrieval/):
+    #  - database_chunk_id trùng chunk_id (retrieval đọc payload["chunk_id"]).
+    #  - parser/chunker luôn "unknown" (doffice không set); source_file hằng số "document".
+    "database_chunk_id", "parser", "chunker", "source_file",
+    # Lưu ý: VẪN GIỮ quality_status/document_title/document_code/issued_date/structure_path — nằm
+    # trong hợp đồng test + được retrieval/citation/boost dùng. Xem docs/METADATA_SCHEMA.md §9.
 }
+
+# List rỗng của chunk doffice -> ẩn khỏi payload (đỡ rác []). CHỈ ẩn khi thực sự rỗng, để
+# chunk bảng (có section_path/pages/table_columns) vẫn giữ giá trị. (scope đã bị pop ở trên.)
+DOFFICE_EMPTY_SUPPRESS_FIELDS = (
+    "section_path", "pages", "table_columns", "enrichment_keywords",
+)
 
 
 class RagChunk(BaseModel):
@@ -1024,6 +1033,11 @@ def qdrant_payload(chunk: RagChunk, *, store_raw_text: bool = False) -> dict[str
     if str(payload.get("source_type") or "") == "doffice_elasticsearch":
         for key in DOFFICE_REDUNDANT_PAYLOAD_FIELDS:
             payload.pop(key, None)
+        for key in DOFFICE_EMPTY_SUPPRESS_FIELDS:
+            if not payload.get(key):
+                payload.pop(key, None)
+        if payload.get("enriched") is False:
+            payload.pop("enriched", None)
     return payload
 
 

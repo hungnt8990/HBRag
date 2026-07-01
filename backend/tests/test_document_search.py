@@ -70,13 +70,26 @@ def test_build_query_body_year_org_boost() -> None:
     body = dss.build_query_body(
         "chi quy phuc loi nam 2025 cua evncpc", 10, "bm25", [], None, prefer_recent=True
     )
-    # có năm tường minh -> KHÔNG bọc recency (không ép "mới nhất")
-    assert "function_score" not in body["query"]
-    bq = body["query"]["bool"]
+    # có năm tường minh -> KHÔNG áp recency gauss (không ép "mới nhất")...
+    fs = body["query"]["function_score"]
+    assert not any("gauss" in fn for fn in fs["functions"])
+    # ...nhưng org được NHÂN điểm (weight) để ưu tiên đơn vị, KHÔNG loại VB khác
+    org_fn = next(fn for fn in fs["functions"] if "weight" in fn)
+    assert org_fn["filter"]["match"]["ky_hieu"] == "evncpc" and org_fn["weight"] > 1.0
     # năm là FILTER cứng (áp được cả lên knn ở hybrid)
-    assert {"terms": {"nam": [2025]}} in bq["filter"]
-    # org là boost mềm trong should (ưu tiên, không loại văn bản khác)
-    assert any(c.get("match", {}).get("ky_hieu", {}).get("query") == "evncpc" for c in bq["should"])
+    assert {"terms": {"nam": [2025]}} in fs["query"]["bool"]["filter"]
+
+
+def test_build_query_body_org_multiplicative_boost() -> None:
+    # 'tiền lương cpcit' -> ưu tiên VB CPCIT bằng NHÂN điểm (không cộng trong should) -> không kéo
+    # VB CPCIT lạc chủ đề lên top; recency vẫn còn (prefer_recent, không có năm).
+    body = dss.build_query_body("tien luong cpcit", 10, "bm25", [], None, prefer_recent=True)
+    fs = body["query"]["function_score"]
+    assert fs["score_mode"] == "multiply" and fs["boost_mode"] == "multiply"
+    org_fn = next(fn for fn in fs["functions"] if fn.get("weight"))
+    assert org_fn["filter"]["match"]["ky_hieu"] == "it"  # cpcit -> mã 'IT' trong ky_hieu
+    assert org_fn["weight"] > 1.0
+    assert any("gauss" in fn for fn in fs["functions"])
 
 
 def test_detect_org_query_uses_bm25() -> None:
