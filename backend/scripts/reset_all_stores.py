@@ -21,7 +21,10 @@ from sqlalchemy import text
 
 from app.core.config import settings
 from app.db.session import AsyncSessionLocal
-from app.services.retrieval.retrieval_doffice_bm25 import DofficeBm25DocumentStore
+from app.services.retrieval.retrieval_doffice_bm25 import (
+    DofficeBm25DocumentStore,
+    DofficeChunkBm25Store,
+)
 from app.services.vector.vector_store import (
     get_doffice_chunks_vector_store,
     get_doffice_docmeta_vector_store,
@@ -76,15 +79,18 @@ async def reset_elasticsearch() -> None:
     old_indices = {
         settings.elasticsearch_index_name,          # chunk BM25 cũ
         "hbrag_documents_v1",                        # two-stage doc index cũ
-        settings.doffice_documents_index_name,       # index mới (recreate sạch)
+        settings.doffice_documents_index_name,       # index full (recreate sạch)
+        settings.doffice_chunks_index_name,          # index CHUNK (nhánh 2, recreate sạch)
     }
     async with httpx.AsyncClient(timeout=30.0) as client:
         for index in sorted(i for i in old_indices if i):
             resp = await client.delete(f"{settings.elasticsearch_url.rstrip('/')}/{index}")
             logger.info("ES: DELETE %s -> HTTP %s", index, resp.status_code)
-    store = DofficeBm25DocumentStore()
-    await store.ensure_index()
-    logger.info("ES: đã tạo lại index BM25 %s", store.index_name)
+    doc_store = DofficeBm25DocumentStore()
+    await doc_store.ensure_index()
+    chunk_store = DofficeChunkBm25Store()
+    await chunk_store.ensure_index()
+    logger.info("ES: đã tạo lại 2 index BM25 %s + %s", doc_store.index_name, chunk_store.index_name)
 
 
 async def reset_qdrant() -> None:

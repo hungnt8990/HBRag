@@ -25,6 +25,8 @@ class JobConfig:
     # (embed) là nút cổ chai nên đông nhất; PG/Clean/ES nhẹ hơn. None -> suy từ max_workers.
     pg_workers: int | None = None
     clean_workers: int | None = None
+    acl_workers: int | None = None
+    chunk_workers: int | None = None
     es_workers: int | None = None
     qdrant_workers: int | None = None
 

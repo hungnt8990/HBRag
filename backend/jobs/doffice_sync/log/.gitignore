@@ -1,0 +1,4 @@
+# Thư mục log của mọi job DOffice sync (unified/pg_es/qdrant/delete...).
+# Giữ thư mục trong repo, KHÔNG commit nội dung log.
+*
+!.gitignore

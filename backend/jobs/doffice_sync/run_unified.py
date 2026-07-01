@@ -11,6 +11,8 @@ Output gọn (log chi tiết -> file, console chỉ spinner + summary box) như 
 
 Phụ: DOFFICE_JOB_BATCH_SIZE(200) DOFFICE_JOB_WORKERS(8) DOFFICE_JOB_LIMIT
      DOFFICE_JOB_FULL_SCAN(false) — true = quét lại từ đầu (bỏ qua checkpoint).
+     DOFFICE_JOB_MODE(once|loop) — once=chạy 1 lần rồi tắt; loop=chạy xong chờ
+     DOFFICE_JOB_INTERVAL(300) giây rồi quét tiếp (mode id-lẻ luôn chạy 1 lần).
 
 PIPELINE 3 LUỒNG (producer-consumer): Luồng 1 ghi PostgreSQL -> hàng đợi -> Luồng 2 (ES)
 + Luồng 3 (Qdrant) chạy song song. Số worker mỗi luồng (mặc định suy từ WORKERS; Qdrant
@@ -85,10 +87,12 @@ def _status_line(runner: UnifiedJobRunner) -> str:
     """Dashboard 4 luồng (đa dòng, cập nhật tại chỗ): mỗi luồng 1 dòng — xong/đang chờ/lỗi."""
     s = runner.stats
     sep = cs.color("─" * 50, cs.GREY)
-    # "đang chờ" = đã qua luồng trước nhưng luồng này chưa xử lý xong.
+    # "đang chờ" = đã qua luồng TRƯỚC nhưng luồng này chưa xử lý xong (pipeline tách rời).
     clean_wait = max(0, s.scanned - s.cleaned - s.clean_failed)
-    es_wait = max(0, s.cleaned - s.es_done - s.es_failed)
-    qd_wait = max(0, s.cleaned - s.qdrant_done - s.qdrant_failed)
+    acl_wait = max(0, s.cleaned - s.acl_done)
+    chunk_wait = max(0, s.acl_done - s.chunked)
+    es_wait = max(0, s.chunked - s.es_done - s.es_failed)
+    qd_wait = max(0, s.chunked - s.qdrant_done - s.qdrant_failed)
 
     def stage(label: str, done: int, code: str, *, wait: int = 0, fail: int = 0, note: str = "") -> str:
         body = f"{cs.color(f'{done:>6}', code)} xong"
@@ -102,20 +106,51 @@ def _status_line(runner: UnifiedJobRunner) -> str:
 
     # Luồng 1 (PG) chạy ĐỘC LẬP, vượt trước; báo rõ "đã nạp hết" để khỏi tưởng treo.
     pg_note = cs.color("đã nạp hết ✓", cs.GREEN) if runner.feeding_done else cs.color("đang nạp…", cs.YELLOW)
-    # Luồng 3 (Qdrant/embed) chậm nhất -> hiện id_vb đang embed để thấy còn sống.
+    # VB chưa ACL -> KHÔNG chờ, đã bỏ qua (thử lại lần quét sau) -> báo ở PG để biết còn pending.
+    if s.acl_pending:
+        pg_note = cs.color(f"⊘ chưa ACL: {s.acl_pending} (thử lại lần sau)", cs.YELLOW) + "  " + pg_note
+    # Qdrant/embed chậm nhất -> hiện id_vb đang embed để thấy còn sống.
     qd_note = cs.color(f"· đang embed {s.qdrant_current}", cs.GREY) if (qd_wait and s.qdrant_current) else ""
 
     skip_qdrant = runner.config.skip_qdrant
-    title = "pipeline PG+ES (bỏ Qdrant)" if skip_qdrant else "pipeline 4 luồng"
+    title = "pipeline PG+ES (bỏ Qdrant)" if skip_qdrant else "pipeline đầy đủ (PG+ES+Qdrant)"
+    # Phạm vi quét: đơn vị nào / id lẻ / tất cả -> để biết đang quét cho đối tượng nào.
+    if runner.config.id_vb_filter:
+        scope = f"id lẻ: {', '.join(map(str, runner.config.id_vb_filter))}"
+    elif runner.config.don_vi_filter:
+        scope = f"đơn vị {', '.join(map(str, runner.config.don_vi_filter))}"
+    else:
+        scope = "TẤT CẢ đơn vị"
+    # Batch: số batch đã/đang nạp + kích thước batch cấu hình (mỗi batch = 1 lần scroll ES).
+    batch_info = cs.color(
+        f"batch #{s.batches_fed} · size {s.batch_size}" + (f" ({s.batch_docs} VB)" if s.batch_docs else ""),
+        cs.CYAN,
+    )
+    # 3 nhiệm vụ làm sạch/nén ACL/chunk làm trong 1 worker xử lý -> hiển thị riêng cho rõ.
     lines = [
         f"{cs.BOLD}DOffice Sync · {title}{cs.RESET}  —  {runner.phase}…",
+        f"  {cs.BOLD}Phạm vi{cs.RESET} {cs.color(scope, cs.MAGENTA)}    {cs.BOLD}Batch{cs.RESET} {batch_info}",
         sep,
         stage("Luồng 1 · PostgreSQL (raw)", s.scanned, cs.CYAN, note=pg_note),
         stage("Luồng 2 · Làm sạch", s.cleaned, cs.YELLOW, wait=clean_wait, fail=s.clean_failed),
-        stage("Luồng 3 · Elasticsearch", s.es_done, cs.GREEN, wait=es_wait, fail=s.es_failed),
+        stage("Luồng 3 · Nén ACL", s.acl_done, cs.YELLOW, wait=acl_wait),
+        stage("Luồng 4 · Chunking (PG)", s.chunked, cs.YELLOW, wait=chunk_wait),
+        stage("Luồng 5 · Elasticsearch (2 nhánh)", s.es_done, cs.GREEN, wait=es_wait, fail=s.es_failed),
     ]
     if not skip_qdrant:
-        lines.append(stage("Luồng 4 · Qdrant", s.qdrant_done, cs.MAGENTA, wait=qd_wait, fail=s.qdrant_failed, note=qd_note))
+        lines.append(stage("Luồng 6 · Qdrant (2 collection)", s.qdrant_done, cs.MAGENTA, wait=qd_wait, fail=s.qdrant_failed, note=qd_note))
+    # Cảnh báo khi có VB bị BỎ QUA vì chưa ACL: nêu rõ số lượng + sẽ thử lại ở lần quét sau
+    # (mỗi lần quét cách nhau DOFFICE_JOB_INTERVAL giây khi mode=loop).
+    if s.acl_pending:
+        last = f" · gần nhất id_vb={s.acl_last_skip}" if s.acl_last_skip else ""
+        lines += [
+            sep,
+            cs.color(
+                f"  ⊘ {s.acl_pending} văn bản CHƯA có ACL -> đã BỎ QUA (không chờ), "
+                f"sẽ tự thử lại ở lần quét sau{last}.",
+                cs.YELLOW,
+            ),
+        ]
     return "\n".join([*lines, sep,
     ])
 
@@ -139,11 +174,15 @@ def _print_summary(runner: UnifiedJobRunner, *, mode: str, elapsed: float, log_d
                 line,
                 row("Chế độ", mode, cs.BOLD),
                 row("Thời gian", f"{minutes}m {seconds}s", cs.RESET),
-                row("Luồng 1 (PG raw)", s.scanned, cs.BOLD),
-                row("Luồng 2 (Làm sạch)", s.cleaned, cs.YELLOW),
-                row("Luồng 3 (ES)", s.es_done, cs.CYAN),
-                row("Luồng 4 (Qdrant)", s.qdrant_done, cs.GREEN),
+                row("Batch", f"{s.batches_fed} batch × size {s.batch_size}", cs.CYAN),
+                row("PG raw", s.scanned, cs.BOLD),
+                row("Làm sạch", s.cleaned, cs.YELLOW),
+                row("Nén ACL", s.acl_done, cs.YELLOW),
+                row("Chunking", s.chunked, cs.YELLOW),
+                row("Elasticsearch", s.es_done, cs.CYAN),
+                row("Qdrant", s.qdrant_done, cs.GREEN),
                 row("Bỏ qua", s.skipped, cs.YELLOW, suffix="  (đã xong từ lần trước - resume)") if s.skipped else "",
+                row("Chưa ACL", s.acl_pending, cs.YELLOW, suffix="  (đã bỏ qua - thử lại lần quét sau)") if s.acl_pending else "",
                 row("Lỗi", _err, cs.RED if _err else cs.GREEN),
                 row("Log", f"{log_dir}/", cs.GREY),
                 line,
@@ -174,23 +213,30 @@ async def _main(args: argparse.Namespace) -> None:
         skip_qdrant=skip_qdrant,
         pg_workers=_int_env("DOFFICE_JOB_PG_WORKERS", None),
         clean_workers=_int_env("DOFFICE_JOB_CLEAN_WORKERS", None),
+        acl_workers=_int_env("DOFFICE_JOB_ACL_WORKERS", None),
+        chunk_workers=_int_env("DOFFICE_JOB_CHUNK_WORKERS", None),
         es_workers=_int_env("DOFFICE_JOB_ES_WORKERS", None),
         qdrant_workers=_int_env("DOFFICE_JOB_QDRANT_WORKERS", None),
     )
     mode = (
-        "Văn bản lẻ" if id_vb
-        else ("Theo đơn vị (resume)" if don_vi else ("Full scan" if full_scan else "Incremental (resume)"))
+        f"Văn bản lẻ ({', '.join(map(str, id_vb))})" if id_vb
+        else (f"Theo đơn vị {', '.join(map(str, don_vi))} (resume)" if don_vi
+              else ("Full scan" if full_scan else "Incremental (resume)"))
     )
     loggers.get("run").info(
         "Mode=%s id_vb=%s don_vi=%s batch=%s workers=%s limit=%s full_scan=%s",
         mode, id_vb, don_vi, batch_size, workers, limit, full_scan,
     )
 
-    interval = args.interval if args.interval is not None else _int_env("DOFFICE_JOB_INTERVAL", 0)
+    # CHẾ ĐỘ CHẠY rõ ràng: once = chạy 1 lần rồi tắt; loop = chạy xong chờ INTERVAL giây rồi lặp.
+    run_mode = (args.mode or os.getenv("DOFFICE_JOB_MODE") or "once").strip().lower()
+    interval = args.interval if args.interval is not None else _int_env("DOFFICE_JOB_INTERVAL", 300)
     await ensure_job_tables()
-    # LẶP định kỳ: quét xong đứng im chờ ``interval`` giây rồi quét lần sau (incremental).
-    # id-lẻ -> chạy 1 lần (không lặp). interval<=0 -> chạy 1 lần.
-    loop = interval > 0 and not id_vb
+    # loop khi MODE=loop và không phải id-lẻ. INTERVAL = số giây chờ giữa 2 lần quét.
+    loop = run_mode == "loop" and not id_vb
+    if loop and interval <= 0:
+        interval = 300
+    loggers.get("run").info("Run mode=%s loop=%s interval=%ss", run_mode, loop, interval)
     while True:
         runner = UnifiedJobRunner(cfg)
         start = time.monotonic()
@@ -233,5 +279,9 @@ if __name__ == "__main__":
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--full-scan", action="store_true", help="Quet lai tu dau (bo qua checkpoint).")
     parser.add_argument("--skip-qdrant", action="store_true", help="Job PG+ES: bo luong Qdrant (embed).")
-    parser.add_argument("--interval", type=int, default=None, help="Giay cho giua 2 lan quet (0=chay 1 lan).")
+    parser.add_argument(
+        "--mode", choices=["once", "loop"], default=None,
+        help="once = chay 1 lan roi tat (mac dinh); loop = chay xong cho --interval giay roi lap.",
+    )
+    parser.add_argument("--interval", type=int, default=None, help="So giay cho giua 2 lan quet khi mode=loop (mac dinh 300).")
     asyncio.run(_main(parser.parse_args()))

@@ -40,6 +40,7 @@ import {
   initialNodes,
   TONE_STYLE,
 } from "./initialDiagram";
+import { NodeContent, NodeEditContext, NodePanelEditors } from "./NodeBlocks";
 
 const ROOM = "architecture-v12-editor";
 const LOCAL_ORIGIN = "local-edit";
@@ -57,58 +58,6 @@ const TEXT_SWATCHES = ["#142033", "#1d4ed8", "#047857", "#c2410c", "#6d28d9", "#
 const EDGE_SWATCHES = ["#64748b", "#1d4ed8", "#047857", "#c2410c", "#6d28d9", "#b91c1c", "#0f172a"];
 
 type Peer = { clientId: number; name: string; color: string; cursor?: { x: number; y: number } };
-
-function tagsToText(tags?: string[]): string {
-  return (tags ?? []).join(", ");
-}
-
-function textToTags(value: string): string[] {
-  return value
-    .split(/[,\n]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function sectionsToText(sections?: CardData["sections"]): string {
-  return (sections ?? [])
-    .map((section) => `${section.title}: ${section.items.join(" | ")}`)
-    .join("\n");
-}
-
-function textToSections(value: string): CardData["sections"] {
-  return value
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [rawTitle, ...rest] = line.split(":");
-      const title = rawTitle.trim() || "Nhóm";
-      const items = rest
-        .join(":")
-        .split("|")
-        .map((item) => item.trim())
-        .filter(Boolean);
-      return { title, items };
-    });
-}
-
-function rowsToText(rows?: CardData["rows"]): string {
-  return (rows ?? []).map((row) => `${row.label}: ${row.value}`).join("\n");
-}
-
-function textToRows(value: string): CardData["rows"] {
-  return value
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [rawLabel, ...rest] = line.split(":");
-      return {
-        label: rawLabel.trim() || "Mục",
-        value: rest.join(":").trim(),
-      };
-    });
-}
 
 function stripEphemeral(node: Node): Node {
   const clone = { ...node } as Record<string, unknown>;
@@ -146,7 +95,7 @@ function DualHandle({ position, sourceId, targetId }: { position: Position; sour
 }
 
 // -------------------------------------------------------------- custom node --
-function CardNode({ data, selected }: NodeProps<Node<CardData>>) {
+function CardNode({ id, data, selected }: NodeProps<Node<CardData>>) {
   if (data.invisible) {
     return <div style={{ width: data.width ?? 1, height: data.minHeight ?? 1, opacity: 0, pointerEvents: "none" }} />;
   }
@@ -155,82 +104,9 @@ function CardNode({ data, selected }: NodeProps<Node<CardData>>) {
   const shape = data.shape ?? "rounded";
   const fillColor = data.fillColor ?? tone.bg;
   const borderColor = data.borderColor ?? tone.border;
-  const textColor = data.textColor ?? "#142033";
   const width = data.width ?? (shape === "circle" || shape === "diamond" ? 190 : 210);
   const minHeight = data.minHeight ?? (shape === "circle" || shape === "diamond" ? width : undefined);
-  const content = (
-    <>
-      <div style={{ fontSize: 14, fontWeight: 700, color: textColor, lineHeight: 1.25 }}>{data.title}</div>
-      {data.desc ? (
-        <div style={{ marginTop: 5, fontSize: 11.6, color: textColor, opacity: 0.78, lineHeight: 1.4 }}>{data.desc}</div>
-      ) : null}
-      {data.tags?.length ? (
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: shape === "circle" || shape === "diamond" ? "center" : "flex-start", gap: 5, marginTop: 8 }}>
-          {data.tags.map((tag) => (
-            <span
-              key={tag}
-              style={{
-                border: "1px solid rgba(148,163,184,.52)",
-                background: "rgba(255,255,255,.78)",
-                borderRadius: 999,
-                color: "#334155",
-                fontSize: 10.4,
-                fontWeight: 700,
-                lineHeight: 1.1,
-                padding: "4px 7px",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      ) : null}
-      {data.sections?.length ? (
-        <div style={{ display: "grid", gridTemplateColumns: data.sections.length > 1 ? "1fr 1fr" : "1fr", gap: 8, marginTop: 10 }}>
-          {data.sections.map((section) => (
-            <div
-              key={section.title}
-              style={{
-                background: "rgba(255,255,255,.7)",
-                border: "1px solid rgba(148,163,184,.42)",
-                borderRadius: 12,
-                padding: "8px 9px",
-              }}
-            >
-              <div style={{ color: "#1e293b", fontSize: 11.5, fontWeight: 800, marginBottom: 5 }}>{section.title}</div>
-              <ul style={{ margin: "0 0 0 15px", padding: 0, color: "#334155", fontSize: 10.8, lineHeight: 1.35 }}>
-                {section.items.map((item) => (
-                  <li key={item} style={{ margin: "2px 0" }}>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      ) : null}
-      {data.rows?.length ? (
-        <div style={{ display: "grid", gap: 7, marginTop: 10 }}>
-          {data.rows.map((row) => (
-            <div
-              key={row.label}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "92px 1fr",
-                gap: 8,
-                borderTop: "1px solid rgba(148,163,184,.3)",
-                paddingTop: 7,
-              }}
-            >
-              <span style={{ color: "#0f172a", fontSize: 10.8, fontWeight: 800 }}>{row.label}</span>
-              <span style={{ color: "#334155", fontSize: 10.8, lineHeight: 1.35 }}>{row.value}</span>
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </>
-  );
+  const content = <NodeContent id={id} data={data} selected={selected} />;
 
   if (shape === "diamond") {
     return (
@@ -522,6 +398,23 @@ function FlowCanvas() {
     const yNodes = yNodesRef.current;
     if (doc && yNodes) {
       doc.transact(() => yNodes.set(node.id, stripEphemeral(node)), LOCAL_ORIGIN);
+    }
+  }, []);
+
+  // Patch data của 1 node theo id (dùng cho inline-edit trong node) + commit Yjs.
+  const patchNodeData = useCallback((nodeId: string, patch: Partial<CardData>) => {
+    let changed: Node | null = null;
+    setNodes((current) =>
+      current.map((item) => {
+        if (item.id !== nodeId) return item;
+        changed = { ...item, data: { ...(item.data as CardData), ...patch } };
+        return changed;
+      }),
+    );
+    const doc = docRef.current;
+    const yNodes = yNodesRef.current;
+    if (changed && doc && yNodes) {
+      doc.transact(() => yNodes.set(nodeId, stripEphemeral(changed!)), LOCAL_ORIGIN);
     }
   }, []);
 
@@ -859,6 +752,7 @@ function FlowCanvas() {
   const edgeDashed = Boolean(selectedEdge?.style?.strokeDasharray);
 
   return (
+    <NodeEditContext.Provider value={patchNodeData}>
     <div style={{ position: "fixed", inset: 0 }}>
       <ReactFlow
         nodes={nodes}
@@ -1015,20 +909,13 @@ function FlowCanvas() {
               </div>
             </div>
 
-            <label style={{ display: "grid", gap: 5, color: "#334155", fontSize: 12, fontWeight: 700 }}>
-              Tag bên trong node
-              <textarea value={tagsToText(selectedNodeData.tags)} onChange={(event) => updateSelectedNodeData({ tags: textToTags(event.target.value) })} rows={2} placeholder="D-Office, ACL, Qdrant" style={{ border: "1px solid #cbd5e1", borderRadius: 8, padding: "8px 9px", fontSize: 13, resize: "vertical" }} />
-            </label>
-
-            <label style={{ display: "grid", gap: 5, color: "#334155", fontSize: 12, fontWeight: 700 }}>
-              Nhóm con
-              <textarea value={sectionsToText(selectedNodeData.sections)} onChange={(event) => updateSelectedNodeData({ sections: textToSections(event.target.value) })} rows={4} placeholder="ES Full Index: title | trich_yeu | ACL" style={{ border: "1px solid #cbd5e1", borderRadius: 8, padding: "8px 9px", fontSize: 13, resize: "vertical" }} />
-            </label>
-
-            <label style={{ display: "grid", gap: 5, color: "#334155", fontSize: 12, fontWeight: 700 }}>
-              Dòng chi tiết
-              <textarea value={rowsToText(selectedNodeData.rows)} onChange={(event) => updateSelectedNodeData({ rows: textToRows(event.target.value) })} rows={4} placeholder="Filter: acl_scope, security_level" style={{ border: "1px solid #cbd5e1", borderRadius: 8, padding: "8px 9px", fontSize: 13, resize: "vertical" }} />
-            </label>
+            <div style={{ display: "grid", gap: 6 }}>
+              <strong style={{ color: "#334155", fontSize: 12 }}>Nội dung khối</strong>
+              <span style={{ color: "#94a3b8", fontSize: 11, lineHeight: 1.4 }}>
+                Thêm/sửa/xoá từng tag, dòng, ô bảng — hoặc bấm thẳng vào node để sửa tại chỗ.
+              </span>
+              <NodePanelEditors data={selectedNodeData} update={updateSelectedNodeData} />
+            </div>
           </div>
         ) : selectedEdge ? (
           <div style={{ display: "grid", gap: 12 }}>
@@ -1087,9 +974,10 @@ function FlowCanvas() {
       </aside>
 
       <div style={{ position: "fixed", bottom: 14, left: 14, fontSize: 11.5, color: "#64748b", background: "rgba(255,255,255,.9)", border: "1px solid #e2e8f0", borderRadius: 10, padding: "6px 10px", fontFamily: "Inter, Segoe UI, Roboto, Arial, sans-serif", zIndex: 40 }}>
-        Kéo node để di chuyển · kéo từ chấm bên phải sang node khác để nối · chọn node/mũi tên để sửa trong panel. Mọi thay đổi tự lưu &amp; đồng bộ real-time khi backend collab kết nối.
+        Bấm chọn node để sửa trực tiếp chữ/tag/bảng trong node · kéo node để di chuyển · kéo từ chấm bên phải sang node khác để nối. Mọi thay đổi tự lưu &amp; đồng bộ real-time khi backend collab kết nối.
       </div>
     </div>
+    </NodeEditContext.Provider>
   );
 }
 

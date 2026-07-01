@@ -1,4 +1,11 @@
-"""Setup 4 file log mỗi lần chạy job (full/info/warning/error)."""
+"""Setup file log mỗi lần chạy job.
+
+TẤT CẢ log của mọi job DOffice (unified/pg_es/qdrant/delete...) đều ghi vào
+``jobs/doffice_sync/log/`` — neo theo VỊ TRÍ FILE NÀY, KHÔNG phụ thuộc cwd. Mỗi job
+có 1 thư mục con theo tên (vd ``doffice_unified``) và mỗi lần chạy 1 thư mục con
+``run_stamp``. Riêng văn bản BỎ QUA vì quá nhiều chunk (> max_chunks) được liệt kê
+ở file ``vanban_bo_qua_qua_chunk.log`` (logger con ``doffice_sync.oversize``).
+"""
 
 from __future__ import annotations
 
@@ -7,6 +14,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 LOGGER_ROOT = "doffice_sync"
+# Logger con cho văn bản BỎ QUA vì > max_chunks -> file riêng (liệt kê để theo dõi).
+OVERSIZE_LOGGER = f"{LOGGER_ROOT}.oversize"
+OVERSIZE_LOG_NAME = "vanban_bo_qua_qua_chunk.log"
+# Thư mục log GỐC: jobs/doffice_sync/log (neo theo file này, độc lập cwd).
+LOG_ROOT = Path(__file__).resolve().parent / "log"
 _FORMAT = "%(asctime)s [%(levelname)-5s] [%(name)s] %(message)s"
 _DATEFMT = "%Y-%m-%d %H:%M:%S"
 
@@ -21,7 +33,10 @@ class JobLoggers:
 
 
 def setup_job_logging(base_dir: str, run_stamp: str) -> JobLoggers:
-    log_dir = Path(base_dir) / run_stamp
+    # base_dir có thể là path cũ ("logs/jobs/doffice_unified") -> chỉ lấy TÊN job cuối,
+    # đặt tất cả dưới LOG_ROOT chung. Giữ tham số cũ để không phải sửa mọi nơi gọi.
+    job_name = Path(base_dir).name or "doffice"
+    log_dir = LOG_ROOT / job_name / run_stamp
     log_dir.mkdir(parents=True, exist_ok=True)
 
     logger = logging.getLogger(LOGGER_ROOT)
@@ -53,6 +68,16 @@ def setup_job_logging(base_dir: str, run_stamp: str) -> JobLoggers:
         chunks_logger.removeHandler(handler)
         handler.close()
     chunks_logger.addHandler(_file("chunks_big.log", logging.INFO))
+
+    # Log RIÊNG liệt kê văn bản KHÔNG THỂ CHUNK vì vượt ngưỡng (> max_chunks, mặc định 500):
+    # logger con ``doffice_sync.oversize`` -> file ``vanban_bo_qua_qua_chunk.log``. Mọi nhánh
+    # pipeline (unified/qdrant) phát skip qua logger này để gom về 1 chỗ.
+    oversize_logger = logging.getLogger(OVERSIZE_LOGGER)
+    oversize_logger.setLevel(logging.INFO)
+    for handler in list(oversize_logger.handlers):
+        oversize_logger.removeHandler(handler)
+        handler.close()
+    oversize_logger.addHandler(_file(OVERSIZE_LOG_NAME, logging.INFO))
 
     # KHÔNG gắn StreamHandler: log chi tiết chỉ vào file; console do spinner phụ trách
     # (chỉ hiện tiến độ + summary), tránh log chi tiết làm rối màn hình.

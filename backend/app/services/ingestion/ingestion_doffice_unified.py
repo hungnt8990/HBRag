@@ -19,6 +19,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
+from uuid import UUID
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -38,6 +39,10 @@ from app.services.security.security_acl_resolver import resolve_doffice_and_comp
 from app.services.vector.vector_indexing_service import VectorIndexingService
 
 logger = logging.getLogger(__name__)
+# Logger RIÊNG liệt kê văn bản BỎ QUA vì > max_chunks -> file ``vanban_bo_qua_qua_chunk.log``
+# (handler do jobs.doffice_sync.logger.setup_job_logging gắn). Khi chạy ngoài job -> không có
+# handler riêng, record propagate lên root (vô hại).
+oversize_logger = logging.getLogger("doffice_sync.oversize")
 
 # Trường đưa vào payload Qdrant docmeta (Col 2) — đúng object mẫu, TRỪ noi_dung.
 _DOCMETA_FIELDS = (
@@ -230,31 +235,92 @@ class DofficeUnifiedIngestor:
             id_vb=id_vb, document_id=str(document.id), source=source, acl_lists=acl_lists,
         )
 
-    # ===================== LUỒNG 2: Làm sạch + nén ACL ========================
-    async def clean_data(self, item: DofficeJobItem) -> DofficeJobItem:
-        """Luồng 2: làm sạch ``noi_dung`` + ``tom_tat`` và NÉN ACL (allow[]/deny[]).
-
-        Điền vào item: ``normalized`` (để chunk), ``clean_noi_dung``, ``clean_tom_tat``,
-        ACL đã nén. KHÔNG ghi DB — chỉ làm giàu item để đẩy sang Luồng 3 (ES) & Luồng 4 (Qdrant).
-        """
-        # normalize là CPU nặng (doc lớn 1-7s) -> chạy ở THREAD để KHÔNG chặn event loop
-        # (các luồng PG/ES + dashboard vẫn chạy khi đang normalize 1 doc lớn).
+    # ============ Các bước XỬ LÝ tách rời (cho 3 pool worker vật lý) ===========
+    async def clean_only(self, item: DofficeJobItem) -> DofficeJobItem:
+        """Chỉ LÀM SẠCH: normalize (CPU nặng -> THREAD) + làm sạch noi_dung/tom_tat. KHÔNG ACL."""
         normalized = await asyncio.to_thread(normalize_doffice_source, item.source)
         item.normalized = normalized
-        # Làm sạch nội dung cho ES (BM25) GIỐNG cách chunk Qdrant: chuẩn hoá smart-quote/dash,
-        # bỏ marker phân trang, ký tự ngoại lai, nhấn mạnh markdown... -> token BM25 sạch &
-        # nhất quán với vector. (Trước đây ES chỉ .strip() -> lệch với chunk + tom_tat.)
         item.clean_noi_dung = clean_for_chunking(normalized.clean_text or "") or None
         item.clean_tom_tat = clean_for_chunking(str(item.source.get("tom_tat") or "")) or None
         if not item.clean_noi_dung:
             logger.warning("id_vb=%s không có nội dung sau khi làm sạch", item.id_vb)
+        return item
 
+    def compress_acl(self, item: DofficeJobItem) -> DofficeJobItem:
+        """Chỉ NÉN ACL (in-memory): điền acl_subjects/acl_deny/acl_payload."""
         acl, acl_subjects, acl_deny, acl_payload = self._resolve_acl(item.acl_lists)
         item.acl_subjects = acl_subjects
         item.acl_deny = acl_deny
         item.acl_payload = acl_payload
         item.has_acl = acl is not None
         return item
+
+    async def clean_data(self, item: DofficeJobItem) -> DofficeJobItem:
+        """Tương thích: làm sạch + nén ACL (in-memory). = clean_only + compress_acl."""
+        await self.clean_only(item)
+        self.compress_acl(item)
+        return item
+
+    async def persist_clean(self, item: DofficeJobItem) -> None:
+        """Ghi nội dung SẠCH vào PG: ``metadata["clean"]``."""
+        document = await self._repository.get_document(UUID(item.document_id))
+        if document is None:
+            return
+        meta = dict(document.document_metadata or {})
+        meta["clean"] = {"noi_dung": item.clean_noi_dung, "tom_tat": item.clean_tom_tat}
+        await self._repository.update_document_metadata(document, meta)
+        await self._repository.commit()
+
+    async def persist_acl(self, item: DofficeJobItem) -> None:
+        """Ghi ACL ĐÃ NÉN vào PG: ``metadata["access"].acl_subjects/acl_deny`` (giữ raw)."""
+        document = await self._repository.get_document(UUID(item.document_id))
+        if document is None:
+            return
+        meta = dict(document.document_metadata or {})
+        access = dict(meta.get("access") or {})
+        access[F_SUBJECTS] = item.acl_subjects
+        access[F_DENY] = item.acl_deny
+        meta["access"] = access
+        await self._repository.update_document_metadata(document, meta)
+        await self._repository.commit()
+
+    async def persist_chunks(self, item: DofficeJobItem, *, max_chunks: int | None = None) -> None:
+        """CHUNK + ghi bảng ``chunks`` + đặt ``pg_prepared``. > max_chunks -> skip (không chunk)."""
+        from app.services.chunkers.chunker_doffice_chunking import build_doffice_chunks
+        from app.services.ingestion.ingestion_profiles import get_profile_config
+
+        document_id = UUID(item.document_id)
+        document = await self._repository.get_document(document_id)
+        if document is None:
+            return
+        cfg = get_profile_config("doffice_admin")
+        chunk_records = await asyncio.to_thread(
+            build_doffice_chunks, item.normalized,
+            body_max_chars=int(cfg.get("doffice_body_max_chars") or 2800),
+            body_overlap=int(cfg.get("doffice_body_overlap") or 300),
+            table_max_chars=int(cfg.get("doffice_table_max_chars") or 3500),
+        )
+        item.chunk_count = len(chunk_records)
+        item.chunk_records = chunk_records
+        meta = dict(document.document_metadata or {})
+        meta["chunk_count"] = item.chunk_count
+        if max_chunks and item.chunk_count > max_chunks:
+            item.skipped = True
+            meta["pg_prepared"] = False
+            logger.warning("id_vb=%s BỎ QUA: %s chunk > max %s (không chunk)", item.id_vb, item.chunk_count, max_chunks)
+            oversize_logger.warning(
+                "id_vb=%s ky_hieu=%s BỎ QUA (không chunk): %s chunk > ngưỡng %s",
+                item.id_vb, (item.source or {}).get("ky_hieu", "") or "", item.chunk_count, max_chunks,
+            )
+            await self._repository.update_document_metadata(document, meta)
+            await self._repository.commit()
+            return
+        await self._repository.delete_chunks_for_document(document_id)
+        await self._repository.create_chunks(document_id=document_id, chunks=chunk_records)
+        await self._repository.update_document_status(document, "chunked")
+        meta["pg_prepared"] = True
+        await self._repository.update_document_metadata(document, meta)
+        await self._repository.commit()
 
     # ===================== LUỒNG 3: Elasticsearch (đã sạch + ACL nén) =========
     async def index_elasticsearch(self, item: DofficeJobItem) -> None:
@@ -523,41 +589,53 @@ class DofficeUnifiedIngestor:
             return None
         return await finder(source_type=DOFFICE_SOURCE_TYPE, id_vb=id_vb)
 
-    async def delete_by_id_vb(self, id_vb: str) -> bool:
-        """Xóa 1 văn bản khỏi CẢ 3 DB (PostgreSQL + Elasticsearch + Qdrant) theo id_vb.
+    async def delete_by_id_vb(
+        self, id_vb: str, *, pg: bool = True, es: bool = True, qdrant: bool = True
+    ) -> bool:
+        """Xóa 1 văn bản khỏi các store ĐƯỢC CHỌN (mặc định cả 3) theo id_vb.
 
-        True nếu tìm thấy & xóa Document trong PG. Nếu PG không còn doc -> vẫn cố dọn dấu
-        vết ES theo id_vb (Qdrant cần document_id nên không dọn được khi thiếu PG) và trả False.
+        ``pg``/``es``/``qdrant``: bật/tắt từng store. True nếu tìm thấy Document trong PG.
+        Nếu PG không còn doc -> chỉ dọn được ES (Qdrant cần document_id) và trả False.
         """
         id_vb = " ".join(str(id_vb or "").split()).strip()
         if not id_vb:
             return False
         document = await self._find_existing(id_vb)
         if document is None:
-            try:
-                await self._bm25_store.delete_by_id_vb(id_vb)
-            except Exception:
-                logger.exception("Xóa ES doc id_vb=%s thất bại", id_vb)
+            if es:  # PG đã hết doc -> vẫn cố dọn dấu vết ES theo id_vb
+                await self._delete_es(id_vb)
             return False
-        await self._delete_everywhere(document, id_vb)
+        await self._delete_stores(document, id_vb, pg=pg, es=es, qdrant=qdrant)
         return True
 
-    async def _delete_everywhere(self, document: Any, id_vb: str) -> None:
-        document_id = document.id
-        tenant_id = getattr(document, "organization_id", None)
-        for store in (self._chunks_store, self._docmeta_store):
-            try:
-                await store.delete_points_for_document(document_id, tenant_id=tenant_id)
-            except Exception:
-                logger.exception("Xóa Qdrant point cũ thất bại document=%s", document_id)
+    async def _delete_es(self, id_vb: str) -> None:
         try:
             await self._bm25_store.delete_by_id_vb(id_vb)
         except Exception:
-            logger.exception("Xóa ES doc cũ thất bại id_vb=%s", id_vb)
+            logger.exception("Xóa ES doc id_vb=%s thất bại", id_vb)
         if self._chunk_bm25_store is not None:
             try:
                 await self._chunk_bm25_store.delete_by_id_vb(id_vb)
             except Exception:
-                logger.exception("Xóa ES chunk cũ thất bại id_vb=%s", id_vb)
-        await self._repository.delete_document(document)
-        await self._repository.commit()
+                logger.exception("Xóa ES chunk id_vb=%s thất bại", id_vb)
+
+    async def _delete_stores(
+        self, document: Any, id_vb: str, *, pg: bool = True, es: bool = True, qdrant: bool = True
+    ) -> None:
+        document_id = document.id
+        tenant_id = getattr(document, "organization_id", None)
+        if qdrant:
+            for store in (self._chunks_store, self._docmeta_store):
+                try:
+                    await store.delete_points_for_document(document_id, tenant_id=tenant_id)
+                except Exception:
+                    logger.exception("Xóa Qdrant point thất bại document=%s", document_id)
+        if es:
+            await self._delete_es(id_vb)
+        if pg:
+            await self._repository.delete_document(document)
+            await self._repository.commit()
+
+    async def _delete_everywhere(self, document: Any, id_vb: str) -> None:
+        """Xóa khỏi CẢ 3 store (dùng cho re-ingest idempotent)."""
+        await self._delete_stores(document, id_vb, pg=True, es=True, qdrant=True)

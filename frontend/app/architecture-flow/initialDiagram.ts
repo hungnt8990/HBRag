@@ -11,6 +11,12 @@ export type CardTone =
   | "warn"
   | "answer";
 
+// Khối văn bản tự do (đoạn ghi chú độc lập, thêm/xóa động).
+export type NoteBlock = { id: string; text: string };
+
+// Bảng nhiều cột/nhiều hàng (thêm/xóa cột & hàng động).
+export type TableBlock = { id: string; title?: string; columns: string[]; rows: string[][] };
+
 export type CardData = {
   title: string;
   desc?: string;
@@ -19,6 +25,8 @@ export type CardData = {
   tags?: string[];
   sections?: { title: string; items: string[] }[];
   rows?: { label: string; value: string }[];
+  notes?: NoteBlock[];
+  tables?: TableBlock[];
   width?: number;
   minHeight?: number;
   fillColor?: string;

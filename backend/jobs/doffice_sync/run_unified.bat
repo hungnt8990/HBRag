@@ -31,6 +31,13 @@ set "DOFFICE_JOB_DON_VI=256"
 
 REM MODE 3: TAT CA -> de trong ca ID_VB lan DON_VI
 
+REM === CHE DO CHAY ===
+REM   once = chay 1 LAN roi TAT (mac dinh).
+REM   loop = chay xong CHO roi quet tiep (incremental). Ctrl-C de dung.
+set "DOFFICE_JOB_MODE=once"
+REM So giay cho giua 2 lan quet (chi dung khi MODE=loop). Vd 300 = 5 phut.
+set "DOFFICE_JOB_INTERVAL=300"
+
 REM Tham so phu
 set "DOFFICE_JOB_BATCH_SIZE=200"
 set "DOFFICE_JOB_WORKERS=4"

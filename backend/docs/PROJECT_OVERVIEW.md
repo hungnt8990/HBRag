@@ -10,6 +10,35 @@
 > `ngay_vb/loai_vb/linh_vuc/trang_thai_hieu_luc/acl_subjects/acl_deny` keyword) trong `vector_store.PAYLOAD_*`.
 > **HOÃN** strip field debug (nằm trong hợp đồng payload + retrieval dùng; lợi ích dung lượng ~0).
 >
+> 🗑️ **run_delete — chọn store**: trước đây luôn xóa cả 3 (PG+ES+Qdrant). Giờ `delete_by_id_vb(pg/es/qdrant)`
+> xóa CHỌN LỌC từng store (`_delete_stores`). `run_delete` có **menu tương tác** (gõ 1/2/3 bật/tắt, 4=xác nhận, q=hủy)
+> hoặc `--stores pg es qdrant` (+`--yes`) / env `DOFFICE_DEL_STORES`. Vẫn target theo `--id-vb`/`--don-vi`.
+>
+> 🧵 **run_pg_es/unified — 6 LUỒNG VẬT LÝ tách rời**: PG-raw → Làm sạch → Nén ACL → Chunking → ES(2 nhánh) → [Qdrant],
+> mỗi luồng 1 pool worker + hàng đợi riêng (`_clean_worker`/`_acl_worker`/`_chunk_worker`). Ingestor tách:
+> `clean_only`+`persist_clean`, `compress_acl`+`persist_acl`, `persist_chunks` (mỗi cái 1 transaction PG). Stat
+> `cleaned/acl_done/chunked` tiến độc lập, dashboard hiện đúng từng luồng. **Fix "đứng"**: `_make_ingestor` bỏ
+> `ChunkingService` (đặt `chunking_service=None`) — trước đây tạo `MinioStorageClient` mỗi văn bản gây chậm/treo (doffice
+> không dùng ChunkingService). Verify E2E 1 doc: clean/acl/chunk ghi PG đúng; 180 test pass.
+>
+> ⊘ **run_pg_es/unified — CHƯA ACL = BỎ QUA, KHÔNG chờ** (thay cơ chế "chờ vô hạn" cũ gây TREO): feeder
+> `_enqueue_acl_filtered` gặp văn bản chưa có ACL (đơn vị/phòng ban/nhân viên list đều rỗng — `_has_acl`) thì BỎ QUA
+> và ghi id_vb vào `log/doffice_unified/.pending_acl.txt` (`PendingAclStore`), xử lý tiếp các VB sau. Đầu mỗi lần chạy,
+> `_retry_pending_acl` fetch lại các id_vb pending TRỰC TIẾP theo id (KHÔNG qua scroll `gte`, vì checkpoint incremental
+> sẽ không lấy lại VB cũ) rồi thử tiếp: có ACL -> đẩy + xoá pending; vẫn chưa -> giữ pending cho lần sau (mỗi lần quét
+> cách nhau `DOFFICE_JOB_INTERVAL`s khi loop). Dashboard hiện số "chưa ACL" + số batch (`acl_pending/acl_skipped/
+> batches_fed/batch_size`). Bỏ env `DOFFICE_ACL_WAIT_*`.
+>
+> 🗂 **Log gom 1 chỗ**: `setup_job_logging` neo mọi log vào `jobs/doffice_sync/log/<tên_job>/<run_stamp>/`
+> (`logger.LOG_ROOT = <package>/log`, độc lập cwd). Văn bản BỎ QUA vì > max_chunks được liệt kê ở
+> `vanban_bo_qua_qua_chunk.log` (logger con `doffice_sync.oversize`, phát ở `persist_chunks` + `run_qdrant.record_skip`).
+>
+> 🔧 **run_unified — fix "lặp 1 văn bản" + mode chạy**: checkpoint incremental lọc `ngay_capnhat` bằng `gte` (>=) nên
+> văn bản ở đúng mốc bị quét lại mỗi lần. Fix: lưu danh sách `id_vb` ở mốc vào `checkpoint.search_after` (đang để trống)
+> rồi **bỏ qua** chúng lần sau (chỉ khi `ngay_capnhat` chưa đổi — doc cập nhật mới vẫn xử lý lại). `unified_runner._feed_records`
+> gom `boundary_ids`; `_enqueue_batch` skip. **2 mode** đã có qua `--interval`/`DOFFICE_JOB_INTERVAL`: 0=chạy 1 lần rồi
+> tắt; >0=lặp (chạy xong chờ N giây). Đã thêm `DOFFICE_JOB_INTERVAL` vào `run_unified.bat` (trước thiếu nên luôn one-shot).
+>
 > 🧹 **Dọn Qdrant + startup**: chỉ dùng 2 collection DOffice (`hbrag_doffice_chunks_v1`, `hbrag_doffice_docmeta_v1`).
 > Đã xóa 2 collection generic rỗng (`hbrag_chunks_qwen3_8b_v1`, `hbrag_artifacts_qwen3_8b_v1`). Tắt validate generic
 > khi startup: setting `validate_generic_vector_store_on_startup=False` + guard ở `main._validate_vector_store_on_startup`
@@ -28,7 +57,21 @@
 > (delete_by_id_vb trước bulk). Verify E2E trên ES live: ensure_index + bulk + search BM25 + ACL fields + 1 doc thật
 > 3 chunk khớp. 183 test pass. (run_qdrant KHÔNG index ES — chỉ embed Qdrant.)
 >
-> Cập nhật gần nhất: 2026-06-30 — **Sửa bug nổ chunk ở `_split_by_boundaries`** (`chunker_adaptive_chunking.py`).
+> Cập nhật gần nhất: 2026-06-30 — **Checkpoint TÁCH theo đơn vị + hiển thị phạm vi quét**. Trước đây checkpoint
+> incremental dùng CHUNG 1 key `doffice_unified` cho mọi đơn vị -> đổi `DOFFICE_JOB_DON_VI` (vd 268→258) thì tái
+> dùng mốc `updated_after` của đơn vị trước, lọc `ngay_capnhat.keyword >= mốc` loại sạch VB đơn vị mới (cũ hơn) ->
+> **"quét không ra"** dù ES có nhiều VB. Fix: `_scope_suffix()` thêm hậu tố `_dv<id>` (đơn vị) / `_idvb` (id lẻ) /
+> `''` (tất cả) vào key checkpoint + tên file progress/pending -> mỗi đơn vị 1 mốc riêng. Dashboard `run_unified`
+> thêm dòng "Phạm vi" (đơn vị/id lẻ/tất cả đang quét) + chuỗi mode kèm số đơn vị.
+>
+> Trước đó: **Log gom về `jobs/doffice_sync/log/` + bỏ "chờ ACL vô hạn"**. (1) `logger.LOG_ROOT`
+> neo mọi log job vào `jobs/doffice_sync/log/<tên_job>/<run_stamp>/`; thêm file riêng `vanban_bo_qua_qua_chunk.log`
+> (logger `doffice_sync.oversize`) liệt kê VB bỏ qua vì > max_chunks (500). (2) VB chưa ACL **không còn chờ** (trước
+> treo mãi ở VB không bao giờ có quyền, vd id_vb=900301): `_enqueue_acl_filtered` bỏ qua + ghi `PendingAclStore`
+> (`.pending_acl.txt`), `_retry_pending_acl` thử lại theo id_vb đầu mỗi lần chạy. Dashboard `run_unified` thêm dòng
+> Batch (đã/đang chạy + size) và số "chưa ACL". 15 test job pass.
+>
+> Trước đó: **Sửa bug nổ chunk ở `_split_by_boundaries`** (`chunker_adaptive_chunking.py`).
 > Khi đuôi văn bản có 1 đoạn ngắn hơn `overlap_chars` sau ranh giới cuối, `_best_boundary` luôn trả về cùng vị trí
 > `end` còn `start = max(end - overlap, start + 1)` chỉ tiến +1 ký tự/vòng -> nổ hàng trăm chunk gần trùng (vd
 > id_vb=412876, 24K ký tự, 0 bảng, 3 điều dài -> **1336 chunk**). Fix: nếu `end - overlap <= start` thì bỏ overlap

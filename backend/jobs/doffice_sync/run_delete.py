@@ -6,16 +6,17 @@
 | Theo van ban  | --id-vb 1068586 1479029 | DOFFICE_DEL_ID_VB="1068586,1479029" |
 | Theo don vi   | --don-vi 251 252        | DOFFICE_DEL_DON_VI="251,252"         |
 
-Xoa moi van ban khop khoi:
-  - PostgreSQL : Document + chunks
-  - Elasticsearch : hbrag_doffice_documents_v1 (theo id_vb)
-  - Qdrant : hbrag_doffice_chunks_v1 + hbrag_doffice_docmeta_v1 (theo document_id)
+CHON STORE de xoa (PostgreSQL / Elasticsearch / Qdrant):
+  - Khong dat --stores + chay tren terminal -> MENU tuong tac: go so bat/tat (1/2/3),
+    4 = xac nhan & chay, q = huy.
+  - --stores pg es qdrant (hoac DOFFICE_DEL_STORES) -> chon thang, can --yes de chay.
+  - Phi tuong tac + khong --stores -> mac dinh ca 3 (can --yes).
+Tung store xoa: PG=Document+chunks; ES=full+chunk index (theo id_vb); Qdrant=chunks+docmeta.
 
-"Theo don vi" = van ban co document_metadata.id_dv_ban_hanh khop (don vi ban hanh).
-YEU CAU XAC NHAN (go 'yes') truoc khi xoa, tru khi --yes / DOFFICE_DEL_YES=1.
+"Theo don vi" = van ban co don_vi_list (don vi quan ly) khop.
 
-  python -m jobs.doffice_sync.run_delete --id-vb 1068586
-  python -m jobs.doffice_sync.run_delete --don-vi 251 --yes
+  python -m jobs.doffice_sync.run_delete --id-vb 1068586                  # menu chon store
+  python -m jobs.doffice_sync.run_delete --don-vi 251 --stores qdrant --yes
 """
 
 from __future__ import annotations
@@ -36,7 +37,10 @@ from app.db.session import AsyncSessionLocal  # noqa: E402
 from app.repositories.documents import DocumentRepository  # noqa: E402
 from app.services.document_sources import DOFFICE_SOURCE_TYPE  # noqa: E402
 from app.services.ingestion.ingestion_doffice_unified import DofficeUnifiedIngestor  # noqa: E402
-from app.services.retrieval.retrieval_doffice_bm25 import DofficeBm25DocumentStore  # noqa: E402
+from app.services.retrieval.retrieval_doffice_bm25 import (  # noqa: E402
+    DofficeBm25DocumentStore,
+    DofficeChunkBm25Store,
+)
 from app.services.vector.vector_store import (  # noqa: E402
     get_doffice_chunks_vector_store,
     get_doffice_docmeta_vector_store,
@@ -70,9 +74,53 @@ def _make_ingestor(session) -> DofficeUnifiedIngestor:
         chunks_store=get_doffice_chunks_vector_store(),
         docmeta_store=get_doffice_docmeta_vector_store(),
         bm25_store=DofficeBm25DocumentStore(),
+        chunk_bm25_store=DofficeChunkBm25Store(),
         catalog=None,
         unit_tree=None,
     )
+
+
+# ----------------------------- chọn store để xóa ----------------------------
+_STORE_ORDER = [("1", "pg", "PostgreSQL"), ("2", "es", "Elasticsearch"), ("3", "qdrant", "Qdrant")]
+_STORE_KEYS = {key for _, key, _ in _STORE_ORDER}
+
+
+def _parse_stores(raw: list[str] | None) -> set[str] | None:
+    """Parse danh sách store từ flag/env (pg/es/qdrant). None nếu không chỉ định."""
+    if not raw:
+        return None
+    sel = {s.strip().lower() for s in raw if s.strip().lower() in _STORE_KEYS}
+    return sel or None
+
+
+def _select_stores_interactive(default: set[str]) -> set[str] | None:
+    """Menu chọn store: gõ số để bật/tắt (cách nhau dấu cách), 4=xác nhận chạy, q=hủy."""
+    sel = set(default)
+    while True:
+        print(cs.color("\nChọn store để XÓA:", cs.BOLD))
+        for num, key, label in _STORE_ORDER:
+            mark = cs.color("[x]", cs.GREEN) if key in sel else "[ ]"
+            print(f"  {mark} {num}) {label}")
+        print(f"      {cs.color('4) ✅ Xác nhận & chạy', cs.YELLOW)}    q) Hủy")
+        raw = input("Gõ số để bật/tắt (vd '1 3'), 4=chạy, q=hủy: ").strip().lower()
+        if not raw:
+            continue
+        toks = raw.replace(",", " ").split()
+        if "q" in toks:
+            return None
+        confirm = False
+        for t in toks:
+            if t == "4":
+                confirm = True
+            else:
+                for num, key, _ in _STORE_ORDER:
+                    if t == num:
+                        sel.symmetric_difference_update({key})
+        if confirm:
+            if not sel:
+                print(cs.color("Chưa chọn store nào -> chọn ít nhất 1.", cs.RED))
+                continue
+            return sel
 
 
 async def _id_vbs_for_don_vi(session, don_vi: list[str]) -> list[str]:
@@ -130,10 +178,29 @@ async def _main(args: argparse.Namespace) -> None:
         print(cs.color("Khong tim thay van ban nao khop -> khong xoa gi.", cs.YELLOW))
         return
 
-    # --- Xac nhan ---
-    print(cs.color(f"\nSE XOA {len(targets)} van ban khoi PG + ES + Qdrant ({mode}):", cs.BOLD + cs.RED))
+    # --- Danh sach van ban se xoa ---
+    print(cs.color(f"\n{len(targets)} van ban khop ({mode}):", cs.BOLD))
     print("  " + ", ".join(targets[:30]) + (" ..." if len(targets) > 30 else ""))
-    if not yes:
+
+    # --- Chon store de xoa: flag/env -> menu tuong tac -> mac dinh ca 3 ---
+    explicit = _parse_stores(args.stores or _split_env("DOFFICE_DEL_STORES"))
+    used_menu = False
+    if explicit is not None:
+        stores = explicit
+    elif sys.stdin.isatty() and not yes:
+        stores = _select_stores_interactive({"pg", "es", "qdrant"})
+        if stores is None:
+            print("Da huy.")
+            return
+        used_menu = True  # option 4 trong menu = da xac nhan
+    else:
+        stores = {"pg", "es", "qdrant"}  # mac dinh ca 3
+
+    store_label = " + ".join(label for _, key, label in _STORE_ORDER if key in stores)
+    print(cs.color(f"\nSE XOA {len(targets)} van ban khoi: {store_label}", cs.BOLD + cs.RED))
+
+    # Menu (option 4) da xac nhan. Neu chon store qua flag/env -> can --yes (hoac go 'yes').
+    if not used_menu and not yes:
         if not sys.stdin.isatty():
             print(cs.color("Thieu xac nhan (stdin khong phai terminal). Them --yes hoac DOFFICE_DEL_YES=1.", cs.RED))
             return
@@ -141,6 +208,8 @@ async def _main(args: argparse.Namespace) -> None:
         if ans != "yes":
             print("Da huy.")
             return
+
+    del_pg, del_es, del_qd = "pg" in stores, "es" in stores, "qdrant" in stores
 
     deleted = not_found = failed = 0
     start = time.monotonic()
@@ -158,7 +227,9 @@ async def _main(args: argparse.Namespace) -> None:
         for idv in targets:
             try:
                 async with AsyncSessionLocal() as session:
-                    ok = await _make_ingestor(session).delete_by_id_vb(idv)
+                    ok = await _make_ingestor(session).delete_by_id_vb(
+                        idv, pg=del_pg, es=del_es, qdrant=del_qd
+                    )
                 if ok:
                     deleted += 1
                 else:
@@ -173,9 +244,10 @@ async def _main(args: argparse.Namespace) -> None:
     print("\n".join([
         "",
         line,
-        cs.color("  XOA van ban DOffice (PG + ES + Qdrant)", cs.BOLD + cs.CYAN),
+        cs.color(f"  XOA van ban DOffice ({store_label})", cs.BOLD + cs.CYAN),
         line,
         f"  Che do      : {cs.color(mode, cs.BOLD)}",
+        f"  Store       : {cs.color(store_label, cs.BOLD)}",
         f"  Da xoa      : {cs.color(str(deleted), cs.GREEN)}",
         f"  Khong thay  : {cs.color(str(not_found), cs.YELLOW)} (PG khong co; da don ES theo id_vb neu con)",
         f"  Loi         : {cs.color(str(failed), cs.RED if failed else cs.GREEN)}",
@@ -189,5 +261,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Xoa van ban DOffice khoi PG + ES + Qdrant.")
     parser.add_argument("--id-vb", nargs="+", help="id_vb le (override DOFFICE_DEL_ID_VB).")
     parser.add_argument("--don-vi", nargs="+", help="id don vi ban hanh (override DOFFICE_DEL_DON_VI).")
-    parser.add_argument("--yes", action="store_true", help="Bo qua xac nhan.")
+    parser.add_argument(
+        "--stores", nargs="+", choices=["pg", "es", "qdrant"], default=None,
+        help="Store de xoa (vd: --stores qdrant es). Bo trong = menu tuong tac (tty) hoac ca 3.",
+    )
+    parser.add_argument("--yes", action="store_true", help="Bo qua xac nhan (can khi dung --stores phi tuong tac).")
     asyncio.run(_main(parser.parse_args()))

@@ -46,6 +46,8 @@ from jobs.doffice_sync.logger import setup_job_logging  # noqa: E402
 logger = logging.getLogger("doffice_sync.qdrant")
 # Logger RIÊNG cho văn bản nhiều chunk -> file chunks_big.log (xem logger.setup_job_logging).
 chunks_logger = logging.getLogger("doffice_sync.chunks")
+# Logger RIÊNG liệt kê văn bản BỎ QUA vì > max_chunks -> file vanban_bo_qua_qua_chunk.log.
+oversize_logger = logging.getLogger("doffice_sync.oversize")
 
 _QUEUE_MAXSIZE = 200
 _QDRANT_RETRIES = 3
@@ -114,6 +116,9 @@ class QStats:
         chunks_logger.warning(
             "id_vb=%s BỎ QUA: %s chunk (> max %s) — không embed, không đánh dấu PG",
             id_vb, nchunk, max_chunks,
+        )
+        oversize_logger.warning(
+            "id_vb=%s BỎ QUA (không embed): %s chunk > ngưỡng %s", id_vb, nchunk, max_chunks,
         )
 
 
