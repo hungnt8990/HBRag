@@ -30,9 +30,15 @@
   -> tự nhả khi đóng tab/mất mạng. Người khác đang giữ -> hiện "🔒 [tên] đang chỉnh sửa" + chặn bấm Sửa. Race 2
   người bấm cùng lúc: tie-break bằng clientID nhỏ nhất (sau ~400ms). Nút "✓ Lưu & Xong" nhả khóa (thay đổi đã sync
   real-time + backend tự lưu `.ybin` ≤2s). Panel/nút thêm khối/khôi phục chỉ hiện khi đang giữ khóa.
-- ⚠️ Bug OOM đã fix: `useEffect([edges])` cũ ghi lại TOÀN BỘ edges mỗi lần state đổi -> `Y.Map.set` luôn sinh
-  update mới -> echo loop vô hạn giữa ≥2 client -> Y.Doc phình -> Chrome "Out of Memory". Nay diff-guard idempotent
-  + `stripEphemeralEdge` (bỏ `selected`) + `edgesFromY(yEdges, prev)` giữ `selected` local (giống `nodes`).
+- ⚠️ Bug OOM đã fix (2 đợt, cùng gốc: `Y.Map.set` luôn sinh update mới kể cả giá trị y hệt -> echo loop
+  giữa ≥2 client -> Y.Doc phình -> Chrome "Out of Memory"):
+  1. Edges: `useEffect([edges])` cũ ghi lại TOÀN BỘ edges mỗi state đổi. Fix: diff-guard idempotent +
+     `stripEphemeralEdge` (bỏ `selected`) + `edgesFromY(yEdges, prev)` giữ `selected` local.
+  2. Nodes (fix 2026-07-02): RF v12 phát change `dimensions` (ResizeObserver) -> `onNodesChange` ghi node kèm
+     `measured` vào Yjs; client kia nhận -> `nodesFromY` mất `measured` local -> RF đo lại -> phát `dimensions`
+     -> ghi ngược = ping-pong vô hạn. Fix 3 tầng trong `CollabFlow.tsx`: `stripEphemeral` bỏ thêm
+     `measured`/`resizing`; `nodesFromY` giữ `measured`/`dragging` local (như `selected`); `onNodesChange`
+     bỏ qua `dimensions` thuần đo (không `setAttributes`) + diff-guard JSON như edges trước khi `yNodes.set`.
 
 ### 2. Filter "đã có point Qdrant" ở danh sách văn bản
 - `lib/api.ts` `listDocuments({qdrantIndexed})` -> query `qdrant_indexed` cho `GET /api/documents`.

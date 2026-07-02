@@ -59,10 +59,14 @@ const EDGE_SWATCHES = ["#64748b", "#1d4ed8", "#047857", "#c2410c", "#6d28d9", "#
 
 type Peer = { clientId: number; name: string; color: string; cursor?: { x: number; y: number }; editing?: boolean };
 
+// Bỏ MỌI trường phù du trước khi ghi Yjs. `measured` là kết quả đo DOM của TỪNG client
+// (lệch nhau theo zoom/font) — nếu sync nó, 2 client sẽ ping-pong dimensions vô hạn -> OOM.
 function stripEphemeral(node: Node): Node {
   const clone = { ...node } as Record<string, unknown>;
   delete clone.selected;
   delete clone.dragging;
+  delete clone.measured;
+  delete clone.resizing;
   return clone as Node;
 }
 
@@ -72,9 +76,19 @@ function stripEphemeralEdge(edge: Edge): Edge {
   return clone as Edge;
 }
 
+// Giữ trạng thái phù du LOCAL (`selected`, `measured`, `dragging`) khi tái dựng từ Yjs —
+// nếu để mất `measured`, React Flow đo lại và phát change "dimensions" mỗi lần nhận remote update.
 function nodesFromY(yNodes: Y.Map<Node>, prev: Node[]): Node[] {
-  const sel = new Map(prev.map((n) => [n.id, n.selected]));
-  return Array.from(yNodes.values()).map((n) => ({ ...n, selected: sel.get(n.id) ?? false }));
+  const local = new Map(prev.map((n) => [n.id, n]));
+  return Array.from(yNodes.values()).map((n) => {
+    const p = local.get(n.id);
+    return {
+      ...n,
+      selected: p?.selected ?? false,
+      ...(p?.measured !== undefined ? { measured: p.measured } : {}),
+      ...(p?.dragging !== undefined ? { dragging: p.dragging } : {}),
+    };
+  });
 }
 
 // Giữ `selected` local (phù du, không đồng bộ) khi tái dựng từ Yjs -> tránh echo qua selection.
@@ -604,15 +618,32 @@ function FlowCanvas() {
     setNodes((nds) => {
       const next = applyNodeChanges(changes, nds);
       if (doc && yNodes) {
-        doc.transact(() => {
-          for (const ch of changes) {
-            if (ch.type === "remove") yNodes.delete(ch.id);
-            else if (ch.type !== "select" && "id" in ch) {
-              const n = next.find((x) => x.id === ch.id);
-              if (n) yNodes.set(n.id, stripEphemeral(n));
-            }
+        // Diff-guard idempotent (giống edges): "dimensions" thuần đo (không setAttributes) là
+        // ephemeral -> KHÔNG ghi; và chỉ ghi node THỰC SỰ khác nội dung Yjs. Y.Map.set luôn sinh
+        // update mới kể cả giá trị y hệt, nên thiếu guard là echo loop giữa ≥2 client -> OOM.
+        const toDelete: string[] = [];
+        const toWrite = new Map<string, Node>();
+        for (const ch of changes) {
+          if (ch.type === "remove") {
+            toDelete.push(ch.id);
+            continue;
           }
-        }, LOCAL_ORIGIN);
+          if (ch.type === "select") continue;
+          if (ch.type === "dimensions" && !ch.setAttributes) continue;
+          if (!("id" in ch)) continue;
+          const n = next.find((x) => x.id === ch.id);
+          if (!n) continue;
+          const stripped = stripEphemeral(n);
+          const prevY = yNodes.get(n.id);
+          if (prevY && JSON.stringify(stripEphemeral(prevY)) === JSON.stringify(stripped)) continue;
+          toWrite.set(stripped.id, stripped);
+        }
+        if (toDelete.length > 0 || toWrite.size > 0) {
+          doc.transact(() => {
+            toDelete.forEach((id) => yNodes.delete(id));
+            toWrite.forEach((n) => yNodes.set(n.id, n));
+          }, LOCAL_ORIGIN);
+        }
       }
       return next;
     });
