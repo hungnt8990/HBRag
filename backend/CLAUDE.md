@@ -70,8 +70,15 @@
   (ACL + filter nam/thang từ query) -> RRF (rank THEO TỪNG query) -> context ±1 + chunk CHA heading ->
   rerank Qwen3-Reranker -> CRAG hybrid (rule + LLM chấm ambiguous, retry 1 vòng) -> `evidence_summary`.
   Trọng số/ngưỡng: settings `document_search_fusion_*`/`_crag_*`/`_rerank_*`. Plan: `PLAN_DOCUMENT_SEARCH_UPGRADE.md`.
-  Đã verify live: exact/ref ~30-350ms, fusion ~2.6-3s warm (lần đầu 6-8s cold). ⚠️ candidate_k GIỮ 30
+  Đã verify live: exact/ref ~30-350ms, fusion ~1.7-3.3s warm (lần đầu 6-8s cold). ⚠️ candidate_k GIỮ 30
   (60 -> sparse prefetch Qdrant candidate=240 thỉnh thoảng treo 3-4s lúc cache lạnh). Log `fusion timings(ms)`.
+- **3 bug hạ tầng semantic đã sửa (2026-07-03, KHÔNG cần re-embed)**:
+  (1) Qwen3-Embedding-8B instruction-tuned -> query phải bọc `Instruct:...\nQuery:...` (`build_query_embedding_text`,
+  setting `embedding_query_instruction`), chỉ phía query. (2) ⚠️ Qwen3-Reranker-8B bị NHÃN metadata trong content
+  đánh lừa (doc lạc đề 0.79) -> ĐÃ ĐỔI `RERANKER_MODEL=BAAI/bge-reranker-v2-m3` (miễn nhiễm) + `_clean_rerank_text`.
+  (3) CRAG dùng `rerank_score` thay token-overlap (settings `_crag_*_rerank`); rerank weight 0.8 + điểm thô.
+- **BGE-M3 KHÔNG trả sparse qua gateway CPC** (chỉ dense 1024) -> learned sparse bất khả thi; giữ hashing + ES BM25.
+  Qwen3-Embedding-8B (4096) > BGE-M3 (1024) -> GIỮ dense hiện tại.
 - **Sparse học được**: `embedding_sparse_learned.py` (độc lập, HTTP, fallback hashing); bật
   `SPARSE_EMBEDDING_PROVIDER=learned` + `SPARSE_LEARNED_BASE_URL`; đổi provider PHẢI re-embed (run_qdrant).
 - ⚠️ TODO: route decode JWT KHÔNG verify chữ ký (giả ID_NV = bypass ACL) — cần JWKS khi ra khỏi gateway nội bộ.

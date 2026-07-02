@@ -181,12 +181,18 @@ class Settings(BaseSettings):
     # CRAG-lite: ngưỡng coverage rule-based + LLM chấm lại các candidate "ambiguous" ở top.
     document_search_crag_strong_coverage: float = 0.35
     document_search_crag_ambiguous_coverage: float = 0.15
+    # CRAG dùng ĐIỂM RERANK (cross-encoder) làm tín hiệu chính khi có — token-overlap chỉ là phụ.
+    # Reranker chấm liên quan chính xác hơn nhiều: doc rerank thấp -> weak dù trùng nhiều token.
+    document_search_crag_strong_rerank: float = 0.5
+    document_search_crag_ambiguous_rerank: float = 0.2
     document_search_crag_llm_grading: bool = True
     document_search_crag_llm_grading_max: int = 5       # số candidate ambiguous tối đa đưa LLM chấm
     # Cross-encoder rerank (LLMGateway.rerank — Qwen3-Reranker) sau fusion, trước CRAG.
     document_search_rerank_enabled: bool = True
     document_search_rerank_top_k: int = 20              # số candidate đưa vào reranker
-    document_search_rerank_weight: float = 0.6          # điểm cuối = w*rerank_norm + (1-w)*rrf_norm
+    # Có cross-encoder mạnh (Qwen3-Reranker-8B) -> để nó QUYẾT ĐỊNH thứ hạng cuối (retrieve-then-rerank).
+    # RRF chủ yếu lo recall (đưa candidate vào pool); reranker lo precision xếp hạng. w cao = rerank chi phối.
+    document_search_rerank_weight: float = 0.8          # điểm cuối = w*rerank_norm + (1-w)*rrf_norm
     # API cập nhật ACL cho DOffice gọi: API key tĩnh (rỗng = mở, cho dev).
     doffice_acl_api_key: str | None = None
 
@@ -217,6 +223,15 @@ class Settings(BaseSettings):
     embedding_api_key: str | None = None
     embedding_model: str | None = None
     embedding_dimension: int = 384
+    # Qwen3-Embedding là model INSTRUCTION-TUNED: query cần bọc "Instruct: <task>\nQuery:<q>"
+    # (tài liệu embed KHÔNG instruction — đúng chuẩn Qwen3, nên KHÔNG phải re-embed). Bọc query
+    # nâng rõ chất lượng dense semantic (vd "quy chế trả lương": đúng VB nhảy từ hạng 3 -> 1).
+    # Rỗng = tắt (dùng cho model không cần instruction, vd BGE-M3). Chỉ áp cho query semantic,
+    # KHÔNG áp cho tra cứu mã/số hiệu (đi đường exact/BM25).
+    embedding_query_instruction: str = (
+        "Cho một truy vấn tìm kiếm văn bản hành chính tiếng Việt, "
+        "truy xuất các đoạn văn bản liên quan trả lời truy vấn."
+    )
 
     reranker_provider: str = "fake"
     reranker_base_url: str | None = None

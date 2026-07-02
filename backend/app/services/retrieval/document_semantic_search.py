@@ -772,22 +772,41 @@ async def _apply_cross_encoder_rerank(query: str, candidates: list[_Candidate]) 
         return
 
     fused_values = [candidate.fused_score for candidate in top]
-    rerank_values = list(by_key.values())
     fused_lo, fused_span = min(fused_values), (max(fused_values) - min(fused_values)) or 1.0
-    rerank_lo, rerank_span = min(rerank_values), (max(rerank_values) - min(rerank_values)) or 1.0
     weight = min(1.0, max(0.0, float(settings.document_search_rerank_weight)))
 
     for candidate in top:
+        # RRF min-max để làm tiebreak; điểm rerank dùng THÔ (reranker đã hiệu chỉnh 0-1) ->
+        # set toàn weak cho điểm cuối thấp thật (không bị min-max thổi doc kém nhất thành 1.0).
         fused_norm = (candidate.fused_score - fused_lo) / fused_span
         rerank_raw = by_key.get(candidate.key)
         if rerank_raw is None:
-            candidate.final_score = (1.0 - weight) * fused_norm
+            candidate.final_score = (1.0 - weight) * fused_norm * 0.5
             continue
         candidate.rerank_score = rerank_raw
-        rerank_norm = (rerank_raw - rerank_lo) / rerank_span
-        candidate.final_score = weight * rerank_norm + (1.0 - weight) * fused_norm
+        candidate.final_score = weight * rerank_raw + (1.0 - weight) * fused_norm
     # Candidate ngoài top rerank: giữ dưới nhóm được rerank (điểm RRF gốc luôn < 1 sau chuẩn hoá).
     candidates.sort(key=lambda item: (-item.final_score, item.key))
+
+
+# Nhãn metadata bị chèn đầu dòng chunk (build_embedding_text/_element_content). Bỏ NHÃN,
+# giữ GIÁ TRỊ -> reranker thấy nội dung thật, không bị format đánh lừa (Qwen3-Reranker từng
+# chấm doc lạc đề 0.79 vì nhãn; BGE miễn nhiễm nhưng vẫn nên gửi sạch).
+_META_LABEL_RE = re.compile(
+    r"^(?:S[ố́o]?/?k[ýy] hi[ệe]u|S[ố́o] hi[ệe]u/m[ãa]|Ng[àa]y( v[ăa]n b[ảa]n| ban h[àa]nh)?|"
+    r"Tr[íi]ch y[ếe]u|V[ăa]n b[ảa]n|T[àa]i li[ệe]u|C[ơo] quan|M[ụu]c|[ĐDĐ]i[ềe]u|Kho[ảa]n|"
+    r"[ĐD]i[ểe]m|Ph[ụu] l[ụu]c|B[ảa]ng|C[ộo]t b[ảa]ng)\s*:\s*",
+    re.IGNORECASE,
+)
+
+
+def _clean_rerank_text(text: str) -> str:
+    lines_out: list[str] = []
+    for line in str(text or "").splitlines():
+        stripped = _META_LABEL_RE.sub("", line).strip()
+        if stripped:
+            lines_out.append(stripped)
+    return " ".join(lines_out)
 
 
 def _rerank_content(candidate: _Candidate) -> str:
@@ -804,10 +823,18 @@ def _rerank_content(candidate: _Candidate) -> str:
         default=None,
     )
     if best_chunk is not None:
-        parts.append(str(best_chunk.get("content") or "")[:900])
+        parts.append(_clean_rerank_text(best_chunk.get("content") or "")[:900])
     elif candidate.highlights:
         parts.append(re.sub(r"</?mark>", "", " ... ".join(candidate.highlights[:3])))
-    return "\n".join(part for part in parts if part)[:1500] or candidate.key
+    # Bỏ đoạn trùng lặp (title lặp lại trong body) rồi cắt.
+    seen: set[str] = set()
+    uniq: list[str] = []
+    for part in parts:
+        p = part.strip()
+        if p and p.casefold() not in seen:
+            seen.add(p.casefold())
+            uniq.append(p)
+    return "\n".join(uniq)[:1500] or candidate.key
 
 
 # ============================== CRAG-lite ==============================
@@ -824,10 +851,25 @@ def _crag_lite_evidence(query: str, candidate: _Candidate) -> dict[str, Any]:
     support_count = sum(1 for item in candidate.context if str(item.get("content") or "").strip())
     strong_coverage = float(settings.document_search_crag_strong_coverage)
     ambiguous_coverage = float(settings.document_search_crag_ambiguous_coverage)
+    rerank = candidate.rerank_score
 
     if support_count == 0:
         status = "weak"
         reason = "Khong co chunk/context lam can cu truc tiep."
+    elif rerank is not None:
+        # Cross-encoder (Qwen3-Reranker) là tín hiệu liên quan chính xác nhất -> ưu tiên. Doc
+        # trùng nhiều token nhưng reranker chấm thấp = KHÔNG trả lời được truy vấn -> weak.
+        strong_rr = float(settings.document_search_crag_strong_rerank)
+        ambiguous_rr = float(settings.document_search_crag_ambiguous_rerank)
+        if rerank >= strong_rr:
+            status = "strong"
+            reason = "Reranker cross-encoder danh gia doc lien quan cao voi truy van."
+        elif rerank >= ambiguous_rr:
+            status = "ambiguous"
+            reason = "Reranker danh gia lien quan vua phai; can cu chua that manh."
+        else:
+            status = "weak"
+            reason = "Reranker danh gia doc it lien quan truy van."
     elif coverage >= strong_coverage and (source_count >= 2 or support_count >= 2):
         status = "strong"
         reason = "Nhieu nguon ho tro va noi dung context phu hop truy van."
@@ -842,6 +884,7 @@ def _crag_lite_evidence(query: str, candidate: _Candidate) -> dict[str, Any]:
         "reason": reason,
         "support_count": support_count,
         "coverage": round(coverage, 4),
+        "rerank_score": round(rerank, 4) if rerank is not None else None,
         "matched_terms": sorted(overlap)[:12],
         "source_flags": sorted(candidate.source_flags),
     }

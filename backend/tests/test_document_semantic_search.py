@@ -184,3 +184,45 @@ def test_llm_grade_ambiguous_parse_error_keeps_rule_verdict(monkeypatch) -> None
     c1.evidence = {"status": "ambiguous", "reason": "rule"}
     asyncio.run(sem._llm_grade_ambiguous("cau hoi", [c1]))
     assert c1.evidence["status"] == "ambiguous"
+
+
+# --------------------------- clean rerank content ---------------------------
+
+
+def test_clean_rerank_text_strips_metadata_labels() -> None:
+    t = "Số/ký hiệu: CV\nNgày văn bản: 15/04/2025\nTrích yếu: Đề nghị hợp tác\nVăn bản: CV - Đề nghị hợp tác"
+    cleaned = sem._clean_rerank_text(t)
+    assert "Số/ký hiệu:" not in cleaned
+    assert "Trích yếu:" not in cleaned
+    assert "Văn bản:" not in cleaned
+    assert "Đề nghị hợp tác" in cleaned
+
+
+# --------------------------- CRAG dùng rerank_score ---------------------------
+
+
+def test_crag_uses_rerank_score_over_token_overlap(monkeypatch) -> None:
+    monkeypatch.setattr(sem.settings, "document_search_crag_strong_rerank", 0.5)
+    monkeypatch.setattr(sem.settings, "document_search_crag_ambiguous_rerank", 0.2)
+    # Doc trùng nhiều token với query nhưng reranker chấm thấp -> weak (không "strong" bừa).
+    c = sem._Candidate(key="vb1")
+    c.context = [{"content": "khen thuong thi dua nam 2025 quyet dinh"}]
+    c.source_flags = {"bm25_document", "vector_chunk"}
+    c.rerank_score = 0.01
+    ev = sem._crag_lite_evidence("khen thuong thi dua nam 2025", c)
+    assert ev["status"] == "weak"
+    # Reranker chấm cao -> strong dù ít trùng token.
+    c.rerank_score = 0.8
+    ev = sem._crag_lite_evidence("khen thuong thi dua nam 2025", c)
+    assert ev["status"] == "strong"
+
+
+def test_query_embedding_instruction_applies_to_semantic_not_identifier() -> None:
+    # Mặc định settings.embedding_query_instruction non-empty -> query semantic được bọc,
+    # còn tra cứu mã/số hiệu giữ nguyên (đi đường exact/BM25).
+    from app.services.rag import rag_chunk
+
+    semantic = rag_chunk.build_query_embedding_text("quy chế trả lương")
+    identifier = rag_chunk.build_query_embedding_text("3113")
+    assert semantic.startswith("Instruct:") and "Query:" in semantic
+    assert not identifier.startswith("Instruct:")

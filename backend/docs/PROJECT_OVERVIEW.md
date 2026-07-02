@@ -65,7 +65,27 @@
 > (delete_by_id_vb trước bulk). Verify E2E trên ES live: ensure_index + bulk + search BM25 + ACL fields + 1 doc thật
 > 3 chunk khớp. 183 test pass. (run_qdrant KHÔNG index ES — chỉ embed Qdrant.)
 >
-> Cập nhật gần nhất: 2026-07-02 (b) — **document-search: fusion semantic đầy đủ + rerank + CRAG + sparse học được**.
+> Cập nhật gần nhất: 2026-07-03 — **Sửa GỐC RỄ chất lượng semantic (3 bug hạ tầng) — KHÔNG cần re-embed**.
+> Chẩn đoán live (id_nv=90288) 3 nguyên nhân khiến search ngữ nghĩa kém:
+> (1) **Qwen3-Embedding-8B là model instruction-tuned** nhưng query embed TRẦN -> dense yếu. Fix:
+> `build_query_embedding_text` bọc `Instruct: <task>\nQuery:<q>` (setting `embedding_query_instruction`),
+> CHỈ phía query (tài liệu embed không instruction — chuẩn Qwen3 -> KHÔNG re-embed). Vd "quy chế trả lương":
+> đúng VB nhảy hạng 3->1 (0.58->0.66).
+> (2) **Qwen3-Reranker-8B bị ĐÁNH LỪA bởi format content có nhãn metadata** ("Số/ký hiệu:/Trích yếu:/Văn bản:")
+> -> chấm doc lạc đề 0.79 (đúng VB chỉ 0.22) -> phá thứ hạng. Probe gateway: cùng doc, content sạch=0.09 vs
+> content-có-nhãn=0.79. Fix: **đổi RERANKER_MODEL -> BAAI/bge-reranker-v2-m3** (miễn nhiễm nhãn: 0.002 vs 0.98,
+> phân tách sạch) + `_clean_rerank_text` bỏ nhãn giữ giá trị trước khi gửi reranker. (Cả 2 reranker deterministic.)
+> (3) **CRAG chấm evidence bằng token-overlap** -> gán "strong" cho cả doc reranker chấm 0.006. Fix: CRAG lấy
+> `rerank_score` làm tín hiệu chính (settings `_crag_strong_rerank=0.5`/`_ambiguous_rerank=0.2`); rerank weight
+> 0.6->0.8 + dùng điểm rerank THÔ (0-1) thay min-max -> score hiển thị trung thực (khớp mạnh ~9000, yếu ~600-2200).
+> **Kết quả live**: query có dữ liệu (agile scrum, khen thưởng 2025, quy chế lương, HĐH phần mềm) -> top toàn VB
+> đúng rerank 0.9-0.996 evidence=strong; query corpus KHÔNG có (nghỉ cưới/phụ cấp độc hại) -> evidence=insufficient
+> (trung thực thay vì "strong" bừa). Latency fusion 1.7-3.3s warm. **BGE-M3 KHÔNG dùng được sparse qua gateway CPC**
+> (endpoint chỉ trả dense 1024, mọi cờ return_sparse bị bỏ qua; không có /embeddings/sparse) -> learned sparse
+> giữ TẮT, sparse vẫn hashing + ES BM25 lo kênh lexical. Qwen3-Embedding-8B (4096) mạnh hơn BGE-M3 (1024) nên
+> GIỮ làm dense. Không đụng dữ liệu đã index. Test 454 pass.
+>
+> Cập nhật trước: 2026-07-02 (b) — **document-search: fusion semantic đầy đủ + rerank + CRAG + sparse học được**.
 > `/api/document-search/search` (khi `DOFFICE_RETRIEVAL_ENABLED=true`, search_type ∉ {exact,ref}) chạy pipeline
 > `run_semantic_document_fusion` (`document_semantic_search.py`, viết lại từ bản codex): (1) LLM sinh 2-4 query
 > liên quan; (2) embed dense+sparse MỘT lần/query (song song, trước đây mỗi collection tự embed lại → gấp đôi call);

@@ -550,7 +550,18 @@ def build_query_embedding_text(query: str) -> str:
                 clean,
             ]
         )
+    # Query semantic: boc instruction cho model instruction-tuned (Qwen3-Embedding).
+    # Tai lieu da embed KHONG instruction -> chi boc phia query (chuan Qwen3, khong re-embed).
+    instruction = _query_embedding_instruction()
+    if instruction:
+        return f"Instruct: {instruction}\nQuery:{clean}"
     return clean
+
+
+def _query_embedding_instruction() -> str:
+    from app.core.config import settings
+
+    return " ".join(str(getattr(settings, "embedding_query_instruction", "") or "").split()).strip()
 
 
 def should_index_chunk(chunk: RagChunk) -> bool:
