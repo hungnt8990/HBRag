@@ -66,13 +66,21 @@ function stripEphemeral(node: Node): Node {
   return clone as Node;
 }
 
+function stripEphemeralEdge(edge: Edge): Edge {
+  const clone = { ...edge } as Record<string, unknown>;
+  delete clone.selected;
+  return clone as Edge;
+}
+
 function nodesFromY(yNodes: Y.Map<Node>, prev: Node[]): Node[] {
   const sel = new Map(prev.map((n) => [n.id, n.selected]));
   return Array.from(yNodes.values()).map((n) => ({ ...n, selected: sel.get(n.id) ?? false }));
 }
 
-function edgesFromY(yEdges: Y.Map<Edge>): Edge[] {
-  return Array.from(yEdges.values());
+// Giữ `selected` local (phù du, không đồng bộ) khi tái dựng từ Yjs -> tránh echo qua selection.
+function edgesFromY(yEdges: Y.Map<Edge>, prev: Edge[]): Edge[] {
+  const sel = new Map(prev.map((e) => [e.id, e.selected]));
+  return Array.from(yEdges.values()).map((e) => ({ ...e, selected: sel.get(e.id) ?? false }));
 }
 
 const HIDDEN_HANDLE_STYLE = { opacity: 0 };
@@ -449,7 +457,7 @@ function FlowCanvas() {
 
     const refresh = () => {
       setNodes((prev) => nodesFromY(yNodes, prev));
-      setEdges(edgesFromY(yEdges));
+      setEdges((prev) => edgesFromY(yEdges, prev));
     };
 
     const onStatus = (e: { status: string }) =>
@@ -470,7 +478,7 @@ function FlowCanvas() {
       if (txn.origin !== LOCAL_ORIGIN) setNodes((prev) => nodesFromY(yNodes, prev));
     };
     const onEdgesY = (_e: Y.YMapEvent<Edge>, txn: Y.Transaction) => {
-      if (txn.origin !== LOCAL_ORIGIN) setEdges(edgesFromY(yEdges));
+      if (txn.origin !== LOCAL_ORIGIN) setEdges((prev) => edgesFromY(yEdges, prev));
     };
 
     // presence
@@ -514,12 +522,22 @@ function FlowCanvas() {
     };
   }, [me]);
 
+  // Bắt thay đổi edge phát sinh trong EditableEdge (segOffset/nhãn) mà không đi qua commitEdge.
+  // CHỈ ghi edge THỰC SỰ khác nội dung Yjs (đã bỏ `selected` phù du) -> idempotent, phá vòng echo:
+  // khi state đến từ remote nó y hệt yEdges nên không ghi lại -> không broadcast ngược -> không OOM.
   useEffect(() => {
     const doc = docRef.current;
     const yEdges = yEdgesRef.current;
     if (!doc || !yEdges) return;
+    const changed = edges
+      .map(stripEphemeralEdge)
+      .filter((edge) => {
+        const prev = yEdges.get(edge.id);
+        return !prev || JSON.stringify(stripEphemeralEdge(prev)) !== JSON.stringify(edge);
+      });
+    if (changed.length === 0) return;
     doc.transact(() => {
-      edges.forEach((edge) => yEdges.set(edge.id, edge));
+      changed.forEach((edge) => yEdges.set(edge.id, edge));
     }, LOCAL_ORIGIN);
   }, [edges]);
 
