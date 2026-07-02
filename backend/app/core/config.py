@@ -81,8 +81,22 @@ class Settings(BaseSettings):
     dense_vector_name: str = "dense"
     sparse_vector_name: str = "sparse"
     sparse_embedding_enabled: bool = True
-    sparse_embedding_provider: str = "hashing"
+    sparse_embedding_provider: str = "hashing"          # hashing | learned
     sparse_embedding_hash_dimensions: int = 1_048_576
+    # Sparse HỌC ĐƯỢC (BGE-M3/SPLADE) qua HTTP — module độc lập embedding_sparse_learned.py,
+    # không phụ thuộc cấu trúc collection Qdrant (đổi cấu trúc lưu metadata/chunk vẫn dùng lại).
+    # Bật: SPARSE_EMBEDDING_PROVIDER=learned + SPARSE_LEARNED_BASE_URL. Dữ liệu index bằng
+    # provider nào thì query phải cùng provider -> đổi provider cần re-embed (run_qdrant.bat).
+    sparse_learned_base_url: str | None = None          # vd gateway CPC hoặc server TEI/Infinity
+    sparse_learned_api_key: str | None = None
+    sparse_learned_model: str = "BAAI/bge-m3"
+    sparse_learned_endpoint_path: str = "/embeddings/sparse"
+    sparse_learned_timeout_seconds: float = 60.0
+    sparse_learned_batch_size: int = 16
+    # Response dạng {token: weight} (thay vì {indices, values}) -> map token->index bằng hash
+    # cùng không gian với HashingSparseEmbeddingProvider để không phụ thuộc vocab server.
+    sparse_learned_hash_token_weights: bool = True
+    sparse_learned_fallback_hashing: bool = True        # lỗi endpoint -> hashing (job không gãy)
     store_raw_text_in_qdrant: bool = False
     store_embedding_text_in_qdrant: bool = False
 
@@ -154,6 +168,25 @@ class Settings(BaseSettings):
     document_search_chunk_rerank_enabled: bool = True
     document_search_chunk_rerank_multiplier: int = 3
     document_search_chunk_rerank_max_hits: int = 60
+    # Fusion semantic (document_semantic_search.py): trọng số RRF theo nguồn + số candidate.
+    document_search_fusion_rrf_k: int = 60
+    document_search_fusion_w_bm25_doc: float = 1.0
+    document_search_fusion_w_bm25_chunk: float = 0.55
+    document_search_fusion_w_vector_chunk: float = 1.15
+    document_search_fusion_w_vector_docmeta: float = 0.75
+    # depth mỗi nguồn: 30 đủ cho RRF nhiều nguồn; 60 làm sparse prefetch Qdrant
+    # (candidate = top_k×multiplier=240) thỉnh thoảng chậm 3-4s khi cache lạnh.
+    document_search_fusion_candidate_k: int = 30
+    document_search_fusion_max_expansions: int = 4      # tối đa số query (gốc + LLM sinh thêm)
+    # CRAG-lite: ngưỡng coverage rule-based + LLM chấm lại các candidate "ambiguous" ở top.
+    document_search_crag_strong_coverage: float = 0.35
+    document_search_crag_ambiguous_coverage: float = 0.15
+    document_search_crag_llm_grading: bool = True
+    document_search_crag_llm_grading_max: int = 5       # số candidate ambiguous tối đa đưa LLM chấm
+    # Cross-encoder rerank (LLMGateway.rerank — Qwen3-Reranker) sau fusion, trước CRAG.
+    document_search_rerank_enabled: bool = True
+    document_search_rerank_top_k: int = 20              # số candidate đưa vào reranker
+    document_search_rerank_weight: float = 0.6          # điểm cuối = w*rerank_norm + (1-w)*rrf_norm
     # API cập nhật ACL cho DOffice gọi: API key tĩnh (rỗng = mở, cho dev).
     doffice_acl_api_key: str | None = None
 

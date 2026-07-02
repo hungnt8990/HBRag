@@ -65,7 +65,34 @@
 > (delete_by_id_vb trước bulk). Verify E2E trên ES live: ensure_index + bulk + search BM25 + ACL fields + 1 doc thật
 > 3 chunk khớp. 183 test pass. (run_qdrant KHÔNG index ES — chỉ embed Qdrant.)
 >
-> Cập nhật gần nhất: 2026-07-02 — **Ưu tiên đơn vị bằng NHÂN điểm (org multiplicative boost)**.
+> Cập nhật gần nhất: 2026-07-02 (b) — **document-search: fusion semantic đầy đủ + rerank + CRAG + sparse học được**.
+> `/api/document-search/search` (khi `DOFFICE_RETRIEVAL_ENABLED=true`, search_type ∉ {exact,ref}) chạy pipeline
+> `run_semantic_document_fusion` (`document_semantic_search.py`, viết lại từ bản codex): (1) LLM sinh 2-4 query
+> liên quan; (2) embed dense+sparse MỘT lần/query (song song, trước đây mỗi collection tự embed lại → gấp đôi call);
+> (3) search song song Qdrant chunks + Qdrant docmeta + ES chunk BM25 (đều ACL + filter `nam/thang` bắt tường minh
+> từ query — `_extract_metadata_filters`, quá chặt thì tự bỏ filter chạy lại); (4) RRF weighted fusion — **fix bug
+> rank tính trên list đã nối nhiều query** (giờ dùng rank theo TỪNG query) + guard `_get_candidate` gộp candidate
+> document_id-only với id_vb; (5) context builder: hàng xóm ±1 + **chunk CHA heading/điều-mục** gần nhất đứng trước
+> seed (`PARENT_CHUNK_TYPES`, 2 query OR gộp — hết N+1); (6) **cross-encoder rerank** Qwen3-Reranker qua
+> `LLMGateway.rerank` (điểm cuối = w*rerank_norm+(1-w)*rrf_norm, lỗi → giữ RRF); (7) CRAG hybrid: rule coverage +
+> **LLM chấm lại candidate ambiguous** (1 call batch, parse fail giữ rule), top-3 weak → retry depth×2 (cả vector),
+> response thêm `evidence_summary` strong|partial|insufficient ("thiếu căn cứ") + hit thêm `rerank_score`. Toàn bộ
+> trọng số/ngưỡng ra settings `document_search_fusion_*`/`document_search_crag_*`/`document_search_rerank_*`.
+> **Sparse học được (BGE-M3/SPLADE)**: module độc lập `embedding_sparse_learned.py` (HTTP, nhận `{indices,values}`
+> hoặc `{token: weight}` hash về cùng không gian hashing provider; lỗi → fallback hashing), bật bằng
+> `SPARSE_EMBEDDING_PROVIDER=learned` + `SPARSE_LEARNED_BASE_URL` — `run_qdrant.bat` dùng ngay qua factory, đổi
+> provider phải re-embed (reset_doffice_for_rechunk + run_qdrant). `QdrantVectorStore.search`/ES stores nhận thêm
+> filter `years/months`. Plan chi tiết: `PLAN_DOCUMENT_SEARCH_UPGRADE.md`. Test: +18 (semantic 13, sparse 5).
+> **Đã verify LIVE + tối ưu latency** (id_nv=90288): pipeline chạy 3 nhánh SONG SONG (query gốc / LLM expansion /
+> ES chunk) — expansion (~1.9s) không còn chặn search; `candidate_k` 60→30 (sparse prefetch Qdrant candidate=240
+> thỉnh thoảng 3-4s khi cache lạnh, 120 thì 43-52ms ổn định); `rerank_top_k` 30→20; fix 500 (payload docmeta trả
+> `id_vb`/`nam` kiểu int -> ép kiểu ở `_source_from_metadata`); prompt expansion cấm bịa số văn bản/nghị định.
+> Latency đo được: exact/ref ~30-350ms (warm), fusion ~2.6-3.0s (warm; lần đầu sau khởi động 6-8s do cache lạnh
+> Qdrant+LLM). Log INFO `fusion timings(ms)` in breakdown từng khâu. Sparse học được vẫn TẮT (chưa có endpoint).
+> ⚠️ TODO bảo mật: route `/search` decode JWT KHÔNG verify chữ ký (giả `ID_NV` = đọc theo ACL người khác) —
+> chấp nhận tạm vì sau gateway nội bộ; cần verify chữ ký/JWKS của hệ cấp token DOffice khi ra ngoài phạm vi đó.
+>
+> Cập nhật trước: 2026-07-02 — **Ưu tiên đơn vị bằng NHÂN điểm (org multiplicative boost)**.
 > `build_query_body` (`document_search_service.py`): org được nhắc (`_extract_orgs`, vd 'tiền lương cpcit')
 > KHÔNG còn boost CỘNG mềm `match ky_hieu` trong `should` (2.0 quá yếu; từng để 8.0 lại kéo VB lạc chủ đề
 > của đơn vị lên top) mà chuyển sang **`function_score` weight** (`_org_boost_functions`, `_ORG_BOOST_WEIGHT=3.0`,

@@ -300,6 +300,8 @@ class DofficeBm25DocumentStore:
         *,
         top_n: int = 50,
         acl_subject: AclSubject | None = None,
+        years: list[int] | None = None,
+        months: list[int] | None = None,
     ) -> list[dict[str, Any]]:
         """BM25 thuần trên các trường văn bản, lọc ACL cứng. Trả [{document_id,id_vb,_score,...}]."""
         await self.ensure_index()
@@ -310,6 +312,10 @@ class DofficeBm25DocumentStore:
             clause = build_es_acl_filter_flat(acl_subject)
             if clause is not None:
                 filters.append(clause)
+        if years:
+            filters.append({"terms": {"nam": [int(y) for y in years]}})
+        if months:
+            filters.append({"terms": {"thang": [int(m) for m in months]}})
         should = [
             {"match": {field: {"query": query, "boost": boost}}}
             for field, boost in _TEXT_SEARCH_FIELDS
@@ -475,6 +481,8 @@ class DofficeChunkBm25Store:
         top_n: int = 50,
         acl_subject: AclSubject | None = None,
         ensure: bool = True,
+        years: list[int] | None = None,
+        months: list[int] | None = None,
     ) -> list[dict[str, Any]]:
         """BM25 cấp chunk + lọc ACL cứng. Trả [{document_id,id_vb,chunk_id,chunk_text,_score,...}]."""
         if ensure:
@@ -486,6 +494,10 @@ class DofficeChunkBm25Store:
             clause = build_es_acl_filter_flat(acl_subject)
             if clause is not None:
                 filters.append(clause)
+        if years:
+            filters.append({"terms": {"nam": [int(y) for y in years]}})
+        if months:
+            filters.append({"terms": {"thang": [int(m) for m in months]}})
         fields = [f"{field}^{boost}" for field, boost in _CHUNK_TEXT_SEARCH_FIELDS]
         should: list[dict[str, Any]] = [
             {

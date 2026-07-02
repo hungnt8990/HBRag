@@ -402,6 +402,9 @@ class QdrantVectorStore:
         table_name: str | None = None,
         access_filter: AccessFilter | None = None,
         acl_subject: "AclSubject | None" = None,
+        years: list[int] | None = None,
+        months: list[int] | None = None,
+        ngay_vb: str | None = None,
     ) -> list[VectorSearchResult]:
         await self.ensure_collection()
         query_filter = self._payload_filter(
@@ -415,6 +418,9 @@ class QdrantVectorStore:
             table_name=table_name,
             access_filter=access_filter,
             acl_subject=acl_subject,
+            years=years,
+            months=months,
+            ngay_vb=ngay_vb,
         )
 
         from qdrant_client.models import QuantizationSearchParams, SearchParams
@@ -563,6 +569,9 @@ class QdrantVectorStore:
         table_name: str | None = None,
         access_filter: AccessFilter | None = None,
         acl_subject: "AclSubject | None" = None,
+        years: list[int] | None = None,
+        months: list[int] | None = None,
+        ngay_vb: str | None = None,
     ) -> Filter | None:
         must: list[FieldCondition] = []
         must_not: list[FieldCondition] = []
@@ -588,6 +597,13 @@ class QdrantVectorStore:
         ):
             if value is not None:
                 must.append(FieldCondition(key=key, match=MatchValue(value=value)))
+        # Lọc thời gian văn bản (metadata filter từ query): nam/thang (int index), ngay_vb (keyword).
+        if years:
+            must.append(FieldCondition(key="nam", match=MatchAny(any=[int(y) for y in years])))
+        if months:
+            must.append(FieldCondition(key="thang", match=MatchAny(any=[int(m) for m in months])))
+        if ngay_vb:
+            must.append(FieldCondition(key="ngay_vb", match=MatchValue(value=str(ngay_vb))))
         if access_filter is not None and not settings.access_read_all_documents:
             allowed_classifications = [
                 name

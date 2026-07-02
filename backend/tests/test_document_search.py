@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from fastapi.testclient import TestClient
 
 from app.api.dependencies import document_search_auth as auth_mod  # noqa: F401 (giữ cho _patch)
@@ -189,6 +191,7 @@ def _patch(monkeypatch, resp, *, nv=117058, org=(None, None)):
     # Test logic hybrid/kNN gốc -> tắt BM25-only (mặc định production=True khi gateway embed chết).
     monkeypatch.setattr(dss.settings, "document_search_bm25_only", False)
     monkeypatch.setattr(dss.settings, "document_search_chunk_rerank_enabled", False)
+    monkeypatch.setattr(dss.settings, "doffice_retrieval_enabled", False)
     monkeypatch.setattr(dss.httpx, "AsyncClient", lambda *a, **k: _FakeClient(resp))
 
     async def _noop(self):
@@ -300,6 +303,51 @@ def test_endpoint_embed_fail_fallback(monkeypatch) -> None:
     assert resp.json()["search_type"] == "bm25"
     assert "knn" not in _FakeClient.captured
 
+
+def test_endpoint_doffice_semantic_fusion_when_enabled(monkeypatch) -> None:
+    _patch(monkeypatch, _FakeResp(_hits()), nv=1)
+    monkeypatch.setattr(dss.settings, "doffice_retrieval_enabled", True)
+
+    from app.services.retrieval import document_semantic_search as semantic_mod
+
+    async def _fake_semantic(**kwargs):
+        assert kwargs["bm25_hits"]
+        return SimpleNamespace(
+            hits=[
+                {
+                    "_source": {
+                        "document_id": "d1",
+                        "id_vb": "1068586",
+                        "ky_hieu": "6515/EVNCPC",
+                    },
+                    "_score": 321.0,
+                    "highlight": {"noi_dung": ["semantic evidence"]},
+                    "_semantic": {
+                        "bm25_score": 12.5,
+                        "semantic_score": 0.91,
+                        "fused_score": 0.0321,
+                        "evidence": {"status": "strong"},
+                        "context": [{"chunk_id": "c1", "content": "full context"}],
+                    },
+                }
+            ],
+            expanded_queries=[kwargs["query"]],
+            used_vector=True,
+        )
+
+    monkeypatch.setattr(semantic_mod, "run_semantic_document_fusion", _fake_semantic)
+    resp = TestClient(app).post(
+        "/api/document-search/search",
+        json=_do("semantic fusion query for doffice retrieval"),
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["search_type"] == "fusion"
+    assert body["used_vector"] is True
+    assert body["results"][0]["semantic_score"] == 0.91
+    assert body["results"][0]["evidence"]["status"] == "strong"
+    assert body["results"][0]["context"][0]["content"] == "full context"
 
 def test_endpoint_es_error_502(monkeypatch) -> None:
     _patch(monkeypatch, _FakeResp({"error": "boom"}, status_code=400), nv=1)

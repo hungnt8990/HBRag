@@ -61,7 +61,13 @@ class DocumentSearchHit(BaseModel):
     ngay_vb: str | None = None
     nam: int | None = None
     score: float
+    bm25_score: float | None = None
+    semantic_score: float | None = None
+    fused_score: float | None = None
+    rerank_score: float | None = None
     highlights: list[str] = Field(default_factory=list)
+    evidence: dict[str, Any] = Field(default_factory=dict)
+    context: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class DocumentSearchResponse(BaseModel):
@@ -69,9 +75,12 @@ class DocumentSearchResponse(BaseModel):
     id_nv: int | None
     id_pb: int | None
     id_dv: int | None
-    search_type: str  # exact | bm25 | hybrid
+    search_type: str  # exact | ref | bm25 | hybrid | fusion
     mode_used: str  # list | excerpt
     used_vector: bool
+    # Cờ tổng CRAG-lite (chỉ có ở search_type=fusion): strong | partial | insufficient
+    # (insufficient = "thiếu căn cứ" — client nên cảnh báo người dùng).
+    evidence_summary: str | None = None
     total: int
     results: list[DocumentSearchHit]
 
@@ -567,14 +576,14 @@ async def execute_document_search(request: DocumentSearchRequest) -> DocumentSea
     search_type = detect_search_type(request.query)
     # BM25-only: hạ "hybrid" -> "bm25" để KHÔNG gọi embed (tránh treo khi gateway embedding
     # chết). API chỉ truy vấn ES BM25 + ACL filter.
-    if settings.document_search_bm25_only and search_type == "hybrid":
+    if settings.document_search_bm25_only and search_type == "hybrid" and not settings.doffice_retrieval_enabled:
         search_type = "bm25"
     mode_used = detect_mode(request.query, request.mode)
     acl_filters = build_acl_filters(acl_subject)
 
     query_vector: list[float] | None = None
     used_vector = False
-    if search_type == "hybrid" and request.use_vector:
+    if search_type == "hybrid" and request.use_vector and not settings.doffice_retrieval_enabled:
         try:
             from app.services.llm_gateway import get_llm_gateway
 
@@ -612,16 +621,45 @@ async def execute_document_search(request: DocumentSearchRequest) -> DocumentSea
             if len(fallback_hits) > len(hits):
                 data = fallback_data
                 hits = fallback_hits
+        evidence_summary: str | None = None
         if search_type not in {"exact", "ref"}:
-            chunk_hits = await _search_chunk_evidence(request.query, request.top_n, acl_subject)
-            if chunk_hits:
-                data = {
-                    **data,
-                    "hits": {
-                        **(data.get("hits") or {}),
-                        "hits": _apply_chunk_rerank(hits, chunk_hits, request.top_n),
-                    },
-                }
+            semantic_applied = False
+            if settings.doffice_retrieval_enabled and request.use_vector:
+                try:
+                    from app.services.retrieval.document_semantic_search import run_semantic_document_fusion
+
+                    semantic = await run_semantic_document_fusion(
+                        query=request.query,
+                        top_n=request.top_n,
+                        acl_subject=acl_subject,
+                        bm25_hits=hits,
+                    )
+                    if semantic is not None:
+                        hits = semantic.hits
+                        data = {
+                            **data,
+                            "hits": {**(data.get("hits") or {}), "hits": hits},
+                        }
+                        used_vector = semantic.used_vector
+                        evidence_summary = getattr(semantic, "evidence_summary", None)
+                        search_type = "fusion"
+                        semantic_applied = True
+                except Exception:
+                    logger.warning(
+                        "DOffice semantic fusion failed; falling back to BM25/chunk rerank query=%r",
+                        request.query[:60],
+                        exc_info=True,
+                    )
+            if not semantic_applied:
+                chunk_hits = await _search_chunk_evidence(request.query, request.top_n, acl_subject)
+                if chunk_hits:
+                    data = {
+                        **data,
+                        "hits": {
+                            **(data.get("hits") or {}),
+                            "hits": _apply_chunk_rerank(hits, chunk_hits, request.top_n),
+                        },
+                    }
     except DocumentSearchError:
         raise
     except Exception as exc:
@@ -633,6 +671,7 @@ async def execute_document_search(request: DocumentSearchRequest) -> DocumentSea
         src = hit.get("_source") or {}
         hl = hit.get("highlight") or {}
         highlights = hl.get("noi_dung", []) or hl.get("trich_yeu", [])
+        semantic = hit.get("_semantic") or {}
         results.append(
             DocumentSearchHit(
                 document_id=src.get("document_id", ""),
@@ -645,7 +684,13 @@ async def execute_document_search(request: DocumentSearchRequest) -> DocumentSea
                 ngay_vb=src.get("ngay_vb"),
                 nam=src.get("nam"),
                 score=float(hit.get("_score") or 0.0),
+                bm25_score=semantic.get("bm25_score"),
+                semantic_score=semantic.get("semantic_score"),
+                fused_score=semantic.get("fused_score"),
+                rerank_score=semantic.get("rerank_score"),
                 highlights=highlights,
+                evidence=dict(semantic.get("evidence") or {}),
+                context=list(semantic.get("context") or []),
             )
         )
 
@@ -662,6 +707,7 @@ async def execute_document_search(request: DocumentSearchRequest) -> DocumentSea
         search_type=search_type,
         mode_used=mode_used,
         used_vector=used_vector,
+        evidence_summary=evidence_summary,
         total=len(results),
         results=results,
     )

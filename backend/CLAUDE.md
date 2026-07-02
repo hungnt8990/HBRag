@@ -64,6 +64,18 @@
 - Bảng PG rỗng (citations, graph_*, document_files...) ĐỪNG drop: gắn ORM model + query (list_documents), drop sẽ vỡ app + lệch alembic.
 - Alembic: DB chia sẻ có revision không trên branch hiện tại -> ĐỪNG `alembic upgrade` mù.
 
+## Document-search fusion (2026-07-02)
+- `/api/document-search/search` + `DOFFICE_RETRIEVAL_ENABLED=true` -> `run_semantic_document_fusion`
+  (`document_semantic_search.py`): multi-query LLM -> embed 1 lần -> Qdrant chunks+docmeta + ES chunk BM25
+  (ACL + filter nam/thang từ query) -> RRF (rank THEO TỪNG query) -> context ±1 + chunk CHA heading ->
+  rerank Qwen3-Reranker -> CRAG hybrid (rule + LLM chấm ambiguous, retry 1 vòng) -> `evidence_summary`.
+  Trọng số/ngưỡng: settings `document_search_fusion_*`/`_crag_*`/`_rerank_*`. Plan: `PLAN_DOCUMENT_SEARCH_UPGRADE.md`.
+  Đã verify live: exact/ref ~30-350ms, fusion ~2.6-3s warm (lần đầu 6-8s cold). ⚠️ candidate_k GIỮ 30
+  (60 -> sparse prefetch Qdrant candidate=240 thỉnh thoảng treo 3-4s lúc cache lạnh). Log `fusion timings(ms)`.
+- **Sparse học được**: `embedding_sparse_learned.py` (độc lập, HTTP, fallback hashing); bật
+  `SPARSE_EMBEDDING_PROVIDER=learned` + `SPARSE_LEARNED_BASE_URL`; đổi provider PHẢI re-embed (run_qdrant).
+- ⚠️ TODO: route decode JWT KHÔNG verify chữ ký (giả ID_NV = bypass ACL) — cần JWKS khi ra khỏi gateway nội bộ.
+
 ## Trang xem (route backend)
 - `GET /architecture` — sơ đồ kiến trúc (HTML tĩnh `app/static/architecture.html`).
 - `GET /data-stores` — liệt kê data từng store (`app/static/data-stores.html`).
