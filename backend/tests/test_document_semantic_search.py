@@ -217,6 +217,56 @@ def test_crag_uses_rerank_score_over_token_overlap(monkeypatch) -> None:
     assert ev["status"] == "strong"
 
 
+# --------------------------- boost định danh ---------------------------
+
+
+def test_extract_query_identifiers() -> None:
+    codes, numbers = sem._extract_query_identifiers("quy chế trả lương theo 258/QĐ-IT năm 2025")
+    assert codes == {"258/QĐ-IT"}
+    assert "258" in numbers
+    assert "2025" not in numbers  # năm bị loại
+    codes2, numbers2 = sem._extract_query_identifiers("quyết định 1660 về nghỉ")
+    assert codes2 == set()
+    assert numbers2 == {"1660"}
+
+
+def test_candidate_identifier_match() -> None:
+    c = sem._Candidate(key="x")
+    c.source = {"ky_hieu": "258/QĐ-IT", "id_vb": "850373"}
+    assert sem._candidate_identifier_match(c, {"258/QĐ-IT"}, set()) == "code"
+    assert sem._candidate_identifier_match(c, set(), {"258"}) == "number"      # phần số ky_hieu
+    assert sem._candidate_identifier_match(c, set(), {"850373"}) == "number"   # id_vb
+    assert sem._candidate_identifier_match(c, set(), {"999"}) is None
+
+
+def test_apply_identifier_boost_lifts_matched_doc_to_top(monkeypatch) -> None:
+    monkeypatch.setattr(sem.settings, "document_search_identifier_code_boost", 1.0)
+    monkeypatch.setattr(sem.settings, "document_search_identifier_number_boost", 0.5)
+    matched = sem._Candidate(key="850373")
+    matched.source = {"ky_hieu": "258/QĐ-IT", "id_vb": "850373"}
+    matched.final_score = 0.3
+    matched.evidence = {"status": "weak"}
+    semantic = sem._Candidate(key="999")
+    semantic.source = {"ky_hieu": "12/TB-IT", "id_vb": "999"}
+    semantic.final_score = 0.9
+    semantic.evidence = {"status": "strong"}
+    cands = [semantic, matched]
+    sem._apply_identifier_boost("quy chế trả lương 258/QĐ-IT", cands)
+    assert cands[0].key == "850373"  # doc khớp mã lên top
+    assert cands[0].evidence["status"] == "strong"
+    assert cands[0].evidence["identifier_match"] == "code"
+    assert "identifier_match" in cands[0].source_flags
+
+
+def test_apply_identifier_boost_noop_without_identifier() -> None:
+    c = sem._Candidate(key="1")
+    c.source = {"ky_hieu": "12/TB-IT"}
+    c.final_score = 0.5
+    sem._apply_identifier_boost("quy chế trả lương", [c])  # không có mã trong query
+    assert c.final_score == 0.5
+    assert "identifier_match" not in c.source_flags
+
+
 def test_query_embedding_instruction_applies_to_semantic_not_identifier() -> None:
     # Mặc định settings.embedding_query_instruction non-empty -> query semantic được bọc,
     # còn tra cứu mã/số hiệu giữ nguyên (đi đường exact/BM25).

@@ -151,6 +151,8 @@ async def run_semantic_document_fusion(
     for candidate in candidates:
         candidate.evidence = _crag_lite_evidence(clean, candidate)
     await _llm_grade_ambiguous(clean, candidates)
+    # Boost định danh: query hỗn hợp nội dung+mã -> đưa exact-doc lên top (giữ semantic phía dưới).
+    _apply_identifier_boost(clean, candidates)
 
     # CRAG retry: top đều yếu -> retrieve lại SÂU HƠN (cả vector lẫn BM25 chunk), 1 vòng.
     retried_flag = False
@@ -173,6 +175,7 @@ async def run_semantic_document_fusion(
                 await _apply_cross_encoder_rerank(clean, candidates)
                 for candidate in candidates:
                     candidate.evidence = _crag_lite_evidence(clean, candidate)
+                _apply_identifier_boost(clean, candidates)
     t_end = time.perf_counter()
 
     used_vector = any(
@@ -835,6 +838,70 @@ def _rerank_content(candidate: _Candidate) -> str:
             seen.add(p.casefold())
             uniq.append(p)
     return "\n".join(uniq)[:1500] or candidate.key
+
+
+# ===================== Boost định danh (mã/số văn bản) =====================
+
+# Token ký hiệu đầy đủ trong query (vd "258/QĐ-IT", "6515/EVNCPC-VTCNTT+KD").
+_CODE_TOKEN_RE = re.compile(r"[0-9A-Za-zĐđ]{1,6}/[0-9A-Za-zĐđ+\-]+")
+_BARE_NUM_RE = re.compile(r"\b\d{2,6}\b")
+
+
+def _norm_code(value: Any) -> str:
+    return re.sub(r"\s+", "", str(value or "")).upper()
+
+
+def _extract_query_identifiers(query: str) -> tuple[set[str], set[str]]:
+    """Trích mã ký hiệu đầy đủ + số văn bản rời từ query (bỏ năm — metadata filter lo)."""
+    codes = {_norm_code(m.group()) for m in _CODE_TOKEN_RE.finditer(query or "")}
+    codes.discard("")
+    numbers: set[str] = set()
+    for m in _BARE_NUM_RE.finditer(query or ""):
+        n = m.group()
+        if len(n) == 4 and 1990 <= int(n) <= 2099:  # năm -> bỏ (tránh boost nhầm theo năm)
+            continue
+        numbers.add(n)
+    return codes, numbers
+
+
+def _candidate_identifier_match(candidate: _Candidate, codes: set[str], numbers: set[str]) -> str | None:
+    ky_hieu = _norm_code(candidate.source.get("ky_hieu"))
+    id_vb = str(candidate.source.get("id_vb") or "").strip()
+    for code in codes:
+        if code and ky_hieu and code in ky_hieu:  # mã đầy đủ khớp -> tin cậy cao
+            return "code"
+    kh_number = ky_hieu.split("/")[0] if "/" in ky_hieu else ky_hieu
+    for num in numbers:
+        if num and (num == id_vb or num == kh_number):  # số văn bản khớp id_vb hoặc phần số ky_hieu
+            return "number"
+    return None
+
+
+def _apply_identifier_boost(query: str, candidates: list[_Candidate]) -> None:
+    """Query hỗn hợp (nội dung + mã/số VB): cộng điểm lớn cho candidate khớp mã người dùng nêu,
+    đặt evidence=strong (nêu đích danh = căn cứ mạnh dù rerank ngữ nghĩa có thể thấp), rồi xếp lại.
+    -> exact-doc lên top MÀ vẫn giữ các kết quả semantic phía dưới (đúng ý 'kết hợp cả hai')."""
+    codes, numbers = _extract_query_identifiers(query)
+    if not codes and not numbers:
+        return
+    code_boost = float(settings.document_search_identifier_code_boost)
+    num_boost = float(settings.document_search_identifier_number_boost)
+    changed = False
+    for candidate in candidates:
+        kind = _candidate_identifier_match(candidate, codes, numbers)
+        if kind is None:
+            continue
+        changed = True
+        candidate.final_score += code_boost if kind == "code" else num_boost
+        candidate.source_flags.add("identifier_match")
+        candidate.evidence = {
+            **candidate.evidence,
+            "status": "strong",
+            "reason": f"Khop ma/so van ban nguoi dung neu ({kind}).",
+            "identifier_match": kind,
+        }
+    if changed:
+        candidates.sort(key=lambda item: (-item.final_score, item.key))
 
 
 # ============================== CRAG-lite ==============================

@@ -121,6 +121,31 @@ _QUESTION_RE = re.compile(
 _DOC_TYPE_ABBR = {"qd", "tb", "kh", "ct", "nq", "bc", "ttr", "hd", "qc", "cv", "gm", "tl", "tt", "cd", "nd"}
 _NUM_RE = re.compile(r"\d{1,5}")
 
+# Từ đệm quanh mã/số hiệu khi tra cứu (số, theo, của, và, mã) — KHÔNG tính là nội dung.
+# Cố ý NHỎ + tránh từ dễ nhầm ("tra" trùng "trả" sau fold) -> nghiêng về hybrid khi lưỡng lự
+# (an toàn: hybrid vẫn ra đúng nhờ boost định danh, chỉ chậm hơn; exact mới rủi ro mất semantic).
+_CODE_FILLERS = {"so", "theo", "cua", "va", "ma"}
+
+
+def _looks_like_code_token(tok: str) -> bool:
+    """Token dạng ký hiệu: có '/' và có chữ số (vd '258/qd-it')."""
+    return "/" in tok and any(ch.isdigit() for ch in tok)
+
+
+def _is_pure_code_query(query: str) -> bool:
+    """True nếu query CHỈ gồm mã/số hiệu + từ đệm (không có từ nội dung nào).
+
+    Dùng để phân biệt tra cứu THUẦN mã ('258/QĐ-IT' -> exact, nhanh) với truy vấn HỖN HỢP
+    ('quy chế trả lương theo 258/QĐ-IT' -> hybrid: chạy fusion semantic + boost định danh)."""
+    content = 0
+    for tok in _fold_lower(query).split():
+        if _looks_like_code_token(tok) or tok.isdigit():
+            continue
+        if tok in _CODE_FILLERS or tok in _DOC_TYPE_ABBR:
+            continue
+        content += 1
+    return content == 0
+
 
 def _fold_lower(s: str) -> str:
     s = unicodedata.normalize("NFD", s.lower())
@@ -188,8 +213,10 @@ def _strip_org_tokens(query: str) -> str:
 def detect_search_type(query: str) -> str:
     if _is_ky_hieu_lookup(query):
         return "ref"  # tra cứu số/ký hiệu rời (qd 258) -> ưu tiên ky_hieu, không nhiễu noi_dung
-    if _KY_HIEU_RE.search(query):
-        return "exact"  # ký hiệu đầy đủ có '/' (258/QĐ-IT)
+    if _KY_HIEU_RE.search(query) and _is_pure_code_query(query):
+        return "exact"  # THUẦN ký hiệu đầy đủ (258/QĐ-IT) -> exact nhanh, không cần semantic
+    # Mã kèm NỘI DUNG (vd "quy chế trả lương theo 258/QĐ-IT") KHÔNG short-circuit exact nữa ->
+    # rơi xuống hybrid để chạy fusion semantic; boost định danh (fusion) lo phần khớp mã chính xác.
     if _extract_orgs(query):
         # Nêu đích danh đơn vị -> cần chính xác lexical: boost org hiệu quả ở bm25, không bị
         # điểm knn (ngữ nghĩa, không phân biệt được đơn vị) lấn át như ở hybrid.

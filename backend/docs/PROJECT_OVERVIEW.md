@@ -65,7 +65,17 @@
 > (delete_by_id_vb trước bulk). Verify E2E trên ES live: ensure_index + bulk + search BM25 + ACL fields + 1 doc thật
 > 3 chunk khớp. 183 test pass. (run_qdrant KHÔNG index ES — chỉ embed Qdrant.)
 >
-> Cập nhật gần nhất: 2026-07-03 (b) — **detect_search_type: cụm ≥2 từ -> hybrid** (trước ngưỡng ≥6 từ khiến
+> Cập nhật gần nhất: 2026-07-03 (c) — **Query hỗn hợp (nội dung + mã/số VB): luôn kết hợp BM25+vector+boost định danh**.
+> Trước đây query có mã ký hiệu đầy đủ ("quy chế trả lương theo 258/QĐ-IT") bị `_KY_HIEU_RE` xếp `exact` -> short-circuit,
+> MẤT nhánh semantic. Sửa 2 phần: **(1) `detect_search_type` chỉ xếp `exact` khi THUẦN mã** (`_is_pure_code_query`:
+> mọi token là mã/số/từ đệm `_CODE_FILLERS`); mã KÈM nội dung -> `hybrid` (chạy fusion). **(2) Boost định danh trong
+> fusion** (`_apply_identifier_boost`, sau rerank+CRAG): trích mã đầy đủ + số VB rời từ query (bỏ năm), candidate có
+> `ky_hieu`/`id_vb` khớp được +`document_search_identifier_code_boost`(1.0)/`_number_boost`(0.5) vào final_score +
+> evidence=strong ("nêu đích danh = căn cứ mạnh") + xếp lại. Verify live: "quy trình phát triển phần mềm theo 258/QĐ-IT"
+> -> doc 258/QĐ-IT lên top (idmatch=code) GIỮ semantic phía dưới; "nội dung quyết định 1660 nói gì" -> doc 1660 top
+> (idmatch=number); thuần mã "258/QĐ-IT" vẫn exact nhanh; thuần nội dung vẫn semantic thuần. +6 test.
+>
+> Cập nhật trước: 2026-07-03 (b) — **detect_search_type: cụm ≥2 từ -> hybrid** (trước ngưỡng ≥6 từ khiến
 > "quy chế trả lương"/"công tác phí"/"GIS lưới điện" rơi về bm25). Giờ mọi cụm danh từ ngắn (không phải mã/số
 > hiệu/đơn vị) đi hybrid -> fusion semantic; chỉ 1 từ đơn -> bm25. LƯU Ý: khi `DOFFICE_RETRIEVAL_ENABLED=true`,
 > search_type="bm25" VẪN kích hoạt fusion (gate `not in {exact,ref}`) — nên nếu API trả `search_type=bm25` cho

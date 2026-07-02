@@ -189,6 +189,11 @@ class Settings(BaseSettings):
     document_search_crag_llm_grading_max: int = 5       # số candidate ambiguous tối đa đưa LLM chấm
     # Cross-encoder rerank (LLMGateway.rerank — Qwen3-Reranker) sau fusion, trước CRAG.
     document_search_rerank_enabled: bool = True
+    # Boost ĐỊNH DANH trong fusion: query hỗn hợp (nội dung + mã/số văn bản) -> candidate có
+    # ky_hieu/id_vb khớp mã được cộng điểm lớn sau rerank -> exact-doc lên top mà VẪN giữ semantic.
+    # Mã đầy đủ (258/QĐ-IT) tin cậy cao -> boost mạnh; số rời (258) yếu hơn -> boost vừa.
+    document_search_identifier_code_boost: float = 1.0
+    document_search_identifier_number_boost: float = 0.5
     document_search_rerank_top_k: int = 20              # số candidate đưa vào reranker
     # Có cross-encoder mạnh (Qwen3-Reranker-8B) -> để nó QUYẾT ĐỊNH thứ hạng cuối (retrieve-then-rerank).
     # RRF chủ yếu lo recall (đưa candidate vào pool); reranker lo precision xếp hạng. w cao = rerank chi phối.

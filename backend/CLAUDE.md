@@ -79,6 +79,9 @@
   (3) CRAG dùng `rerank_score` thay token-overlap (settings `_crag_*_rerank`); rerank weight 0.8 + điểm thô.
 - **BGE-M3 KHÔNG trả sparse qua gateway CPC** (chỉ dense 1024) -> learned sparse bất khả thi; giữ hashing + ES BM25.
   Qwen3-Embedding-8B (4096) > BGE-M3 (1024) -> GIỮ dense hiện tại.
+- **Query hỗn hợp nội dung+mã**: `exact` CHỈ khi thuần mã (`_is_pure_code_query`); mã kèm nội dung -> hybrid/fusion.
+  Trong fusion `_apply_identifier_boost` (sau rerank): candidate khớp `ky_hieu`/`id_vb` với mã/số trong query được
+  boost lên top (settings `document_search_identifier_code_boost`/`_number_boost`) + evidence=strong, giữ semantic dưới.
 - **Sparse học được**: `embedding_sparse_learned.py` (độc lập, HTTP, fallback hashing); bật
   `SPARSE_EMBEDDING_PROVIDER=learned` + `SPARSE_LEARNED_BASE_URL`; đổi provider PHẢI re-embed (run_qdrant).
 - ⚠️ TODO: route decode JWT KHÔNG verify chữ ký (giả ID_NV = bypass ACL) — cần JWKS khi ra khỏi gateway nội bộ.
