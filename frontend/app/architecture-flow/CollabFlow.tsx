@@ -18,7 +18,6 @@ import {
   getSmoothStepPath,
   useReactFlow,
   useStore,
-  useViewport,
 } from "@xyflow/react";
 import type {
   Connection,
@@ -30,9 +29,7 @@ import type {
   NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import * as Y from "yjs";
-import { WebsocketProvider } from "y-websocket";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   CardData,
@@ -42,42 +39,15 @@ import {
 } from "./initialDiagram";
 import { NodeContent, NodeEditContext, NodePanelEditors } from "./NodeBlocks";
 
-const ROOM = "architecture-v12-editor";
-const LOCAL_ORIGIN = "local-edit";
-const CURSOR_PUBLISH_INTERVAL_MS = 50;
-const CURSOR_MIN_DISTANCE = 4;
-
-// ws(s)://<api-host>/collab — y-websocket sẽ nối thêm "/<room>".
-function wsBaseUrl(): string {
-  const api = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000").replace(/\/$/, "");
-  return `${api.replace(/^http/, "ws")}/collab`;
-}
-
-const COLORS = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#db2777", "#0891b2"];
+const LOCAL_STORAGE_KEY = "hbrag:architecture-flow:v12";
 const COLOR_SWATCHES = ["#eaf1ff", "#e8f7f1", "#fff1e8", "#fff7df", "#f2ebff", "#fff0f0", "#ecfdf5", "#ffffff", "#f8fafc"];
 const BORDER_SWATCHES = ["#b8ccff", "#a6ddc7", "#fed0b7", "#f5d28e", "#d6c2ff", "#fecaca", "#a7f3d0", "#94a3b8", "#334155"];
 const TEXT_SWATCHES = ["#142033", "#1d4ed8", "#047857", "#c2410c", "#6d28d9", "#b91c1c", "#334155", "#ffffff"];
 const EDGE_SWATCHES = ["#64748b", "#1d4ed8", "#047857", "#c2410c", "#6d28d9", "#b91c1c", "#0f172a"];
 
-type Peer = { clientId: number; name: string; color: string; cursor?: { x: number; y: number }; editing?: boolean };
+type DiagramSnapshot = { nodes: Node[]; edges: Edge[] };
 
-function peersEqual(a: Peer[], b: Peer[]): boolean {
-  if (a.length !== b.length) return false;
-  return a.every((peer, index) => {
-    const next = b[index];
-    return (
-      peer.clientId === next.clientId &&
-      peer.name === next.name &&
-      peer.color === next.color &&
-      peer.editing === next.editing &&
-      peer.cursor?.x === next.cursor?.x &&
-      peer.cursor?.y === next.cursor?.y
-    );
-  });
-}
-
-// Bỏ MỌI trường phù du trước khi ghi Yjs. `measured` là kết quả đo DOM của TỪNG client
-// (lệch nhau theo zoom/font) — nếu sync nó, 2 client sẽ ping-pong dimensions vô hạn -> OOM.
+// Bỏ trạng thái UI phù du trước khi lưu cục bộ.
 function stripEphemeral(node: Node): Node {
   const clone = { ...node } as Record<string, unknown>;
   delete clone.selected;
@@ -93,25 +63,38 @@ function stripEphemeralEdge(edge: Edge): Edge {
   return clone as Edge;
 }
 
-// Giữ trạng thái phù du LOCAL (`selected`, `measured`, `dragging`) khi tái dựng từ Yjs —
-// nếu để mất `measured`, React Flow đo lại và phát change "dimensions" mỗi lần nhận remote update.
-function nodesFromY(yNodes: Y.Map<Node>, prev: Node[]): Node[] {
-  const local = new Map(prev.map((n) => [n.id, n]));
-  return Array.from(yNodes.values()).map((n) => {
-    const p = local.get(n.id);
-    return {
-      ...n,
-      selected: p?.selected ?? false,
-      ...(p?.measured !== undefined ? { measured: p.measured } : {}),
-      ...(p?.dragging !== undefined ? { dragging: p.dragging } : {}),
-    };
-  });
+function defaultDiagram(): DiagramSnapshot {
+  return { nodes: initialNodes, edges: initialEdges };
 }
 
-// Giữ `selected` local (phù du, không đồng bộ) khi tái dựng từ Yjs -> tránh echo qua selection.
-function edgesFromY(yEdges: Y.Map<Edge>, prev: Edge[]): Edge[] {
-  const sel = new Map(prev.map((e) => [e.id, e.selected]));
-  return Array.from(yEdges.values()).map((e) => ({ ...e, selected: sel.get(e.id) ?? false }));
+function loadLocalDiagram(): DiagramSnapshot {
+  if (typeof window === "undefined") return defaultDiagram();
+  try {
+    const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (!raw) return defaultDiagram();
+    const parsed = JSON.parse(raw) as Partial<DiagramSnapshot>;
+    if (!Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) return defaultDiagram();
+    return {
+      nodes: parsed.nodes.map(stripEphemeral),
+      edges: parsed.edges.map(stripEphemeralEdge),
+    };
+  } catch {
+    return defaultDiagram();
+  }
+}
+
+function saveLocalDiagram(nodes: Node[], edges: Edge[]) {
+  try {
+    window.localStorage.setItem(
+      LOCAL_STORAGE_KEY,
+      JSON.stringify({
+        nodes: nodes.map(stripEphemeral),
+        edges: edges.map(stripEphemeralEdge),
+      }),
+    );
+  } catch {
+    // Không chặn editor nếu browser chặn localStorage/quota đầy.
+  }
 }
 
 const HIDDEN_HANDLE_STYLE = { opacity: 0 };
@@ -209,34 +192,6 @@ function CardNode({ id, data, selected }: NodeProps<Node<CardData>>) {
 }
 
 const nodeTypes = { card: CardNode };
-
-// ----------------------------------------------------------- remote cursors --
-function RemoteCursors({ peers }: { peers: Peer[] }) {
-  const { flowToScreenPosition } = useReactFlow();
-  useViewport(); // re-render khi pan/zoom để con trỏ bám đúng vị trí.
-  return (
-    <>
-      {peers
-        .filter((p) => p.cursor)
-        .map((p) => {
-          const s = flowToScreenPosition(p.cursor!);
-          return (
-            <div
-              key={p.clientId}
-              style={{ position: "fixed", left: s.x, top: s.y, transform: "translate(-2px,-2px)", pointerEvents: "none", zIndex: 50 }}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill={p.color}>
-                <path d="M0 0l5 14 2-6 6-2z" />
-              </svg>
-              <span style={{ marginLeft: 8, background: p.color, color: "#fff", fontSize: 10.5, fontWeight: 700, padding: "1px 6px", borderRadius: 6, whiteSpace: "nowrap" }}>
-                {p.name}
-              </span>
-            </div>
-          );
-        })}
-    </>
-  );
-}
 
 function EditableEdge({
   id,
@@ -410,67 +365,26 @@ const edgeTypes = { editable: EditableEdge };
 
 // --------------------------------------------------------------- main canvas --
 function FlowCanvas() {
-  const [nodes, setNodes] = useState<Node[]>(initialNodes);
-  const [edges, setEdges] = useState<Edge[]>(initialEdges);
-  const [status, setStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
-  const [peers, setPeers] = useState<Peer[]>([]);
+  const [initialDiagram] = useState<DiagramSnapshot>(() => loadLocalDiagram());
+  const [nodes, setNodes] = useState<Node[]>(initialDiagram.nodes);
+  const [edges, setEdges] = useState<Edge[]>(initialDiagram.edges);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
-  // Mô hình KHÓA: mặc định chỉ xem. `editing` = MÌNH đang giữ quyền sửa (đồng chỉnh bị chặn:
-  // chỉ 1 người sửa tại 1 thời điểm). Khóa "mềm" phát qua awareness -> tự nhả khi đóng tab/mất mạng.
   const [editing, setEditing] = useState(false);
-
-  const me = useMemo(
-    () => ({
-      name: `Người dùng ${Math.floor(Math.random() * 900 + 100)}`,
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
-    }),
-    [],
-  );
-
-  // Tài nguyên Yjs giữ trong ref -> bền với StrictMode (mỗi lần effect chạy tạo mới + dọn sạch).
-  const docRef = useRef<Y.Doc | null>(null);
-  const providerRef = useRef<WebsocketProvider | null>(null);
-  const yNodesRef = useRef<Y.Map<Node> | null>(null);
-  const yEdgesRef = useRef<Y.Map<Edge> | null>(null);
-  const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
-  const cursorFrameRef = useRef<number | null>(null);
-  const lastCursorPublishRef = useRef<{ x: number; y: number; time: number } | null>(null);
-  const editRaceTimerRef = useRef<number | null>(null);
 
   const commitNode = useCallback((node: Node) => {
     setNodes((current) => current.map((item) => (item.id === node.id ? node : item)));
-    const doc = docRef.current;
-    const yNodes = yNodesRef.current;
-    if (doc && yNodes) {
-      doc.transact(() => yNodes.set(node.id, stripEphemeral(node)), LOCAL_ORIGIN);
-    }
   }, []);
 
-  // Patch data của 1 node theo id (dùng cho inline-edit trong node) + commit Yjs.
+  // Patch data của 1 node theo id (dùng cho inline-edit trong node).
   const patchNodeData = useCallback((nodeId: string, patch: Partial<CardData>) => {
-    let changed: Node | null = null;
     setNodes((current) =>
-      current.map((item) => {
-        if (item.id !== nodeId) return item;
-        changed = { ...item, data: { ...(item.data as CardData), ...patch } };
-        return changed;
-      }),
+      current.map((item) => (item.id === nodeId ? { ...item, data: { ...(item.data as CardData), ...patch } } : item)),
     );
-    const doc = docRef.current;
-    const yNodes = yNodesRef.current;
-    if (changed && doc && yNodes) {
-      doc.transact(() => yNodes.set(nodeId, stripEphemeral(changed!)), LOCAL_ORIGIN);
-    }
   }, []);
 
   const commitEdge = useCallback((edge: Edge) => {
     setEdges((current) => current.map((item) => (item.id === edge.id ? edge : item)));
-    const doc = docRef.current;
-    const yEdges = yEdgesRef.current;
-    if (doc && yEdges) {
-      doc.transact(() => yEdges.set(edge.id, stripEphemeralEdge(edge)), LOCAL_ORIGIN);
-    }
   }, []);
 
   const selectedNode = useMemo(
@@ -482,231 +396,29 @@ function FlowCanvas() {
     [edges, selectedEdgeId],
   );
 
-  // --- vòng đời: tạo doc/provider, đồng bộ, presence; dọn khi unmount ---
   useEffect(() => {
-    const doc = new Y.Doc();
-    const provider = new WebsocketProvider(wsBaseUrl(), ROOM, doc, { connect: true });
-    const yNodes = doc.getMap<Node>("nodes");
-    const yEdges = doc.getMap<Edge>("edges");
-    docRef.current = doc;
-    providerRef.current = provider;
-    yNodesRef.current = yNodes;
-    yEdgesRef.current = yEdges;
+    saveLocalDiagram(nodes, edges);
+  }, [edges, nodes]);
 
-    const refresh = () => {
-      setNodes((prev) => nodesFromY(yNodes, prev));
-      setEdges((prev) => edgesFromY(yEdges, prev));
-    };
-
-    const onStatus = (e: { status: string }) => {
-      const next = e.status === "connected" ? "connected" : e.status === "disconnected" ? "disconnected" : "connecting";
-      setStatus((current) => (current === next ? current : next));
-    };
-
-    const onSync = (isSynced: boolean) => {
-      if (isSynced && yNodes.size === 0) {
-        // Seed sơ đồ mặc định CHỈ khi room trống. ID cố định -> nhiều người seed vẫn không nhân đôi.
-        doc.transact(() => {
-          initialNodes.forEach((n) => yNodes.set(n.id, n));
-          initialEdges.forEach((ed) => yEdges.set(ed.id, ed));
-        }, LOCAL_ORIGIN);
-      }
-      refresh();
-    };
-
-    const onNodesY = (_e: Y.YMapEvent<Node>, txn: Y.Transaction) => {
-      if (txn.origin !== LOCAL_ORIGIN) setNodes((prev) => nodesFromY(yNodes, prev));
-    };
-    const onEdgesY = (_e: Y.YMapEvent<Edge>, txn: Y.Transaction) => {
-      if (txn.origin !== LOCAL_ORIGIN) setEdges((prev) => edgesFromY(yEdges, prev));
-    };
-
-    // presence
-    const awareness = provider.awareness;
-    awareness.setLocalStateField("user", me);
-    const onAwareness = () => {
-      const list: Peer[] = [];
-      awareness.getStates().forEach((state, clientId) => {
-        if (clientId === awareness.clientID) return;
-        const u = (state.user ?? {}) as { name?: string; color?: string };
-        list.push({
-          clientId,
-          name: u.name ?? "Ẩn danh",
-          color: u.color ?? "#64748b",
-          cursor: state.cursor as { x: number; y: number } | undefined,
-          editing: Boolean(state.editing),
-        });
-      });
-      list.sort((a, b) => a.clientId - b.clientId);
-      setPeers((current) => (peersEqual(current, list) ? current : list));
-    };
-
-    provider.on("status", onStatus);
-    provider.on("sync", onSync);
-    yNodes.observe(onNodesY);
-    yEdges.observe(onEdgesY);
-    awareness.on("change", onAwareness);
-    if (yNodes.size > 0) refresh();
-    onAwareness();
-
-    return () => {
-      provider.off("status", onStatus);
-      provider.off("sync", onSync);
-      yNodes.unobserve(onNodesY);
-      yEdges.unobserve(onEdgesY);
-      awareness.off("change", onAwareness);
-      provider.destroy();
-      doc.destroy();
-      docRef.current = null;
-      providerRef.current = null;
-      yNodesRef.current = null;
-      yEdgesRef.current = null;
-    };
-  }, [me]);
-
-  useEffect(() => {
-    return () => {
-      if (cursorFrameRef.current !== null) {
-        window.cancelAnimationFrame(cursorFrameRef.current);
-        cursorFrameRef.current = null;
-      }
-      if (editRaceTimerRef.current !== null) {
-        window.clearTimeout(editRaceTimerRef.current);
-        editRaceTimerRef.current = null;
-      }
-    };
+  const requestEdit = useCallback(() => {
+    setEditing(true);
   }, []);
 
-  // Bắt thay đổi edge phát sinh trong EditableEdge (segOffset/nhãn) mà không đi qua commitEdge.
-  // CHỈ ghi edge THỰC SỰ khác nội dung Yjs (đã bỏ `selected` phù du) -> idempotent, phá vòng echo:
-  // khi state đến từ remote nó y hệt yEdges nên không ghi lại -> không broadcast ngược -> không OOM.
-  useEffect(() => {
-    const doc = docRef.current;
-    const yEdges = yEdgesRef.current;
-    if (!doc || !yEdges) return;
-    const changed = edges
-      .map(stripEphemeralEdge)
-      .filter((edge) => {
-        const prev = yEdges.get(edge.id);
-        return !prev || JSON.stringify(stripEphemeralEdge(prev)) !== JSON.stringify(edge);
-      });
-    if (changed.length === 0) return;
-    doc.transact(() => {
-      changed.forEach((edge) => yEdges.set(edge.id, edge));
-    }, LOCAL_ORIGIN);
-  }, [edges]);
-
-  // Phát trạng thái "mình đang giữ quyền sửa" cho những người khác qua awareness (ephemeral).
-  useEffect(() => {
-    providerRef.current?.awareness.setLocalStateField("editing", editing);
-  }, [editing]);
-
-  // Ai (KHÁC mình) đang giữ quyền sửa -> dùng để chặn & hiển thị "có người đang sửa".
-  const lockedByOther = useMemo(() => peers.find((p) => p.editing) ?? null, [peers]);
-
-  // Bấm "Sửa": chỉ giành quyền khi đã kết nối & chưa ai giữ. Tie-break race bằng clientID nhỏ nhất.
-  const requestEdit = useCallback(() => {
-    if (status !== "connected") {
-      window.alert("Chưa kết nối máy chủ đồng chỉnh — không thể sửa (thay đổi sẽ không được lưu). Vui lòng thử lại khi đã kết nối.");
-      return;
-    }
-    const provider = providerRef.current;
-    if (!provider) return;
-    const awareness = provider.awareness;
-    const holder = Array.from(awareness.getStates().entries()).find(
-      ([id, st]) => id !== awareness.clientID && (st as { editing?: boolean }).editing,
-    );
-    if (holder) {
-      const name = ((holder[1] as { user?: { name?: string } }).user?.name) ?? "Người khác";
-      window.alert(`🔒 ${name} đang chỉnh sửa. Vui lòng đợi họ bấm "Lưu & Xong".`);
-      return;
-    }
-    awareness.setLocalStateField("editing", true);
-    setEditing(true);
-    // Chờ awareness lan truyền rồi kiểm tra tranh chấp: nếu có người clientID nhỏ hơn cũng vừa
-    // bật editing -> nhường họ (mình quay về chỉ xem), tránh 2 người sửa cùng lúc do race.
-    if (editRaceTimerRef.current !== null) window.clearTimeout(editRaceTimerRef.current);
-    editRaceTimerRef.current = window.setTimeout(() => {
-      editRaceTimerRef.current = null;
-      const editors = Array.from(awareness.getStates().entries()).filter(
-        ([, st]) => (st as { editing?: boolean }).editing,
-      );
-      if (editors.length > 1) {
-        const minId = Math.min(...editors.map(([id]) => id));
-        if (minId !== awareness.clientID) {
-          awareness.setLocalStateField("editing", false);
-          setEditing(false);
-          window.alert("Có người khác vừa bắt đầu sửa cùng lúc. Vui lòng đợi họ lưu xong.");
-        }
-      }
-    }, 400);
-  }, [status]);
-
-  // Bấm "Lưu & Xong": nhả khóa (thay đổi đã sync real-time + backend tự lưu ≤2s). Về chế độ xem.
   const finishEdit = useCallback(() => {
-    if (editRaceTimerRef.current !== null) {
-      window.clearTimeout(editRaceTimerRef.current);
-      editRaceTimerRef.current = null;
-    }
-    providerRef.current?.awareness.setLocalStateField("editing", false);
     setEditing(false);
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
   }, []);
 
-  // --- handlers React Flow -> Yjs (đọc tài nguyên từ ref) ---
   const onNodesChange = useCallback((changes: NodeChange[]) => {
-    const doc = docRef.current;
-    const yNodes = yNodesRef.current;
-    setNodes((nds) => {
-      const next = applyNodeChanges(changes, nds);
-      if (doc && yNodes) {
-        // Diff-guard idempotent (giống edges): "dimensions" thuần đo (không setAttributes) là
-        // ephemeral -> KHÔNG ghi; và chỉ ghi node THỰC SỰ khác nội dung Yjs. Y.Map.set luôn sinh
-        // update mới kể cả giá trị y hệt, nên thiếu guard là echo loop giữa ≥2 client -> OOM.
-        const toDelete: string[] = [];
-        const toWrite = new Map<string, Node>();
-        for (const ch of changes) {
-          if (ch.type === "remove") {
-            toDelete.push(ch.id);
-            continue;
-          }
-          if (ch.type === "select") continue;
-          if (ch.type === "dimensions" && !ch.setAttributes) continue;
-          if (!("id" in ch)) continue;
-          const n = next.find((x) => x.id === ch.id);
-          if (!n) continue;
-          const stripped = stripEphemeral(n);
-          const prevY = yNodes.get(n.id);
-          if (prevY && JSON.stringify(stripEphemeral(prevY)) === JSON.stringify(stripped)) continue;
-          toWrite.set(stripped.id, stripped);
-        }
-        if (toDelete.length > 0 || toWrite.size > 0) {
-          doc.transact(() => {
-            toDelete.forEach((id) => yNodes.delete(id));
-            toWrite.forEach((n) => yNodes.set(n.id, n));
-          }, LOCAL_ORIGIN);
-        }
-      }
-      return next;
-    });
+    setNodes((nds) => applyNodeChanges(changes, nds));
     if (changes.some((ch) => ch.type === "remove" && ch.id === selectedNodeId)) {
       setSelectedNodeId(null);
     }
   }, [selectedNodeId]);
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
-    const doc = docRef.current;
-    const yEdges = yEdgesRef.current;
-    setEdges((eds) => {
-      const next = applyEdgeChanges(changes, eds);
-      if (doc && yEdges) {
-        doc.transact(() => {
-          for (const ch of changes) if (ch.type === "remove") yEdges.delete(ch.id);
-        }, LOCAL_ORIGIN);
-      }
-      return next;
-    });
+    setEdges((eds) => applyEdgeChanges(changes, eds));
     if (changes.some((ch) => ch.type === "remove" && ch.id === selectedEdgeId)) {
       setSelectedEdgeId(null);
     }
@@ -723,13 +435,7 @@ function FlowCanvas() {
       markerEnd: { type: MarkerType.ArrowClosed, color: "#64748b" },
       style: { stroke: "#64748b", strokeWidth: 2 },
     };
-    setEdges((eds) => {
-      const next = addEdge(edge, eds);
-      const doc = docRef.current;
-      const yEdges = yEdgesRef.current;
-      if (doc && yEdges) doc.transact(() => yEdges.set(edge.id, edge), LOCAL_ORIGIN);
-      return next;
-    });
+    setEdges((eds) => addEdge(edge, eds));
   }, []);
 
   const onNodeDoubleClick = useCallback((_e: React.MouseEvent, node: Node) => {
@@ -744,30 +450,6 @@ function FlowCanvas() {
   }, []);
 
   const { screenToFlowPosition } = useReactFlow();
-  const onPaneMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      pendingCursorRef.current = { x: e.clientX, y: e.clientY };
-      if (cursorFrameRef.current !== null) return;
-
-      cursorFrameRef.current = window.requestAnimationFrame(() => {
-        cursorFrameRef.current = null;
-        const provider = providerRef.current;
-        const screenPosition = pendingCursorRef.current;
-        if (!provider || !screenPosition) return;
-
-        const p = screenToFlowPosition(screenPosition);
-        const now = window.performance.now();
-        const last = lastCursorPublishRef.current;
-        const moved = !last || Math.hypot(p.x - last.x, p.y - last.y) >= CURSOR_MIN_DISTANCE;
-        const elapsed = !last || now - last.time >= CURSOR_PUBLISH_INTERVAL_MS;
-        if (!moved && !elapsed) return;
-
-        lastCursorPublishRef.current = { x: p.x, y: p.y, time: now };
-        provider.awareness.setLocalStateField("cursor", { x: p.x, y: p.y });
-      });
-    },
-    [screenToFlowPosition],
-  );
 
   const addCard = useCallback((shape: CardData["shape"] = "rounded", position?: { x: number; y: number }) => {
     const id = `n-${Math.random().toString(36).slice(2, 10)}`;
@@ -787,9 +469,6 @@ function FlowCanvas() {
     setNodes((current) => [...current, node]);
     setSelectedNodeId(id);
     setSelectedEdgeId(null);
-    const doc = docRef.current;
-    const yNodes = yNodesRef.current;
-    if (doc && yNodes) doc.transact(() => yNodes.set(id, node), LOCAL_ORIGIN);
   }, []);
 
   const onShapeDragStart = useCallback((event: React.DragEvent, shape: NonNullable<CardData["shape"]>) => {
@@ -811,21 +490,13 @@ function FlowCanvas() {
   }, [editing, addCard, screenToFlowPosition]);
 
   const restoreDefaultDiagram = useCallback(() => {
-    const doc = docRef.current;
-    const yNodes = yNodesRef.current;
-    const yEdges = yEdgesRef.current;
-    if (!doc || !yNodes || !yEdges) return;
-    if (!window.confirm("Khôi phục sơ đồ kiến trúc v11? Các chỉnh sửa hiện tại trong room này sẽ được thay bằng bản mặc định.")) {
+    if (!window.confirm("Khôi phục sơ đồ kiến trúc v11? Các chỉnh sửa cục bộ trong trình duyệt này sẽ được thay bằng bản mặc định.")) {
       return;
     }
-    doc.transact(() => {
-      yNodes.clear();
-      yEdges.clear();
-      initialNodes.forEach((n) => yNodes.set(n.id, n));
-      initialEdges.forEach((ed) => yEdges.set(ed.id, ed));
-    }, LOCAL_ORIGIN);
     setNodes(initialNodes);
     setEdges(initialEdges);
+    setSelectedNodeId(null);
+    setSelectedEdgeId(null);
   }, []);
 
   const updateSelectedNodeData = useCallback((patch: Partial<CardData>) => {
@@ -848,17 +519,6 @@ function FlowCanvas() {
     if (!selectedNode) return;
     setNodes((current) => current.filter((node) => node.id !== selectedNode.id));
     setEdges((current) => current.filter((edge) => edge.source !== selectedNode.id && edge.target !== selectedNode.id));
-    const doc = docRef.current;
-    const yNodes = yNodesRef.current;
-    const yEdges = yEdgesRef.current;
-    if (doc && yNodes && yEdges) {
-      doc.transact(() => {
-        yNodes.delete(selectedNode.id);
-        Array.from(yEdges.values()).forEach((edge) => {
-          if (edge.source === selectedNode.id || edge.target === selectedNode.id) yEdges.delete(edge.id);
-        });
-      }, LOCAL_ORIGIN);
-    }
     setSelectedNodeId(null);
   }, [selectedNode]);
 
@@ -899,17 +559,9 @@ function FlowCanvas() {
   const deleteSelectedEdge = useCallback(() => {
     if (!selectedEdge) return;
     setEdges((current) => current.filter((edge) => edge.id !== selectedEdge.id));
-    const doc = docRef.current;
-    const yEdges = yEdgesRef.current;
-    if (doc && yEdges) doc.transact(() => yEdges.delete(selectedEdge.id), LOCAL_ORIGIN);
     setSelectedEdgeId(null);
   }, [selectedEdge]);
 
-  const statusInfo = {
-    connecting: { text: "Đang kết nối…", color: "#d97706" },
-    connected: { text: "Đã kết nối", color: "#059669" },
-    disconnected: { text: "Mất kết nối", color: "#dc2626" },
-  }[status];
   const selectedNodeData = selectedNode?.data;
   const edgeColor = String(selectedEdge?.style?.stroke ?? "#64748b");
   const edgeWidth = Number(selectedEdge?.style?.strokeWidth ?? 2);
@@ -927,7 +579,6 @@ function FlowCanvas() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeDoubleClick={onNodeDoubleClick}
-        onPaneMouseMove={onPaneMouseMove}
         onSelectionChange={onSelectionChange}
         onDrop={onDrop}
         onDragOver={onDragOver}
@@ -943,7 +594,6 @@ function FlowCanvas() {
         <Background gap={18} color="#e2e8f0" />
         <Controls />
         <MiniMap pannable zoomable />
-        <RemoteCursors peers={peers} />
       </ReactFlow>
 
       {/* Thanh công cụ */}
@@ -955,10 +605,10 @@ function FlowCanvas() {
           fontFamily: "Inter, Segoe UI, Roboto, Arial, sans-serif", zIndex: 40,
         }}
       >
-        <strong style={{ fontSize: 14, color: "#142033" }}>Kiến trúc RAG văn bản v11 · đồng chỉnh</strong>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: statusInfo.color, fontWeight: 700 }}>
-          <span style={{ width: 9, height: 9, borderRadius: "50%", background: statusInfo.color, display: "inline-block" }} />
-          {statusInfo.text}
+        <strong style={{ fontSize: 14, color: "#142033" }}>Kiến trúc RAG văn bản v11</strong>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#334155", fontWeight: 700 }}>
+          <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#64748b", display: "inline-block" }} />
+          Cục bộ
         </span>
         {editing ? (
           <>
@@ -977,33 +627,18 @@ function FlowCanvas() {
             <button onClick={restoreDefaultDiagram} style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d6c2ff", background: "#f2ebff", color: "#6d28d9", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>
               Khôi phục sơ đồ v11
             </button>
-            <button onClick={finishEdit} title="Nhả quyền sửa để người khác có thể chỉnh (thay đổi đã tự lưu)" style={{ fontSize: 12.5, fontWeight: 800, border: "1px solid #a7f3d0", background: "#059669", color: "#fff", borderRadius: 8, padding: "5px 12px", cursor: "pointer" }}>
+            <button onClick={finishEdit} title="Lưu trong trình duyệt này và quay về chế độ xem" style={{ fontSize: 12.5, fontWeight: 800, border: "1px solid #a7f3d0", background: "#059669", color: "#fff", borderRadius: 8, padding: "5px 12px", cursor: "pointer" }}>
               ✓ Lưu &amp; Xong
             </button>
           </>
-        ) : lockedByOther ? (
-          <span title={`${lockedByOther.name} đang giữ quyền chỉnh sửa`} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, border: "1px solid #fed7aa", background: "#fff7ed", color: "#c2410c", borderRadius: 8, padding: "5px 10px" }}>
-            🔒 {lockedByOther.name} đang chỉnh sửa…
-          </span>
         ) : (
-          <button onClick={requestEdit} title="Giành quyền chỉnh sửa sơ đồ" style={{ fontSize: 12.5, fontWeight: 800, border: "1px solid #1d4ed8", background: "#1d4ed8", color: "#fff", borderRadius: 8, padding: "5px 12px", cursor: "pointer" }}>
+          <button onClick={requestEdit} title="Chỉnh sửa sơ đồ trong trình duyệt này" style={{ fontSize: 12.5, fontWeight: 800, border: "1px solid #1d4ed8", background: "#1d4ed8", color: "#fff", borderRadius: 8, padding: "5px 12px", cursor: "pointer" }}>
             ✏️ Sửa sơ đồ
           </button>
         )}
         <button onClick={() => navigator.clipboard?.writeText(window.location.href)} style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d8e1ee", background: "#fff", color: "#334155", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>
           Sao chép link chia sẻ
         </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 4 }}>
-          <span title={me.name} style={{ width: 22, height: 22, borderRadius: "50%", background: me.color, color: "#fff", fontSize: 10, fontWeight: 700, display: "grid", placeItems: "center", border: "2px solid #fff", boxShadow: "0 1px 3px rgba(0,0,0,.2)" }}>
-            Bạn
-          </span>
-          {peers.map((p) => (
-            <span key={p.clientId} title={p.name} style={{ width: 22, height: 22, borderRadius: "50%", background: p.color, color: "#fff", fontSize: 10, fontWeight: 700, display: "grid", placeItems: "center", border: "2px solid #fff", boxShadow: "0 1px 3px rgba(0,0,0,.2)" }}>
-              {p.name.replace(/[^0-9]/g, "").slice(-2) || "?"}
-            </span>
-          ))}
-          <span style={{ fontSize: 11.5, color: "#64748b", marginLeft: 4 }}>{peers.length + 1} online</span>
-        </div>
       </div>
 
       <aside
@@ -1026,11 +661,7 @@ function FlowCanvas() {
         {!editing ? (
           <div style={{ display: "grid", gap: 8, color: "#64748b", fontSize: 12.5, lineHeight: 1.45 }}>
             <strong style={{ color: "#142033", fontSize: 14 }}>Chế độ xem</strong>
-            {lockedByOther ? (
-              <span style={{ color: "#c2410c", fontWeight: 600 }}>🔒 {lockedByOther.name} đang chỉnh sửa. Bạn sẽ sửa được sau khi họ bấm “Lưu &amp; Xong”.</span>
-            ) : (
-              <span>Bấm “✏️ Sửa sơ đồ” ở góc trên để giành quyền chỉnh sửa. Mỗi thời điểm chỉ một người được sửa.</span>
-            )}
+            <span>Bấm “✏️ Sửa sơ đồ” ở góc trên để chỉnh trong trình duyệt này. Không còn đồng bộ realtime hay khóa người sửa.</span>
             <span>Bạn vẫn có thể phóng to/thu nhỏ và kéo nền để xem toàn bộ sơ đồ.</span>
           </div>
         ) : selectedNode && selectedNodeData ? (
@@ -1169,8 +800,8 @@ function FlowCanvas() {
 
       <div style={{ position: "fixed", bottom: 14, left: 14, fontSize: 11.5, color: "#64748b", background: "rgba(255,255,255,.9)", border: "1px solid #e2e8f0", borderRadius: 10, padding: "6px 10px", fontFamily: "Inter, Segoe UI, Roboto, Arial, sans-serif", zIndex: 40 }}>
         {editing
-          ? "Bấm chọn node để sửa chữ/tag/bảng · kéo node để di chuyển · kéo từ chấm bên phải sang node khác để nối. Thay đổi tự lưu & đồng bộ; bấm “Lưu & Xong” để nhả quyền cho người khác."
-          : "Chế độ chỉ xem — bấm “✏️ Sửa sơ đồ” ở góc trên để chỉnh (mỗi thời điểm chỉ một người được sửa)."}
+          ? "Bấm chọn node để sửa chữ/tag/bảng · kéo node để di chuyển · kéo từ chấm bên phải sang node khác để nối. Thay đổi tự lưu trong trình duyệt này; bấm “Lưu & Xong” để quay về chế độ xem."
+          : "Chế độ chỉ xem — bấm “✏️ Sửa sơ đồ” ở góc trên để chỉnh cục bộ trong trình duyệt này."}
       </div>
     </div>
     </NodeEditContext.Provider>
