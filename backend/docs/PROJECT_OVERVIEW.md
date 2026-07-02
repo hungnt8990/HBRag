@@ -65,7 +65,14 @@
 > (delete_by_id_vb trước bulk). Verify E2E trên ES live: ensure_index + bulk + search BM25 + ACL fields + 1 doc thật
 > 3 chunk khớp. 183 test pass. (run_qdrant KHÔNG index ES — chỉ embed Qdrant.)
 >
-> Cập nhật gần nhất: 2026-07-03 — **Sửa GỐC RỄ chất lượng semantic (3 bug hạ tầng) — KHÔNG cần re-embed**.
+> Cập nhật gần nhất: 2026-07-03 (b) — **detect_search_type: cụm ≥2 từ -> hybrid** (trước ngưỡng ≥6 từ khiến
+> "quy chế trả lương"/"công tác phí"/"GIS lưới điện" rơi về bm25). Giờ mọi cụm danh từ ngắn (không phải mã/số
+> hiệu/đơn vị) đi hybrid -> fusion semantic; chỉ 1 từ đơn -> bm25. LƯU Ý: khi `DOFFICE_RETRIEVAL_ENABLED=true`,
+> search_type="bm25" VẪN kích hoạt fusion (gate `not in {exact,ref}`) — nên nếu API trả `search_type=bm25` cho
+> câu semantic thì nghĩa là fusion TRẢ NONE/NÉM LỖI (fallback), thường do backend chưa restart nạp code/.env mới
+> hoặc `DOFFICE_RETRIEVAL_ENABLED` chưa bật; xem log `fusion timings`/`semantic fusion failed`.
+>
+> Cập nhật trước: 2026-07-03 — **Sửa GỐC RỄ chất lượng semantic (3 bug hạ tầng) — KHÔNG cần re-embed**.
 > Chẩn đoán live (id_nv=90288) 3 nguyên nhân khiến search ngữ nghĩa kém:
 > (1) **Qwen3-Embedding-8B là model instruction-tuned** nhưng query embed TRẦN -> dense yếu. Fix:
 > `build_query_embedding_text` bọc `Instruct: <task>\nQuery:<q>` (setting `embedding_query_instruction`),

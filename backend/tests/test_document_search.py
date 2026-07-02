@@ -17,15 +17,19 @@ from app.services.security.security_acl_payload import AclSubject
 
 def test_detect_search_type() -> None:
     assert dss.detect_search_type("6515/EVNCPC-VTCNTT+KD+KT") == "exact"
-    assert dss.detect_search_type("GIS lưới điện") == "bm25"
+    # Cụm ≥2 từ (không phải mã/số hiệu) -> hybrid (chạy fusion semantic).
+    assert dss.detect_search_type("GIS lưới điện") == "hybrid"
+    assert dss.detect_search_type("quy chế trả lương") == "hybrid"
     assert dss.detect_search_type("quy định về phụ cấp điện lực là gì năm 2023") == "hybrid"
     assert dss.detect_search_type("một hai ba bốn năm sáu bảy") == "hybrid"
     # tra cứu số/ký hiệu rời -> ref
     assert dss.detect_search_type("qd 258") == "ref"
     assert dss.detect_search_type("258") == "ref"
     assert dss.detect_search_type("kh 80") == "ref"
-    # có số nhưng kèm từ thường -> KHÔNG phải ref
-    assert dss.detect_search_type("phụ cấp 2023") == "bm25"
+    # có số nhưng kèm từ thường -> KHÔNG phải ref; ≥2 từ -> hybrid
+    assert dss.detect_search_type("phụ cấp 2023") == "hybrid"
+    # 1 từ đơn (không phải mã) -> bm25
+    assert dss.detect_search_type("lương") == "bm25"
 
 
 def test_build_query_body_ref_phrase() -> None:

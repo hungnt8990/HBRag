@@ -194,7 +194,10 @@ def detect_search_type(query: str) -> str:
         # Nêu đích danh đơn vị -> cần chính xác lexical: boost org hiệu quả ở bm25, không bị
         # điểm knn (ngữ nghĩa, không phân biệt được đơn vị) lấn át như ở hybrid.
         return "bm25"
-    if len(query.split()) >= 6 or _QUESTION_RE.search(query):
+    # Cụm ≥2 từ (không phải mã/số hiệu/đơn vị) -> hybrid để chạy fusion semantic. Trước đây
+    # ngưỡng ≥6 từ khiến cụm danh từ ngắn ("quy chế trả lương", "công tác phí") rơi về bm25
+    # (không vector). 1 từ đơn -> bm25 (có thể là mảnh mã/tên).
+    if len(query.split()) >= 2 or _QUESTION_RE.search(query):
         return "hybrid"
     return "bm25"
 
