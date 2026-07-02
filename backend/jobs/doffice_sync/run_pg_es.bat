@@ -19,7 +19,7 @@ REM   259  Dien luc Binh Dinh   261 Dak Lak    262 Gia Lai   263 Kon Tum   264 P
 REM   265 Quang Binh  266 Quang Nam  267 Quang Ngai  268 Quang Tri  269 Hue  270 Dak Nong
 REM   385 Da Nang  386 CTCP DL Khanh Hoa  1804 Cty DL Khanh Hoa  486/487 TT DLMT
 REM   (Tong 335 don vi - tra bang dm_don_vi neu can id con.)
-set "DOFFICE_JOB_DON_VI=256"
+set "DOFFICE_JOB_DON_VI=268"
 
 REM MODE 3: TAT CA -> de trong ca ID_VB lan DON_VI
 

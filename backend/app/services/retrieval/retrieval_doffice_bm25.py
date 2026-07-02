@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import TYPE_CHECKING, Any
 
 import httpx
@@ -33,8 +34,41 @@ _TEXT_SEARCH_FIELDS = (
     ("noi_ban_hanh", 1.5),
     ("nguoi_ky", 1.0),
     ("ten_file", 1.0),
+    ("noi_dung_body", 1.2),
     ("noi_dung", 1.0),
 )
+
+_NOI_DUNG_BODY_START_RE = re.compile(
+    r"(?:\n|^)(?:TỔNG CÔNG TY|TẬP ĐOÀN|CÔNG TY|ĐẢNG BỘ|ỦY BAN|BAN CHẤP HÀNH|Số\s*:)",
+    re.IGNORECASE,
+)
+_NOI_DUNG_METADATA_LINE_RE = re.compile(
+    r"^(?:THÔNG TIN VĂN BẢN DOFFICE|ID_VB|Số/ký hiệu văn bản|Ngày văn bản|Trích yếu|"
+    r"Nơi ban hành|Người ký|Tên file|Đường dẫn|Năm|Tháng)\s*:?",
+    re.IGNORECASE,
+)
+_NOI_DUNG_FOOTER_RE = re.compile(
+    r"(?:\n\s*Nơi nhận\s*:.*|\n\s*Lưu\s*:.*)$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def extract_doffice_body_text(noi_dung: str | None) -> str:
+    """Strip DOffice metadata preamble so BM25 can score the real formal-document body."""
+    text = str(noi_dung or "").strip()
+    if not text:
+        return ""
+    match = _NOI_DUNG_BODY_START_RE.search(text)
+    if match:
+        text = text[match.start():].strip()
+    else:
+        kept = [
+            line for line in text.splitlines()
+            if not _NOI_DUNG_METADATA_LINE_RE.match(line.strip())
+        ]
+        text = "\n".join(kept).strip()
+    text = _NOI_DUNG_FOOTER_RE.sub("", text).strip()
+    return text or str(noi_dung or "").strip()
 
 
 def _vi_analysis() -> dict[str, Any]:
@@ -44,6 +78,15 @@ def _vi_analysis() -> dict[str, Any]:
                 "type": "synonym_graph",
                 "synonyms_set": SYNONYMS_SET_NAME,
                 "updateable": True,
+            },
+            "vi_doffice_boilerplate_stop": {
+                "type": "stop",
+                "stopwords": [
+                    "thong", "tin", "van", "ban", "doffice", "id", "vb",
+                    "so", "ky", "hieu", "ngay", "trich", "yeu", "noi",
+                    "hanh", "nguoi", "ky", "ten", "file", "duong", "dan",
+                    "nam", "thang",
+                ],
             },
         },
         "analyzer": {
@@ -56,6 +99,16 @@ def _vi_analysis() -> dict[str, Any]:
                 "type": "custom",
                 "tokenizer": "standard",
                 "filter": ["lowercase", "asciifolding", "vi_synonyms"],
+            },
+            "vi_bm25_body": {
+                "type": "custom",
+                "tokenizer": "standard",
+                "filter": ["lowercase", "asciifolding", "vi_doffice_boilerplate_stop"],
+            },
+            "vi_bm25_body_search": {
+                "type": "custom",
+                "tokenizer": "standard",
+                "filter": ["lowercase", "asciifolding", "vi_synonyms", "vi_doffice_boilerplate_stop"],
             },
         },
     }
@@ -86,6 +139,12 @@ class DofficeBm25DocumentStore:
             "ten_file": {"type": "text", "analyzer": "vi_bm25"},
             "duong_dan": {"type": "keyword"},
             "noi_dung": {**text, "index_options": "offsets"},
+            "noi_dung_body": {
+                "type": "text",
+                "analyzer": "vi_bm25_body",
+                "search_analyzer": "vi_bm25_body_search",
+                "index_options": "offsets",
+            },
             "type_ocr": {"type": "keyword"},
             "nam": {"type": "integer"},
             "thang": {"type": "integer"},
@@ -165,6 +224,7 @@ class DofficeBm25DocumentStore:
                 record[key] = value
         if noi_dung_clean:
             record["noi_dung"] = noi_dung_clean
+            record["noi_dung_body"] = extract_doffice_body_text(noi_dung_clean)
         record["acl_subjects"] = acl_subjects
         record["acl_deny"] = acl_deny
         if acl_ver:
@@ -239,7 +299,7 @@ class DofficeBm25DocumentStore:
         query: str,
         *,
         top_n: int = 50,
-        acl_subject: "AclSubject | None" = None,
+        acl_subject: AclSubject | None = None,
     ) -> list[dict[str, Any]]:
         """BM25 thuần trên các trường văn bản, lọc ACL cứng. Trả [{document_id,id_vb,_score,...}]."""
         await self.ensure_index()
@@ -413,10 +473,12 @@ class DofficeChunkBm25Store:
         query: str,
         *,
         top_n: int = 50,
-        acl_subject: "AclSubject | None" = None,
+        acl_subject: AclSubject | None = None,
+        ensure: bool = True,
     ) -> list[dict[str, Any]]:
         """BM25 cấp chunk + lọc ACL cứng. Trả [{document_id,id_vb,chunk_id,chunk_text,_score,...}]."""
-        await self.ensure_index()
+        if ensure:
+            await self.ensure_index()
         filters: list[dict[str, Any]] = []
         if acl_subject is not None:
             from app.services.security.security_acl_payload import build_es_acl_filter_flat
@@ -424,14 +486,68 @@ class DofficeChunkBm25Store:
             clause = build_es_acl_filter_flat(acl_subject)
             if clause is not None:
                 filters.append(clause)
-        should = [
-            {"match": {field: {"query": query, "boost": boost}}}
-            for field, boost in _CHUNK_TEXT_SEARCH_FIELDS
+        fields = [f"{field}^{boost}" for field, boost in _CHUNK_TEXT_SEARCH_FIELDS]
+        should: list[dict[str, Any]] = [
+            {
+                "multi_match": {
+                    "query": query,
+                    "type": "best_fields",
+                    "fields": fields,
+                    "operator": "and",
+                    "boost": 2.5,
+                }
+            },
+            {
+                "multi_match": {
+                    "query": query,
+                    "type": "best_fields",
+                    "fields": fields,
+                    "operator": "or",
+                    "minimum_should_match": "2<75%",
+                    "boost": 0.5,
+                }
+            },
         ]
+        if len(query.split()) >= 2:
+            should.insert(
+                0,
+                {
+                    "multi_match": {
+                        "query": query,
+                        "type": "phrase",
+                        "fields": ["chunk_text^2", "section_path^3", "trich_yeu^3"],
+                        "boost": 5.0,
+                    }
+                },
+            )
+        query_block: dict[str, Any] = {"bool": {"should": should, "minimum_should_match": 1, "filter": filters}}
         body = {
             "size": top_n,
             "_source": ["document_id", "id_vb", "chunk_id", "chunk_index", "chunk_type", "chunk_text", "ky_hieu", "trich_yeu", "ngay_vb"],
-            "query": {"bool": {"should": should, "minimum_should_match": 1, "filter": filters}},
+            "highlight": {
+                "fields": {
+                    "chunk_text": {
+                        "fragment_size": 220,
+                        "number_of_fragments": 2,
+                        "pre_tags": ["<mark>"],
+                        "post_tags": ["</mark>"],
+                    }
+                },
+                "require_field_match": False,
+            },
+            "query": {
+                "function_score": {
+                    "query": query_block,
+                    "functions": [
+                        {"filter": {"term": {"chunk_type": "legal_clause"}}, "weight": 1.8},
+                        {"filter": {"term": {"chunk_type": "document_section"}}, "weight": 1.4},
+                        {"filter": {"term": {"chunk_type": "footer_signature"}}, "weight": 0.35},
+                        {"filter": {"term": {"chunk_type": "table_of_contents"}}, "weight": 0.25},
+                    ],
+                    "boost_mode": "multiply",
+                    "score_mode": "multiply",
+                }
+            },
         }
         async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
             resp = await client.post(f"{self.url}/{self.index_name}/_search", json=body)
@@ -444,5 +560,5 @@ class DofficeChunkBm25Store:
         for hit in hits:
             source = hit.get("_source") or {}
             if source.get("document_id"):
-                results.append({**source, "_score": hit.get("_score")})
+                results.append({**source, "_score": hit.get("_score"), "highlight": hit.get("highlight") or {}})
         return results

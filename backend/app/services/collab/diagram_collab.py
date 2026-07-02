@@ -15,7 +15,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
-from contextlib import AsyncExitStack
 from pathlib import Path
 from typing import Any
 
@@ -67,8 +66,9 @@ class DiagramCollab:
     def __init__(self) -> None:
         # auto_clean_rooms=False: giữ room sống dù không còn client (để còn lưu/khôi phục).
         self._server = WebsocketServer(auto_clean_rooms=False)
-        self._exit_stack: AsyncExitStack | None = None
+        self._server_task: asyncio.Task[None] | None = None
         self._saver_task: asyncio.Task[None] | None = None
+        self._start_lock = asyncio.Lock()  # serialize start() (nhiều connection self-heal cùng lúc)
         self._docs: dict[str, Doc] = {}
         self._subs: dict[str, Any] = {}
         self._dirty: set[str] = set()
@@ -76,14 +76,56 @@ class DiagramCollab:
 
     # ----------------------------------------------------------------- lifecycle
     async def start(self) -> None:
-        """Khởi động trong lifespan FastAPI: vào task group của WS server + vòng lưu nền."""
+        """Khởi động WS server (task nền chuyên dụng) + vòng lưu nền.
+
+        Dùng API "background task" pycrdt khuyến nghị (``create_task(server.start)`` rồi
+        chờ ``server.started``) thay vì ``async with server`` / ``enter_async_context``:
+        task group của server sống trong 1 task nền RIÊNG, KHÔNG gắn vào task lifespan hay
+        task của connection. Nhờ vậy :meth:`serve` có thể tự khởi động lại (self-heal) an
+        toàn từ task bất kỳ mà không vi phạm quy tắc "cancel scope phải đóng đúng task" của
+        anyio. Lỗi khởi động KHÔNG bị nuốt ở đây — cứ để nổi lên cho caller log/xử lý."""
         if self._running:
             return
-        self._exit_stack = AsyncExitStack()
-        await self._exit_stack.enter_async_context(self._server)
-        self._saver_task = asyncio.create_task(self._saver_loop())
-        self._running = True
-        logger.info("DiagramCollab started (data dir=%s)", _DATA_DIR)
+        async with self._start_lock:
+            if self._running:  # đã có connection khác self-heal xong trong lúc chờ lock
+                return
+            # Lần start trước chết giữa chừng (task done) -> WebsocketServer có thể còn
+            # _task_group cũ khiến start() lại ném "already running". Dùng server sạch để
+            # self-heal đáng tin cậy (rooms sẽ được nạp lại từ đĩa trong _ensure_room).
+            if self._server_task is not None and self._server_task.done():
+                self._server = WebsocketServer(auto_clean_rooms=False)
+            self._server_task = asyncio.create_task(self._server.start())
+            # Chờ server báo sẵn sàng; nếu task chết TRƯỚC khi set started -> nổi lỗi thật, KHÔNG treo.
+            started_wait = asyncio.create_task(self._server.started.wait())
+            try:
+                done, _ = await asyncio.wait(
+                    {started_wait, self._server_task}, return_when=asyncio.FIRST_COMPLETED
+                )
+                if self._server_task in done:  # task xong sớm = lỗi (hoặc dừng bất thường)
+                    self._server_task.result()  # re-raise exception nếu có
+                    raise RuntimeError("WebsocketServer dừng ngay khi khởi động")
+            finally:
+                started_wait.cancel()
+                try:
+                    await started_wait
+                except asyncio.CancelledError:
+                    pass
+            self._saver_task = asyncio.create_task(self._saver_loop())
+            self._running = True
+            logger.info("DiagramCollab started (data dir=%s)", _DATA_DIR)
+
+    async def _ensure_started(self) -> None:
+        """Đảm bảo WS server đang chạy trước khi phục vụ 1 connection.
+
+        Nếu :meth:`start` lúc boot đã lỗi (vd bị nuốt trong lifespan) thì server chưa chạy;
+        connection đầu tiên sẽ tự thử khởi động lại và để lỗi THẬT nổi lên (thay vì client
+        cứ nhận ``RuntimeError: WebsocketServer is not running`` mù mờ ở mọi lần nối)."""
+        if self._running:
+            return
+        logger.warning(
+            "DiagramCollab chưa chạy (start lúc boot có thể đã lỗi) -> thử khởi động lại theo yêu cầu connection"
+        )
+        await self.start()
 
     async def stop(self) -> None:
         if not self._running:
@@ -107,14 +149,24 @@ class DiagramCollab:
             except asyncio.CancelledError:
                 pass
             self._saver_task = None
-        if self._exit_stack is not None:
-            await self._exit_stack.aclose()
-            self._exit_stack = None
+        # Dừng WS server: server.stop() set _stopped + cancel task group -> task nền kết thúc.
+        try:
+            await self._server.stop()
+        except Exception:
+            logger.exception("Dừng WebsocketServer thất bại")
+        if self._server_task is not None:
+            self._server_task.cancel()
+            try:
+                await self._server_task
+            except asyncio.CancelledError:
+                pass
+            self._server_task = None
         logger.info("DiagramCollab stopped")
 
     # -------------------------------------------------------------------- serving
     async def serve(self, websocket: Any, room: str) -> None:
         """Phục vụ 1 client WebSocket cho ``room`` (đã accept() trước khi gọi)."""
+        await self._ensure_started()
         room = self._safe_room(room)
         self._ensure_room(room)
         channel = _FastAPIChannel(websocket, room)

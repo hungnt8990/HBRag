@@ -11,7 +11,6 @@ from app.services.retrieval import document_search_service as dss
 from app.services.retrieval.retrieval_document_index import DocumentIndexStore
 from app.services.security.security_acl_payload import AclSubject
 
-
 # --- detect / build (service) ---------------------------------------------
 
 def test_detect_search_type() -> None:
@@ -42,16 +41,24 @@ def test_detect_mode() -> None:
     assert dss.detect_mode("điều kiện nghỉ phép là gì", "auto") == "excerpt"
 
 
-def test_build_query_body_fuzzy_bm25() -> None:
+def test_build_query_body_primary_bm25_is_boilerplate_aware_without_fuzzy() -> None:
     body = dss.build_query_body("khen thuong", 10, "bm25", [], None)
     should = body["query"]["bool"]["should"]
     mm = [c for c in should if "multi_match" in c]
-    # có nhánh fuzzy + nhánh phrase_prefix
-    assert any(c["multi_match"].get("fuzziness") == "AUTO" for c in mm)
+    assert body["query"]["bool"]["minimum_should_match"] == 1
+    assert not any(c["multi_match"].get("fuzziness") == "AUTO" for c in mm)
+    assert any("noi_dung_body" in field for c in mm for field in c["multi_match"].get("fields", []))
     assert any(c["multi_match"].get("type") == "phrase_prefix" for c in mm)
     # ký hiệu không fuzzy
     kh = [c for c in should if "match" in c and "ky_hieu" in c["match"]]
     assert kh and "fuzziness" not in kh[0]["match"]["ky_hieu"]
+
+
+def test_build_query_body_fuzzy_only_in_fallback() -> None:
+    body = dss.build_query_body("khen thuong", 10, "bm25", [], None, fuzzy_fallback=True)
+    should = body["query"]["bool"]["should"]
+    mm = [c for c in should if "multi_match" in c]
+    assert any(c["multi_match"].get("fuzziness") == "AUTO" for c in mm)
 
 
 def test_build_query_body_exact_no_fuzzy() -> None:
@@ -109,6 +116,34 @@ def test_build_query_body_recency() -> None:
     assert "function_score" not in str(ref["query"])
 
 
+def test_chunk_rerank_keeps_response_shape_and_uses_chunk_highlight() -> None:
+    doc_hits = [
+        {
+            "_source": {"document_id": "d1", "id_vb": "1", "ky_hieu": "1/QD", "trich_yeu": "A"},
+            "_score": 9.0,
+            "highlight": {"noi_dung": ["doc"]},
+        },
+        {
+            "_source": {"document_id": "d2", "id_vb": "2", "ky_hieu": "2/QD", "trich_yeu": "B"},
+            "_score": 8.0,
+            "highlight": {},
+        },
+    ]
+    chunk_hits = [
+        {
+            "document_id": "d2",
+            "id_vb": "2",
+            "ky_hieu": "2/QD",
+            "trich_yeu": "B",
+            "_score": 7.0,
+            "highlight": {"chunk_text": ["<mark>tien luong</mark>"]},
+        }
+    ]
+    ranked = dss._apply_chunk_rerank(doc_hits, chunk_hits, 2)
+    assert [h["_source"]["id_vb"] for h in ranked] == ["2", "1"]
+    assert ranked[0]["highlight"]["noi_dung"][0] == "<mark>tien luong</mark>"
+
+
 def test_build_acl_filters() -> None:
     filters = dss.build_acl_filters(AclSubject(id_nv=117058, id_pb=43038, id_dv=1833))
     acl = filters[0]["bool"]
@@ -153,6 +188,7 @@ def _patch(monkeypatch, resp, *, nv=117058, org=(None, None)):
     monkeypatch.setattr(dss.settings, "elasticsearch_enabled", True)
     # Test logic hybrid/kNN gốc -> tắt BM25-only (mặc định production=True khi gateway embed chết).
     monkeypatch.setattr(dss.settings, "document_search_bm25_only", False)
+    monkeypatch.setattr(dss.settings, "document_search_chunk_rerank_enabled", False)
     monkeypatch.setattr(dss.httpx, "AsyncClient", lambda *a, **k: _FakeClient(resp))
 
     async def _noop(self):

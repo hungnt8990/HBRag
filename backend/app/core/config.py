@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     qdrant_docmeta_collection_name: str = "hbrag_doffice_docmeta_v1"
     # ES BM25 cấp văn bản (không vector, không chunk).
     doffice_documents_index_name: str = "hbrag_doffice_documents_v1"
+    doffice_documents_index_v2_name: str = "hbrag_doffice_documents_v2"
+    doffice_documents_index_alias: str = "hbrag_doffice_documents"
     # ES BM25 cấp CHUNK (nhánh 2): mỗi chunk = 1 record + ACL nén, để BM25 đúng đoạn/căn cứ.
     doffice_chunks_index_name: str = "hbrag_doffice_chunks_es_v1"
     # Dev: vẫn ghi chunk vào PostgreSQL để soi; product có thể tắt.
@@ -148,6 +150,10 @@ class Settings(BaseSettings):
     # Tìm kiếm văn bản CHỈ qua ES BM25 + ACL (bỏ kNN/embed) — bật khi model embedding
     # chết/chậm để API không treo chờ embed. False = cho phép hybrid (kNN+BM25) như cũ.
     document_search_bm25_only: bool = True
+    document_search_fuzzy_fallback_min_results: int = 3
+    document_search_chunk_rerank_enabled: bool = True
+    document_search_chunk_rerank_multiplier: int = 3
+    document_search_chunk_rerank_max_hits: int = 60
     # API cập nhật ACL cho DOffice gọi: API key tĩnh (rỗng = mở, cho dev).
     doffice_acl_api_key: str | None = None
 

@@ -39,7 +39,12 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     try:
         await diagram_collab.start()
     except Exception:
-        logger.exception("Failed to start diagram collaboration server.")
+        # Không để lỗi collab làm sập app, NHƯNG phải log rõ: collab (/collab, trang
+        # /architecture-flow) sẽ KHÔNG hoạt động cho tới khi connection đầu tiên tự
+        # khởi động lại (serve -> _ensure_started). Xem traceback bên dưới để biết gốc.
+        logger.exception(
+            "Khởi động DiagramCollab thất bại -> collab tạm ngưng; connection đầu sẽ thử khởi động lại."
+        )
     try:
         yield
     finally:

@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 import re
 import unicodedata
-from typing import Literal
+from typing import Any, Literal
 
 import httpx
 from pydantic import BaseModel, Field
@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 from app.services.retrieval.retrieval_document_index import DocumentIndexStore
+from app.services.retrieval.retrieval_doffice_bm25 import DofficeChunkBm25Store
 from app.services.security.acl_bypass_users import is_bypass_user
 from app.services.security.security_acl_payload import AclSubject, acl_subject_to_keys
 
@@ -148,6 +149,11 @@ _ORG_CODES = {
     "dnpc", "khpc", "glpc", "qnpc", "qbpc", "qtpc", "ttpc", "pypc", "knpc", "dlpc", "bdpc", "klpc",
 }
 _ORG_ALIAS = {"cpcit": "it"}
+_ORG_ISSUER_QUERY = {
+    "cpcit": "cong ty cntt dien luc mien trung",
+    "evncpc": "tong cong ty dien luc mien trung",
+    "cpc": "tong cong ty dien luc mien trung",
+}
 
 
 def _extract_years(query: str) -> list[int]:
@@ -251,6 +257,10 @@ _RECENCY_DECAY = 0.5
 # chủ đề (điểm ~0) nhân lên vẫn ~0, KHÔNG lọt top (trước đây should boost cộng 8.0 kéo cả VB lạc
 # chủ đề của đơn vị lên đầu). 3.0 đủ đưa VB đơn vị lên trên VB đơn vị khác cùng chủ đề — tinh chỉnh.
 _ORG_BOOST_WEIGHT = 3.0
+_ORG_ISSUER_BOOST_WEIGHT = 1.6
+_RRF_K = 60
+_DOC_RRF_WEIGHT = 1.0
+_CHUNK_RRF_WEIGHT = 0.03
 
 
 def _recency_function() -> dict:
@@ -273,10 +283,17 @@ def _org_boost_functions(query: str) -> list[dict]:
     ``filter`` + ``weight`` trong function_score (score_mode=multiply) -> ưu tiên đơn vị TRONG
     nhóm đã liên quan chủ đề, không kéo VB lạc chủ đề lên top.
     """
-    return [
-        {"filter": {"match": {"ky_hieu": _ORG_ALIAS.get(o, o)}}, "weight": _ORG_BOOST_WEIGHT}
-        for o in _extract_orgs(query)
-    ]
+    functions: list[dict] = []
+    for org in _extract_orgs(query):
+        functions.append(
+            {"filter": {"match": {"ky_hieu": _ORG_ALIAS.get(org, org)}}, "weight": _ORG_BOOST_WEIGHT}
+        )
+        issuer_query = _ORG_ISSUER_QUERY.get(org)
+        if issuer_query:
+            functions.append(
+                {"filter": {"match": {"noi_ban_hanh": issuer_query}}, "weight": _ORG_ISSUER_BOOST_WEIGHT}
+            )
+    return functions
 
 
 def _wrap_score_functions(query_block: dict, functions: list[dict]) -> dict:
@@ -301,6 +318,7 @@ def build_query_body(
     query_vector: list[float] | None,
     *,
     prefer_recent: bool = False,
+    fuzzy_fallback: bool = False,
 ) -> dict:
     if search_type == "ref":
         # Tra cứu số/ký hiệu rời ("qd 258"). Ký hiệu lưu dạng "258/QĐ-IT" -> token [258, qd, it].
@@ -345,28 +363,43 @@ def build_query_body(
     content_query = _strip_org_tokens(query)
 
     # ký hiệu: match thường (KHÔNG fuzzy — là mã, fuzzy dễ khớp sai số văn bản).
-    # nội dung: fuzzy (gõ sai 1-2 ký tự) + minimum_should_match (chịu được gõ thiếu/nhiễu vài từ).
-    # phrase_prefix: bắt kiểu gõ dở từ cuối ("kế hoạch cung cấp đi…").
+    # nội dung primary: ưu tiên phrase + AND/high-MSM trên field body đã bỏ boilerplate (nếu index v2 có);
+    # fuzzy chỉ được bật ở lượt fallback khi primary quá ít kết quả.
+    content_fields = [
+        "trich_yeu^4",
+        "tom_tat^2.5",
+        "keywords^1.5",
+        "noi_dung_body^1.4",
+        "noi_dung^0.6",
+        "noi_ban_hanh^0.5",
+    ]
     should = [
         {"match": {"ky_hieu": {"query": content_query, "boost": 6.0}}},
         {
             "multi_match": {
                 "query": content_query,
                 "type": "best_fields",
-                "fields": ["trich_yeu^3", "tom_tat^2", "keywords^1.5", "noi_dung^1", "noi_ban_hanh^0.5"],
-                "fuzziness": "AUTO",
-                "prefix_length": 1,
-                "max_expansions": 50,
+                "fields": content_fields,
+                "operator": "and",
+                "boost": 2.5,
+            }
+        },
+        {
+            "multi_match": {
+                "query": content_query,
+                "type": "best_fields",
+                "fields": content_fields,
                 "operator": "or",
-                "minimum_should_match": "2<70%",
+                "minimum_should_match": "2<75%",
+                "boost": 0.7,
             }
         },
         {
             "multi_match": {
                 "query": content_query,
                 "type": "phrase_prefix",
-                "fields": ["trich_yeu^3", "tom_tat^2", "noi_dung^1"],
-                "boost": 0.6,
+                "fields": ["trich_yeu^3", "tom_tat^2", "noi_dung_body^1", "noi_dung^0.4"],
+                "boost": 0.35,
             }
         },
     ]
@@ -379,8 +412,24 @@ def build_query_body(
                 "multi_match": {
                     "query": content_query,
                     "type": "phrase",
-                    "fields": ["trich_yeu^3", "tom_tat^2", "noi_dung^1"],
-                    "boost": 4.0,
+                    "fields": ["trich_yeu^6", "tom_tat^3", "noi_dung_body^2", "noi_dung^0.8"],
+                    "boost": 5.0,
+                }
+            }
+        )
+    if fuzzy_fallback:
+        should.append(
+            {
+                "multi_match": {
+                    "query": content_query,
+                    "type": "best_fields",
+                    "fields": content_fields,
+                    "fuzziness": "AUTO",
+                    "prefix_length": 1,
+                    "max_expansions": 30,
+                    "operator": "or",
+                    "minimum_should_match": "2<70%",
+                    "boost": 0.35,
                 }
             }
         )
@@ -402,7 +451,7 @@ def build_query_body(
     score_functions.extend(_org_boost_functions(query))
 
     combined_filter = acl_filters + extra_filters
-    bool_query = {"bool": {"should": should, "filter": combined_filter}}
+    bool_query = {"bool": {"should": should, "filter": combined_filter, "minimum_should_match": 1}}
     scored_query = _wrap_score_functions(bool_query, score_functions)
     if search_type == "bm25" or query_vector is None:
         return {
@@ -426,6 +475,86 @@ def build_query_body(
         # recency + org áp lên phần BM25 (knn giữ điểm ngữ nghĩa) -> hybrid vẫn nghiêng VB mới/đúng đơn vị.
         "query": scored_query,
     }
+
+
+async def _search_es(store: DocumentIndexStore, body: dict[str, Any]) -> dict[str, Any]:
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.post(f"{store.url}/{store.index_name}/_search", json=body)
+    if resp.status_code >= 400:
+        raise DocumentSearchError(f"ES lỗi HTTP {resp.status_code}: {resp.text[:200]}")
+    return resp.json()
+
+
+def _hit_key(hit: dict[str, Any]) -> str:
+    src = hit.get("_source") or {}
+    return str(src.get("id_vb") or src.get("document_id") or "")
+
+
+def _apply_chunk_rerank(
+    doc_hits: list[dict[str, Any]],
+    chunk_hits: list[dict[str, Any]],
+    top_n: int,
+) -> list[dict[str, Any]]:
+    if not chunk_hits:
+        return doc_hits
+
+    entries: dict[str, dict[str, Any]] = {}
+    for rank, hit in enumerate(doc_hits, start=1):
+        key = _hit_key(hit)
+        if not key:
+            continue
+        entries[key] = {
+            "hit": hit,
+            "rrf": _DOC_RRF_WEIGHT / (_RRF_K + rank),
+            "chunk_highlights": [],
+        }
+
+    seen_chunk_docs: set[str] = set()
+    for rank, chunk in enumerate(chunk_hits, start=1):
+        key = str(chunk.get("id_vb") or chunk.get("document_id") or "")
+        if not key or key in seen_chunk_docs:
+            continue
+        entry = entries.get(key)
+        if entry is None:
+            continue
+        seen_chunk_docs.add(key)
+        entry["rrf"] += _CHUNK_RRF_WEIGHT / (_RRF_K + rank)
+        highlights = (chunk.get("highlight") or {}).get("chunk_text") or []
+        if highlights and not entry["chunk_highlights"]:
+            entry["chunk_highlights"] = highlights[:2]
+
+    ranked = sorted(entries.values(), key=lambda e: e["rrf"], reverse=True)[:top_n]
+    reranked: list[dict[str, Any]] = []
+    for entry in ranked:
+        hit = dict(entry["hit"])
+        if entry["chunk_highlights"]:
+            hl = dict(hit.get("highlight") or {})
+            existing = hl.get("noi_dung") or hl.get("trich_yeu") or []
+            hl["noi_dung"] = [*entry["chunk_highlights"], *existing][:3]
+            hit["highlight"] = hl
+        hit["_score"] = round(float(entry["rrf"]) * 10_000, 6)
+        reranked.append(hit)
+    return reranked
+
+
+async def _search_chunk_evidence(query: str, top_n: int, acl_subject: AclSubject) -> list[dict[str, Any]]:
+    if not settings.document_search_chunk_rerank_enabled:
+        return []
+    multiplier = max(1, int(settings.document_search_chunk_rerank_multiplier or 1))
+    max_hits = max(top_n, int(settings.document_search_chunk_rerank_max_hits or top_n))
+    chunk_top_n = min(max_hits, max(top_n * multiplier, top_n))
+    try:
+        return await DofficeChunkBm25Store(
+            url=settings.two_stage_document_index_url or settings.elasticsearch_url,
+        ).search_chunks(
+            _strip_org_tokens(query),
+            top_n=chunk_top_n,
+            acl_subject=acl_subject,
+            ensure=False,
+        )
+    except Exception:
+        logger.warning("Chunk BM25 rerank lỗi, giữ nguyên doc-level results query=%r", query[:60], exc_info=True)
+        return []
 
 
 async def execute_document_search(request: DocumentSearchRequest) -> DocumentSearchResponse:
@@ -467,11 +596,32 @@ async def execute_document_search(request: DocumentSearchRequest) -> DocumentSea
     store.index_name = settings.doffice_documents_index_name
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(f"{store.url}/{store.index_name}/_search", json=body)
-        if resp.status_code >= 400:
-            raise DocumentSearchError(f"ES lỗi HTTP {resp.status_code}: {resp.text[:200]}")
-        data = resp.json()
+        data = await _search_es(store, body)
+        hits = data.get("hits", {}).get("hits", [])
+        if (
+            search_type not in {"exact", "ref"}
+            and len(hits) < settings.document_search_fuzzy_fallback_min_results
+        ):
+            fallback_body = build_query_body(
+                request.query, request.top_n, search_type, acl_filters, query_vector,
+                prefer_recent=request.prefer_recent,
+                fuzzy_fallback=True,
+            )
+            fallback_data = await _search_es(store, fallback_body)
+            fallback_hits = fallback_data.get("hits", {}).get("hits", [])
+            if len(fallback_hits) > len(hits):
+                data = fallback_data
+                hits = fallback_hits
+        if search_type not in {"exact", "ref"}:
+            chunk_hits = await _search_chunk_evidence(request.query, request.top_n, acl_subject)
+            if chunk_hits:
+                data = {
+                    **data,
+                    "hits": {
+                        **(data.get("hits") or {}),
+                        "hits": _apply_chunk_rerank(hits, chunk_hits, request.top_n),
+                    },
+                }
     except DocumentSearchError:
         raise
     except Exception as exc:

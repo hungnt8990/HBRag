@@ -133,6 +133,11 @@
 > `Doc.observe` -> snapshot `Doc.get_update()` ra `backend/data/collab/<room>.ybin` mỗi ~2s, khôi phục bằng
 > `apply_update` khi tạo lại room. Khởi/tắt trong lifespan `main.py`. Đã verify E2E (2 client Python: sync 2 chiều +
 > persist + restore PASS). FE build/tsc/lint pass. Sơ đồ tĩnh cũ vẫn ở `GET /architecture` (`app/static/architecture.html`).
+> ⚠️ **Lifecycle WS server (2026-07-02)**: `DiagramCollab.start()` dùng API "background task" của pycrdt
+> (`create_task(server.start)` + chờ `server.started`) — KHÔNG dùng `async with server`/`enter_async_context` (task
+> group của server sống trong task nền riêng, không gắn task lifespan/connection). `serve()` gọi `_ensure_started()`
+> **self-heal**: nếu `start()` lúc boot lỗi (bị nuốt trong lifespan) thì connection đầu tự khởi động lại (server sạch)
+> + để lỗi THẬT nổi lên — trước đây mọi kết nối `/collab` chỉ nhận `RuntimeError: WebsocketServer is not running`.
 >
 > **Filter "đã có point Qdrant" (FE + API)**: `GET /api/documents` thêm query `qdrant_indexed` (true/false) ->
 > `DocumentRepository.list_documents` lọc SQL `coalesce(document_metadata->>'qdrant_indexed','false')='true'`.
