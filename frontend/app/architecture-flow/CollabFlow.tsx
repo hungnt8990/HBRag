@@ -44,6 +44,8 @@ import { NodeContent, NodeEditContext, NodePanelEditors } from "./NodeBlocks";
 
 const ROOM = "architecture-v12-editor";
 const LOCAL_ORIGIN = "local-edit";
+const CURSOR_PUBLISH_INTERVAL_MS = 50;
+const CURSOR_MIN_DISTANCE = 4;
 
 // ws(s)://<api-host>/collab — y-websocket sẽ nối thêm "/<room>".
 function wsBaseUrl(): string {
@@ -58,6 +60,21 @@ const TEXT_SWATCHES = ["#142033", "#1d4ed8", "#047857", "#c2410c", "#6d28d9", "#
 const EDGE_SWATCHES = ["#64748b", "#1d4ed8", "#047857", "#c2410c", "#6d28d9", "#b91c1c", "#0f172a"];
 
 type Peer = { clientId: number; name: string; color: string; cursor?: { x: number; y: number }; editing?: boolean };
+
+function peersEqual(a: Peer[], b: Peer[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((peer, index) => {
+    const next = b[index];
+    return (
+      peer.clientId === next.clientId &&
+      peer.name === next.name &&
+      peer.color === next.color &&
+      peer.editing === next.editing &&
+      peer.cursor?.x === next.cursor?.x &&
+      peer.cursor?.y === next.cursor?.y
+    );
+  });
+}
 
 // Bỏ MỌI trường phù du trước khi ghi Yjs. `measured` là kết quả đo DOM của TỪNG client
 // (lệch nhau theo zoom/font) — nếu sync nó, 2 client sẽ ping-pong dimensions vô hạn -> OOM.
@@ -416,6 +433,10 @@ function FlowCanvas() {
   const providerRef = useRef<WebsocketProvider | null>(null);
   const yNodesRef = useRef<Y.Map<Node> | null>(null);
   const yEdgesRef = useRef<Y.Map<Edge> | null>(null);
+  const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
+  const cursorFrameRef = useRef<number | null>(null);
+  const lastCursorPublishRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const editRaceTimerRef = useRef<number | null>(null);
 
   const commitNode = useCallback((node: Node) => {
     setNodes((current) => current.map((item) => (item.id === node.id ? node : item)));
@@ -448,7 +469,7 @@ function FlowCanvas() {
     const doc = docRef.current;
     const yEdges = yEdgesRef.current;
     if (doc && yEdges) {
-      doc.transact(() => yEdges.set(edge.id, edge), LOCAL_ORIGIN);
+      doc.transact(() => yEdges.set(edge.id, stripEphemeralEdge(edge)), LOCAL_ORIGIN);
     }
   }, []);
 
@@ -477,8 +498,10 @@ function FlowCanvas() {
       setEdges((prev) => edgesFromY(yEdges, prev));
     };
 
-    const onStatus = (e: { status: string }) =>
-      setStatus(e.status === "connected" ? "connected" : e.status === "disconnected" ? "disconnected" : "connecting");
+    const onStatus = (e: { status: string }) => {
+      const next = e.status === "connected" ? "connected" : e.status === "disconnected" ? "disconnected" : "connecting";
+      setStatus((current) => (current === next ? current : next));
+    };
 
     const onSync = (isSynced: boolean) => {
       if (isSynced && yNodes.size === 0) {
@@ -514,7 +537,8 @@ function FlowCanvas() {
           editing: Boolean(state.editing),
         });
       });
-      setPeers(list);
+      list.sort((a, b) => a.clientId - b.clientId);
+      setPeers((current) => (peersEqual(current, list) ? current : list));
     };
 
     provider.on("status", onStatus);
@@ -539,6 +563,19 @@ function FlowCanvas() {
       yEdgesRef.current = null;
     };
   }, [me]);
+
+  useEffect(() => {
+    return () => {
+      if (cursorFrameRef.current !== null) {
+        window.cancelAnimationFrame(cursorFrameRef.current);
+        cursorFrameRef.current = null;
+      }
+      if (editRaceTimerRef.current !== null) {
+        window.clearTimeout(editRaceTimerRef.current);
+        editRaceTimerRef.current = null;
+      }
+    };
+  }, []);
 
   // Bắt thay đổi edge phát sinh trong EditableEdge (segOffset/nhãn) mà không đi qua commitEdge.
   // CHỈ ghi edge THỰC SỰ khác nội dung Yjs (đã bỏ `selected` phù du) -> idempotent, phá vòng echo:
@@ -588,7 +625,9 @@ function FlowCanvas() {
     setEditing(true);
     // Chờ awareness lan truyền rồi kiểm tra tranh chấp: nếu có người clientID nhỏ hơn cũng vừa
     // bật editing -> nhường họ (mình quay về chỉ xem), tránh 2 người sửa cùng lúc do race.
-    window.setTimeout(() => {
+    if (editRaceTimerRef.current !== null) window.clearTimeout(editRaceTimerRef.current);
+    editRaceTimerRef.current = window.setTimeout(() => {
+      editRaceTimerRef.current = null;
       const editors = Array.from(awareness.getStates().entries()).filter(
         ([, st]) => (st as { editing?: boolean }).editing,
       );
@@ -605,6 +644,10 @@ function FlowCanvas() {
 
   // Bấm "Lưu & Xong": nhả khóa (thay đổi đã sync real-time + backend tự lưu ≤2s). Về chế độ xem.
   const finishEdit = useCallback(() => {
+    if (editRaceTimerRef.current !== null) {
+      window.clearTimeout(editRaceTimerRef.current);
+      editRaceTimerRef.current = null;
+    }
     providerRef.current?.awareness.setLocalStateField("editing", false);
     setEditing(false);
     setSelectedNodeId(null);
@@ -703,10 +746,25 @@ function FlowCanvas() {
   const { screenToFlowPosition } = useReactFlow();
   const onPaneMouseMove = useCallback(
     (e: React.MouseEvent) => {
-      const provider = providerRef.current;
-      if (!provider) return;
-      const p = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-      provider.awareness.setLocalStateField("cursor", { x: p.x, y: p.y });
+      pendingCursorRef.current = { x: e.clientX, y: e.clientY };
+      if (cursorFrameRef.current !== null) return;
+
+      cursorFrameRef.current = window.requestAnimationFrame(() => {
+        cursorFrameRef.current = null;
+        const provider = providerRef.current;
+        const screenPosition = pendingCursorRef.current;
+        if (!provider || !screenPosition) return;
+
+        const p = screenToFlowPosition(screenPosition);
+        const now = window.performance.now();
+        const last = lastCursorPublishRef.current;
+        const moved = !last || Math.hypot(p.x - last.x, p.y - last.y) >= CURSOR_MIN_DISTANCE;
+        const elapsed = !last || now - last.time >= CURSOR_PUBLISH_INTERVAL_MS;
+        if (!moved && !elapsed) return;
+
+        lastCursorPublishRef.current = { x: p.x, y: p.y, time: now };
+        provider.awareness.setLocalStateField("cursor", { x: p.x, y: p.y });
+      });
     },
     [screenToFlowPosition],
   );
