@@ -25,6 +25,14 @@
   `${API}/collab/<ROOM>` (đổi http->ws). `ROOM` khai báo trong `CollabFlow.tsx`.
 - Yjs binding: Y.Map "nodes"/"edges" + origin guard `LOCAL_ORIGIN` tránh echo; tạo doc/provider trong `useEffect`
   + dọn khi unmount (bền với React StrictMode). Seed initialDiagram khi room trống (ID cố định -> không nhân đôi).
+- **KHÓA chỉnh sửa (1 người/thời điểm)**: mặc định chỉ-xem (ReactFlow `nodesDraggable/Connectable/elementsSelectable
+  =editing`). Nút "✏️ Sửa sơ đồ" giành khóa (chỉ khi WS đã kết nối); khóa "mềm" phát qua awareness field `editing`
+  -> tự nhả khi đóng tab/mất mạng. Người khác đang giữ -> hiện "🔒 [tên] đang chỉnh sửa" + chặn bấm Sửa. Race 2
+  người bấm cùng lúc: tie-break bằng clientID nhỏ nhất (sau ~400ms). Nút "✓ Lưu & Xong" nhả khóa (thay đổi đã sync
+  real-time + backend tự lưu `.ybin` ≤2s). Panel/nút thêm khối/khôi phục chỉ hiện khi đang giữ khóa.
+- ⚠️ Bug OOM đã fix: `useEffect([edges])` cũ ghi lại TOÀN BỘ edges mỗi lần state đổi -> `Y.Map.set` luôn sinh
+  update mới -> echo loop vô hạn giữa ≥2 client -> Y.Doc phình -> Chrome "Out of Memory". Nay diff-guard idempotent
+  + `stripEphemeralEdge` (bỏ `selected`) + `edgesFromY(yEdges, prev)` giữ `selected` local (giống `nodes`).
 
 ### 2. Filter "đã có point Qdrant" ở danh sách văn bản
 - `lib/api.ts` `listDocuments({qdrantIndexed})` -> query `qdrant_indexed` cho `GET /api/documents`.

@@ -57,7 +57,7 @@ const BORDER_SWATCHES = ["#b8ccff", "#a6ddc7", "#fed0b7", "#f5d28e", "#d6c2ff", 
 const TEXT_SWATCHES = ["#142033", "#1d4ed8", "#047857", "#c2410c", "#6d28d9", "#b91c1c", "#334155", "#ffffff"];
 const EDGE_SWATCHES = ["#64748b", "#1d4ed8", "#047857", "#c2410c", "#6d28d9", "#b91c1c", "#0f172a"];
 
-type Peer = { clientId: number; name: string; color: string; cursor?: { x: number; y: number } };
+type Peer = { clientId: number; name: string; color: string; cursor?: { x: number; y: number }; editing?: boolean };
 
 function stripEphemeral(node: Node): Node {
   const clone = { ...node } as Record<string, unknown>;
@@ -385,6 +385,9 @@ function FlowCanvas() {
   const [peers, setPeers] = useState<Peer[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  // Mô hình KHÓA: mặc định chỉ xem. `editing` = MÌNH đang giữ quyền sửa (đồng chỉnh bị chặn:
+  // chỉ 1 người sửa tại 1 thời điểm). Khóa "mềm" phát qua awareness -> tự nhả khi đóng tab/mất mạng.
+  const [editing, setEditing] = useState(false);
 
   const me = useMemo(
     () => ({
@@ -494,6 +497,7 @@ function FlowCanvas() {
           name: u.name ?? "Ẩn danh",
           color: u.color ?? "#64748b",
           cursor: state.cursor as { x: number; y: number } | undefined,
+          editing: Boolean(state.editing),
         });
       });
       setPeers(list);
@@ -540,6 +544,58 @@ function FlowCanvas() {
       changed.forEach((edge) => yEdges.set(edge.id, edge));
     }, LOCAL_ORIGIN);
   }, [edges]);
+
+  // Phát trạng thái "mình đang giữ quyền sửa" cho những người khác qua awareness (ephemeral).
+  useEffect(() => {
+    providerRef.current?.awareness.setLocalStateField("editing", editing);
+  }, [editing]);
+
+  // Ai (KHÁC mình) đang giữ quyền sửa -> dùng để chặn & hiển thị "có người đang sửa".
+  const lockedByOther = useMemo(() => peers.find((p) => p.editing) ?? null, [peers]);
+
+  // Bấm "Sửa": chỉ giành quyền khi đã kết nối & chưa ai giữ. Tie-break race bằng clientID nhỏ nhất.
+  const requestEdit = useCallback(() => {
+    if (status !== "connected") {
+      window.alert("Chưa kết nối máy chủ đồng chỉnh — không thể sửa (thay đổi sẽ không được lưu). Vui lòng thử lại khi đã kết nối.");
+      return;
+    }
+    const provider = providerRef.current;
+    if (!provider) return;
+    const awareness = provider.awareness;
+    const holder = Array.from(awareness.getStates().entries()).find(
+      ([id, st]) => id !== awareness.clientID && (st as { editing?: boolean }).editing,
+    );
+    if (holder) {
+      const name = ((holder[1] as { user?: { name?: string } }).user?.name) ?? "Người khác";
+      window.alert(`🔒 ${name} đang chỉnh sửa. Vui lòng đợi họ bấm "Lưu & Xong".`);
+      return;
+    }
+    awareness.setLocalStateField("editing", true);
+    setEditing(true);
+    // Chờ awareness lan truyền rồi kiểm tra tranh chấp: nếu có người clientID nhỏ hơn cũng vừa
+    // bật editing -> nhường họ (mình quay về chỉ xem), tránh 2 người sửa cùng lúc do race.
+    window.setTimeout(() => {
+      const editors = Array.from(awareness.getStates().entries()).filter(
+        ([, st]) => (st as { editing?: boolean }).editing,
+      );
+      if (editors.length > 1) {
+        const minId = Math.min(...editors.map(([id]) => id));
+        if (minId !== awareness.clientID) {
+          awareness.setLocalStateField("editing", false);
+          setEditing(false);
+          window.alert("Có người khác vừa bắt đầu sửa cùng lúc. Vui lòng đợi họ lưu xong.");
+        }
+      }
+    }, 400);
+  }, [status]);
+
+  // Bấm "Lưu & Xong": nhả khóa (thay đổi đã sync real-time + backend tự lưu ≤2s). Về chế độ xem.
+  const finishEdit = useCallback(() => {
+    providerRef.current?.awareness.setLocalStateField("editing", false);
+    setEditing(false);
+    setSelectedNodeId(null);
+    setSelectedEdgeId(null);
+  }, []);
 
   // --- handlers React Flow -> Yjs (đọc tài nguyên từ ref) ---
   const onNodesChange = useCallback((changes: NodeChange[]) => {
@@ -659,10 +715,11 @@ function FlowCanvas() {
 
   const onDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault();
+    if (!editing) return;
     const shape = event.dataTransfer.getData("application/hbrag-architecture-shape") as CardData["shape"];
     if (!shape) return;
     addCard(shape, screenToFlowPosition({ x: event.clientX, y: event.clientY }));
-  }, [addCard, screenToFlowPosition]);
+  }, [editing, addCard, screenToFlowPosition]);
 
   const restoreDefaultDiagram = useCallback(() => {
     const doc = docRef.current;
@@ -785,6 +842,11 @@ function FlowCanvas() {
         onSelectionChange={onSelectionChange}
         onDrop={onDrop}
         onDragOver={onDragOver}
+        nodesDraggable={editing}
+        nodesConnectable={editing}
+        elementsSelectable={editing}
+        nodesFocusable={editing}
+        edgesFocusable={editing}
         fitView
         fitViewOptions={{ padding: 0.42 }}
         proOptions={{ hideAttribution: true }}
@@ -809,21 +871,36 @@ function FlowCanvas() {
           <span style={{ width: 9, height: 9, borderRadius: "50%", background: statusInfo.color, display: "inline-block" }} />
           {statusInfo.text}
         </span>
-        <button draggable onDragStart={(event) => onShapeDragStart(event, "rounded")} onClick={() => addCard("rounded")} title="Bấm để thêm, hoặc kéo thả vào canvas" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #b8ccff", background: "#eaf1ff", color: "#1d4ed8", borderRadius: 8, padding: "5px 10px", cursor: "grab" }}>
-          + Bo góc
-        </button>
-        <button draggable onDragStart={(event) => onShapeDragStart(event, "square")} onClick={() => addCard("square")} title="Bấm để thêm, hoặc kéo thả vào canvas" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d8e1ee", background: "#fff", color: "#334155", borderRadius: 8, padding: "5px 10px", cursor: "grab" }}>
-          □ Vuông
-        </button>
-        <button draggable onDragStart={(event) => onShapeDragStart(event, "circle")} onClick={() => addCard("circle")} title="Bấm để thêm, hoặc kéo thả vào canvas" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d8e1ee", background: "#fff", color: "#334155", borderRadius: 999, padding: "5px 10px", cursor: "grab" }}>
-          ○ Tròn
-        </button>
-        <button draggable onDragStart={(event) => onShapeDragStart(event, "diamond")} onClick={() => addCard("diamond")} title="Bấm để thêm, hoặc kéo thả vào canvas" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d8e1ee", background: "#fff", color: "#334155", borderRadius: 8, padding: "5px 10px", cursor: "grab" }}>
-          ◇ Thoi
-        </button>
-        <button onClick={restoreDefaultDiagram} style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d6c2ff", background: "#f2ebff", color: "#6d28d9", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>
-          Khôi phục sơ đồ v11
-        </button>
+        {editing ? (
+          <>
+            <button draggable onDragStart={(event) => onShapeDragStart(event, "rounded")} onClick={() => addCard("rounded")} title="Bấm để thêm, hoặc kéo thả vào canvas" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #b8ccff", background: "#eaf1ff", color: "#1d4ed8", borderRadius: 8, padding: "5px 10px", cursor: "grab" }}>
+              + Bo góc
+            </button>
+            <button draggable onDragStart={(event) => onShapeDragStart(event, "square")} onClick={() => addCard("square")} title="Bấm để thêm, hoặc kéo thả vào canvas" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d8e1ee", background: "#fff", color: "#334155", borderRadius: 8, padding: "5px 10px", cursor: "grab" }}>
+              □ Vuông
+            </button>
+            <button draggable onDragStart={(event) => onShapeDragStart(event, "circle")} onClick={() => addCard("circle")} title="Bấm để thêm, hoặc kéo thả vào canvas" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d8e1ee", background: "#fff", color: "#334155", borderRadius: 999, padding: "5px 10px", cursor: "grab" }}>
+              ○ Tròn
+            </button>
+            <button draggable onDragStart={(event) => onShapeDragStart(event, "diamond")} onClick={() => addCard("diamond")} title="Bấm để thêm, hoặc kéo thả vào canvas" style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d8e1ee", background: "#fff", color: "#334155", borderRadius: 8, padding: "5px 10px", cursor: "grab" }}>
+              ◇ Thoi
+            </button>
+            <button onClick={restoreDefaultDiagram} style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d6c2ff", background: "#f2ebff", color: "#6d28d9", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>
+              Khôi phục sơ đồ v11
+            </button>
+            <button onClick={finishEdit} title="Nhả quyền sửa để người khác có thể chỉnh (thay đổi đã tự lưu)" style={{ fontSize: 12.5, fontWeight: 800, border: "1px solid #a7f3d0", background: "#059669", color: "#fff", borderRadius: 8, padding: "5px 12px", cursor: "pointer" }}>
+              ✓ Lưu &amp; Xong
+            </button>
+          </>
+        ) : lockedByOther ? (
+          <span title={`${lockedByOther.name} đang giữ quyền chỉnh sửa`} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, border: "1px solid #fed7aa", background: "#fff7ed", color: "#c2410c", borderRadius: 8, padding: "5px 10px" }}>
+            🔒 {lockedByOther.name} đang chỉnh sửa…
+          </span>
+        ) : (
+          <button onClick={requestEdit} title="Giành quyền chỉnh sửa sơ đồ" style={{ fontSize: 12.5, fontWeight: 800, border: "1px solid #1d4ed8", background: "#1d4ed8", color: "#fff", borderRadius: 8, padding: "5px 12px", cursor: "pointer" }}>
+            ✏️ Sửa sơ đồ
+          </button>
+        )}
         <button onClick={() => navigator.clipboard?.writeText(window.location.href)} style={{ fontSize: 12.5, fontWeight: 700, border: "1px solid #d8e1ee", background: "#fff", color: "#334155", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}>
           Sao chép link chia sẻ
         </button>
@@ -857,7 +934,17 @@ function FlowCanvas() {
           zIndex: 39,
         }}
       >
-        {selectedNode && selectedNodeData ? (
+        {!editing ? (
+          <div style={{ display: "grid", gap: 8, color: "#64748b", fontSize: 12.5, lineHeight: 1.45 }}>
+            <strong style={{ color: "#142033", fontSize: 14 }}>Chế độ xem</strong>
+            {lockedByOther ? (
+              <span style={{ color: "#c2410c", fontWeight: 600 }}>🔒 {lockedByOther.name} đang chỉnh sửa. Bạn sẽ sửa được sau khi họ bấm “Lưu &amp; Xong”.</span>
+            ) : (
+              <span>Bấm “✏️ Sửa sơ đồ” ở góc trên để giành quyền chỉnh sửa. Mỗi thời điểm chỉ một người được sửa.</span>
+            )}
+            <span>Bạn vẫn có thể phóng to/thu nhỏ và kéo nền để xem toàn bộ sơ đồ.</span>
+          </div>
+        ) : selectedNode && selectedNodeData ? (
           <div style={{ display: "grid", gap: 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
               <strong style={{ color: "#142033", fontSize: 14 }}>Chỉnh node</strong>
@@ -992,7 +1079,9 @@ function FlowCanvas() {
       </aside>
 
       <div style={{ position: "fixed", bottom: 14, left: 14, fontSize: 11.5, color: "#64748b", background: "rgba(255,255,255,.9)", border: "1px solid #e2e8f0", borderRadius: 10, padding: "6px 10px", fontFamily: "Inter, Segoe UI, Roboto, Arial, sans-serif", zIndex: 40 }}>
-        Bấm chọn node để sửa trực tiếp chữ/tag/bảng trong node · kéo node để di chuyển · kéo từ chấm bên phải sang node khác để nối. Mọi thay đổi tự lưu &amp; đồng bộ real-time khi backend collab kết nối.
+        {editing
+          ? "Bấm chọn node để sửa chữ/tag/bảng · kéo node để di chuyển · kéo từ chấm bên phải sang node khác để nối. Thay đổi tự lưu & đồng bộ; bấm “Lưu & Xong” để nhả quyền cho người khác."
+          : "Chế độ chỉ xem — bấm “✏️ Sửa sơ đồ” ở góc trên để chỉnh (mỗi thời điểm chỉ một người được sửa)."}
       </div>
     </div>
     </NodeEditContext.Provider>
