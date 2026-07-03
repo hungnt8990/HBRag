@@ -174,11 +174,31 @@ def _is_section_title_only_chunk(content: str, metadata: dict[str, Any]) -> bool
     if not title_norm:
         # Không xác định được tiêu đề mà body lại rất ngắn -> coi là tiêu đề rỗng.
         return True
-    return (
-        body_norm == title_norm
-        or body_norm.startswith(title_norm)
-        or title_norm.startswith(body_norm)
-    )
+    # CHỈ coi là "tiêu đề rỗng" khi body không thêm gì ngoài tiêu đề (bằng nhau
+    # hoặc body là mảnh cụt của tiêu đề). Body DÀI HƠN tiêu đề = có nội dung thật
+    # (vd "2. Giá gói thầu: ... (Bằng chữ: ...)") -> KHÔNG được coi là rỗng.
+    return body_norm == title_norm or title_norm.startswith(body_norm)
+
+
+def _norm_title(value: Any) -> str:
+    return " ".join(str(value or "").split()).casefold().strip(" :-")
+
+
+def _title_carried_by_later_chunk(
+    index: int, entries: list[tuple[str, dict[str, Any], Any]]
+) -> bool:
+    """True nếu section_title của entry ``index`` xuất hiện làm phần CHA trong
+    section_path của một entry phía sau (heading cha -> ngữ cảnh đã theo mục con)."""
+    title = _norm_title(entries[index][1].get("section_title"))
+    if not title:
+        return False
+    for _content, metadata, _element in entries[index + 1 :]:
+        path = metadata.get("section_path")
+        if not isinstance(path, (list, tuple)) or len(path) < 2:
+            continue
+        if any(_norm_title(part) == title for part in path[:-1]):
+            return True
+    return False
 
 
 _CONTEXT_PREFIXES = ("Văn bản:", "Ngày ban hành:", "Cơ quan ban hành:", "Mục:")
@@ -249,6 +269,10 @@ def build_doffice_chunks(
     pending_apx_preamble: tuple[str, dict] | None = None
 
     # --- PROSE: giữ nguyên hành vi cũ, chỉ thêm bước làm sạch cho document_body --
+    # Gom hết candidate trước (content, metadata, element) để bước lọc "chỉ tiêu đề"
+    # có thể NHÌN TRƯỚC các chunk phía sau (cần biết tiêu đề có được mang theo
+    # section_path của mục con hay không).
+    prose_entries: list[tuple[str, dict[str, Any], NormalizedElement]] = []
     for element in normalized.elements:
         chunk_type = str(element.metadata.get("chunk_type") or element.element_type)
         if chunk_type in TABLE_VIEW_CHUNK_TYPES:
@@ -267,9 +291,6 @@ def build_doffice_chunks(
             if not content.strip():
                 continue
             metadata = _compact_chunk_metadata(metadata)
-            # FIX 1: bỏ chunk chỉ là tiêu đề mục rỗng (chỉ trong builder v2).
-            if _is_section_title_only_chunk(content, metadata):
-                continue
             # Bỏ chunk prose phụ lục có tiêu đề trùng tên một bảng (vd "Phụ lục 01"):
             # chunk bảng đã chứa heading + dữ liệu -> prose tiêu đề là trùng.
             if metadata.get("artifact_type") == "appendix":
@@ -288,16 +309,27 @@ def build_doffice_chunks(
                 if pending_apx_preamble is not None:
                     content = _merge_appendix_preamble(pending_apx_preamble, content)
                     pending_apx_preamble = None
-            quality = apply_chunk_quality_gate(content, metadata)
-            metadata = _compact_chunk_metadata(quality.metadata)
-            metadata["reading_pos"] = _prose_reading_pos(element, metadata)
-            chunks.append(
-                ChunkCreate(
-                    chunk_index=len(chunks),
-                    content=content,
-                    metadata=metadata,
-                )
+            prose_entries.append((content, metadata, element))
+
+    # FIX 1 (v2): chunk chỉ-là-tiêu-đề chỉ bị LƯỢC khi tiêu đề đã được mang theo
+    # section_path ("Mục: cha > con") của một chunk phía sau — tức heading CHA có
+    # mục con giữ đủ ngữ cảnh. Trước đây vứt vô điều kiện -> mất hẳn các mục 1 dòng
+    # (danh sách phân công, KHLCNT: "3. Ông X ... Ủy viên.").
+    for entry_index, (content, metadata, element) in enumerate(prose_entries):
+        if _is_section_title_only_chunk(content, metadata) and _title_carried_by_later_chunk(
+            entry_index, prose_entries
+        ):
+            continue
+        quality = apply_chunk_quality_gate(content, metadata)
+        metadata = _compact_chunk_metadata(quality.metadata)
+        metadata["reading_pos"] = _prose_reading_pos(element, metadata)
+        chunks.append(
+            ChunkCreate(
+                chunk_index=len(chunks),
+                content=content,
+                metadata=metadata,
             )
+        )
 
     # Tiêu đề phụ lục đang chờ mà không có chunk phụ lục kế -> vẫn ghi ra (không mất).
     if pending_apx_preamble is not None:

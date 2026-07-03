@@ -561,8 +561,10 @@ class DofficeChunkBm25Store:
                 }
             },
         }
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
-            resp = await client.post(f"{self.url}/{self.index_name}/_search", json=body)
+        # Hot path search: dùng client keep-alive CHUNG theo loop (không bắt tay TCP mỗi call).
+        from app.services.retrieval.retrieval_shared import get_es_http_client
+
+        resp = await get_es_http_client().post(f"{self.url}/{self.index_name}/_search", json=body)
         if resp.status_code == 404:
             return []
         if resp.status_code >= 400:

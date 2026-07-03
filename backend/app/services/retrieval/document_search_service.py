@@ -8,18 +8,20 @@ exception domain (``DocumentSearchUnavailable`` / ``DocumentSearchError``) để
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import unicodedata
 from typing import Any, Literal
 
-import httpx
+import httpx  # noqa: F401 — giữ để test patch httpx.AsyncClient (client chung ở retrieval_shared)
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 from app.services.retrieval.retrieval_document_index import DocumentIndexStore
 from app.services.retrieval.retrieval_doffice_bm25 import DofficeChunkBm25Store
+from app.services.retrieval.retrieval_shared import TtlCache, get_es_http_client
 from app.services.security.acl_bypass_users import is_bypass_user
 from app.services.security.security_acl_payload import AclSubject, acl_subject_to_keys
 
@@ -246,6 +248,13 @@ async def _resolve_subject_from_db(id_nv: int) -> AclSubject | None:
         return await AclSubject.from_session(session, id_nv)
 
 
+# Cache subject theo id_nv: dm_nhan_vien gần như tĩnh -> khỏi query PG mỗi request.
+# TTL ngắn (5 phút) để thay đổi phòng/đơn vị vẫn tự cập nhật. Cache CẢ kết quả None
+# (id_nv lạ) — tránh query lặp cho token sai.
+_ACL_SUBJECT_CACHE = TtlCache(maxsize=4096, ttl_seconds=300.0)
+_ACL_SUBJECT_MISS = object()  # sentinel phân biệt "chưa cache" với "cache None"
+
+
 async def resolve_acl_subject(id_nv: int) -> AclSubject:
     """Dựng AclSubject với id_pb/id_dv lấy TỪ dm_nhan_vien theo id_nv (id_nv là nguồn sự thật).
 
@@ -256,11 +265,17 @@ async def resolve_acl_subject(id_nv: int) -> AclSubject:
     ``is_super_admin=True`` -> không lọc quyền, xem được TẤT CẢ.
     """
     bypass = is_bypass_user(id_nv)
-    try:
-        subject = await _resolve_subject_from_db(id_nv)
-    except Exception:
-        logger.warning("Không resolve được phòng/đơn vị cho id_nv=%s -> nv-only", id_nv, exc_info=True)
-        subject = None
+    cached = _ACL_SUBJECT_CACHE.get(id_nv)
+    if cached is not None:
+        subject = None if cached is _ACL_SUBJECT_MISS else cached
+    else:
+        try:
+            subject = await _resolve_subject_from_db(id_nv)
+            _ACL_SUBJECT_CACHE.put(id_nv, subject if subject is not None else _ACL_SUBJECT_MISS)
+        except Exception:
+            # DB lỗi -> KHÔNG cache (request sau thử lại), fallback nv-only.
+            logger.warning("Không resolve được phòng/đơn vị cho id_nv=%s -> nv-only", id_nv, exc_info=True)
+            subject = None
     if subject is None:
         return AclSubject(id_nv=id_nv, is_super_admin=bypass)
     if bypass and not subject.is_super_admin:
@@ -517,8 +532,8 @@ def build_query_body(
 
 
 async def _search_es(store: DocumentIndexStore, body: dict[str, Any]) -> dict[str, Any]:
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.post(f"{store.url}/{store.index_name}/_search", json=body)
+    # Client keep-alive dùng CHUNG theo loop — không bắt tay TCP/TLS lại mỗi request.
+    resp = await get_es_http_client().post(f"{store.url}/{store.index_name}/_search", json=body)
     if resp.status_code >= 400:
         raise DocumentSearchError(f"ES lỗi HTTP {resp.status_code}: {resp.text[:200]}")
     return resp.json()
@@ -634,7 +649,8 @@ async def execute_document_search(request: DocumentSearchRequest) -> DocumentSea
     # index two-stage cũ (hbrag_documents_v1, rỗng). KHÔNG ensure_index ở đây (job tạo/quản lý).
     store.index_name = settings.doffice_documents_index_name
 
-    try:
+    async def _doc_bm25() -> tuple[dict[str, Any], list[dict[str, Any]]]:
+        """ES BM25 doc-level (+ fuzzy fallback khi quá ít kết quả) — trả (data, hits)."""
         data = await _search_es(store, body)
         hits = data.get("hits", {}).get("hits", [])
         if (
@@ -649,47 +665,57 @@ async def execute_document_search(request: DocumentSearchRequest) -> DocumentSea
             fallback_data = await _search_es(store, fallback_body)
             fallback_hits = fallback_data.get("hits", {}).get("hits", [])
             if len(fallback_hits) > len(hits):
-                data = fallback_data
-                hits = fallback_hits
-        evidence_summary: str | None = None
-        if search_type not in {"exact", "ref"}:
-            semantic_applied = False
-            if settings.doffice_retrieval_enabled and request.use_vector:
-                try:
-                    from app.services.retrieval.document_semantic_search import run_semantic_document_fusion
+                return fallback_data, fallback_hits
+        return data, hits
 
-                    semantic = await run_semantic_document_fusion(
-                        query=request.query,
-                        top_n=request.top_n,
-                        acl_subject=acl_subject,
-                        bm25_hits=hits,
-                    )
-                    if semantic is not None:
-                        hits = semantic.hits
-                        data = {
-                            **data,
-                            "hits": {**(data.get("hits") or {}), "hits": hits},
-                        }
-                        used_vector = semantic.used_vector
-                        evidence_summary = getattr(semantic, "evidence_summary", None)
-                        search_type = "fusion"
-                        semantic_applied = True
-                except Exception:
-                    logger.warning(
-                        "DOffice semantic fusion failed; falling back to BM25/chunk rerank query=%r",
-                        request.query[:60],
-                        exc_info=True,
-                    )
-            if not semantic_applied:
-                chunk_hits = await _search_chunk_evidence(request.query, request.top_n, acl_subject)
-                if chunk_hits:
-                    data = {
-                        **data,
-                        "hits": {
-                            **(data.get("hits") or {}),
-                            "hits": _apply_chunk_rerank(hits, chunk_hits, request.top_n),
-                        },
-                    }
+    try:
+        evidence_summary: str | None = None
+        semantic = None
+        fusion_active = (
+            search_type not in {"exact", "ref"}
+            and settings.doffice_retrieval_enabled
+            and request.use_vector
+        )
+        # BM25 doc-level chạy SONG SONG với fusion: fusion chỉ cần bm25_hits ở bước trộn
+        # RRF (sau 3 nhánh search) — trước đây chờ tuần tự, cộng thẳng vào latency.
+        bm25_task = asyncio.ensure_future(_doc_bm25())
+        if fusion_active:
+            try:
+                from app.services.retrieval.document_semantic_search import run_semantic_document_fusion
+
+                semantic = await run_semantic_document_fusion(
+                    query=request.query,
+                    top_n=request.top_n,
+                    acl_subject=acl_subject,
+                    bm25_hits_task=bm25_task,
+                )
+            except Exception:
+                logger.warning(
+                    "DOffice semantic fusion failed; falling back to BM25/chunk rerank query=%r",
+                    request.query[:60],
+                    exc_info=True,
+                )
+        # Lỗi ES doc-level (kể cả khi fusion đã nuốt cùng lỗi ở trên) re-raise tại đây.
+        data, hits = await bm25_task
+        if semantic is not None:
+            hits = semantic.hits
+            data = {
+                **data,
+                "hits": {**(data.get("hits") or {}), "hits": hits},
+            }
+            used_vector = semantic.used_vector
+            evidence_summary = getattr(semantic, "evidence_summary", None)
+            search_type = "fusion"
+        elif search_type not in {"exact", "ref"}:
+            chunk_hits = await _search_chunk_evidence(request.query, request.top_n, acl_subject)
+            if chunk_hits:
+                data = {
+                    **data,
+                    "hits": {
+                        **(data.get("hits") or {}),
+                        "hits": _apply_chunk_rerank(hits, chunk_hits, request.top_n),
+                    },
+                }
     except DocumentSearchError:
         raise
     except Exception as exc:

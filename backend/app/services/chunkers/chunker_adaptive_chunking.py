@@ -180,6 +180,27 @@ def _legal_chunks(
     if not headings:
         return []
     chunks: list[EvidenceChunk] = []
+    # Phần TRƯỚC "Điều 1" (tiêu đề QUYẾT ĐỊNH, thẩm quyền "GIÁM ĐỐC...", các đoạn
+    # "Căn cứ...") trước đây bị bỏ hẳn khỏi mọi chunk -> mất căn cứ pháp lý khi
+    # retrieval. Giữ lại thành document_preamble như _section_chunks.
+    if headings[0].start() > 0:
+        preamble_text = text[: headings[0].start()].strip()
+        if preamble_text:
+            chunks.extend(
+                _bounded_chunks(
+                    preamble_text,
+                    base_metadata={
+                        **base_metadata,
+                        "chunk_type": "document_preamble",
+                        "chunk_strategy": "legal_clause_aware",
+                        "section_path": ["preamble"],
+                        "heading_path": ["preamble"],
+                        "source_span": {"start": 0, "end": headings[0].start()},
+                    },
+                    max_chars=max_chars,
+                    overlap_chars=overlap_chars,
+                )
+            )
     for index, match in enumerate(headings):
         start = match.start()
         end = headings[index + 1].start() if index + 1 < len(headings) else len(text)
@@ -290,34 +311,89 @@ def _section_chunks(
             )
         )
     stack: list[StructureHeading] = []
+    sections: list[dict[str, Any]] = []
     for index, heading in enumerate(headings):
         start = heading.start
         end = headings[index + 1].start if index + 1 < len(headings) else len(text)
         while stack and stack[-1].level >= heading.level:
             stack.pop()
         stack.append(heading)
-        section_path = [item.title for item in stack if item.title]
-        section_title = heading.title
+        next_level = headings[index + 1].level if index + 1 < len(headings) else None
+        sections.append(
+            {
+                "start": start,
+                "end": end,
+                "heading": heading,
+                "section_path": [item.title for item in stack if item.title],
+                "text": text[start:end].strip(),
+                # Heading cha: mục con (level sâu hơn) đứng ngay sau -> tiêu đề đã
+                # được mang theo section_path của mục con, chunk cha có thể lược.
+                "has_child": next_level is not None and next_level > heading.level,
+            }
+        )
+    # GỘP các section "mỏng" (thường là 1 dòng mục đơn lẻ: "3. Ông X ... Ủy viên.")
+    # vào section kế cùng nhóm. Trước đây mỗi dòng thành 1 chunk chỉ-tiêu-đề rồi bị
+    # _is_section_title_only_chunk vứt bỏ -> MẤT hẳn nội dung danh sách/phân công.
+    merged: list[dict[str, Any]] = []
+    buffer: list[dict[str, Any]] = []
+    for section in sections:
+        tiny = len(section["text"]) < _MIN_SECTION_CHARS
+        if tiny and section["has_child"]:
+            if buffer:
+                merged.append(_combine_sections(buffer))
+                buffer = []
+            merged.append(section)
+            continue
+        if tiny:
+            buffer.append(section)
+            continue
+        if buffer:
+            buffer.append(section)
+            merged.append(_combine_sections(buffer))
+            buffer = []
+        else:
+            merged.append(section)
+    if buffer:
+        merged.append(_combine_sections(buffer))
+    for section in merged:
+        heading = section["heading"]
         chunks.extend(
             _bounded_chunks(
-                text[start:end].strip(),
+                section["text"],
                 base_metadata={
                     **base_metadata,
                     "chunk_type": "document_section",
                     "chunk_strategy": "structure_aware",
-                    "section_title": section_title,
-                    "section_path": section_path,
-                    "heading_path": section_path,
+                    "section_title": heading.title,
+                    "section_path": section["section_path"],
+                    "heading_path": section["section_path"],
                     "heading_level": heading.level,
                     "heading_label": heading.label,
                     "heading_number": heading.number,
-                    "source_span": {"start": start, "end": end},
+                    "source_span": {"start": section["start"], "end": section["end"]},
                 },
                 max_chars=max_chars,
                 overlap_chars=overlap_chars,
             )
         )
     return chunks
+
+
+# Section ngắn hơn ngưỡng này không đứng riêng thành chunk (embedding kém, dễ bị
+# lọc nhầm là "chỉ tiêu đề") -> gộp với các section kề cùng nhóm.
+_MIN_SECTION_CHARS = 200
+
+
+def _combine_sections(group: list[dict[str, Any]]) -> dict[str, Any]:
+    """Gộp một dãy section liền kề thành 1 section: text nối nhau, span phủ cả dãy."""
+    if len(group) == 1:
+        return group[0]
+    first = group[0]
+    return {
+        **first,
+        "end": group[-1]["end"],
+        "text": "\n\n".join(section["text"] for section in group if section["text"]),
+    }
 
 
 def _detect_structure_headings(text: str) -> list[StructureHeading]:
@@ -417,6 +493,10 @@ def _bounded_chunks(
     return chunks
 
 
+# Đuôi ngắn hơn ngưỡng này không đứng riêng thành 1 phần khi cắt theo ranh giới.
+_MIN_TAIL_CHARS = 200
+
+
 def _split_by_boundaries(text: str, *, max_chars: int, overlap_chars: int) -> list[str]:
     if len(text) <= max_chars:
         return [text]
@@ -427,6 +507,10 @@ def _split_by_boundaries(text: str, *, max_chars: int, overlap_chars: int) -> li
         end = _best_boundary(text, start, target)
         if end <= start:
             end = target
+        # Đuôi văn bản còn lại quá ngắn -> nhập luôn vào phần hiện tại (vượt nhẹ
+        # max_chars) thay vì sinh 1 chunk cuối chỉ vài từ rớt lại từ chunk trước.
+        if end < len(text) and len(text) - end < _MIN_TAIL_CHARS:
+            end = len(text)
         part = text[start:end].strip()
         if part:
             parts.append(part)

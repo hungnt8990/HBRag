@@ -35,6 +35,7 @@ from app.services.embeddings.embedding_sparse_factory import get_sparse_embeddin
 from app.services.llm_gateway import get_llm_gateway
 from app.services.rag.rag_chunk import build_query_embedding_text
 from app.services.retrieval.retrieval_doffice_bm25 import DofficeChunkBm25Store
+from app.services.retrieval.retrieval_shared import TtlCache
 from app.services.vector.vector_store import (
     VectorSearchResult,
     get_doffice_chunks_vector_store,
@@ -42,6 +43,11 @@ from app.services.vector.vector_store import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Cache theo query (TTL): người dùng lặp lại/chỉnh nhẹ truy vấn rất phổ biến -> khỏi gọi lại
+# LLM expansion (~1-2s) và embed (~100-300ms). TTL ngắn để đổi cấu hình/model không dính lâu.
+_EXPANSION_CACHE = TtlCache(maxsize=256, ttl_seconds=600.0)
+_EMBED_CACHE = TtlCache(maxsize=512, ttl_seconds=600.0)
 
 MAX_CONTEXT_CHARS_PER_CHUNK = 1800
 MAX_CONTEXT_ITEMS = 8
@@ -91,9 +97,15 @@ async def run_semantic_document_fusion(
     query: str,
     top_n: int,
     acl_subject: Any,
-    bm25_hits: list[dict[str, Any]],
+    bm25_hits: list[dict[str, Any]] | None = None,
+    bm25_hits_task: "asyncio.Future[tuple[dict[str, Any], list[dict[str, Any]]]] | None" = None,
 ) -> SemanticFusionResult | None:
-    """Run DOffice semantic fusion for /api/document-search/search."""
+    """Run DOffice semantic fusion for /api/document-search/search.
+
+    ``bm25_hits_task``: task ES BM25 doc-level đang chạy SONG SONG (trả ``(data, hits)``) —
+    fusion chỉ cần hits ở bước trộn RRF nên await MUỘN (sau 3 nhánh search) thay vì bắt
+    service chờ tuần tự. Truyền ``bm25_hits`` (list) khi đã có sẵn (test/legacy).
+    """
 
     clean = " ".join(str(query or "").split()).strip()
     if not clean:
@@ -119,6 +131,11 @@ async def run_semantic_document_fusion(
     t_search = time.perf_counter()
     if not chunk_results and not docmeta_results and not chunk_bm25:
         return None
+    # Await MUỘN task BM25 doc-level (đã chạy song song với 3 nhánh trên). Lỗi ES sẽ
+    # propagate lên service (giữ hành vi cũ: ES chết -> request lỗi, không nuốt).
+    if bm25_hits_task is not None:
+        _, bm25_hits = await bm25_hits_task
+    bm25_hits = bm25_hits or []
 
     candidates = _fuse_candidates(
         bm25_hits=bm25_hits,
@@ -150,9 +167,16 @@ async def run_semantic_document_fusion(
     t_rerank = time.perf_counter()
     for candidate in candidates:
         candidate.evidence = _crag_lite_evidence(clean, candidate)
-    await _llm_grade_ambiguous(clean, candidates)
-    # Boost định danh: query hỗn hợp nội dung+mã -> đưa exact-doc lên top (giữ semantic phía dưới).
+    # Boost định danh: query hỗn hợp nội dung+mã -> đưa exact-doc lên top (giữ semantic phía
+    # dưới). Chạy TRƯỚC LLM grading (boost chỉ đổi điểm + evidence, không cần verdict LLM).
     _apply_identifier_boost(clean, candidates)
+    # LLM chỉ chấm lại khi top-3 CHƯA có căn cứ mạnh: khi đã có strong thì verdict LLM không
+    # đổi evidence_summary lẫn quyết định retry (chỉ tinh nhãn candidate phía dưới) mà tốn
+    # ~1-3s mỗi request — đo thực tế khâu này từng chiếm ~80% latency warm.
+    if not any(
+        c.evidence.get("status") == "strong" for c in candidates[: min(3, len(candidates))]
+    ):
+        await _llm_grade_ambiguous(clean, candidates)
 
     # CRAG retry: top đều yếu -> retrieve lại SÂU HƠN (cả vector lẫn BM25 chunk), 1 vòng.
     retried_flag = False
@@ -216,24 +240,38 @@ async def expand_related_queries(query: str) -> list[str]:
     max_expansions = max(1, int(settings.document_search_fusion_max_expansions or 1))
     if max_expansions <= 1:
         return queries
+    cached = _EXPANSION_CACHE.get(clean)
+    if cached is not None:
+        return list(cached)
     try:
         gateway = get_llm_gateway()
-        raw = await gateway.generate(
-            system_prompt=(
-                "You rewrite Vietnamese enterprise document search queries. "
-                "Return only a JSON array of 2-4 short related search questions in Vietnamese. "
-                "Preserve identifiers, document numbers, organization codes, and years exactly "
-                "as written in the original query. NEVER invent document numbers, decree/law "
-                "references, or years that are not in the original query. Use Vietnamese only."
+        # Deadline: LLM chậm quá -> bỏ expansion (nhánh chậm nhất khâu search), dùng query gốc.
+        timeout_s = float(settings.document_search_fusion_expansion_timeout_s or 0) or None
+        raw = await asyncio.wait_for(
+            gateway.generate(
+                system_prompt=(
+                    "You rewrite Vietnamese enterprise document search queries. "
+                    "Return only a JSON array of 2-4 short related search questions in Vietnamese. "
+                    "Preserve identifiers, document numbers, organization codes, and years exactly "
+                    "as written in the original query. NEVER invent document numbers, decree/law "
+                    "references, or years that are not in the original query. Use Vietnamese only."
+                ),
+                user_prompt=f"Original query: {clean}",
+                task_name="document_search_query_expansion",
             ),
-            user_prompt=f"Original query: {clean}",
-            task_name="document_search_query_expansion",
+            timeout=timeout_s,
         )
         for item in _parse_query_expansion(raw):
             if item not in queries:
                 queries.append(item)
             if len(queries) >= max_expansions:
                 break
+        # Chỉ cache khi LLM trả lời thành công (lỗi/timeout có thể là nhất thời).
+        _EXPANSION_CACHE.put(clean, list(queries))
+    except TimeoutError:
+        logger.warning(
+            "Query expansion quá %.1fs -> bỏ, dùng query gốc query=%r", timeout_s, clean[:60]
+        )
     except Exception:
         logger.warning("Document search query expansion failed; using original query.", exc_info=True)
     return queries
@@ -348,8 +386,13 @@ async def _embed_queries(queries: list[str], *, query_index_offset: int = 0) -> 
     async def _one(index: int, query: str) -> dict[str, Any] | None:
         try:
             text = build_query_embedding_text(query)
-            dense = await gateway.embed_query(text)
-            sparse = await sparse_provider.embed_query(text) if sparse_provider is not None else None
+            cached = _EMBED_CACHE.get(text)
+            if cached is not None:
+                dense, sparse = cached
+            else:
+                dense = await gateway.embed_query(text)
+                sparse = await sparse_provider.embed_query(text) if sparse_provider is not None else None
+                _EMBED_CACHE.put(text, (dense, sparse))
             return {"query": query, "query_index": index + query_index_offset, "dense": dense, "sparse": sparse}
         except Exception:
             logger.warning("Embed query thất bại query=%r", query[:80], exc_info=True)

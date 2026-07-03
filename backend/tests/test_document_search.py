@@ -203,6 +203,9 @@ def _patch(monkeypatch, resp, *, nv=117058, org=(None, None)):
 
     monkeypatch.setattr(DocumentIndexStore, "ensure_index", _noop)
 
+    # Cache ACL subject theo id_nv dùng chung process -> clear để test này không dính test trước.
+    dss._ACL_SUBJECT_CACHE.clear()
+
     # Chặn DB: resolve id_pb/id_dv từ dm_nhan_vien -> trả org=(id_pb, id_dv) giả lập.
     async def _fake_resolve(id_nv):
         if org == (None, None):
@@ -315,7 +318,9 @@ def test_endpoint_doffice_semantic_fusion_when_enabled(monkeypatch) -> None:
     from app.services.retrieval import document_semantic_search as semantic_mod
 
     async def _fake_semantic(**kwargs):
-        assert kwargs["bm25_hits"]
+        # BM25 doc-level giờ chạy song song, truyền qua task -> await lấy (data, hits).
+        _, bm25_hits = await kwargs["bm25_hits_task"]
+        assert bm25_hits
         return SimpleNamespace(
             hits=[
                 {

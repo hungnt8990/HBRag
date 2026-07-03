@@ -7,6 +7,10 @@ Col1 (chunks) + Col2 (docmeta) -> đánh dấu ``qdrant_indexed=true``.
 Idempotent + resume qua CỜ PG: re-sync (job PG+ES) tạo lại doc -> cờ về false -> embed lại.
 Chạy LẶP định kỳ: quét xong đứng im chờ ``--interval`` giây rồi quét lần sau (mặc định 300s;
 0 = chạy 1 lần rồi thoát). Dùng khi model embedding chập chờn — cứ để chạy, có gì mới thì embed.
+
+Lọc PHẠM VI theo đơn vị (giống ``--don-vi`` của run_pg_es): ``--don-vi 269 258`` hoặc env
+``DOFFICE_QDRANT_DON_VI="269,258"`` -> chỉ embed văn bản có đơn vị đó trong ACL
+(``document_metadata->access->raw_assignment->don_vi_list``). Để trống = embed tất cả.
 """
 
 from __future__ import annotations
@@ -73,6 +77,21 @@ def _int_env(name: str, default):
         return default
 
 
+def _don_vi_env(name: str) -> list[int] | None:
+    """Parse danh sách đơn vị từ env (phân tách bởi , ; hoặc khoảng trắng)."""
+    raw = os.getenv(name)
+    if not raw:
+        return None
+    parts = [p.strip() for p in raw.replace(";", ",").replace(" ", ",").split(",") if p.strip()]
+    out: list[int] = []
+    for p in parts:
+        try:
+            out.append(int(p))
+        except ValueError:
+            continue
+    return out or None
+
+
 def _quiet_console() -> None:
     logging.basicConfig(level=logging.ERROR, format="%(levelname)s %(message)s")
     for noisy in ("httpx", "httpcore", "qdrant_client", "app", "asyncio", "elasticsearch"):
@@ -127,15 +146,41 @@ class QdrantJobRunner:
         self, *, workers: int, batch_size: int, limit: int = 0,
         big_chunk_threshold: int = _BIG_CHUNK_THRESHOLD,
         max_chunks: int = _MAX_CHUNK_THRESHOLD,
+        don_vi_filter: list[int] | None = None,
     ) -> None:
         self._workers = max(1, workers)
         self._batch_size = max(1, batch_size)
         self._limit = max(0, limit)  # >0: chỉ xử lý tối đa N văn bản rồi dừng (debug)
         self._big_threshold = max(1, big_chunk_threshold)
         self._max_chunks = max(0, max_chunks)  # >0: bỏ qua doc vượt ngưỡng; 0 = không giới hạn
+        # Lọc theo đơn vị QUẢN LÝ (don_vi_list trong ACL) — cùng ngữ nghĩa --don-vi của run_pg_es.
+        self._don_vi_filter = [int(v) for v in don_vi_filter] if don_vi_filter else None
         self.stats = QStats()
         self.phase = "Khởi tạo"
         self.feeding_done = False
+
+    def _pending_where(self) -> tuple[str, dict]:
+        """WHERE quét doc chưa embed, kèm lọc đơn vị (don_vi_list trong ACL) nếu có.
+
+        Đơn vị nằm ở ``document_metadata->access->raw_assignment->don_vi_list`` (list int) —
+        khớp field mà run_pg_es lọc trên nguồn DOffice (``don_vi_list`` đơn vị quản lý VB).
+        """
+        where = _WHERE_PENDING
+        params: dict = {"t": DOFFICE_SOURCE_TYPE}
+        if self._don_vi_filter:
+            where += (
+                " AND EXISTS (SELECT 1 FROM jsonb_array_elements_text("
+                "coalesce(document_metadata->'access'->'raw_assignment'->'don_vi_list',"
+                "'[]'::jsonb)) dv WHERE dv = ANY(:don_vi))"
+            )
+            params["don_vi"] = [str(v) for v in self._don_vi_filter]
+        return where, params
+
+    def _scope_label(self) -> str:
+        """Phạm vi đang quét (đơn vị nào / tất cả) — hiển thị trên dashboard + summary."""
+        if self._don_vi_filter:
+            return "đơn vị " + ", ".join(str(v) for v in self._don_vi_filter)
+        return "TẤT CẢ đơn vị"
 
     async def _build_ctx(self) -> dict:
         """Dựng tài nguyên dùng chung (catalog, gateway, stores) + đếm tổng cần embed."""
@@ -159,10 +204,10 @@ class QdrantJobRunner:
         )
         await ctx["chunks_store"].ensure_collection()
         await ctx["docmeta_store"].ensure_collection()
+        where, params = self._pending_where()
         async with AsyncSessionLocal() as s:
             self.stats.total = (
-                await s.execute(text(f"SELECT count(*) FROM documents WHERE {_WHERE_PENDING}"),
-                                {"t": DOFFICE_SOURCE_TYPE})
+                await s.execute(text(f"SELECT count(*) FROM documents WHERE {where}"), params)
             ).scalar() or 0
         self.phase = "Embed"
         return ctx
@@ -215,10 +260,11 @@ class QdrantJobRunner:
         else:
             print(cs.color(f"== TUẦN TỰ == tổng cần embed: {self.stats.total} văn bản", cs.BOLD + cs.CYAN), flush=True)
         try:
+            where, base_params = self._pending_where()
             last_id = None
             while True:
-                params = {"t": DOFFICE_SOURCE_TYPE, "lim": self._batch_size}
-                sql = f"SELECT id, document_metadata, parsed_text FROM documents WHERE {_WHERE_PENDING} "
+                params = {**base_params, "lim": self._batch_size}
+                sql = f"SELECT id, document_metadata, parsed_text FROM documents WHERE {where} "
                 if last_id is not None:
                     sql += "AND id > :last "
                     params["last"] = last_id
@@ -302,11 +348,12 @@ class QdrantJobRunner:
 
     async def _feed(self, q: asyncio.Queue) -> None:
         """Quét PG theo lô (keyset trên id) các doc chưa embed -> đẩy vào hàng đợi."""
+        where, base_params = self._pending_where()
         last_id = None
         fed = 0
         while True:
-            params = {"t": DOFFICE_SOURCE_TYPE, "lim": self._batch_size}
-            sql = f"SELECT id, document_metadata, parsed_text FROM documents WHERE {_WHERE_PENDING} "
+            params = {**base_params, "lim": self._batch_size}
+            sql = f"SELECT id, document_metadata, parsed_text FROM documents WHERE {where} "
             if last_id is not None:
                 sql += "AND id > :last "
                 params["last"] = last_id
@@ -442,7 +489,10 @@ def _status(runner: QdrantJobRunner) -> str:
     left = _box(f"Embed Qdrant · {runner.phase}", left_rows, width=46, color=cs.CYAN)
     # --- Ô PHẢI: văn bản nhiều chunk (> ngưỡng) ---
     right = _big_chunk_box(runner, top=10)
-    head = f"{cs.BOLD}DOffice Qdrant · chunk + embed{cs.RESET}"
+    head = (
+        f"{cs.BOLD}DOffice Qdrant · chunk + embed{cs.RESET}"
+        f"   {cs.BOLD}Phạm vi{cs.RESET} {cs.color(runner._scope_label(), cs.MAGENTA)}"
+    )
     return "\n".join([head, *_join_cols(left, right)])
 
 
@@ -494,7 +544,10 @@ def _status_seq(runner: QdrantJobRunner) -> str:
             left_rows.append(f"{cs.color(f'{n:>5}', color)} chunk  {cs.GREY}{vb} · {secs:.1f}s{cs.RESET}")
     left = _box("Tuần tự · embed từng chunk", left_rows, width=48, color=cs.CYAN)
     right = _big_chunk_box(runner)
-    head = f"{cs.BOLD}DOffice Qdrant · chunk + embed (TUẦN TỰ){cs.RESET}"
+    head = (
+        f"{cs.BOLD}DOffice Qdrant · chunk + embed (TUẦN TỰ){cs.RESET}"
+        f"   {cs.BOLD}Phạm vi{cs.RESET} {cs.color(runner._scope_label(), cs.MAGENTA)}"
+    )
     return "\n".join([head, *_join_cols(left, right)])
 
 
@@ -507,6 +560,7 @@ def _print_summary(runner: QdrantJobRunner, elapsed: float, log_dir: Path) -> No
         line,
         cs.color("  DOffice Qdrant (chunk + embed)", cs.BOLD + cs.CYAN),
         line,
+        f"  Phạm vi     : {cs.color(runner._scope_label(), cs.MAGENTA)}",
         f"  Cần embed   : {cs.color(str(s.total), cs.BOLD)}",
         f"  Đã embed    : {cs.color(str(s.done), cs.GREEN)}",
         f"  Lỗi         : {cs.color(str(s.failed), cs.RED if s.failed else cs.GREEN)}",
@@ -555,16 +609,18 @@ async def _main(args: argparse.Namespace) -> None:
     limit = args.limit if args.limit is not None else _int_env("DOFFICE_QDRANT_LIMIT", 0)
     big_threshold = args.big_chunk if args.big_chunk is not None else _int_env("DOFFICE_QDRANT_BIG_CHUNK", _BIG_CHUNK_THRESHOLD)
     max_chunks = args.max_chunk if args.max_chunk is not None else _int_env("DOFFICE_QDRANT_MAX_CHUNK", _MAX_CHUNK_THRESHOLD)
+    don_vi = args.don_vi if args.don_vi else _don_vi_env("DOFFICE_QDRANT_DON_VI")
 
     loggers.get("run").info(
-        "Job Qdrant: workers=%s batch=%s interval=%ss sequential=%s limit=%s big_chunk>%s max_chunk>%s(bỏ qua)",
-        workers, batch, interval, sequential, limit, big_threshold, max_chunks,
+        "Job Qdrant: workers=%s batch=%s interval=%ss sequential=%s limit=%s big_chunk>%s max_chunk>%s(bỏ qua) don_vi=%s",
+        workers, batch, interval, sequential, limit, big_threshold, max_chunks, don_vi,
     )
     while True:
         # Tuần tự -> 1 worker (không song song).
         runner = QdrantJobRunner(
             workers=1 if sequential else workers, batch_size=batch, limit=limit,
             big_chunk_threshold=big_threshold, max_chunks=max_chunks,
+            don_vi_filter=don_vi,
         )
         start = time.monotonic()
         try:
@@ -608,5 +664,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max-chunk", type=int, default=None,
         help="Nguong chunk de BO QUA (mac dinh 500): doc > nguong nay KHONG embed va KHONG danh dau PG. 0 = khong gioi han.",
+    )
+    parser.add_argument(
+        "--don-vi", nargs="+", type=int, default=None,
+        help="Chi embed van ban thuoc don vi (don_vi_list trong ACL) — nhu --don-vi cua run_pg_es. "
+             "Override DOFFICE_QDRANT_DON_VI. De trong = tat ca.",
     )
     asyncio.run(_main(parser.parse_args()))

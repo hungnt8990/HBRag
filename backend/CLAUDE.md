@@ -40,6 +40,8 @@
   VB bỏ qua vì > max_chunks liệt kê ở `vanban_bo_qua_qua_chunk.log` (logger con `doffice_sync.oversize`).
 - **run_qdrant** (`run_qdrant.bat`): mặc định TUẦN TỰ (1 doc/lần, embed từng chunk, KHÔNG song song -> tránh gãy
   gateway). Dashboard 2 cột + ô "Nhiều chunk (>100)" + log riêng `chunks_big.log`. Đọc PG (pg_prepared) rồi embed.
+  Lọc PHẠM VI theo đơn vị như run_pg_es: `--don-vi 269 258` / env `DOFFICE_QDRANT_DON_VI` (lọc trên
+  `document_metadata->access->raw_assignment->don_vi_list`, cùng field run_pg_es lọc); trống = tất cả. Dashboard hiện "Phạm vi".
 - **run_delete** (`run_delete.bat`): xóa theo `--id-vb`/`--don-vi` + **chọn store** (menu PG/ES/Qdrant: gõ 1/2/3 bật/tắt,
   4=chạy, q=hủy; hoặc `--stores pg es qdrant --yes`). CHẬM cho nhiều doc -> wipe toàn bộ dùng script dưới.
 
@@ -52,6 +54,11 @@
 ## Quyết định/bài học quan trọng
 - Bug nổ chunk: `_split_by_boundaries` (`chunker_adaptive_chunking.py`) đuôi đoạn < overlap -> bò +1 ký tự/vòng.
   Đã fix (next_start=end khi overlap kéo lùi). 412876: 1336 -> 33 chunk.
+- **Fix 4 bug MẤT NỘI DUNG chunk (2026-07-03, cần re-chunk + re-embed dữ liệu cũ)**: (1) `_legal_chunks` bỏ text
+  trước "Điều 1" -> giờ giữ `document_preamble`; (2) section 1-dòng bị vứt "chỉ-tiêu-đề" -> gộp section <200 ký tự
+  vào section kế (`_combine_sections`) + chỉ lược khi tiêu đề theo `section_path` chunk sau; (3) OCR "Ð" (Eth) ≠ "Đ"
+  -> chuẩn hoá ở `apply_spacing_fixes`; (4) `_is_feature_change_table` lỏng -> bảng thường bị ép schema 5 cột CPCIT
+  mất cột. Chi tiết: PROJECT_OVERVIEW 2026-07-03 (e). Lỗi OCR bảng nguồn (rowspan lệch, ký tự Cyrillic) NGOÀI chunker.
 - Làm sạch `clean_for_chunking` (`chunker_text_cleaning.py`): chuẩn hoá smart-quote/dash/NBSP qua `_PUNCT_TRANS`
   (ordinal); prose bỏ `**`/`*` + dòng số trang; **bảng dùng `preserve_markdown=True`** (giữ `| --- |`). KHÔNG TCVN3,
   KHÔNG gỡ HTML, KHÔNG bỏ quốc hiệu. ⚠️ KHÔNG Write đè file này (regex chứa dải Unicode hiếm dễ lệch byte; chỉ Edit).
@@ -84,6 +91,13 @@
   boost lên top (settings `document_search_identifier_code_boost`/`_number_boost`) + evidence=strong, giữ semantic dưới.
 - **Sparse học được**: `embedding_sparse_learned.py` (độc lập, HTTP, fallback hashing); bật
   `SPARSE_EMBEDDING_PROVIDER=learned` + `SPARSE_LEARNED_BASE_URL`; đổi provider PHẢI re-embed (run_qdrant).
+- **Tối ưu latency fusion (2026-07-03, đo live)**: query lặp ~3.9s -> **~0.6s**, query mới (process ấm)
+  -> **~1.6s**. Gồm: (1) BM25 doc-level chạy SONG SONG fusion (`bm25_hits_task`, await muộn trước RRF);
+  (2) `retrieval_shared.py`: httpx client keep-alive CHUNG theo event-loop (hết bắt tay TCP mỗi call ES)
+  + `TtlCache`; (3) cache ACL subject theo id_nv (TTL 300s, `_ACL_SUBJECT_CACHE`); (4) LLM expansion:
+  deadline `document_search_fusion_expansion_timeout_s` (2.5s) + cache 600s; (5) cache embed query 600s;
+  (6) ⚠️ CRAG LLM grading CHỈ chạy khi top-3 chưa có strong (trước chiếm ~80% latency warm ~3.2s/req,
+  verdict không đổi khi top đã strong). Identifier boost chuyển lên TRƯỚC LLM grading.
 - ⚠️ TODO: route decode JWT KHÔNG verify chữ ký (giả ID_NV = bypass ACL) — cần JWKS khi ra khỏi gateway nội bộ.
 
 ## Trang xem (route backend)

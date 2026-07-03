@@ -38,7 +38,11 @@ a) Điều kiện áp dụng theo quy chế.
         },
     )
 
-    article_10 = next(chunk for chunk in chunks if chunk.metadata["article_number"] == "10")
+    # Phần trước "Điều" đầu tiên (tiêu đề chương) giữ lại thành document_preamble.
+    preamble = next(chunk for chunk in chunks if chunk.metadata.get("chunk_type") == "document_preamble")
+    assert "Chương II. Chế độ" in preamble.content
+
+    article_10 = next(chunk for chunk in chunks if chunk.metadata.get("article_number") == "10")
 
     assert article_10.metadata["chunk_type"] == "legal_clause"
     assert article_10.metadata["article_title"] == "Chế độ nghỉ việc riêng"
@@ -66,7 +70,7 @@ def test_legal_clause_summary_stays_clause_scoped() -> None:
         },
     )
 
-    article_1 = next(chunk for chunk in chunks if chunk.metadata["article_number"] == "1")
+    article_1 = next(chunk for chunk in chunks if chunk.metadata.get("article_number") == "1")
 
     assert article_1.metadata["summary"].startswith("Điều 1 quy định:")
     assert "Thời gian đào tạo" in article_1.metadata["summary"]

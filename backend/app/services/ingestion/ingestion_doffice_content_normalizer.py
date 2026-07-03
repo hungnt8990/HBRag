@@ -860,11 +860,20 @@ def row_metadata(headers: list[str], values: list[str], *, table_name: str | Non
 
 
 def _is_feature_change_table(headers: list[str]) -> bool:
+    """Bảng "hiệu chỉnh phần mềm" CPCIT (STT | nền tảng | chức năng/màn hình |
+    nội dung hiệu chỉnh | giai đoạn). Điều kiện PHẢI có thêm cột đặc trưng
+    (nền tảng/giai đoạn/nội dung hiệu chỉnh) — trước đây chỉ cần header chứa
+    "chức năng" nên bảng khác (vd rơ le có "Chức năng bảo vệ") bị ép nhầm vào
+    schema 5 cột cứng -> MẤT các cột thật khi render markdown."""
     normalized = {_normalize_key(header) for header in headers}
-    return bool(
-        ({"stt", "tt"} & normalized)
-        and any("chuc_nang" in header or "man_hinh" in header for header in normalized)
+    if not ({"stt", "tt"} & normalized):
+        return False
+    has_feature_col = any("chuc_nang" in header or "man_hinh" in header for header in normalized)
+    has_change_col = any(
+        "hieu_chinh" in header or "giai_doan" in header or "nen_tang" in header or "giao_dien" in header
+        for header in normalized
     )
+    return has_feature_col and has_change_col
 
 
 def _generic_table_row_metadata(*, headers: list[str], values: list[str], metadata: dict[str, Any]) -> dict[str, Any]:
@@ -1428,7 +1437,9 @@ def table_column_text(*, table: NormalizedTable, column_index: int, rows: list[N
 
 def _canonical_table_columns(headers: list[str]) -> list[str]:
     normalized = {_normalize_key(header) for header in headers}
-    if {"stt", "tt"} & normalized and any("chuc_nang" in header or "man_hinh" in header for header in normalized):
+    # Chỉ ép schema 5 cột khi ĐÚNG là bảng hiệu chỉnh phần mềm CPCIT (xem
+    # _is_feature_change_table) — bảng khác giữ nguyên header để không mất cột.
+    if _is_feature_change_table(headers):
         return ["STT", "nền tảng", "chức năng/màn hình", "nội dung hiệu chỉnh/bổ sung", "giai đoạn"]
     if any("ten_nha_thau" in header or header == "nha_thau" for header in normalized):
         labels = []
@@ -1576,6 +1587,10 @@ def strip_markdown_noise(value: str) -> str:
 
 def apply_spacing_fixes(value: str) -> str:
     text = str(value or "")
+    # OCR hay trả "Ð/ð" (U+00D0/U+00F0 — chữ Eth Iceland, cùng hình dạng) thay cho
+    # "Đ/đ" (U+0110/U+0111) -> "Ðiều"/"GIÁM ÐỐC" trượt mọi regex nhận cấu trúc
+    # (ARTICLE_RE, FOOTER_MARKER...) và lệch cả BM25/embedding. Chuẩn hoá về Đ/đ.
+    text = text.replace("Ð", "Đ").replace("ð", "đ")
     for broken, fixed in SPACING_FIXES.items():
         text = re.sub(re.escape(broken), fixed, text, flags=re.IGNORECASE)
     text = re.sub(r"\b([A-Z])\s+(?=[^\W\d_])", r"\1", text, flags=re.UNICODE)

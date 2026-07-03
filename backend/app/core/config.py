@@ -178,6 +178,9 @@ class Settings(BaseSettings):
     # (candidate = top_k×multiplier=240) thỉnh thoảng chậm 3-4s khi cache lạnh.
     document_search_fusion_candidate_k: int = 30
     document_search_fusion_max_expansions: int = 4      # tối đa số query (gốc + LLM sinh thêm)
+    # Deadline (giây) cho LLM sinh query mở rộng: quá hạn -> bỏ expansion, tiếp tục với query
+    # gốc (nhánh expansion là nhánh CHẬM NHẤT của khâu search — LLM chậm kéo cả pipeline theo).
+    document_search_fusion_expansion_timeout_s: float = 2.5
     # CRAG-lite: ngưỡng coverage rule-based + LLM chấm lại các candidate "ambiguous" ở top.
     document_search_crag_strong_coverage: float = 0.35
     document_search_crag_ambiguous_coverage: float = 0.15

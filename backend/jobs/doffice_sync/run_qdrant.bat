@@ -13,6 +13,17 @@ set "PYTHONIOENCODING=utf-8"
 REM Quet lai dinh ky (giay). 0 = chay 1 lan roi thoat. Mac dinh 300 (5 phut).
 set "DOFFICE_QDRANT_INTERVAL=300"
 
+REM === PHAM VI: chi embed van ban thuoc don vi (id_dv) ===
+REM Giong --don-vi cua run_pg_es: loc theo don vi QUAN LY (don_vi_list trong ACL).
+REM De TRONG = embed TAT CA van ban chua embed. Nhieu don vi: ngan cach dau phay.
+REM   251  EVNCPC - Tong cong ty (GOC)         122  Truong Cao dang dien luc mien Trung
+REM   252  Ban QLDA Luoi dien mien Trung       254  CTCP dau tu Dien luc 3
+REM   256  Cong ty CNTT DLMT (CPCIT)           257  Cong ty Thi nghiem dien mien Trung
+REM   258  Cong ty Tu van Dien mien Trung      274  Cong ty Dich vu dien luc mien Trung
+REM   259 Binh Dinh  261 Dak Lak  262 Gia Lai  263 Kon Tum  264 Phu Yen  265 Quang Binh
+REM   266 Quang Nam  267 Quang Ngai  268 Quang Tri  269 Hue  270 Dak Nong  385 Da Nang
+set "DOFFICE_QDRANT_DON_VI=256"
+
 REM So worker embed (chi dung khi KHONG tuan tu). Qdrant dung CHUNG 1 client.
 set "DOFFICE_QDRANT_WORKERS=1"
 

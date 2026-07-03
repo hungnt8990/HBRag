@@ -65,7 +65,35 @@
 > (delete_by_id_vb trước bulk). Verify E2E trên ES live: ensure_index + bulk + search BM25 + ACL fields + 1 doc thật
 > 3 chunk khớp. 183 test pass. (run_qdrant KHÔNG index ES — chỉ embed Qdrant.)
 >
-> Cập nhật gần nhất: 2026-07-03 (c) — **Query hỗn hợp (nội dung + mã/số VB): luôn kết hợp BM25+vector+boost định danh**.
+> Cập nhật gần nhất: 2026-07-03 (e) — **Fix 4 bug MẤT NỘI DUNG khi chunk DOffice** (từ báo cáo QA ~50 văn bản
+> "thiếu quyết định đầu trang/nội dung Giám đốc/mục 1,2,3"; PHẢI re-chunk + re-embed dữ liệu cũ mới có hiệu lực):
+> **(1) `_legal_chunks` bỏ rơi toàn bộ text TRƯỚC "Điều 1"** (quốc hiệu, tiêu đề QUYẾT ĐỊNH, "GIÁM ĐỐC...", các đoạn
+> "Căn cứ...") -> giờ giữ thành chunk `document_preamble` (như `_section_chunks`). **(2) Section "mỏng"**: mỗi mục 1
+> dòng ("3. Ông X ... Ủy viên.") thành chunk chỉ-tiêu-đề rồi bị `_is_section_title_only_chunk` vứt -> mất danh sách
+> phân công/KHLCNT. Giờ `_section_chunks` GỘP section < `_MIN_SECTION_CHARS`(200) vào section kế cùng nhóm
+> (`_combine_sections`); filter chỉ-tiêu-đề chỉ lược khi tiêu đề được mang theo `section_path` của chunk phía sau
+> (`_title_carried_by_later_chunk`, heading cha -> mục con) và body dài hơn tiêu đề KHÔNG còn bị coi là rỗng.
+> **(3) OCR trả "Ð/ð" (Eth U+00D0) thay "Đ/đ"** -> "Ðiều"/"GIÁM ÐỐC" trượt ARTICLE_RE/FOOTER_MARKER -> chuẩn hoá
+> Ð->Đ trong `apply_spacing_fixes` (phủ mọi đường text normalizer). **(4) `_is_feature_change_table` quá lỏng**
+> (chỉ cần STT + header chứa "chức năng") -> bảng rơ le ("Chức năng bảo vệ") bị ép schema 5 cột CPCIT, MẤT các cột
+> thật khi render markdown; giờ đòi thêm cột đặc trưng (nền tảng/giai đoạn/hiệu chỉnh). Kèm: `_split_by_boundaries`
+> hút đuôi < `_MIN_TAIL_CHARS`(200) vào phần trước (hết chunk cuối 1 từ). Verify: 461 test pass; sweep 150 VB ngẫu
+> nhiên: hết mất khối nội dung (còn vài dòng lẻ do OCR homoglyph Cyrillic/bảng nguồn lệch rowspan — lỗi dữ liệu nguồn).
+>
+> Cập nhật trước: 2026-07-03 (d) — **Tối ưu latency /api/document-search/search** (đo live, evidence vẫn strong):
+> query lặp ~3.9s -> **~0.6s**; query mới (process ấm) -> **~1.6s**; crag warm 3.2s -> ~10ms. Các thay đổi:
+> **(1) BM25 doc-level song song fusion**: `execute_document_search` đưa `_search_es`(+fuzzy fallback) vào task
+> (`_doc_bm25`), fusion nhận `bm25_hits_task` và await MUỘN ngay trước RRF (tham số `bm25_hits` list vẫn giữ cho
+> test/legacy). **(2) `retrieval_shared.py` (MỚI)**: `get_es_http_client()` — httpx client keep-alive dùng CHUNG theo
+> event-loop (WeakKeyDictionary; trước mỗi call ES bắt tay TCP mới) dùng ở `_search_es` + `search_chunks`; +`TtlCache`.
+> **(3) Cache ACL subject** theo id_nv (`_ACL_SUBJECT_CACHE`, TTL 300s, cache cả None; DB lỗi KHÔNG cache).
+> **(4) LLM expansion**: deadline `document_search_fusion_expansion_timeout_s` (2.5s, quá hạn bỏ expansion dùng query
+> gốc) + cache kết quả theo query (TTL 600s). **(5) Cache embed query** (dense+sparse theo embedding-text, TTL 600s).
+> **(6) CRAG LLM grading CHỈ chạy khi top-3 chưa có strong** (trước chạy mọi request có ambiguous ~1-3s, chiếm ~80%
+> latency warm; khi top đã strong verdict LLM không đổi evidence_summary/retry). `_apply_identifier_boost` chuyển lên
+> TRƯỚC LLM grading (boost không phụ thuộc verdict). Test: 48 pass (test_document_search + test_document_semantic_search).
+>
+> Cập nhật trước: 2026-07-03 (c) — **Query hỗn hợp (nội dung + mã/số VB): luôn kết hợp BM25+vector+boost định danh**.
 > Trước đây query có mã ký hiệu đầy đủ ("quy chế trả lương theo 258/QĐ-IT") bị `_KY_HIEU_RE` xếp `exact` -> short-circuit,
 > MẤT nhánh semantic. Sửa 2 phần: **(1) `detect_search_type` chỉ xếp `exact` khi THUẦN mã** (`_is_pure_code_query`:
 > mọi token là mã/số/từ đệm `_CODE_FILLERS`); mã KÈM nội dung -> `hybrid` (chạy fusion). **(2) Boost định danh trong
