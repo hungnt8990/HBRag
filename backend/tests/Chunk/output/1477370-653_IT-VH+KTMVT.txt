@@ -1,0 +1,167 @@
+================================================================================
+id_vb        : 1477370
+ky_hieu      : 653/IT-VH+KTMVT
+trich_yeu    : Về việc chuyển đổi hạ tầng máy chủ cơ sở dữ liệu CMIS Kho nợ.
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-17
+ten_file     : Chuyen-Doi-CSDLCMIS-KN-V2.pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=198
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 653/IT-VH+KTMVT
+Ngày văn bản: 17/06/2026
+Trích yếu: Về việc chuyển đổi hạ tầng máy chủ cơ sở dữ liệu CMIS Kho nợ.
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Nguyễn Sơn Bình
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1318
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 653/IT-VH+KTMVT - Về việc chuyển đổi hạ tầng máy chủ cơ sở dữ liệu CMIS Kho nợ.
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+V/v chuyển đổi hạ tầng máy chủ cơ sở
+
+dữ liệu CMIS Kho nợ.
+
+Kính gửi: Tổng công ty Điện lực miền Trung (EVNCPC)
+
+Thực hiện chỉ đạo của Tổng công ty Điện lực miền Trung về việc đảm bảo các hệ
+
+thống ứng dụng và CSDL tại TTDL EVNCPC vận hành an toàn, ổn định, liên tục, Công
+
+ty Công nghệ thông tin Điện lực miền Trung (CPCIT) lập kế hoạch chuyển CSDL CMIS
+
+Kho nợ sang hệ thống máy chủ chạy RAC, đã được nâng cấp lên phiên bản Oracle
+
+Database 19c, tại site chính TTDL EVNCPC.
+
+- Thời gian thực hiện: từ 22h00 ngày 22/06/2026 đến 07h00 ngày 23/06/2026
+
+- Phạm vi ảnh hưởng: Các chức năng nghiệp vụ của hệ thống CMIS vẫn hoạt
+
+động bình thường, ngoại trừ Cổng thanh toán và Quản lý thu tiền điện qua ngân hàng
+
+ngừng hoạt động trong thời gian thực hiện.
+
+- Công việc thực hiện: Chi tiết tại Phụ lục 1
+
+- Đầu mối liên hệ:
+
+ Cơ sở dữ liệu, ứng dụng: Nguyễn Ngọc Thịnh; Sđt: 0865203209.
+
+ Máy chủ, đường truyền: Trần Văn Lanh; Sđt: 0901916189.
+
+CPCIT kính báo cáo Tổng công ty được biết và chỉ đạo thực hiện./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=110
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. GIÁM ĐỐC
+
+- Như trên; PHÓ GIÁM ĐỐC
+
+- Giám đốc (để b/c);
+
+- Lưu: VT, VH, KTMVT.
+
+Nguyễn Sơn Bình
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=3277
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 653/IT-VH+KTMVT - Về việc chuyển đổi hạ tầng máy chủ cơ sở dữ liệu CMIS Kho nợ.
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: Bảng DOffice 1
+| STT | Nội dung công việc | Thực hiện chính | Phối hợp | Thời gian thực hiện |
+| --- | --- | --- | --- | --- |
+| 1 | Rà soát các kết nối tới CSDL CMIS | | HyDG, | |
+| 1 | Rà soát các kết nối tới CSDL CMIS | ThinhNN1 | HyDG, | Hoàn thành |
+| 1 | khono | ThinhNN1 | HoaVV | Hoàn thành |
+| 2 | Mở và kiểm tra kết nối network trên hệ | TuNVA, | ThinhNN1, | Hoàn thành |
+| 2 | thống máy chủ mới | Kieunv2 | LanhTV | Hoàn thành |
+| 3 | Thông báo bộ phận giám sát (NOC), đầu | | ThinhNN1, | Thực hiện |
+| 3 | mối đơn vị, đầu mối các NH/TCTG | HoaVV | LanhTV | trước khi |
+| 3 | trước khi thực hiện. | | LanhTV | chuyển đổi |
+| 5 | Dừng hệ thống Cổng thanh toán qua | | | |
+| 5 | Dừng hệ thống Cổng thanh toán qua | | ThinhNN1, | 22h00 -> 22h30 |
+| 5 | ngân hàng và các hệ thống liên quan ảnh | HoaVV | ThinhNN1, | 22h00 -> 22h30 |
+| 5 | hưởng. | HoaVV | HyDG | 22/06/2026 |
+| 6 | | | HyDG, | 22h30 -> 23h00 |
+| 6 | Dừng đồng bộ dữ liệu | ThinhNN1 | HoaVV, LanhTV | 22/06/2026 |
+| 7 | Lock tất cả user, kill tất cả session đang | | | 23h00 -> 23h30 |
+| 7 | Lock tất cả user, kill tất cả session đang | ThinhNN1 | HoaVV | 23h00 -> 23h30 |
+| 7 | kết nối đến CSDL CMIS Kho nợ. | ThinhNN1 | HoaVV | 22/06/2026 |
+| 8 | Chuyển toàn bộ các đối tượng trên | | | |
+| 8 | Chuyển toàn bộ các đối tượng trên | | HoaVV, | 23h30 -> 01h30 |
+| 8 | CSDL CMIS sang CSDL trên máy chủ | ThinhNN1 | HoaVV, | 23h30 -> 01h30 |
+| 8 | mới | ThinhNN1 | LanhTV | 23/06/2026 |
+| 9 | Kiểm tra các đối tượng, dữ liệu trong | | | 01h30 -> 02h30 |
+| 9 | CSDL trên máy chủ mới; Unlock một số tài khoản để kiểm tra user trên CSDL. | ThinhNN1 | HoaVV | 23/06/2026 |
+| 10 | Cấu hình và bật đồng bộ dữ liệu ở CSDL | | | 02h30 -> 03h30 |
+| 10 | Cấu hình và bật đồng bộ dữ liệu ở CSDL | ThinhNN1 | HoaVV | 02h30 -> 03h30 |
+| 10 | mới. | ThinhNN1 | HoaVV | 23/06/2026 |
+| 11 | Kiểm tra và mở tất cả các tài khoản ứng | | | 03h30 -> 04h30 |
+| 11 | Kiểm tra và mở tất cả các tài khoản ứng | ThinhNN1 | HoaVV | 03h30 -> 04h30 |
+| 11 | dụng ở CSDL mới | ThinhNN1 | HoaVV | 23/06/2026 |
+| 12 | Cấu hình lại kết nối đến địa chỉ CSDL | | | |
+| 12 | mới trên các máy chủ APP (Cổng thanh | | | 04h30 -> 05h30 |
+| 12 | mới trên các máy chủ APP (Cổng thanh | HoaVV | ThinhNN1 | 04h30 -> 05h30 |
+| 12 | toán, Quản lý thu tiền điện qua ngân hàng, ...). | HoaVV | ThinhNN1 | 23/06/2026 |
+| 13 | Kiểm tra các chức năng chính Khono | | | 05h30 -> 06h30 |
+| 13 | - Kiểm tra đăng nhập ứng dụng - Webservice/API | HoaVV | ThinhNN1 | 23/06/2026 |
+| 14 | Thông báo đến đầu mối các đơn vị và thông báo nhóm quản trị CMIS đơn vị: | | | |
+| 14 | CSDL CMIS kho nợ bắt đầu hoạt động | HoaVV | ThinhNN1, | 06h30 - 07h00 |
+| 14 | qua địa chỉ mới. (Tiếp tục theo dõi và kịp thời xử lý các vấn đề phát sinh sau khi chuyển đổi) | HoaVV | LanhTV | 23/06/2026 |
+| 15 | Thông báo bộ phận giám sát (NOC), đầu | | | |
+| 15 | mối đơn vị, đầu mối NH/TCTG sau khi | | | Thực hiện sau |
+| 15 | mối đơn vị, đầu mối NH/TCTG sau khi | HoaVV | ThinhNN1 | Thực hiện sau |
+| 15 | hoàn thành chuyển đổi để phối hợp kiểm tra các nội dung liên quan | HoaVV | ThinhNN1 | khi hoàn thành |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_body | section=Phụ lục | artifact=appendix | quality=pass | chars=1015
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 653/IT-VH+KTMVT - Về việc chuyển đổi hạ tầng máy chủ cơ sở dữ liệu CMIS Kho nợ.
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: Phụ lục
+Phụ lục 1
+
+1/ Phạm vi ảnh hưởng:
+
+Trong thời gian chuyển đổi:
+
+- Các hoạt động nghiệp vụ của hệ thống CMIS vẫn hoạt động bình thường
+
+- Không truy cập được CSDL CMIS kho nợ, các tài khoản của CSDL CMIS kho
+
+nợ bị lock, không truy cập được.
+
+- Các chương trình và API/webservice không sử dụng được trong quá trình
+
+chuyển đổi:
+
++ Cổng thanh toán
+
++ Quản lý thu tiền điện qua ngân hàng
+
+- Các chương trình liên quan có chức năng kết nối CSDL Kho nợ bị ảnh hưởng:
+
++ DB trung gian/Portal3
+
++ Chương trình khai thác số liệu kinh doanh (kd.cpc.vn)
+
+2/ Chi tiết công việc (một số công việc thực hiện song song)
+
+Nếu có bất kỳ sự cố xảy ra, ngừng các bước thực hiện tiếp theo; cấu hình lại kết nối trên các máy chủ app, bật đồng bộ dữ liệu, tiếp tục sử dụng CSDL CMIS KHONO trên máy chủ hiện hữu (tổng thời gian thực hiện rollback là 60 phút).

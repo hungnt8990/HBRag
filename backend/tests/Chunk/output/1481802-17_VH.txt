@@ -1,0 +1,54 @@
+================================================================================
+id_vb        : 1481802
+ky_hieu      : 17/VH
+trich_yeu    : test 2106 -4
+noi_ban_hanh : VH
+ngay_vb      : 2026-06-21
+ten_file     : VBNB-Pvh aD+sB.pdf
+TỔNG SỐ CHUNK: 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=109
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 17/VH
+Ngày văn bản: 21/06/2026
+Trích yếu: test 2106 -4
+Nơi ban hành: VH
+Người ký: Nguyễn Sơn Bình
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=213
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 17/VH - test 2106 -4
+Ngày ban hành: 21/06/2026
+Cơ quan ban hành: VH
+Số: 17/VH Đà Nẵng, ngày 21 tháng 6 năm 2026
+
+TEST VĂN BẢN NỘI BỘ TRÌNH KÝ DO
+
+TỜ TRÌNH/BÁO CÁO Về việc
+
+Kính gửi:
+
+(Nội dung văn bản) /.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=134
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: Phó Phòng Vận hành
+
+- Như trên;
+
+- ;
+
+- Lưu: VH.
+
+Hoàng Xuân Dũng
+
+Ý kiến phê duyệt của Phó Giám đốc Nguyễn Sơn Bình
+
+Đồng ý

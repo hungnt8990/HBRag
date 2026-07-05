@@ -181,3 +181,37 @@ là phần mang lại giá trị thật cho filter chatbot mà không phá retri
 > Đây là **đề xuất schema chuẩn**, chưa sửa code. Khi đồng ý, các thay đổi nằm gọn ở 3 file:
 > `ingestion_doffice_unified.py` (C2), `rag_chunk.py` + `chunker_doffice_chunking.py` (C1),
 > và bước tạo payload index ở `vector_store.py`.
+
+---
+
+## 12. Lớp "đi trước 1 bước" — schema chuẩn BA (Kế hoạch nhóm 07) — ĐÃ triển khai
+
+**Mục tiêu**: nguồn `doffice_vanban` hôm nay trả tên cũ (`id_vb`/`ky_hieu`/`ngay_vb`...), mai BA đổi
+sang tên chuẩn (`document_id`/`document_no`/`issue_date`...) + bổ sung field API chưa có. Ta chuẩn bị
+trước để khi API đổi **chỉ sửa 1 nơi**.
+
+**Cơ chế**: module `app/services/ingestion/ingestion_doffice_forward_schema.py` là NƠI DUY NHẤT khai
+báo ánh xạ *tên-chuẩn-BA → danh sách alias nguồn* (tên hôm nay + tên dự kiến mai). API đổi tên →
+chỉ thêm alias, pipeline không đổi. Field rỗng KHÔNG ghi (payload gọn); khi API trả dữ liệu, field
+tự xuất hiện. Áp cho **Qdrant chunk (C1)** + **docmeta (C2)** + **ES chunk** qua
+`_build_c1_doc_filter_payload` và `_index_docmeta`.
+
+**Field tên chuẩn BA đã thêm (thuần bổ sung, GIỮ tên cũ song song):**
+- Cấp văn bản (mọi chunk + docmeta): `source_system` (="DOFFICE"), `document_no` (←`ky_hieu`),
+  `issue_date` (←`ngay_vb`), `doc_type` (←`loai_vb`/suy từ `ky_hieu`), `doc_category` (←`linh_vuc`/
+  suy từ `trich_yeu`), `doc_group`, `owner_department_id` (←`id_pb_soan_thao`), `priority` (←`do_khan`),
+  `reference_document_ids`, `related_document_ids`. Bỏ nếu rỗng.
+- `id` (BA #1, khoá liên kết ES↔Qdrant) = alias của `document_id` nội bộ (documents.id).
+- Cấp chunk (`_apply_doffice_chunk_schema`): `chunk_order`/`chunk_text`/`section_path`/`table_context`/
+  `content_hash` (đã có) + `id`/`document_no`/`source_system`.
+- Payload index (C1+C2) đã khai báo sẵn ở `vector_store.PAYLOAD_KEYWORD_FIELDS` cho toàn bộ field trên.
+
+**⚠️ 2 điểm BREAKING chưa làm — chờ chốt (cần re-embed + sửa retrieval):**
+1. **Rename khoá theo đúng BA**: `document_id`(nội bộ) → `id`; `id_vb` → `document_id`; `ky_hieu` →
+   `document_no` (bỏ tên cũ). Hiện `document_id` vẫn là **khoá join PG** (`Chunk.document_id`) mà
+   `document_semantic_search.py` đọc `payload["document_id"]` → đổi thẳng sẽ vỡ. Cần sửa mọi nơi đọc
+   payload khoá + re-embed 2 collection. **Đang để forward-compat**: thêm `id`+`document_no`, giữ
+   `document_id`/`id_vb`/`ky_hieu`.
+2. **`id` = UUID v7**: `documents.id` hiện `uuid4` (`app/models/document.py`). Muốn document MỚI có v7
+   → đổi `default=uuid4` sang generator uuid7 (giống `app/core/chunk_ids.new_chunk_id`). Ảnh hưởng DB/mọi
+   document mới → cần duyệt. Dữ liệu cũ giữ uuid4.

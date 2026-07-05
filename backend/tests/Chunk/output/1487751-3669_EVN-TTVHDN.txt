@@ -1,0 +1,62 @@
+================================================================================
+id_vb        : 1487751
+ky_hieu      : 3669/EVN-TTVHDN
+trich_yeu    : Lưu ý một số nội dung liên quan đến công tác truyền thông trong Nghị định 174/2026/NĐ-CP ngày 15/5/2026
+noi_ban_hanh : Tập đoàn Điện lực Việt Nam
+ngay_vb      : 2026-06-25
+ten_file     : CV EVN luu y thuc hien quy dinh tai Nghi dinh 174.pdf
+TỔNG SỐ CHUNK: 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=230
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3669/EVN-TTVHDN
+Ngày văn bản: 25/06/2026
+Trích yếu: Lưu ý một số nội dung liên quan đến công tác truyền thông trong Nghị định 174/2026/NĐ-CP ngày 15/5/2026
+Nơi ban hành: Tập đoàn Điện lực Việt Nam
+Người ký: Ngô Sơn Hải
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1497
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3669/EVN-TTVHDN - Lưu ý một số nội dung liên quan đến công tác truyền thông trong Nghị định 174/2026/NĐ-CP ngày 15/5/2026
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+TẬP ĐOÀN CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC VIỆT NAM
+
+Số: /EVN-TTVHDN
+
+Hà Nội, ngày tháng 06 năm 2026 V/v lưu ý một số nội dung liên quan đến công tác truyền thông trong Nghị định 174/2026/NĐ-CP ngày 15/5/2026
+
+Kính gửi: Các đơn vị thành viên
+
+Vừa qua, Chính phủ đã ban hành Nghị định 174/2026/NĐ-CP ngày 15/5/2026 (sau đây gọi tắt là Nghị định 174) về Quy định xử phạt vi phạm hành chính trong lĩnh vực bưu chính, viễn thông, tần số vô tuyến điện, giao dịch điện tử và công nghệ thông tin, Nghị định 174 có hiệu lực thi hành từ ngày 01 tháng 7 năm 2026.
+
+Nghị định 174 có nhiều nội dung tác động đến quá trình thực hiện nhiệm vụ về công tác truyền thông, trong đó có một số Điều khoản quy định việc truyền đưa, đăng tải, chia sẻ các tác phẩm báo chí, văn học, nghệ thuật, xuất bản phẩm mà không được sự đồng ý của chủ thể quyền sở hữu trí tuệ là hành vi vi phạm hành chính và sẽ bị áp dụng các biện pháp ngăn chặn, đồng thời bị xử phạt tiền .
+
+Tập đoàn yêu cầu các đơn vị thành viên khẩn trương nghiên cứu kỹ các nội dung Nghị định 174 để áp dụng thực hiện đảm bảo theo đúng quy định.
+
+Ghi chú: Nội dung chi tiết Nghị định 174 đã được đăng tải trên Cổng TTĐT Chính phủ tại địa chỉ: https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/5/174-ndcp.signed.pdf./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=152
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. TỔNG GIÁM ĐỐC
+
+- Như trên; PHÓ TỔNG GIÁM ĐỐC
+
+- HĐTV (để b/c);
+
+- Đ/c TGĐ (để b/c);
+
+- Các Ban: TGĐU, PC;
+
+- Lưu: VT, TTVHDN.
+
+Ngô Sơn Hải

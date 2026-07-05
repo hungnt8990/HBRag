@@ -1,7 +1,8 @@
 """Fusion semantic cho /api/document-search/search (thiết kế 3-DB DOffice).
 
 Luồng (3 nhánh đầu chạy SONG SONG — LLM expansion không chặn search query gốc):
-  (a) nhánh GỐC: embed dense+sparse query gốc -> search Qdrant chunks + docmeta;
+  (a) nhánh GỐC: embed dense query gốc -> search Qdrant chunks + docmeta (dense-only;
+      lexical do ES BM25 nhánh (c) đảm nhiệm — sparse Qdrant tắt qua sparse_embedding_enabled);
   (b) nhánh MỞ RỘNG: LLM sinh 1-3 query liên quan -> embed -> search Qdrant;
   (c) ES chunk BM25 (query gốc, strip org).
 Sau đó: RRF weighted fusion (rank TÍNH THEO TỪNG query) -> context builder (chunk hàng xóm
@@ -22,6 +23,7 @@ import logging
 import re
 import time
 import unicodedata
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID
@@ -48,6 +50,12 @@ logger = logging.getLogger(__name__)
 # LLM expansion (~1-2s) và embed (~100-300ms). TTL ngắn để đổi cấu hình/model không dính lâu.
 _EXPANSION_CACHE = TtlCache(maxsize=256, ttl_seconds=600.0)
 _EMBED_CACHE = TtlCache(maxsize=512, ttl_seconds=600.0)
+
+# Phạm vi văn bản (list id_vb/document_id) cho MỘT lần fusion — set ở đầu ``run_semantic_document_fusion``,
+# đọc ở các nhánh search leaf (Qdrant + ES BM25). Dùng ContextVar để KHÔNG phải thay đổi chữ ký hàng loạt
+# hàm trung gian, và để phạm vi LUÔN được áp (không bị nhánh filter-fallback/CRAG-retry vô tình bỏ như
+# metadata filter năm/tháng). ContextVar an toàn đa request: mỗi request/asyncio task có bản sao riêng.
+_DOC_SCOPE: ContextVar[frozenset[str] | None] = ContextVar("doffice_doc_scope", default=None)
 
 MAX_CONTEXT_CHARS_PER_CHUNK = 1800
 MAX_CONTEXT_ITEMS = 8
@@ -99,17 +107,38 @@ async def run_semantic_document_fusion(
     acl_subject: Any,
     bm25_hits: list[dict[str, Any]] | None = None,
     bm25_hits_task: "asyncio.Future[tuple[dict[str, Any], list[dict[str, Any]]]] | None" = None,
+    document_ids: set[str] | None = None,
 ) -> SemanticFusionResult | None:
     """Run DOffice semantic fusion for /api/document-search/search.
 
     ``bm25_hits_task``: task ES BM25 doc-level đang chạy SONG SONG (trả ``(data, hits)``) —
     fusion chỉ cần hits ở bước trộn RRF nên await MUỘN (sau 3 nhánh search) thay vì bắt
     service chờ tuần tự. Truyền ``bm25_hits`` (list) khi đã có sẵn (test/legacy).
+
+    ``document_ids``: GIỚI HẠN tra cứu trong danh sách văn bản (``document_id``) này — dùng cho
+    chat trên 1 nhóm văn bản. ``None``/rỗng = không giới hạn (chỉ lọc ACL, tức toàn bộ văn bản
+    người dùng được phép). Áp CỨNG ở cả Qdrant lẫn ES BM25, KHÔNG bị bỏ ở nhánh fallback.
     """
 
     clean = " ".join(str(query or "").split()).strip()
     if not clean:
         return None
+    scope_token = _DOC_SCOPE.set(frozenset(document_ids) if document_ids else None)
+    try:
+        return await _run_fusion_inner(clean, top_n=top_n, acl_subject=acl_subject,
+                                       bm25_hits=bm25_hits, bm25_hits_task=bm25_hits_task)
+    finally:
+        _DOC_SCOPE.reset(scope_token)
+
+
+async def _run_fusion_inner(
+    clean: str,
+    *,
+    top_n: int,
+    acl_subject: Any,
+    bm25_hits: list[dict[str, Any]] | None,
+    bm25_hits_task: "asyncio.Future[tuple[dict[str, Any], list[dict[str, Any]]]] | None",
+) -> SemanticFusionResult | None:
     t_start = time.perf_counter()
     filters = _extract_metadata_filters(clean)
     depth = max(top_n * 3, int(settings.document_search_fusion_candidate_k or 0))
@@ -378,8 +407,9 @@ async def _search_expansion_branch(
 
 
 async def _embed_queries(queries: list[str], *, query_index_offset: int = 0) -> list[dict[str, Any]]:
-    """Embed dense + sparse cho từng query MỘT lần (song song), dùng chung cho cả 2
-    collection Qdrant — trước đây mỗi collection tự embed lại (gấp đôi call, tuần tự)."""
+    """Embed dense cho từng query MỘT lần (song song), dùng chung cho cả 2 collection
+    Qdrant — trước đây mỗi collection tự embed lại (gấp đôi call, tuần tự). Sparse chỉ
+    embed khi provider bật (mặc định TẮT -> None, search Qdrant dense-only)."""
     gateway = get_llm_gateway()
     sparse_provider = get_sparse_embedding_provider()
 
@@ -434,12 +464,14 @@ async def _search_qdrant_store(
     async def _one(item: dict[str, Any]) -> list[dict[str, Any]]:
         query = str(item.get("query") or "")
         query_index = int(item.get("query_index") or 0)
+        scope = _DOC_SCOPE.get()
         try:
             results = await store.search(
                 query_vector=item["dense"],
                 sparse_query=item.get("sparse"),
                 top_k=top_k,
                 acl_subject=acl_subject,
+                document_ids=set(scope) if scope else None,
                 years=filters.years or None,
                 months=filters.months or None,
             )
@@ -491,6 +523,7 @@ async def _search_chunk_bm25(
     # Đồng bộ nhánh cũ: bỏ token đơn vị khỏi chuỗi nội dung (org xử lý riêng, tránh nhiễu BM25).
     from app.services.retrieval.document_search_service import _strip_org_tokens
 
+    scope = _DOC_SCOPE.get()
     try:
         return await DofficeChunkBm25Store(
             url=settings.two_stage_document_index_url or settings.elasticsearch_url,
@@ -499,6 +532,7 @@ async def _search_chunk_bm25(
             top_n=top_k,
             acl_subject=acl_subject,
             ensure=False,
+            document_ids=set(scope) if scope else None,
             years=filters.years or None,
             months=filters.months or None,
         )

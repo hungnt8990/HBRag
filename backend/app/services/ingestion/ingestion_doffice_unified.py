@@ -28,6 +28,7 @@ from app.core.chunk_ids import deterministic_chunk_id
 from app.core.config import settings
 from app.services.chunkers.chunker_text_cleaning import clean_for_chunking
 from app.services.document_sources import DOFFICE_SOURCE_TYPE
+from app.services.ingestion.ingestion_doffice_business_fields import derive_business_fields
 from app.services.ingestion.ingestion_doffice_content_normalizer import normalize_doffice_source
 from app.services.ingestion.ingestion_doffice_ingestion_service import DofficeIngestionService
 from app.services.security.security_acl_payload import (
@@ -36,6 +37,7 @@ from app.services.security.security_acl_payload import (
     acl_deny_keys_from_acl,
     acl_keys_from_acl,
 )
+from app.services.ingestion.ingestion_doffice_forward_schema import build_forward_document_fields
 from app.services.security.security_acl_resolver import resolve_doffice_and_compress
 from app.services.vector.vector_indexing_service import VectorIndexingService
 
@@ -46,18 +48,21 @@ logger = logging.getLogger(__name__)
 oversize_logger = logging.getLogger("doffice_sync.oversize")
 
 # Trường đưa vào payload Qdrant docmeta (Col 2) — đúng object mẫu, TRỪ noi_dung.
+# + loai_vb/linh_vuc (suy luận, xem ingestion_doffice_business_fields) để facet/filter.
 _DOCMETA_FIELDS = (
     "id_vb", "ky_hieu", "trich_yeu", "id_dv_ban_hanh", "noi_ban_hanh", "nguoi_ky",
     "ten_file", "duong_dan", "tom_tat", "ngay_tao", "type_ocr", "ngay_capnhat",
-    "nam", "thang", "ngay_vb",
+    "nam", "thang", "ngay_vb", "loai_vb", "linh_vuc",
 )
-# Text để embed docmeta: ngữ nghĩa (trich_yeu/tom_tat/noi_ban_hanh) + ký hiệu (ky_hieu).
-_DOCMETA_EMBED_FIELDS = ("ky_hieu", "trich_yeu", "tom_tat", "noi_ban_hanh", "ten_file")
+# Text để embed docmeta: CHỈ ngữ nghĩa (trich_yeu/tom_tat/noi_ban_hanh). Bỏ ten_file (tên file
+# OCR/đường dẫn không mang ngữ nghĩa truy vấn -> làm loãng vector); ky_hieu để BM25/identifier
+# boost lo, không trộn vào dense. Đổi tuple này -> phải re-embed docmeta (Col2). Xem PLAN.
+_DOCMETA_EMBED_FIELDS = ("trich_yeu", "tom_tat", "noi_ban_hanh")
 
-# Trường LỌC cấp văn bản gắn vào MỌI chunk của Col1 (để filter thời gian/đơn vị ở cấp chunk,
-# đồng bộ với Col2). int: nam/thang/id_dv_ban_hanh; chuỗi ISO: ngay_vb. Xem docs/METADATA_SCHEMA.md.
+# Trường LỌC cấp văn bản gắn vào MỌI chunk của Col1 (để filter thời gian/đơn vị/loại/lĩnh vực ở
+# cấp chunk, đồng bộ Col2). int: nam/thang/id_dv_ban_hanh; chuỗi: ngay_vb/loai_vb/linh_vuc.
 _C1_DOC_FILTER_INT_FIELDS = ("nam", "thang", "id_dv_ban_hanh")
-_C1_DOC_FILTER_STR_FIELDS = ("ngay_vb",)
+_C1_DOC_FILTER_STR_FIELDS = ("ngay_vb", "loai_vb", "linh_vuc")
 
 
 def _coerce_int(value: Any) -> int | None:
@@ -68,7 +73,12 @@ def _coerce_int(value: Any) -> int | None:
 
 
 def _build_c1_doc_filter_payload(source: dict[str, Any]) -> dict[str, Any]:
-    """Dựng payload lọc cấp văn bản cho chunk (Col1) từ source thô."""
+    """Dựng payload cấp văn bản gắn lên MỌI chunk (Qdrant Col1 + ES chunk) từ source thô.
+
+    Gồm: (1) trường LỌC cũ (nam/thang/ngay_vb/id_dv_ban_hanh/loai_vb/linh_vuc); (2) trường TÊN
+    CHUẨN BA "đi trước 1 bước" (document_no/source_system/issue_date/doc_type/doc_category/...),
+    lấy qua lớp alias tập trung ``build_forward_document_fields`` -> API đổi tên chỉ sửa 1 nơi.
+    """
     payload: dict[str, Any] = {}
     for field in _C1_DOC_FILTER_INT_FIELDS:
         coerced = _coerce_int(source.get(field))
@@ -78,6 +88,8 @@ def _build_c1_doc_filter_payload(source: dict[str, Any]) -> dict[str, Any]:
         value = source.get(field)
         if value not in (None, ""):
             payload[field] = str(value)
+    # Tên chuẩn BA (bỏ field rỗng). GIỮ song song trường lọc cũ ở trên trong giai đoạn chuyển tiếp.
+    payload.update(build_forward_document_fields(source))
     return payload
 
 _DOCMETA_NAMESPACE = uuid.UUID("0d0ff1ce-0000-4000-8000-000000000001")
@@ -199,6 +211,9 @@ class DofficeUnifiedIngestor:
         id_vb = " ".join(str(source.get("id_vb") or "").split()).strip()
         if not id_vb:
             raise ValueError("source.id_vb is required.")
+        # Suy luận field nghiệp vụ (loai_vb/linh_vuc) từ ky_hieu/trich_yeu -> gộp vào source để
+        # persist PG + chảy xuống payload docmeta (Col2) & chunk (Col1). Nguồn không trả sẵn.
+        source = {**source, **derive_business_fields(source)}
         acl_lists = acl_lists or {}
 
         # Idempotent: xóa dấu vết cũ ở 3 DB trước khi ghi lại.
@@ -359,9 +374,12 @@ class DofficeUnifiedIngestor:
             meta = chunk.metadata or {}
             section = meta.get("section_path")
             record: dict[str, Any] = {
+                "id": str(item.document_id),  # BA #1: khoá liên kết ES↔Qdrant
                 "document_id": item.document_id,
                 "id_vb": str(item.id_vb),
-                "chunk_id": str(deterministic_chunk_id(item.document_id, chunk.chunk_index)),
+                # chunk_id = uuid7 do create_chunks sinh (ghi vào metadata['chunk_uuid']) -> khớp
+                # PG/Qdrant. Fallback deterministic cho chunk cũ chưa có chunk_uuid.
+                "chunk_id": str(meta.get("chunk_uuid") or deterministic_chunk_id(item.document_id, chunk.chunk_index)),
                 "chunk_index": chunk.chunk_index,
                 "chunk_type": meta.get("chunk_type"),
                 "chunk_text": chunk.content,
@@ -478,6 +496,9 @@ class DofficeUnifiedIngestor:
         if document is None:
             return
         self._hydrate_from_pg(item, document)
+        # Suy luận loai_vb/linh_vuc từ source (idempotent với prepare_postgres) -> đảm bảo payload
+        # docmeta (Col2) + chunk (Col1) LUÔN có, kể cả doc cũ persist trước khi có tính năng này.
+        item.source = {**item.source, **derive_business_fields(item.source)}
 
         # VectorIndexingService chỉ embed document ở trạng thái "chunked"/"indexed".
         if document.status not in ("chunked", "indexed"):
@@ -495,8 +516,12 @@ class DofficeUnifiedIngestor:
             embed_batch_size=settings.doffice_embed_request_batch_size,
             on_embed_progress=embed_progress,
         )
-        # Gắn ACL + trường LỌC cấp văn bản (nam/thang/ngay_vb/id_dv_ban_hanh) lên MỌI chunk.
-        c1_doc_payload = {**item.acl_payload, **_build_c1_doc_filter_payload(item.source)}
+        # Gắn ACL + trường cấp văn bản (lọc cũ + tên chuẩn BA) + khoá ``id`` (BA #1) lên MỌI chunk.
+        c1_doc_payload = {
+            "id": str(document_id),
+            **item.acl_payload,
+            **_build_c1_doc_filter_payload(item.source),
+        }
         await self._chunks_store.set_acl_payload_for_document(document_id, c1_doc_payload)
 
         if not self._store_chunks_in_pg:
@@ -570,11 +595,14 @@ class DofficeUnifiedIngestor:
             except Exception:
                 logger.warning("Sparse embed docmeta thất bại id_vb=%s", source.get("id_vb"), exc_info=True)
 
-        payload: dict[str, Any] = {"document_id": document_id}
+        # ``document_id`` = khoá join nội bộ (documents.id); ``id`` = alias theo tên chuẩn BA #1.
+        payload: dict[str, Any] = {"document_id": document_id, "id": str(document_id)}
         for field in _DOCMETA_FIELDS:
             value = source.get(field)
             if value not in (None, ""):
                 payload[field] = value
+        # Tên chuẩn BA "đi trước 1 bước" (document_no/source_system/issue_date/doc_type/...).
+        payload.update(build_forward_document_fields(source))
         payload.update(acl_payload)  # acl_subjects (allow) + acl_deny — 2 list keyword
 
         point_id = str(uuid.uuid5(_DOCMETA_NAMESPACE, f"docmeta:{source.get('id_vb')}"))

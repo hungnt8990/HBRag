@@ -1,0 +1,71 @@
+================================================================================
+id_vb        : 1482052
+ky_hieu      : 667/IT-VH
+trich_yeu    : Về việc khôi phục dữ liệu ERP
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-22
+ten_file     : VB-Khoi-phuc-dư-lieu-ERP-CPCIT-final.pdf
+TỔNG SỐ CHUNK: 4
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=160
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 667/IT-VH
+Ngày văn bản: 22/06/2026
+Trích yếu: Về việc khôi phục dữ liệu ERP
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Nguyễn Sơn Bình
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=485
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 667/IT-VH - Về việc khôi phục dữ liệu ERP
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: Bảng DOffice 1
+| TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG CÔNG TY CÔNG NGHỆ THÔNG TIN | TỔNG CÔNG TY | | CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM Độc lập Tự do Hạnh phúc | CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM | CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM |
+| --- | --- | --- | --- | --- | --- |
+| | | Đà Nẵng, ngày 22 tháng 6 năm 2026 | | | |
+| | | Số: 667/IT-VH | | | Đà Nẵ |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_body | quality=pass | chars=863
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 667/IT-VH - Về việc khôi phục dữ liệu ERP
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+V/v khôi phục dữ liệu ERP Kính gửi: Công ty Điện lực Quảng Trị (QTPC).
+
+Căn cứ văn bản số 3360/QTPC-TCKT ngày 02/06/2026 về việc hỗ trợ khôi phục dữ liệu ERP Công ty Công nghệ thông tin Điện lực miền Trung (CPCIT) đã tiến hành khôi phục cơ sở dữ liệu ERP từ các bản sao lưu tại thời điểm ngày 04 và ngày 05/05/2026. Quá trình này được thực hiện trên môi trường hoàn toàn độc lập, không ảnh hưởng đến dữ liệu hiện tại của hệ thống ERP Live.
+
+Sau khi khôi phục, CPCIT đã phối hợp với EVNICT thực hiện các script để kiểm tra, tiến hành trích xuất số liệu liên quan, cung cấp cho EVNICT cùng đầu mối của QTPC làm cơ sở đối chiếu, rà soát và khôi phục dữ liệu.
+
+CPCIT kính thông báo kết quả phối hợp hỗ trợ để QTPC được biết.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=footer_signature | quality=pass | chars=193
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận : KT. GIÁM ĐỐC
+
+- Như trên; PHÓ GIÁM ĐỐC
+
+- Giám đốc (báo cáo);
+
+- Lưu: VT, VH
+
+Nơi nhận : KT. GIÁM ĐỐC
+
+- Như trên; PHÓ GIÁM ĐỐC
+
+- Giám đốc (báo cáo);
+
+- Lưu: VT, VH
+
+Nguyễn Sơn Bình

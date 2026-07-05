@@ -11,12 +11,51 @@ from typing import Any
 FOOTER_MARKER_PATTERN = re.compile(r"(?im)^\s*(Nơi nhận|KT\.\s*GIÁM ĐỐC|PHÓ GIÁM ĐỐC|Lưu:\s*VT)\b")
 PAGE_MARKER_PATTERN = re.compile(r"(?im)^\s*---\s*Page\s+\d+\s*---\s*$")
 APPENDIX_MARKER_PATTERN = re.compile(r"(?im)^\s*(PHỤ\s*LỤC|PHU\s*LUC)\b")
+# Biến thể cho noi_dung THÔ: "Phụ lục" thường có tiền tố markdown/thẻ ("**Phụ lục**",
+# "<p>Phụ lục</p>", "# Phụ lục") -> anchor ^\s* của APPENDIX_MARKER_PATTERN trượt, làm
+# tắt nhầm nhánh đặt tên bảng theo heading trong infer_table_name (bảng phụ lục rơi hết
+# về "Bảng DOffice N"). Chỉ dùng làm GATE has_appendix, không dùng để cắt text.
+APPENDIX_MARKER_RAW_PATTERN = re.compile(r"(?im)(?:^|>)[\s>*#_]*(PHỤ\s*LỤC|PHU\s*LUC)\b")
 # Cửa sổ HTML (ký tự) ngay TRƯỚC mỗi bảng để suy tên bảng — đủ lấy vài dòng heading,
 # tránh chuyển toàn bộ nội dung trước bảng (O(n²) trên văn bản lớn).
 _TABLE_NAME_WINDOW = 8000
 ASCII_FOOTER_MARKER_PATTERN = re.compile(
     r"(?im)^\s*(Noi\s+nhan|N[ơo]i\s+nhận|KT\.\s*GIAM\s+DOC|PHO\s+GIAM\s+DOC|Luu:\s*VT)\b"
 )
+# Quốc hiệu mở đầu một VĂN BẢN MỚI (đính kèm sau khối chữ ký). Cho phép tối đa ~60 ký
+# tự đứng trước trên cùng dòng vì OCR 2 cột hay trộn tên cơ quan vào ("CỘNG HÒA ... TẬP ĐOÀN").
+QUOC_HIEU_PATTERN = re.compile(
+    r"(?im)^[^\n]{0,60}?C[ỘO]NG\s*H[OÒ][AÀ]\s+X[ÃA]\s+H[ỘO]I\s+CH[ỦU]\s+NGH[ĨI]A\s+VI[ỆE]T\s+NAM"
+)
+# Dòng "Lưu: VT, ..." — theo thể thức là mục CUỐI của khối "Nơi nhận". Sau dòng này chỉ
+# còn chức danh/tên người ký; nội dung dài xuất hiện tiếp theo = văn bản đính kèm.
+FOOTER_LUU_LINE_PATTERN = re.compile(r"(?i)(?:^|[-–—+*;\s])l[uư]u\s*:")
+# Từ khóa chức danh/dấu hiệu khối chữ ký (so trên chuỗi casefold).
+_SIGNATURE_ROLE_KEYWORDS = (
+    "giám đốc",
+    "giam doc",
+    "chủ tịch",
+    "trưởng ban",
+    "trưởng phòng",
+    "phó phòng",
+    "chánh văn phòng",
+    "kế toán trưởng",
+    "thủ trưởng",
+    "bí thư",
+    "kiểm soát viên",
+    "hội đồng thành viên",
+    "đã ký",
+    "người ký",
+    "thừa lệnh",
+    "thừa ủy quyền",
+)
+_SIGNATURE_PREFIX_PATTERN = re.compile(r"(?i)^\s*(KT|TL|TM|TUQ|Q)\s*\.")
+# Phần sau khối chữ ký phải đủ dài mới coi là văn bản đính kèm (tránh cắt nhầm vài dòng
+# liên hệ/ghi chú cuối trang thành "văn bản").
+_ATTACHED_DOC_MIN_CHARS = 300
+# Dòng MỤC LỤC dạng "Điều 1. Phạm vi ......... 3" (chấm leader >=4 + số trang tùy chọn):
+# trùng lặp tiêu đề với nội dung thật phía sau -> nhiễu retrieval, lọc khỏi prose.
+_TOC_LINE_PATTERN = re.compile(r"(?m)^[^\n]*?[.…]{4,}[ \t.…]*\d{0,4}\s*$")
 TABLE_PATTERN = re.compile(r"(?is)<table\b.*?</table>")
 DOC_CODE_PATTERN = re.compile(r"\b(?!\d{1,2}/\d{1,2}/\d{2,4}\b)(\d{1,6}/[A-ZÀ-ỸĐ0-9][A-ZÀ-ỸĐ0-9+._\-]{1,}(?:/[A-ZÀ-ỸĐ0-9+._\-]+)*)\b", re.UNICODE)
 DATE_PATTERN = re.compile(r"\b\d{1,2}/\d{1,2}/\d{2,4}\b")
@@ -218,6 +257,7 @@ def normalize_doffice_source(source: dict[str, Any]) -> NormalizedDofficeDocumen
     base_plain_text = html_to_plain_text(replace_tables(raw_text, tables, replacement="placeholder"))
     body_text, footer_text = split_footer_signature(base_plain_text)
     appendix_text, appendix_span = extract_appendix_text(base_plain_text)
+    attached_text, attached_span = extract_attached_document_text(base_plain_text)
     # Footer bị tách khỏi body nên không có vị trí -> tìm lại trong base_plain_text để
     # chunk footer sắp ĐÚNG thứ tự đọc (cuối thân thư, TRƯỚC phụ lục), không bị reorder
     # đẩy xuống sau phụ lục. Dùng cùng hệ tọa độ với appendix/table (base_plain_text).
@@ -226,13 +266,17 @@ def normalize_doffice_source(source: dict[str, Any]) -> NormalizedDofficeDocumen
         if footer_text
         else None
     )
+    # Gỡ placeholder [[TABLE_n]] còn kẹt trong footer (bảng đã chunk riêng) — SAU khi
+    # tính footer_span vì span tìm theo text gốc trong base_plain_text.
+    if footer_text:
+        footer_text = re.sub(r"\[\[TABLE_\d+]]", " ", footer_text).strip() or None
     # reading_pos của mỗi bảng = vị trí placeholder [[TABLE_N]] trong base_plain_text.
     # Đây là hệ tọa độ NHẤT QUÁN với body/footer/appendix (span gốc của bảng theo
     # raw_text HTML không so sánh được) -> chunk sắp đúng thứ tự đọc khi reorder.
     for _ph_index, _ph_match in enumerate(re.finditer(r"\[\[TABLE_\d+]]", base_plain_text)):
         if _ph_index < len(tables):
             tables[_ph_index].metadata["reading_pos"] = _ph_match.start()
-    base_clean_text = normalize_lines(apply_spacing_fixes(strip_markdown_noise(body_text)))
+    base_clean_text = normalize_lines(_strip_toc_lines(apply_spacing_fixes(strip_markdown_noise(body_text))))
     metadata = build_rule_metadata(source=source, clean_text=base_clean_text, tables=tables)
     # FIX 3A: ``ngay_vb`` thường null và ngày ban hành nằm ở khối chữ ký (đã bị
     # ``split_footer_signature`` tách khỏi body). Thử bắt lại từ plain text đầy đủ
@@ -247,7 +291,7 @@ def normalize_doffice_source(source: dict[str, Any]) -> NormalizedDofficeDocumen
     clean_text = prepend_metadata_preamble(base_clean_text, metadata_preamble)
     plain_text = prepend_metadata_preamble(base_plain_text, metadata_preamble)
     markdown_text = prepend_metadata_preamble(base_markdown_text, metadata_preamble)
-    elements = build_elements(source=source, clean_text=base_clean_text, tables=tables, footer_text=footer_text, footer_span=footer_span, summary_text=summary_text, metadata=metadata, appendix_text=appendix_text, appendix_span=appendix_span)
+    elements = build_elements(source=source, clean_text=base_clean_text, tables=tables, footer_text=footer_text, footer_span=footer_span, summary_text=summary_text, metadata=metadata, appendix_text=appendix_text, appendix_span=appendix_span, attached_text=attached_text, attached_span=attached_span)
     content_hash = sha256_text("\n\n".join(part for part in (metadata_preamble, raw_text) if part.strip()))
     metadata_hash = sha256_json({key: source.get(key) for key in sorted(source) if key != "noi_dung"})
 
@@ -394,7 +438,9 @@ def _source_span_for_text(clean_text: str, text: str, *, chunk_type: str) -> dic
 def parse_html_tables(raw_text: str) -> list[NormalizedTable]:
     tables: list[NormalizedTable] = []
     # Tính 1 LẦN cho cả văn bản (thay vì search trong infer_table_name mỗi bảng).
-    has_appendix = bool(APPENDIX_MARKER_PATTERN.search(raw_text or ""))
+    has_appendix = bool(APPENDIX_MARKER_PATTERN.search(raw_text or "")) or bool(
+        APPENDIX_MARKER_RAW_PATTERN.search(raw_text or "")
+    )
     for table_index, match in enumerate(TABLE_PATTERN.finditer(raw_text or "")):
         table_name = infer_table_name(
             raw_text or "", match.start(), table_index=table_index, has_appendix=has_appendix
@@ -1063,7 +1109,7 @@ def _compact_multiline_cell(value: Any) -> str | list[str] | None:
     return unique[0] if unique else None
 
 
-def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[NormalizedTable], footer_text: str | None, footer_span: dict[str, int] | None = None, summary_text: str | None, metadata: dict[str, Any], appendix_text: str = "", appendix_span: dict[str, int] | None = None) -> list[NormalizedElement]:
+def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[NormalizedTable], footer_text: str | None, footer_span: dict[str, int] | None = None, summary_text: str | None, metadata: dict[str, Any], appendix_text: str = "", appendix_span: dict[str, int] | None = None, attached_text: str = "", attached_span: dict[str, int] | None = None) -> list[NormalizedElement]:
     elements: list[NormalizedElement] = []
     if summary_text:
         elements.append(
@@ -1129,6 +1175,24 @@ def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[Norm
                     "section_title": "Phụ lục",
                     "source_span": appendix_span
                     or _source_span_for_text(clean_text, appendix_text.strip(), chunk_type="document_body"),
+                    "indexable": True,
+                },
+            )
+        )
+    # Văn bản ĐÍNH KÈM sau khối chữ ký (Kế hoạch/Quy định/Đề cương...) — trước đây bị
+    # chunk footer_signature nuốt trọn (không index). Đưa vào như phụ lục: element
+    # document_body riêng, heading-aware chunker chia theo mục.
+    if attached_text and attached_text.strip():
+        elements.append(
+            NormalizedElement(
+                "document_body",
+                attached_text.strip(),
+                {
+                    "chunk_type": "document_body",
+                    "artifact_type": "attached_document",
+                    "section_title": "Văn bản đính kèm",
+                    "source_span": attached_span
+                    or _source_span_for_text(clean_text, attached_text.strip(), chunk_type="document_body"),
                     "indexable": True,
                 },
             )
@@ -1582,6 +1646,10 @@ def strip_markdown_noise(value: str) -> str:
     text = re.sub(r"(?i)\[\s*image\s*]", " ", text)
     text = re.sub(r"(?m)^\s{0,3}#{1,6}\s+", "", text)
     text = re.sub(r"(?m)^(\s*)[-*+]\s+[-*+]\s+", r"\1- ", text)
+    # Fragment JSON layout docling ('[{"bbox": ..., "category": ..., "text": "') lọt vào
+    # prose body -> rác; cắt bỏ (giới hạn trong 1 dòng để không nuốt phần sau).
+    if '"bbox"' in text:
+        text = _BBOX_ARTIFACT_RE.sub("", text)
     return text
 
 
@@ -1595,6 +1663,90 @@ def apply_spacing_fixes(value: str) -> str:
         text = re.sub(re.escape(broken), fixed, text, flags=re.IGNORECASE)
     text = re.sub(r"\b([A-Z])\s+(?=[^\W\d_])", r"\1", text, flags=re.UNICODE)
     return text
+
+
+def _strip_toc_lines(value: str) -> str:
+    """Bỏ dòng MỤC LỤC (chấm leader + số trang) khỏi văn xuôi trước khi chunk.
+
+    Chỉ áp cho prose (body/phụ lục/văn bản đính kèm) — KHÔNG đưa vào
+    ``strip_markdown_noise`` vì hàm đó còn được dùng cho ô bảng/summary.
+    """
+    return _TOC_LINE_PATTERN.sub("", str(value or ""))
+
+
+def _is_person_name_line(line: str) -> bool:
+    """Dòng CHỈ là tên người (2-5 từ Title-case, không số) — vd "Trần Văn Gia"."""
+    words = line.replace(".", " ").split()
+    if not 2 <= len(words) <= 5:
+        return False
+    for word in words:
+        if any(ch.isdigit() for ch in word):
+            return False
+        head, rest = word[:1], word[1:]
+        if not head.isupper():
+            return False
+        if rest and not rest.islower():
+            return False
+    return True
+
+
+def _is_signature_line(line: str) -> bool:
+    """Dòng thuộc khối chữ ký: chức danh / tên người ký / "(Đã ký)"."""
+    if _SIGNATURE_PREFIX_PATTERN.match(line):
+        return True
+    folded = line.casefold()
+    if any(keyword in folded for keyword in _SIGNATURE_ROLE_KEYWORDS):
+        return True
+    return _is_person_name_line(line)
+
+
+def _attached_document_start(text: str, *, search_start: int, search_end: int) -> int | None:
+    """Vị trí bắt đầu VĂN BẢN ĐÍNH KÈM nằm trong vùng footer ``[search_start, search_end)``.
+
+    Nhiều văn bản OCR gộp cả file đính kèm (Kế hoạch/Quy định/Đề cương...) vào ``noi_dung``
+    NGAY SAU khối "Nơi nhận"/chữ ký -> nếu không cắt, chunk ``footer_signature`` nuốt hàng
+    chục nghìn ký tự nội dung thật (không index/embedding). Hai tín hiệu:
+
+    1. Quốc hiệu ("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM") xuất hiện sau marker footer.
+    2. Tổng quát: sau dòng "Lưu: ..." (mục cuối khối Nơi nhận) + tối đa vài dòng chức
+       danh/tên người ký, dòng nội dung tiếp theo mở đầu phần đính kèm.
+
+    Chỉ cắt khi phần còn lại đủ dài (``_ATTACHED_DOC_MIN_CHARS``) để không tách nhầm
+    vài dòng liên hệ cuối trang. Trả về ``None`` nếu không có phần đính kèm.
+    """
+    region = text[search_start:search_end]
+    # Placeholder [[TABLE_n]] chỉ ~10 ký tự nhưng đại diện cả một BẢNG (chunk riêng)
+    # -> vùng chứa bảng luôn coi là đủ "nội dung" dù ngắn.
+    if len(region) < _ATTACHED_DOC_MIN_CHARS and "[[TABLE_" not in region:
+        return None
+    candidates: list[int] = []
+    quoc_hieu = QUOC_HIEU_PATTERN.search(region)
+    if quoc_hieu:
+        candidates.append(search_start + quoc_hieu.start())
+    offset = search_start
+    seen_luu = False
+    signature_budget = 4  # tối đa vài dòng chức danh/tên sau "Lưu:"
+    for line in region.splitlines(keepends=True):
+        stripped = line.strip()
+        if stripped:
+            if not seen_luu:
+                if FOOTER_LUU_LINE_PATTERN.search(stripped):
+                    seen_luu = True
+            elif _is_signature_line(stripped) and signature_budget > 0:
+                signature_budget -= 1
+            else:
+                candidates.append(offset + (len(line) - len(line.lstrip())))
+                break
+        offset += len(line)
+    if not candidates:
+        return None
+    start = min(candidates)
+    if start <= search_start:
+        return None
+    tail = text[start:search_end]
+    if len(tail) < _ATTACHED_DOC_MIN_CHARS and "[[TABLE_" not in tail:
+        return None
+    return start
 
 
 def split_footer_signature(value: str) -> tuple[str, str | None]:
@@ -1611,9 +1763,45 @@ def split_footer_signature(value: str) -> tuple[str, str | None]:
         return body.strip(), None
     body_end = min(position for position in (match.start(), appendix_match.start() if appendix_match else None) if position is not None)
     footer_end = appendix_match.start() if appendix_match and appendix_match.start() > match.start() else len(text)
+    # Văn bản ĐÍNH KÈM sau khối chữ ký (Kế hoạch/Quy định/Đề cương...) KHÔNG thuộc footer:
+    # cắt footer tại điểm bắt đầu; phần đính kèm được extract_attached_document_text đưa
+    # về element document_body riêng (giống phụ lục) để chunk như nội dung thật.
+    attached_start = _attached_document_start(text, search_start=match.start(), search_end=footer_end)
+    if attached_start is not None:
+        footer_end = attached_start
     body = text[:body_end].strip()
     footer = text[match.start() : footer_end].strip() or None
     return body, footer
+
+
+def extract_attached_document_text(plain_text: str) -> tuple[str, dict[str, int] | None]:
+    """Trích VĂN BẢN ĐÍNH KÈM nằm sau khối chữ ký (bị ``split_footer_signature`` cắt khỏi footer).
+
+    Cùng cách tính ranh giới với :func:`split_footer_signature` (qua
+    :func:`_attached_document_start`) để hai bên không lệch nhau. Bảng trong phần đính
+    kèm đã được ``parse_html_tables`` chunk riêng -> gỡ placeholder ``[[TABLE_n]]``, chỉ
+    giữ văn xuôi. Trả về ``(text, source_span)`` hoặc ``("", None)``.
+    """
+    text = plain_text or ""
+    match = (
+        FOOTER_MARKER_PATTERN.search(text)
+        or ASCII_FOOTER_MARKER_PATTERN.search(text)
+        or re.search(r"(?im)^\s*(Noi\s*nhan|KT\.\s*GIAM\s+DOC|PHO\s+GIAM\s+DOC)\b", text)
+    )
+    if not match:
+        return "", None
+    appendix_match = APPENDIX_MARKER_PATTERN.search(text)
+    footer_end = appendix_match.start() if appendix_match and appendix_match.start() > match.start() else len(text)
+    start = _attached_document_start(text, search_start=match.start(), search_end=footer_end)
+    if start is None:
+        return "", None
+    region = re.sub(r"\[\[TABLE_\d+]]", "\n", text[start:footer_end])
+    cleaned = normalize_lines(_strip_toc_lines(apply_spacing_fixes(strip_markdown_noise(region))))
+    # KHÔNG lọc theo độ dài ở đây: footer đã bị cắt tại ``start`` (cùng helper) nên phần
+    # này phải được giữ, kể cả khi ngắn (vd chỉ còn caption bảng — bảng chunk riêng).
+    if not cleaned.strip():
+        return "", None
+    return cleaned, {"start": start, "end": footer_end}
 
 
 def extract_appendix_text(plain_text: str) -> tuple[str, dict[str, int] | None]:
@@ -1637,7 +1825,7 @@ def extract_appendix_text(plain_text: str) -> tuple[str, dict[str, int] | None]:
     footer_match = FOOTER_MARKER_PATTERN.search(region) or ASCII_FOOTER_MARKER_PATTERN.search(region)
     if footer_match:
         region = region[: footer_match.start()]
-    cleaned = normalize_lines(apply_spacing_fixes(strip_markdown_noise(region)))
+    cleaned = normalize_lines(_strip_toc_lines(apply_spacing_fixes(strip_markdown_noise(region))))
     if not cleaned.strip():
         return "", None
     return cleaned, {"start": match.start(), "end": len(text)}
@@ -1658,27 +1846,147 @@ def normalize_lines(value: str) -> str:
     return "\n".join(compact).strip()
 
 
+# Ô/hàng bảng nguồn (DOffice HTML) đôi khi bị OCR "nổ" nội dung xuống nhiều dòng, hoặc
+# lặp rác nhiều kiểu: (a) token đơn "'H['H['H[...", (b) cả CỤM TỪ lặp trăm lần trong 1
+# ô, (c) cả HÀNG "| H[ | | |" lặp trăm lần. Cả ba đều PHÁ cấu trúc markdown (ô markdown
+# BẮT BUỘC 1 dòng) -> TableChunker không cắt được -> sinh chunk bảng khổng lồ vô nghĩa
+# (30k-53k ký tự). Làm sạch từng ô + nén hàng lặp trước khi render markdown/text.
+_TABLE_CELL_MIN_REPEAT_RUN = 8  # số lần lặp liên tiếp tối thiểu để coi 1 token là rác OCR
+_TABLE_ROW_MIN_REPEAT_RUN = 4  # số HÀNG giống hệt liên tiếp tối thiểu để coi là rác
+_TABLE_SPAN_SCAN_MIN_LEN = 400  # chỉ quét nén chuỗi-con-lặp khi ô đủ dài (tránh phí CPU)
+_TABLE_SPAN_MAX_PERIOD = 240  # chu kỳ cụm lặp tối đa cần dò
+# Fragment JSON layout docling lọt vào ô/prose (vd '[{"bbox": [..], "category":
+# "Table", "text": "'), thường ở đuôi và có thể chưa đóng ngoặc. GIỚI HẠN TRONG 1
+# DÒNG ([^\n]*) — KHÔNG dùng DOTALL để tránh nuốt hết văn bản phía sau ở prose.
+_BBOX_ARTIFACT_RE = re.compile(r"""\[?\s*\{\s*["']bbox["'][^\n]*""")
+
+
+def _collapse_repeated_tokens(text: str, *, min_run: int = _TABLE_CELL_MIN_REPEAT_RUN) -> str:
+    """Nén run token GIỐNG HỆT lặp >= ``min_run`` lần liên tiếp về 1 (rác OCR).
+
+    Ngưỡng cao (8) để KHÔNG đụng dữ liệu thật (vd '0 0 0 0'): chỉ rác OCR mới lặp
+    hàng chục-nghìn lần. Chạy O(n) không backtracking (tránh treo trên chuỗi rác dài).
+    """
+    if not text or " " not in text:
+        return text
+    tokens = text.split(" ")
+    if len(tokens) < min_run:
+        return text
+    out: list[str] = []
+    i = 0
+    n = len(tokens)
+    while i < n:
+        j = i
+        while j < n and tokens[j] == tokens[i]:
+            j += 1
+        run = j - i
+        if run >= min_run and tokens[i]:
+            out.append(tokens[i])  # giữ 1 đại diện
+        else:
+            out.extend(tokens[i:j])
+        i = j
+    return " ".join(out)
+
+
+def _collapse_repeated_span(text: str, *, max_period: int = _TABLE_SPAN_MAX_PERIOD, min_repeat: int = 4) -> str:
+    """Nén CỤM TỪ (chuỗi con) lặp liên tiếp >= ``min_repeat`` lần về 1 (rác OCR nặng).
+
+    Xử lý ca token đơn không bắt được: nguyên cụm "]: ĐI tu ĐZ 0.4 kV TBA T570..." lặp
+    trăm lần trong 1 ô. Dò chu kỳ nhỏ->lớn; collapse nhảy khối (i = j) nên nhanh trên
+    vùng lặp. Chỉ gọi cho ô dài (guard ở _sanitize_table_cell) để tránh phí CPU.
+    """
+    n = len(text)
+    if n < 32:
+        return text
+    out: list[str] = []
+    i = 0
+    while i < n:
+        collapsed = False
+        max_p = min(max_period, (n - i) // min_repeat)
+        for p in range(1, max_p + 1):
+            unit = text[i : i + p]
+            reps = 1
+            j = i + p
+            while j + p <= n and text[j : j + p] == unit:
+                reps += 1
+                j += p
+            if reps >= min_repeat:
+                out.append(unit)  # giữ 1 đại diện của cụm
+                i = j
+                collapsed = True
+                break
+        if not collapsed:
+            out.append(text[i])
+            i += 1
+    return "".join(out)
+
+
+def _sanitize_table_cell(value: str) -> str:
+    """Làm sạch 1 ô trước khi render bảng: gộp xuống dòng trong ô về khoảng trắng
+    (ô markdown phải nằm 1 dòng), thay '|' -> '/' (tránh tạo cột giả), nén khoảng
+    trắng + nén rác lặp (token đơn, và cụm-từ với ô dài). GIỮ nguyên ô hợp lệ."""
+    text = str(value or "")
+    if not text:
+        return ""
+    if "\n" in text or "\r" in text:
+        text = text.replace("\r", " ").replace("\n", " ")
+    # Fragment JSON layout của docling ("[{"bbox": [...], "category": ...}]") thỉnh
+    # thoảng lọt vào ô do OCR/parser -> rác đuôi ô, cắt bỏ từ chỗ xuất hiện.
+    if '"bbox"' in text:
+        text = _BBOX_ARTIFACT_RE.sub("", text)
+    if "|" in text:
+        text = text.replace("|", "/")
+    text = re.sub(r"[ \t]+", " ", text).strip()
+    text = _collapse_repeated_tokens(text)
+    if len(text) > _TABLE_SPAN_SCAN_MIN_LEN:
+        text = _collapse_repeated_span(text)
+    return text
+
+
+def _collapse_repeated_rows(rows_md: list[str], *, min_run: int = _TABLE_ROW_MIN_REPEAT_RUN) -> list[str]:
+    """Nén run HÀNG markdown GIỐNG HỆT lặp >= ``min_run`` lần về 1 (rác OCR hàng lặp).
+
+    Hàng byte-identical lặp >= 4 lần liên tiếp gần như luôn là artifact (vd
+    "| H[ | | | | |" x trăm). Bảng thật hiếm khi có 4 hàng y hệt liên tiếp."""
+    out: list[str] = []
+    i = 0
+    n = len(rows_md)
+    while i < n:
+        j = i
+        while j < n and rows_md[j] == rows_md[i]:
+            j += 1
+        if j - i >= min_run:
+            out.append(rows_md[i])  # giữ 1 đại diện
+        else:
+            out.extend(rows_md[i:j])
+        i = j
+    return out
+
+
 def table_to_markdown(headers: list[str], rows: list[list[str]]) -> str:
     if not headers:
-        return "\n".join(" | ".join(row) for row in rows)
+        data_rows_md = [" | ".join(_sanitize_table_cell(cell) for cell in row) for row in rows]
+        return "\n".join(_collapse_repeated_rows(data_rows_md))
     canonical_headers = _canonical_table_columns(headers)
     if canonical_headers != [clean_inline_text(header) for header in headers if clean_inline_text(header)] and len(canonical_headers) == 5:
-        output = ["| " + " | ".join(canonical_headers) + " |", "| " + " | ".join("---" for _ in canonical_headers) + " |"]
+        header_md = ["| " + " | ".join(canonical_headers) + " |", "| " + " | ".join("---" for _ in canonical_headers) + " |"]
+        data_rows_md: list[str] = []
         for row in rows:
             metadata = _compact_table_row_metadata(headers=headers, values=row, metadata={})
             if metadata.get("is_table_marker"):
                 continue
-            output.append(
+            data_rows_md.append(
                 "| "
                 + " | ".join(
-                    str(metadata.get(key) or "")
+                    _sanitize_table_cell(str(metadata.get(key) or ""))
                     for key in ("row_number", "platform", "feature_name", "change_content", "phase")
                 )
                 + " |"
             )
-        return "\n".join(output)
-    output = ["| " + " | ".join(headers) + " |", "| " + " | ".join("---" for _ in headers) + " |"]
-    output.extend("| " + " | ".join(row[: len(headers)] + [""] * max(0, len(headers) - len(row))) + " |" for row in rows)
+        return "\n".join(header_md + _collapse_repeated_rows(data_rows_md))
+    output = ["| " + " | ".join(_sanitize_table_cell(header) for header in headers) + " |", "| " + " | ".join("---" for _ in headers) + " |"]
+    data_rows_md = ["| " + " | ".join(_sanitize_table_cell(cell) for cell in (row[: len(headers)] + [""] * max(0, len(headers) - len(row)))) + " |" for row in rows]
+    output.extend(_collapse_repeated_rows(data_rows_md))
     return "\n".join(output)
 
 
@@ -1686,9 +1994,9 @@ def table_to_text(headers: list[str], rows: list[list[str]]) -> str:
     output: list[str] = []
     for row in rows:
         if headers:
-            output.append(" | ".join(f"{headers[index]}: {value}" for index, value in enumerate(row) if value and index < len(headers)))
+            output.append(" | ".join(f"{headers[index]}: {_sanitize_table_cell(value)}" for index, value in enumerate(row) if value and index < len(headers)))
         else:
-            output.append(" | ".join(value for value in row if value))
+            output.append(" | ".join(_sanitize_table_cell(value) for value in row if value))
     return "\n".join(line for line in output if line.strip())
 
 

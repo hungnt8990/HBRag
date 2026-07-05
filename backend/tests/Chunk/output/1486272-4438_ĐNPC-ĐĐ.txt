@@ -1,0 +1,93 @@
+================================================================================
+id_vb        : 1486272
+ky_hieu      : 4438/ĐNPC-ĐĐ
+trich_yeu    : Cập nhật, chuẩn hóa toàn bộ dữ liệu lưới điện trên DMS phục vụ kết nối SCADA-OMS ABB
+noi_ban_hanh : Công ty Điện lực Đà Nẵng
+ngay_vb      : 2026-06-24
+ten_file     : Bao cao hoan thanh du lieu SCADA OMS ABB V2.pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=206
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 4438/ĐNPC-ĐĐ
+Ngày văn bản: 24/06/2026
+Trích yếu: Cập nhật, chuẩn hóa toàn bộ dữ liệu lưới điện trên DMS phục vụ kết nối SCADA-OMS ABB
+Nơi ban hành: Công ty Điện lực Đà Nẵng
+Người ký: Võ Anh Hùng
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1126
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 4438/ĐNPC-ĐĐ - Cập nhật, chuẩn hóa toàn bộ dữ liệu lưới điện trên DMS phục vụ kết nối SCADA-OMS ABB
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Công ty Điện lực Đà Nẵng
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY ĐIỆN LỰC ĐÀ NẴNG
+
+Đà Nẵng, ngày 24 tháng 6 năm 2026 Số: 4438/ĐNPC-ĐĐ
+
+V/v cập nhật, chuẩn hóa toàn bộ dữ liệu lưới điện trên DMS phục vụ kết nối SCADA-OMS ABB
+
+Kính gửi: Tổng công ty Điện lực miền Trung
+
+Căn cứ công văn số 3138/EVNCPC-KT+VTCNTT ngày 26/5/2026 về việc khẩn trương triển khai giải pháp kết nối SCADA-OMS. Công ty Điện lực Đà Nẵng kính báo cáo kết quả thực hiện đối với hệ thống Scada ABB tại TTĐK Đà Nẵng 2 như sau:
+
+- Đã hoàn thành việc cập nhật, chuẩn hóa toàn bộ dữ liệu lưới điện trên DMS theo đúng cấu trúc dữ liệu của giải pháp kết nối SCADA-OMS ABB theo hướng dẫn tại văn bản 1126/EVNCPC-KT+KD+VTCNTT ngày 20/2/2025. Chi tiết việc cập nhật, chuẩn hóa dữ liệu như phụ lục Iđính kèm.
+
+- Danh mục đăng ký User để vận hành thử nghiệm như phụ lục II đính kèm.
+
+Công ty Điện lực Đà Nẵng kính báo cáo Tổng công ty.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=124
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. GIÁM ĐỐC
+
+- Như trên; PHÓ GIÁM ĐỐC
+
+- CPCIT (để phối hợp);
+
+- BGĐ;
+
+- KT, VTCNTT;
+
+- Lưu: VT, ĐĐ.
+
+Võ Anh Hùng
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=Phụ lục II — ĐĂNG KÝ USER VẬN HÀNH THỬ NGHIỆM SCADA-OMS | table=Phụ lục II — ĐĂNG KÝ USER VẬN HÀNH THỬ NGHIỆM SCADA-OMS | quality=pass | chars=518
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 4438/ĐNPC-ĐĐ - Cập nhật, chuẩn hóa toàn bộ dữ liệu lưới điện trên DMS phục vụ kết nối SCADA-OMS ABB
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Công ty Điện lực Đà Nẵng
+Bảng: Phụ lục II — ĐĂNG KÝ USER VẬN HÀNH THỬ NGHIỆM SCADA-OMS
+| STT | Họ và tên | User OMS2 | Ghi chú |
+| --- | --- | --- | --- |
+| 1 | Nguyễn Văn Sơn | sonnv2 | Vận hành OMS |
+| 2 | Nguyễn Nhật Cường | cuongnn3 | Vận hành OMS |
+| 3 | Nguyễn Văn Luận | luannv4 | Vận hành OMS |
+| 4 | Nguyễn Bách Thảo | thaonb | Theo dõi kết nối SCADA-OMS |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_body | section=Phụ lục | artifact=appendix | quality=pass | chars=375
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 4438/ĐNPC-ĐĐ - Cập nhật, chuẩn hóa toàn bộ dữ liệu lưới điện trên DMS phục vụ kết nối SCADA-OMS ABB
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Công ty Điện lực Đà Nẵng
+Mục: Phụ lục
+Phụ lục IBẢNG TỔNG HỢP THIẾT BỊ ĐÃ LIÊN KẾT SCADA-ID TRÊN CHƯƠNG TRÌNH OMS
+
+(Ghi chú: dữ liệu thống kê lúc 10h30 ngày 23/6/2026)
+
+Phụ lục II
+
+ĐĂNG KÝ USER VẬN HÀNH THỬ NGHIỆM SCADA-OMS

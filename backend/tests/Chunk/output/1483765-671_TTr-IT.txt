@@ -1,0 +1,105 @@
+================================================================================
+id_vb        : 1483765
+ky_hieu      : 671/TTr-IT
+trich_yeu    : Về việc cấp tiền gốc và lãi vay Techcombank Q2/2026
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-23
+ten_file     : goclaitechM.pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=182
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 671/TTr-IT
+Ngày văn bản: 23/06/2026
+Trích yếu: Về việc cấp tiền gốc và lãi vay Techcombank Q2/2026
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Trần Khắc Tuấn
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1534
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 671/TTr-IT - Về việc cấp tiền gốc và lãi vay Techcombank Q2/2026
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+TỔNG CÔNG TY CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 23 tháng 6 năm 2026
+
+Số: 671/TTr-IT
+
+TỜ TRÌNH
+
+cấp tiền để trả gốc và lãi vay công trình Về việc
+
+Kính gửi: Tổng công ty Điện lực miền Trung
+
+Căn cứ các hợp đồng vay giữa Công ty Công nghệ thông tin Điện lực miền Trung - Tổng công ty Điện lực miền Trung và Ngân hàng TMCP Kỹ Thương Việt Nam về việc vay vốn các dự án;
+
+Căn cứ thông báo nợ đến hạn ngày 04/6/2026 của Ngân hàng TMCP Kỹ Thương Việt Nam - Chi nhánh Đà Nẵng.
+
+Công ty Công nghệ thông tin Điện lực miền Trung (CPCIT) đã vay vốn tại Ngân hàng Kỹ Thương Việt Nam - CN Đà Nẵng để đầu tư xây dựng các công trình. Theo thông báo của Ngân hàng, khoản gốc và lãi vay đến hạn phải trả của các khoản vay này tại ngày 30/6/2026 là 756.543.410 đồng Bằng chữ: Bảy trăm năm mươi sáu triệu, năm trăm bốn mươi ba nghìn, bốn trăm mười đồng). Bảng kê chi tiết theo công trình như Phụ lục đính kèm.
+
+Để kịp thời chi trả cho Ngân hàng TMCP Kỹ Thương Việt Nam - CN Đà Nẵng, CPCIT kính mong Tổng công ty xem xét cấp số tiền nêu trên cho CPCIT, thông tin chuyển khoản như sau:
+
+- Đơn vị thụ hưởng: Công ty Công nghệ thông tin Điện lực miền Trung - Tổng công ty Điện lực miền Trung.
+
+- Số tài khoản: 19020023138011.
+
+- Tại ngân hàng: TMCP Kỹ Thương Việt Nam - CN Đà Nẵng.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=63
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: GIÁM ĐỐC
+
+- Như trên;
+
+- Lưu: VT, TH.
+
+Trần Khắc Tuấn
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=2201
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 671/TTr-IT - Về việc cấp tiền gốc và lãi vay Techcombank Q2/2026
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: Bảng DOffice 1
+| STT | Tên dự án | Số dư nợ vay hiện tại | Gốc vay phải trả | Lãi vay phải trả | Tổng lãi vay và gốc vay phải trả | Ngày hoàn thành dự án | Lãi đưa vào SXKD | Lãi đưa vào XDCB | Ghi chú |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 2 | 3 | 4 | 5 | 6 | 7 | | | |
+| 1 | Nâng cao hạ tầng CNTT để vận hành các phần mềm dùng chung EVNCPC | 1.903.249.997 | | 38.909.730 | 38.909.730 | 29/05/2020 | 38.909.730 | | |
+| 2 | Triển khai điện toán đám mây dùng riêng cho EVNCPC | 1.855.500.000 | | 37.933.537 | 37.933.537 | 19/02/2020 | 37.933.537 | | |
+| 3 | Nâng cao năng lực dự phòng trung tâm dữ liệu EVNCPC năm 2019 | 2.003.500.003 | | 40.959.224 | 40.959.224 | 05/06/2020 | 40.959.224 | | |
+| 4 | Đầu tư nâng cao an toàn thông tin hệ thống mạng EVNCPC (GĐ5) | 942.750.000 | | 19.273.425 | 19.273.425 | 16/10/2020 | 19.273.425 | | |
+| 5 | Nâng cao hệ thống giám sát ATTT EVNCPC | 2.448.000.000 | | 50.046.509 | 50.046.509 | 14/12/2020 | 50.046.509 | | |
+| 6 | BS tài nguyên TTDL EVNCPC 2020 | 2.305.352.503 | | 47.130.248 | 47.130.248 | 22/12/2020 | 47.130.248 | | |
+| 7 | Mở rộng kết nối hạ tầng mạng TTDL EVNCPC năm 2020 | 1.922.500.003 | | 39.303.273 | 39.303.273 | 31/12/2020 | 39.303.273 | | |
+| 8 | Mở rộng hệ thống HNTH EVNCPC năm 2020 | 1.308.739.637 | | 26.755.658 | 26.755.658 | 31/12/2020 | 26.755.658 | | |
+| 9 | Nâng cao an toàn thông tin cho các đơn vị | 2.222.749.988 | | 45.441.536 | 45.441.536 | 30/06/2021 | 45.441.536 | | |
+| 10 | Lắp đặt bổ sung hệ thống chống sét tòa nhà Tổng công ty Điện lực miền Trung và Trung tâm dữ liệu EVNCPC | 1.361.907.857 | | 27.842.621 | 27.842.621 | 31/12/2020 | 27.842.621 | | |
+| 11 | Nâng cao công tác vận hành chương trình ứng dụng năm 2021 | 2.063.941.176 | 158.764.706 | 43.184.435 | 201.949.141 | 15/12/2021 | 43.184.435 | | |
+| 12 | Đầu tư nâng cao vận hành TTDL EVNCPC | 1.849.823.528 | 142.294.118 | 38.704.390 | 180.998.508 | 22/12/2021 | 38.704.390 | | |
+| | Tổng cộng | 22.188.014.692 | 301.058.824 | 455.484.586 | 756.543.410 | | 455.484.586 | | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_body | section=Văn bản đính kèm | artifact=attached_document | quality=pass | chars=299
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 671/TTr-IT - Về việc cấp tiền gốc và lãi vay Techcombank Q2/2026
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: Văn bản đính kèm
+BẢNG CHI TIẾT GỐC VÀ LÃI VAY NGÂN HÀNG TMCP KỸ THƯƠNG VIỆT NAM - CHI NHÁNH ĐÀ NẴNG
+
+Tính đến ngày 30/6/2026
+
+Đơn vị tính: đồng

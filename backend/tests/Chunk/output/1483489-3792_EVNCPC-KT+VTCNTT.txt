@@ -1,0 +1,173 @@
+================================================================================
+id_vb        : 1483489
+ky_hieu      : 3792/EVNCPC-KT+VTCNTT
+trich_yeu    : Góp ý tài liệu yêu cầu nâng cấp phần mềm Quản lý kỹ thuật (PMIS 3.0)
+
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-23
+ten_file     : Gop y Tai lieu nghiep vu phuc vu nang cap PMIS 3.0_Gui ICT.pdf
+TỔNG SỐ CHUNK: 8
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=209
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3792/EVNCPC-KT+VTCNTT
+Ngày văn bản: 23/06/2026
+Trích yếu: Góp ý tài liệu yêu cầu nâng cấp phần mềm Quản lý kỹ thuật (PMIS 3.0)
+
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Trần Văn Gia
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=851
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3792/EVNCPC-KT+VTCNTT - Góp ý tài liệu yêu cầu nâng cấp phần mềm Quản lý kỹ thuật (PMIS 3.0)
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+TỔNG CÔNG TY Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 23 tháng 6 năm 2026 Số: 3792/EVNCPC-KT+VTCNTT V/v góp ý tài liệu yêu cầu nâng cấp phần mềm Quản lý kỹ thuật (PMIS 3.0)
+
+Kính gửi: Công ty Viễn thông điện lực và Công nghệ thông tin (EVNICT)
+
+Tổng công ty Điện lực miền Trung (EVNCPC) nhận được văn bản số
+
+929/EVNICT-TTPM ngày 08/6/2026 của EVNICT về việc góp ý tài liệu yêu cầu
+
+nâng cấp phần mềm Quản lý kỹ thuật (PMIS 3.0).
+
+Sau khi nghiên cứu, EVNCPC kính gửi EVNICT góp ý về yêu cầu nâng cấp
+
+phần mềm PMIS 3.0 đối với khối lưới điện chi tiết như phụ lục đính kèm.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=284
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. TỔNG GIÁM ĐỐC
+
+- Như trên; PHÓ TỔNG GIÁM ĐỐC
+
+- EVN (báo cáo);
+
+- TGĐ EVNCPC (báo cáo);
+
+- PTGĐ Trần Nguyễn Bảo An;
+
+- Các CTĐL trực thuộc;
+
+- NĐD phần vốn EVNCPC tại KHPC;
+
+- CPSC, CPCIT, ETC, NPMU;
+
+- Ban AT, KD, KH, ĐT, TCKT, PC;
+
+- Lưu: VT, VTCNTT, KT.
+
+Trần Văn Gia
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=Phụ lục Góp ý đối với tài liệu Yêu cầu phần mềm phục vụ nâng cấp phần mềm PMIS 3.0 | artifact=appendix | quality=pass | chars=376
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3792/EVNCPC-KT+VTCNTT - Góp ý tài liệu yêu cầu nâng cấp phần mềm Quản lý kỹ thuật (PMIS 3.0)
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục Góp ý đối với tài liệu Yêu cầu phần mềm phục vụ nâng cấp phần mềm PMIS 3.0
+Phụ lục
+
+Góp ý đối với tài liệu Yêu cầu phần mềm phục vụ nâng cấp phần mềm PMIS 3.0
+
+Nghiệp vụ khối lưới điện
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_section | section=Phụ lục Góp ý đối với tài liệu Yêu cầu phần mềm phục vụ nâng cấp phần mềm PMIS 3.0 > 1. Góp ý chung | artifact=appendix | quality=pass | chars=2470
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3792/EVNCPC-KT+VTCNTT - Góp ý tài liệu yêu cầu nâng cấp phần mềm Quản lý kỹ thuật (PMIS 3.0)
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục Góp ý đối với tài liệu Yêu cầu phần mềm phục vụ nâng cấp phần mềm PMIS 3.0 > 1. Góp ý chung
+1. Góp ý chung
+
+Dự thảo tài liệu đã bao quát tương đối đầy đủ các nhóm nghiệp vụ chính của khối lưới điện, bao gồm: quản lý thiết bị lưới điện, quản lý thông số vận hành, quản lý công tác lưới điện, quản lý sự cố/khiếm khuyết, quản lý sửa chữa bảo dưỡng và quản lý tài liệu kỹ thuật, báo cáo.
+
+Tuy nhiên, một số nội dung trong dự thảo đang được mô tả theo hướng PMIS 3.0 trực tiếp thực hiện khá đầy đủ các quy trình nghiệp vụ. Trong khi đó, tại các đơn vị hiện đã có nhiều phần mềm dùng chung của EVN hoặc dùng riêng tại đơn vị quản lý các nghiệp vụ liên quan như IMIS, ERP, KTHTv2, OMS, KTAT/SMIS, BBTN và chương trình SCL. Vì vậy, nếu không phân định rõ phạm vi quản lý, tích hợp và khai thác dữ liệu, có thể dẫn đến trùng lặp chức năng, phát sinh nhập liệu nhiều lần và khó xác định hệ thống là nguồn dữ liệu chính thức.
+
+EVNCPC có một số ý kiến đề xuất như sau:
+
+- Đối với từng nhóm quy trình/nghiệp vụ trong tài liệu tổng thể, đề nghị phân định rõ phạm vi của PMIS 3.0, gồm: nội dung PMIS quản lý chính, nội dung PMIS tích hợp/đồng bộ dữ liệu từ hệ thống khác và nội dung PMIS chỉ khai thác kết quả phục vụ tra cứu, báo cáo.
+
+- Bổ sung các yêu cầu kiểm soát chất lượng dữ liệu, gồm: chuẩn hóa bộ mã liên kết, kiểm tra và hạn chế trùng lặp dữ liệu, quản lý lịch sử thay đổi, phân quyền cập nhật, ghi log thao tác, cơ chế xác nhận/chốt số liệu và đối soát dữ liệu giữa các hệ thống.
+
+- Bổ sung yêu cầu về API/Web service bảo đảm an toàn thông tin, phục vụ chia sẻ và đồng bộ dữ liệu giữa PMIS 3.0 với các phần mềm dùng chung của EVN, các phần mềm chuyên ngành tại đơn vị và các ứng dụng hiện trường.
+
+- PMIS 3.0 cần có cơ chế phân quyền chi tiết theo cấp quản lý, đơn vị quản lý vận hành, nhóm nghiệp vụ và trạng thái hồ sơ; đồng thời có cơ chế khóa/chốt dữ liệu đối với các hồ sơ quan trọng như nghiệm thu, sự cố, sửa chữa, thí nghiệm và báo cáo chính thức.
+
+- Bổ sung yêu cầu kế thừa dữ liệu hiện có của PMIS 2.0 và khắc phục các tồn tại đã được các đơn vị phản ánh trong quá trình vận hành. Đối với các tồn tại đang ảnh hưởng đến vận hành PMIS 2.0 trong thời gian chờ nâng cấp, đề nghị có phương án xử lý, kế thừa sang PMIS 3.0 nhằm bảo đảm tính liên tục của dữ liệu và nghiệp vụ.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=table | section=2. Góp ý chi tiết | table=2. Góp ý chi tiết | quality=pass | chars=2598
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3792/EVNCPC-KT+VTCNTT - Góp ý tài liệu yêu cầu nâng cấp phần mềm Quản lý kỹ thuật (PMIS 3.0)
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: 2. Góp ý chi tiết
+Phần: 1/3
+| STT | Phân hệ/Chức năng/Bước quy trình | Mô tả | Đối tượng sử dụng | Góp ý |
+| --- | --- | --- | --- | --- |
+| I | Quản lý thiết bị lưới điện | | | |
+| 1 | Quy trình quản lý vòng đời thiết bị | | | |
+| Bước 1 | Cập nhật thông tin thiết bị (giai đoạn đầu tư) Góp ý chung | Khởi tạo thông tin thiết bị trên phần mềm PMIS; cập nhật hồ sơ lý lịch, thông số kỹ thuật, tài liệu từ nhà sản xuất và các thông tin phục vụ công tác quản lý thiết bị. | Bộ phận quản lý dự án | - Đề nghị làm rõ đơn vị/bộ phận chủ trì cập nhật thông tin thiết bị ở giai đoạn đầu tư. Theo tài liệu nghiệp vụ tổng thể đã được EVN phê duyệt, đối tượng thực hiện bước này là Bộ phận vận hành. - Trường hợp giao Bộ phận quản lý dự án thực hiện, đề nghị bổ sung chức năng liên kết/đồng bộ dữ liệu tự động từ các phần mềm liên quan như IMIS, ERP... nhằm hạn chế nhập liệu trùng lặp. - Đề nghị làm rõ sự khác nhau giữa trạng thái kỹ thuật của thiết bị và trạng thái quản lý tài sản thiết bị. - Bổ sung luồng xử lý sau khi thiết bị được thay thế hoặc điều chuyển, như: tiếp tục vận hành tại vị trí mới, chuyển dự phòng, chờ sửa chữa hoặc chờ thanh lý. - Bổ sung các trường mã tham chiếu cần thiết để đối chiếu dữ liệu đầu tư, tài sản; đồng thời nghiên cứu khả năng kết nối, khai thác và trao đổi dữ liệu với IMIS, ERP. |
+| II | Quản lý công tác lưới điện | | | |
+| 1 | Quy trình dự báo, lập kế hoạch và theo dõi thực hiện công việc | | | |
+| Bước 4 | Lập và đăng ký kế hoạch công tác | Đơn vị quản lý vận hành căn cứ nhu cầu thực tế, kế hoạch định kỳ và các cảnh báo từ hệ thống để lập kế hoạch công tác, đăng ký lịch công tác và trình cấp có thẩm quyền xem xét, phê duyệt. | Bộ phận vận hành | - Đề nghị làm rõ các bước lập, đăng ký và phê duyệt kế hoạch công tác có thực hiện trực tiếp trên PMIS 3.0 hay không. - Trường hợp PMIS 3.0 quản lý các nội dung này, đề nghị bổ sung yêu cầu liên kết/đồng bộ dữ liệu với phần mềm OMS để tránh trùng lặp quy trình và dữ liệu. |
+| Bước 5 | Phê duyệt kế hoạch công tác | Cấp quản lý thực hiện xem xét, kiểm tra và phê duyệt kế hoạch công tác theo phân cấp quản lý và quy định hiện hành. | Lãnh đạo đơn vị | - Đề nghị làm rõ các bước lập, đăng ký và phê duyệt kế hoạch công tác có thực hiện trực tiếp trên PMIS 3.0 hay không. - Trường hợp PMIS 3.0 quản lý các nội dung này, đề nghị bổ sung yêu cầu liên kết/đồng bộ dữ liệu với phần mềm OMS để tránh trùng lặp quy trình và dữ liệu. |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=table | section=2. Góp ý chi tiết | table=2. Góp ý chi tiết | quality=pass | chars=3351
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3792/EVNCPC-KT+VTCNTT - Góp ý tài liệu yêu cầu nâng cấp phần mềm Quản lý kỹ thuật (PMIS 3.0)
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: 2. Góp ý chi tiết
+Phần: 2/3
+| STT | Phân hệ/Chức năng/Bước quy trình | Mô tả | Đối tượng sử dụng | Góp ý |
+| --- | --- | --- | --- | --- |
+| Bước 6 | Cấp phiếu/lệnh công tác và tổ chức thực hiện Góp ý chung | Đơn vị quản lý vận hành thực hiện phát hành phiếu công tác/lệnh công tác trên hệ thống PMIS, tổ chức thực hiện công việc và cập nhật kết quả, hồ sơ, tài liệu liên quan lên phần mềm theo quy định. | Lãnh đạo đơn vị / Bộ phận vận hành | - Đề nghị xem xét bổ sung chức năng liên kết/đồng bộ dữ liệu phiếu công tác, lệnh công tác với chương trình SMIS hoặc chương trình KTAT của EVNCPC. - EVNCPC đã nâng cấp và đưa vào sử dụng phần mềm KTHTv2 (Web và App mobile) phục vụ công tác dự báo, lập kế hoạch, thực hiện công việc, ghi nhận và giao xử lý các tồn tại/khiếm khuyết trên lưới điện; đồng thời đã kết nối, chia sẻ dữ liệu với PMIS 2.0. Đề nghị PMIS 3.0 cho phép tích hợp, kế thừa dữ liệu và các bước quy trình liên quan từ KTHTv2. |
+| III | Quản lý sự cố/khiếm khuyết lưới điện | | | |
+| 1 | Quy trình xử lý Khiếm khuyết lưới điện | | | |
+| Bước 1 | Ghi nhận khiếm khuyết | Trong quá trình kiểm tra, vận hành hoặc theo dõi tình trạng thiết bị, khi phát hiện các hiện tượng bất thường như rò rỉ dầu, phát nhiệt, phóng điện, rung lắc hoặc các dấu hiệu bất thường khác, đơn vị quản lý vận hành thực hiện ghi nhận và cập nhật thông tin khiếm khuyết theo quy định. | Bộ phận vận hành | - EVNCPC đã nâng cấp và đưa vào sử dụng phần mềm KTHTv2 (Web và App mobile) phục vụ ghi nhận, theo dõi, phân loại và giao xử lý các tồn tại/khiếm khuyết trên lưới điện; đồng thời đã kết nối, chia sẻ dữ liệu với PMIS 2.0. Đề nghị PMIS 3.0 cho phép tích hợp, kế thừa dữ liệu và các bước quy trình liên quan từ KTHTv2. |
+| Bước 2 | Đánh giá và phân công xử lý | Đơn vị quản lý vận hành thực hiện đánh giá mức độ ảnh hưởng, phân loại mức độ rủi ro của khiếm khuyết và xác định phương án xử lý phù hợp. Trường hợp cần thiết, thực hiện phân công đơn vị hoặc bộ phận chịu trách nhiệm xử lý theo phân cấp quản lý. | Bộ phận vận hành | - EVNCPC đã nâng cấp và đưa vào sử dụng phần mềm KTHTv2 (Web và App mobile) phục vụ ghi nhận, theo dõi, phân loại và giao xử lý các tồn tại/khiếm khuyết trên lưới điện; đồng thời đã kết nối, chia sẻ dữ liệu với PMIS 2.0. Đề nghị PMIS 3.0 cho phép tích hợp, kế thừa dữ liệu và các bước quy trình liên quan từ KTHTv2. |
+| Bước 3 | Khảo sát hiện trường và chuẩn bị vật tư | Đơn vị xử lý phối hợp với đơn vị quản lý vận hành thực hiện khảo sát hiện trường, phân tích nguyên nhân, lập phương án xử lý kỹ thuật, xác định nhu cầu vật tư, thiết bị và chuẩn bị các điều kiện phục vụ công tác xử lý khiếm khuyết. | Bộ phận sửa chữa / Bộ phận vật tư | - Đề nghị làm rõ bước khảo sát hiện trường và chuẩn bị vật tư có thực hiện trực tiếp trên PMIS 3.0 hay không. Theo tài liệu nghiệp vụ tổng thể EVN phê duyệt, trường hợp cần thiết bị thay thế thì lập biên bản khảo sát và giấy đề nghị xuất VTTB ký số trên PMIS. - Trường hợp PMIS 3.0 quản lý các nội dung này, đề nghị bổ sung chức năng liên kết/đồng bộ dữ liệu khảo sát hiện trường, nhu cầu vật tư, thiết bị... với các phần mềm liên quan như SMIS/KTAT, ERP. |
+| IV | Quản lý sửa chữa bảo dưỡng lưới điện | | | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=table | section=2. Góp ý chi tiết | table=2. Góp ý chi tiết | quality=pass | chars=5432
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3792/EVNCPC-KT+VTCNTT - Góp ý tài liệu yêu cầu nâng cấp phần mềm Quản lý kỹ thuật (PMIS 3.0)
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: 2. Góp ý chi tiết
+Phần: 3/3
+| STT | Phân hệ/Chức năng/Bước quy trình | Mô tả | Đối tượng sử dụng | Góp ý |
+| --- | --- | --- | --- | --- |
+| 1 | Quy trình quản lý sửa chữa thường xuyên | | | |
+| Bước 1 | Lập danh mục và kế hoạch sửa chữa thường xuyên | Đơn vị quản lý vận hành căn cứ tình trạng thiết bị, kết quả kiểm tra vận hành, khiếm khuyết phát sinh và nhu cầu quản lý kỹ thuật để lập danh mục và kế hoạch sửa chữa thường xuyên theo quy định. | Bộ phận vận hành | - Đề nghị làm rõ bước lập danh mục và kế hoạch SCTX có thực hiện trực tiếp trên PMIS 3.0 hay không. Theo tài liệu nghiệp vụ tổng thể EVN phê duyệt, ĐVQLVH lập kế hoạch SCTX định kỳ hằng tháng trên PMIS hoặc tiếp nhận các khiếm khuyết đột xuất từ hiện trường để đưa vào xử lý. - EVNCPC đã nâng cấp và đưa vào sử dụng phần mềm KTHTv2 (Web và App mobile) phục vụ dự báo, lập kế hoạch, thực hiện công việc, ghi nhận và giao xử lý các tồn tại/khiếm khuyết trên lưới điện; đồng thời đã kết nối, chia sẻ dữ liệu với PMIS 2.0. Đề nghị PMIS 3.0 cho phép tích hợp, kế thừa dữ liệu và các bước quy trình liên quan từ KTHTv2. |
+| Bước 2 | Xem xét và phê duyệt phương án sửa chữa | Cấp quản lý thực hiện xem xét mức độ cần thiết, phạm vi công việc, phương án kỹ thuật, nhu cầu vật tư và kế hoạch thực hiện sửa chữa theo phân cấp quản lý. | Lãnh đạo đơn vị | - Đề nghị làm rõ bước xem xét, phê duyệt phương án sửa chữa có thực hiện trực tiếp trên PMIS 3.0 hay không; trường hợp có, cần xác định rõ thông tin đầu vào, cấp phê duyệt, trạng thái hồ sơ và cơ chế lưu vết phê duyệt. |
+| Bước 3 | Tổ chức thực hiện sửa chữa | Đơn vị sửa chữa tổ chức nhân lực, vật tư, thiết bị và triển khai công tác sửa chữa tại hiện trường theo phương án kỹ thuật và biện pháp an toàn đã được phê duyệt. | Bộ phận sửa chữa | - Đề nghị làm rõ bước tổ chức thực hiện sửa chữa có được cập nhật, theo dõi trên PMIS 3.0 hay không; trường hợp có, cần quy định phạm vi cập nhật tiến độ, nhân lực, vật tư, biện pháp an toàn và hồ sơ phát sinh. |
+| Bước 4 | Kiểm tra, nghiệm thu và hoàn thiện hồ sơ | Sau khi hoàn thành công việc, các bộ phận liên quan thực hiện kiểm tra, nghiệm thu kết quả sửa chữa, cập nhật tình trạng thiết bị và hoàn thiện hồ sơ quản lý kỹ thuật theo quy định. | Bộ phận vận hành | - Đề nghị làm rõ bước kiểm tra, nghiệm thu và hoàn thiện hồ sơ có thực hiện trên PMIS 3.0 hay không; trường hợp có, cần bổ sung yêu cầu cập nhật tình trạng thiết bị sau sửa chữa, lưu hồ sơ nghiệm thu, ký số/chốt hồ sơ và đồng bộ dữ liệu liên quan với các hệ thống khác. |
+| 2 | Quy trình quản lý sửa chữa lớn | Sau khi hoàn thành công việc, các bộ phận liên quan thực hiện kiểm tra, nghiệm thu kết quả sửa chữa, cập nhật tình trạng thiết bị và hoàn thiện hồ sơ quản lý kỹ thuật theo quy định. | Bộ phận vận hành | - Đề nghị làm rõ bước kiểm tra, nghiệm thu và hoàn thiện hồ sơ có thực hiện trên PMIS 3.0 hay không; trường hợp có, cần bổ sung yêu cầu cập nhật tình trạng thiết bị sau sửa chữa, lưu hồ sơ nghiệm thu, ký số/chốt hồ sơ và đồng bộ dữ liệu liên quan với các hệ thống khác. |
+| Bước 1 | Lập danh mục và kế hoạch sửa chữa lớn | Đơn vị quản lý vận hành căn cứ kết quả đánh giá tình trạng thiết bị, kết quả kiểm tra, thí nghiệm, đánh giá CBM, lịch sử vận hành và nhu cầu vận hành lưới điện để lập danh mục, kế hoạch, phương án kỹ thuật và dự toán sửa chữa lớn theo quy định. | Bộ phận vận hành | - Đề nghị làm rõ bước lập danh mục, kế hoạch và phương án kỹ thuật SCL có thực hiện trực tiếp trên PMIS 3.0 hay không. Theo tài liệu nghiệp vụ tổng thể EVN phê duyệt, đơn vị lập danh mục và phương án kỹ thuật SCL trên PMIS. - Trường hợp PMIS 3.0 quản lý các nội dung này, đề nghị bổ sung chức năng liên kết/đồng bộ dữ liệu liên quan với phần mềm SCL. |
+| Bước 3 | Tổ chức thực hiện sửa chữa lớn | Đơn vị sửa chữa tổ chức triển khai thi công theo phương án kỹ thuật, kế hoạch và biện pháp an toàn đã được phê duyệt; đồng thời theo dõi, cập nhật tình hình thực hiện và phối hợp xử lý các phát sinh trong quá trình thi công. | Bộ phận sửa chữa | - Đề nghị làm rõ các nội dung như đăng ký công tác, lập phiếu công tác, cập nhật nhật ký thi công... có thực hiện trực tiếp trên PMIS 3.0 hay không. Theo tài liệu EVN phê duyệt, các nội dung này có thực hiện trên PMIS. - Trường hợp PMIS 3.0 quản lý các nội dung này, đề nghị bổ sung chức năng liên kết/đồng bộ dữ liệu với các phần mềm liên quan như SMIS/KTAT, OMS, IMIS... |
+| V | Chức năng báo cáo Góp ý chung | Đơn vị sửa chữa tổ chức triển khai thi công theo phương án kỹ thuật, kế hoạch và biện pháp an toàn đã được phê duyệt; đồng thời theo dõi, cập nhật tình hình thực hiện và phối hợp xử lý các phát sinh trong quá trình thi công. | Bộ phận sửa chữa | - Nâng cấp công nghệ chức năng lập báo cáo trên PMIS, hiện tại chức năng báo cáo đang trích xuất dữ liệu theo các biểu mẫu thiết lập bằng file Excel. Tuy nhiên đối với các báo cáo chi tiết với khối lượng dữ liệu lớn thường mất nhiều thời gian để hoàn thành các bước tổng hợp. - Ngoài ra, chức năng lập trình các báo cáo hiện tại do cán bộ CPCIT thực hiện; chưa có chức năng để người dùng chủ động biên tập, xây dựng báo cáo theo hình thức low-code/no-code, đầu vào các báo cáo còn hạn chế, chưa tối ưu khi cần tổng hợp theo nhiều giá trị trong danh mục (ví dụ: tổng hợp theo nhiều cấp điện áp, loại thiết bị...) |

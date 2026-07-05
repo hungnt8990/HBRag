@@ -1,0 +1,69 @@
+================================================================================
+id_vb        : 1480225
+ky_hieu      : 663/IT-ĐT
+trich_yeu    : Về việc Thông báo chấp thuận E-HSDT và trao hợp đồng
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-19
+ten_file     : 32-Thư chấp thuận E-HSDT và trao hop dong-Bandonen 2026.pdf
+TỔNG SỐ CHUNK: 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=183
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 663/IT-ĐT
+Ngày văn bản: 19/06/2026
+Trích yếu: Về việc Thông báo chấp thuận E-HSDT và trao hợp đồng
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Nguyễn Sơn Bình
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=2231
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 663/IT-ĐT - Về việc Thông báo chấp thuận E-HSDT và trao hợp đồng
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 19 tháng 6 năm 2026
+
+Số: 663/IT-ĐT
+
+Về việc Thông báo chấp thuận E-HSDT
+
+và trao hợp đồng
+
+THƯ CHẤP THUẬN E-HSDT VÀ TRAO HỢP ĐỒNG
+
+Kính gửi: Công ty TNHH Giải pháp Công nghệ Trường Thịnh Phát
+
+Căn cứ Quyết định số 660/QĐ-IT ngày 18/6/2026 của Công ty Công nghệ thông tin Điện lực miền Trung (sau đây gọi tắt là "Chủ đầu tư") về việc phê duyệt kết quả lựa chọn nhà thầu gói thầu 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình: Cung cấp dịch vụ bản đồ nền, Chủ đầu tư thông báo chấp thuận E-HSDT và trao hợp đồng cho Nhà thầu để thực hiện gói thầu gói thầu 06.PTV: Cung cấp dịch vụ bản đồ nền với giá hợp đồng là 579.348.000 đồng (Đã bao gồm thuế VAT).
+
+Đề nghị đại diện hợp pháp của Nhà thầu tiến hành hoàn thiện và ký kết hợp đồng với Chủ đầu tư, theo kế hoạch như sau:
+
+- Thời gian hoàn thiện hợp đồng: ngày 19/6/2026 tại địa điểm Công ty Công nghệ thông tin Điện lực miền Trung;
+
+Đề nghị Nhà thầu thực hiện biện pháp bảo đảm thực hiện hợp đồng theo Mẫu số 15 Phần 4 của E-HSMT với số tiền với số tiền 03% giá trị hợp đồng và thời gian hiệu lực kể từ ngày phát hành bảo lãnh hoặc ngày hợp đồng có hiệu lực (tùy điều kiện nào đến trước) cho đến hết ngày thứ 28 sau khi Nhà thầu hoàn thành tất cả Công việc của hợp đồng và Chủ đầu tư nhận được Bảo lãnh bảo hành.
+
+Văn bản này là một phần không thể tách rời của hồ sơ hợp đồng. Sau khi nhận được văn bản này, Nhà thầu hoàn thiện, ký kết hợp đồng và thực hiện biện pháp bảo đảm thực hiện hợp đồng theo yêu cầu nêu trên. Chủ đầu tư sẽ từ chối hoàn thiện, ký kết hợp đồng với Nhà thầu trong trường hợp phát hiện năng lực hiện tại của Nhà thầu không đáp ứng yêu cầu thực hiện gói thầu.
+
+Nếu đến ngày 25/6/2026 mà Nhà thầu không tiến hành hoàn thiện, ký kết hợp đồng hoặc từ chối hoàn thiện, ký kết hợp đồng hoặc không thực hiện biện pháp bảo đảm thực hiện hợp đồng theo các yêu cầu nêu trên thì Nhà thầu sẽ bị loại và không được nhận lại bảo đảm dự thầu.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=149
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: ĐẠI DIỆN HỢP PHÁP CỦA CHỦ ĐẦU TƯ
+
+- Như trên; KT. GIÁM ĐỐC
+
+- Giám đốc (báo cáo);
+
+PHÓ GIÁM ĐỐC - Lưu: VT, ĐT.
+Trí .......
+
+Nguyễn Sơn Bình

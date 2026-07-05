@@ -1,0 +1,107 @@
+================================================================================
+id_vb        : 1478663
+ky_hieu      : 104/QĐ-HĐTV
+trich_yeu    : Quyết định v/v bổ nhiệm Kế toán trưởng Tập đoàn Điện lực Việt Nam (Đ/c Nguyễn Xuân Phú)
+noi_ban_hanh : Tập đoàn Điện lực Việt Nam
+ngay_vb      : 2026-06-18
+ten_file     : 2026 QĐ bo nhiem Ke toan truong.pdf
+TỔNG SỐ CHUNK: 6
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=212
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 104/QĐ-HĐTV
+Ngày văn bản: 18/06/2026
+Trích yếu: Quyết định v/v bổ nhiệm Kế toán trưởng Tập đoàn Điện lực Việt Nam (Đ/c Nguyễn Xuân Phú)
+Nơi ban hành: Tập đoàn Điện lực Việt Nam
+Người ký: Đặng Hoàng An
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1451
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 104/QĐ-HĐTV - Quyết định v/v bổ nhiệm Kế toán trưởng Tập đoàn Điện lực Việt Nam (Đ/c Nguyễn Xuân Phú)
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: preamble
+TẬP ĐOÀN CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC VIỆT NAM
+
+Hà Nội, ngày tháng năm 2026 Số: /QĐ-HĐTV
+
+QUYẾT ĐỊNH
+
+Về việc bổ nhiệm Kế toán trưởng Tập đoàn Điện lực Việt Nam
+
+HỘI ĐỒNG THÀNH VIÊN TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM
+
+Căn cứ Nghị định số 26/2018/NĐ-CP ngày 28/02/2018 của Chính phủ về Điều lệ tổ chức và hoạt động của Tập đoàn Điện lực Việt Nam;
+
+Căn cứ Nghị định số 105/2024/NĐ-CP ngày 01/8/2024 của Chính phủ về sửa đổi, bổ sung một số điều của Nghị định số 96/2022/NĐ-CP ngày 29/11/2022 của Chính phủ quy định chức năng, nhiệm vụ, quyền hạn và cơ cấu tổ chức của Bộ Công Thương và Nghị định số 26/2018/NĐ-CP ngày 28/02/2018 của Chính phủ về Điều lệ tổ chức và hoạt động của Tập đoàn Điện lực Việt Nam;
+
+Căn cứ Quy chế hoạt động của người đại diện phần vốn của Tập đoàn Điện lực Việt Nam ban hành kèm theo Quyết định số 68/QĐ-HĐTV ngày 10/4/2026 và Quy chế về công tác cán bộ trong Tập đoàn Điện lực Việt Nam ban hành kèm theo Quyết định số 138/QĐ-HĐTV ngày 31/5/2025 của Hội đồng thành viên;
+
+Căn cứ Nghị quyết số 38-NQ/ĐU ngày 10/6/2026 của Ban Thường vụ Đảng ủy và Nghị quyết số 169/NQ-HĐTV ngày 17/6/2026 của Hội đồng thành viên thông qua bổ nhiệm Kế toán trưởng EVN;
+
+Theo đề nghị của Tổng giám đốc.
+
+QUYẾT ĐỊNH:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=legal_clause | section=Điều 1 Bổ nhiệm đồng chí Nguyễn Xuân Phú, Trưởng ban Tài chính Kế toán EVN, giữ chức vụ Kế toán t… | quality=pass | chars=436
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 104/QĐ-HĐTV - Quyết định v/v bổ nhiệm Kế toán trưởng Tập đoàn Điện lực Việt Nam (Đ/c Nguyễn Xuân Phú)
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: Điều 1 Bổ nhiệm đồng chí Nguyễn Xuân Phú, Trưởng ban Tài chính Kế toán EVN, giữ chức vụ Kế toán t…
+Điều 1. Bổ nhiệm đồng chí Nguyễn Xuân Phú, Trưởng ban Tài chính Kế toán EVN, giữ chức vụ Kế toán trưởng EVN. Thời gian giữ chức vụ bổ nhiệm là 05 năm.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=legal_clause | section=Điều 2 Xếp lương đồng chí Nguyễn Xuân Phú bậc 1/2 - Kế toán trưởng Tập đoàn, hệ số 8,88 (tám phảy… | quality=pass | chars=394
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 104/QĐ-HĐTV - Quyết định v/v bổ nhiệm Kế toán trưởng Tập đoàn Điện lực Việt Nam (Đ/c Nguyễn Xuân Phú)
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: Điều 2 Xếp lương đồng chí Nguyễn Xuân Phú bậc 1/2 - Kế toán trưởng Tập đoàn, hệ số 8,88 (tám phảy…
+Điều 2. Xếp lương đồng chí Nguyễn Xuân Phú bậc 1/2 - Kế toán trưởng Tập đoàn, hệ số 8,88 (tám phảy tám tám).
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=legal_clause | section=Điều 3 Quyết định này có hiệu lực kể từ ngày ký. Chánh Văn phòng, các Trưởng ban EVN, Người đứng… | quality=pass | chars=484
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 104/QĐ-HĐTV - Quyết định v/v bổ nhiệm Kế toán trưởng Tập đoàn Điện lực Việt Nam (Đ/c Nguyễn Xuân Phú)
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: Điều 3 Quyết định này có hiệu lực kể từ ngày ký. Chánh Văn phòng, các Trưởng ban EVN, Người đứng…
+Điều 3. Quyết định này có hiệu lực kể từ ngày ký. Chánh Văn phòng, các Trưởng ban EVN, Người đứng đầu các đơn vị thành viên EVN và đồng chí Nguyễn Xuân Phú chịu trách nhiệm thi hành Quyết định này./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=footer_signature | quality=pass | chars=206
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: TM. HỘI ĐỒNG THÀNH VIÊN
+
+- Như Điều 3; CHỦ TỊCH
+
+- BTV ĐU (đề b/c);
+
+- HĐTV;
+
+- TGĐ;
+
+- PTGĐ, KSV;
+
+- CĐĐL Việt Nam;
+
+- ĐU TTĐH EVN;
+
+- Phòng TCKT - Văn phòng;
+
+- Lưu: VT, TH, TCNS.
+
+Đặng Hoàng An

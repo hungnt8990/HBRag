@@ -1,0 +1,259 @@
+================================================================================
+id_vb        : 1484209
+ky_hieu      : 3809/QĐ-EVNCPC
+trich_yeu    : QĐ cử cán bộ tham gia khóa đào tạo công tác bảo vệ môi trường năm 2026
+
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-23
+ten_file     : 6. QD cu hoc vien.pdf
+TỔNG SỐ CHUNK: 10
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=204
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3809/QĐ-EVNCPC
+Ngày văn bản: 23/06/2026
+Trích yếu: QĐ cử cán bộ tham gia khóa đào tạo công tác bảo vệ môi trường năm 2026
+
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Hồ Thăng Thu
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1069
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3809/QĐ-EVNCPC - QĐ cử cán bộ tham gia khóa đào tạo công tác bảo vệ môi trường năm 2026
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+TỔNG CÔNG TY Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+QUYẾT ĐỊNH
+
+Về việc cử cán bộ tham gia khóa đào tạo công tác bảo vệ môi trường năm 2026
+
+TỔNG GIÁM ĐỐC TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG
+
+Căn cứ Quyết định số 90/QĐ-EVN ngày 12/4/2019, Quyết định số 293/QĐ-EVN ngày 20/9/2019, Quyết định số 116/QĐ-HĐTV ngày 05/8/2022, Quyết định số 01/QĐ-HĐTV ngày 02/01/2025, Quyết định số 20/QĐ-HĐTV ngày 15/01/2025 và Quyết định số 126/QĐ-HĐTV ngày 16/05/2025 của Hội đồng thành viên Tập đoàn Điện lực Việt Nam (EVN) về việc ban hành, sửa đổi, bổ sung Điều lệ tổ chức và hoạt động của Tổng công ty Điện lực miền Trung (EVNCPC);
+
+Căn cứ Văn bản số 3588/EVNCPC-TCNS ngày 11/06/2026 của EVNCPC về việc tổ chức đào tạo công tác bảo vệ môi trường năm 2026;
+
+Theo đề nghị của Trưởng Ban Tổ chức và Nhân sự EVNCPC.
+
+QUYẾT ĐỊNH :
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=legal_clause | section=Điều 1 Cử các cán bộ có tên trong danh sách đính kèm tham gia khóa đào tạo công tác bảo vệ môi tr… | quality=pass | chars=1058
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3809/QĐ-EVNCPC - QĐ cử cán bộ tham gia khóa đào tạo công tác bảo vệ môi trường năm 2026
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Điều 1 Cử các cán bộ có tên trong danh sách đính kèm tham gia khóa đào tạo công tác bảo vệ môi tr…
+Điều 1. Cử các cán bộ có tên trong danh sách đính kèm tham gia khóa đào tạo công tác bảo vệ môi trường năm 2026, cụ thể:
+
+1. Thời gian: 01 ngày (Ngày 01/07/2026 - Thứ Tư).
+
+2. Hình thức đào tạo: Đào tạo tập trung kết hợp trực tuyến.
+
+3. Địa điểm:
+
+- Đào tạo tập trung: Tại Trường Cao đẳng Điện lực miền Trung - Số 04
+
+Nguyễn Tất Thành - Phường Hội An Tây - Tp. Đà Nẵng.
+
+- Đào tạo trực tuyến: Tại các điểm cầu của đơn vị.
+
+4. Kinh phí:
+
+a. Chi phí đào tạo, nghỉ:
+
+- Đối với cán bộ của các đơn vị trực thuộc EVNCPC: Do EVNCPC chi trả từ nguồn chi phí SXKD năm 2026.
+
+- Đối với cán bộ của các đơn vị còn lại: Do đơn vị cử cán bộ tham gia đào tạo chi trả (EVNCPC chi trả trước, đơn vị chuyển trả sau).
+
+b. Các chi phí khác: Do đơn vị cử cán bộ tham gia đào tạo chi trả theo quy định.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=legal_clause | section=Điều 2 Các cán bộ có tên tại Điều 1 có trách nhiệm tham gia khóa đào tạo đầy đủ, nghiêm túc, đúng… | quality=pass | chars=415
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3809/QĐ-EVNCPC - QĐ cử cán bộ tham gia khóa đào tạo công tác bảo vệ môi trường năm 2026
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Điều 2 Các cán bộ có tên tại Điều 1 có trách nhiệm tham gia khóa đào tạo đầy đủ, nghiêm túc, đúng…
+Điều 2. Các cán bộ có tên tại Điều 1 có trách nhiệm tham gia khóa đào tạo đầy đủ, nghiêm túc, đúng thời gian và tuân thủ nội quy lớp học.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=legal_clause | section=Điều 3 Chánh Văn phòng, các Trưởng Ban EVNCPC, Tổng Giám đốc/Giám đốc/Hiệu trưởng các đơn vị thàn… | quality=pass | chars=444
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3809/QĐ-EVNCPC - QĐ cử cán bộ tham gia khóa đào tạo công tác bảo vệ môi trường năm 2026
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Điều 3 Chánh Văn phòng, các Trưởng Ban EVNCPC, Tổng Giám đốc/Giám đốc/Hiệu trưởng các đơn vị thàn…
+Điều 3. Chánh Văn phòng, các Trưởng Ban EVNCPC, Tổng Giám đốc/Giám đốc/Hiệu trưởng các đơn vị thành viên và các cán bộ có tên tại Điều 1 căn cứ quyết định thi hành./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=footer_signature | quality=pass | chars=145
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận : KT. TỔNG GIÁM ĐỐC
+
+- Như Điều 3; PHÓ TỔNG GIÁM ĐỐC
+
+- TGĐ EVNCPC (báo cáo);
+
+- Ban KT, KH, ĐT;
+
+- CEPC;
+
+- Lưu: VT, TCNS.
+Hồ Thăng Thu
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=table | section=Phụ lục: DANH SÁCH HỌC VIÊN THAM GIA | table=Phụ lục: DANH SÁCH HỌC VIÊN THAM GIA | quality=pass | chars=3645
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3809/QĐ-EVNCPC - QĐ cử cán bộ tham gia khóa đào tạo công tác bảo vệ môi trường năm 2026
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Phụ lục: DANH SÁCH HỌC VIÊN THAM GIA
+Phần: 1/3
+| STT | Họ và tên | Chức danh | Đơn vị Phòng/Ban | Đơn vị Đơn vị | Hình thức đào tạo Tập trung | Hình thức đào tạo Trực tuyến |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | Võ Khắc Hoàng | Phó Trưởng Ban | Ban Kỹ thuật | EVNCPC | X | |
+| 2 | Hồ Hoàng Phương Hạnh | Chuyên viên | Ban Kỹ thuật | EVNCPC | X | |
+| 3 | Nguyễn Hoàng Nhân | Chuyên viên | Ban Kỹ thuật | EVNCPC | X | |
+| 4 | Lê Phú Sỹ | Chuyên viên | Ban Kỹ thuật | EVNCPC | X | |
+| 5 | Nguyễn Trọng Vĩnh | Phó Trưởng Ban | Ban Kế hoạch | EVNCPC | X | |
+| 6 | Nguyễn Văn Bính | Chuyên viên | Ban Kế hoạch | EVNCPC | X | |
+| 7 | Văn Công Sanh | Chuyên viên | Ban Kế hoạch | EVNCPC | X | |
+| 8 | Đinh Châu Hiếu Thiện | Phó trưởng Ban | Ban Quản lý Đầu tư | EVNCPC | X | |
+| 9 | Nguyễn Quang Sơn | Chuyên viên | Ban Quản lý Đầu tư | EVNCPC | X | |
+| 10 | Võ Kỳ Phong | Chuyên viên | Ban Quản lý Đầu tư | EVNCPC | X | |
+| 11 | Võ Văn Hưng | Phó trưởng phòng | Phòng Kỹ thuật | QTPC | X | |
+| 12 | Nguyễn Mạnh Hùng | Cán sự | Phòng Kỹ thuật | QTPC | X | |
+| 13 | Trương Văn Hòa | Chuyên viên | Ban QLDA ĐTXD | QTPC | X | |
+| 14 | Nguyễn Hữu Thọ | Chuyên viên | Ban QLDA ĐTXD | QTPC | X | |
+| 15 | Hồ Đăng Phi Toàn | Phó trưởng phòng | Phòng Kỹ thuật | HPC | X | |
+| 16 | Nguyễn Thị Nguyên Phương | Chuyên viên | Phòng Kỹ thuật | HPC | X | |
+| 17 | Trần Nguyễn Duy Phương | Phó trưởng phòng | Phòng Kế hoạch | HPC | X | |
+| 18 | Nguyễn Thị Nhung | Chuyên viên | Phòng Kế hoạch | HPC | X | |
+| 19 | Nguyễn Lê Toàn | Phó Trưởng phòng | Phòng An toàn | ĐNPC | X | |
+| 20 | Nguyễn Thị Kiều Mỹ | Chuyên viên | Phòng An toàn | ĐNPC | X | |
+| 21 | Nguyễn Hoài Tân | Phó Trưởng phòng | Phòng Quản lý đầu tư | ĐNPC | X | |
+| 22 | Lê Văn Vũ | Chuyên viên | Ban Quản lý dự án | ĐNPC | X | |
+| 23 | Nguyễn Thanh Tùng | Phó Trưởng phòng | Phòng Kế hoạch | QNPC | X | |
+| 24 | Đỗ Tiến Hùng | Chuyên viên | Ban QLDA | QNPC | X | |
+| 25 | Nguyễn Trí Dũng | Chuyên viên | Phòng Kỹ thuật | QNPC | X | |
+| 26 | Ngô Nguyễn Nhật Duy | Chuyên viên | Phòng Kỹ thuật | QNPC | X | |
+| 27 | Lê Hoàng Quang Thái | Chuyên viên | Phòng Kế hoạch | GLPC | X | |
+| 28 | Lê Văn Thiện | Chuyên viên | Phòng Kỹ thuật | GLPC | X | |
+| 29 | Huỳnh Ngọc Minh Phước | Chuyên viên | Phòng Kỹ thuật | GLPC | X | |
+| 30 | Lê Đình Nam | Chuyên viên | Phòng Quản lý đầu tư | GLPC | X | |
+| 31 | Lê Văn Bình | Phó Phòng | Phòng Kế hoạch | ĐLPC | X | |
+| 32 | Trần Văn Thành | Chuyên viên | Phòng Kế hoạch | ĐLPC | X | |
+| 33 | Lê Đông | Phó Phòng | Phòng Kỹ thuật | ĐLPC | X | |
+| 34 | Lê Chí Việt Tín | Chuyên viên | Phòng Kỹ thuật | ĐLPC | X | |
+| 35 | Nguyễn Duy Lương | Trưởng phòng | Phòng Kỹ thuật | KHoPC | X | |
+| 36 | Mai Minh Hiếu | Chuyên viên | Phòng Kỹ thuật | KHoPC | X | |
+| 37 | Đặng Tuấn Anh | Phó phòng | Phòng Kế hoạch | KHoPC | X | |
+| 38 | Nguyễn Văn Lợi | Chuyên viên | Ban Quản lý dự án | KHoPC | X | |
+| 39 | Thiều Châu Toàn | Phó phòng | Phòng Kỹ thuật | KHPC | X | |
+| 40 | Bùi Hoàng Lâm | Chuyên viên | Phòng Kỹ thuật | KHPC | X | |
+| 41 | Nguyễn Đình Phước | Phó phòng | Phòng Kế hoạch | KHPC | X | |
+| 42 | Phạm Đức Trung | Trưởng phòng | Phòng Quản lý đầu tư | KHPC | X | |
+| 43 | Trần Xuân Mãnh | Phó Trưởng phòng | Phòng Kế hoạch Kỹ thuật | CPSC | X | |
+| 44 | Dương Phương Nhung | Chuyên viên | Phòng Kế hoạch Kỹ thuật | CPSC | X | |
+| 45 | Nguyễn Vĩnh Phương | Trưởng phòng | Phòng Tổng hợp | CPCIT | X | |
+| 46 | Lê Thanh Trường | Cán sự | Phòng Tổng hợp | CPCIT | X | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=table | section=Phụ lục: DANH SÁCH HỌC VIÊN THAM GIA | table=Phụ lục: DANH SÁCH HỌC VIÊN THAM GIA | quality=pass | chars=3659
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3809/QĐ-EVNCPC - QĐ cử cán bộ tham gia khóa đào tạo công tác bảo vệ môi trường năm 2026
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Phụ lục: DANH SÁCH HỌC VIÊN THAM GIA
+Phần: 2/3
+| STT | Họ và tên | Chức danh | Đơn vị Phòng/Ban | Đơn vị Đơn vị | Hình thức đào tạo Tập trung | Hình thức đào tạo Trực tuyến |
+| --- | --- | --- | --- | --- | --- | --- |
+| 47 | Nguyễn Thị Hòa | Chuyên viên | Văn phòng | ETC | X | |
+| 48 | Trần Đình Dũng | Chuyên viên | Phòng An toàn Kỹ thuật | ETC | X | |
+| 49 | Trịnh Duy Lâm | Chuyên viên | Phòng Kế hoạch | PEC | X | |
+| 50 | Lê Xuân Phúc | Chuyên viên | Phòng Kỹ thuật | PEC | X | |
+| 51 | Nguyễn Thị Thanh Huyền | Chuyên viên | Phòng Đền bù | CPCNPMU | X | |
+| 52 | Châu Thị Anh Đào | Chuyên viên | Phòng Đền bù | CPCNPMU | X | |
+| 53 | Hồ Thị Mỹ Hòa | Phó Trưởng phòng | Phòng Tổng hợp | CPCCC | X | |
+| 54 | Nguyễn Trung Dũng | Nhân viên | Phòng Tổng hợp | CPCCC | X | |
+| 55 | Nghiêm Nguyên Cường | Trưởng phòng | Phòng Tổng hợp | CPCEMEC | X | |
+| 56 | Nguyễn Xuân Thao | Cán sự | Phòng Tổng hợp | CPCEMEC | X | |
+| 57 | Nguyễn Tấn Xứng | Phó Trưởng phòng | Phòng Tổng hợp | CEPC | X | |
+| 58 | Huỳnh Thị Hiệp | Giảng viên | Phòng Tổng hợp | CEPC | X | |
+| 59 | Nguyễn Kiều Loan | Phó Trưởng phòng | Phòng Hành chính Nhân sự | PC3-INVEST | X | |
+| 60 | Bùi Huy Bình | Chuyên viên | Phòng Kế hoạch Đầu tư | PC3-INVEST | X | |
+| 61 | Nguyễn Thị Hải Nam | Phó trưởng phòng | Phòng Kế hoạch | QTPC | | X |
+| 62 | Nguyễn Thị Hải Yến | Chuyên viên | Phòng Kế hoạch | QTPC | | X |
+| 63 | Hà Trương Nguyên Hùng | Phó trưởng phòng | Phòng Kỹ thuật | HPC | | X |
+| 64 | Phạm Ngọc Hưng | Chuyên viên | Phòng Kỹ thuật | HPC | | X |
+| 65 | Trương Quốc Anh | Phó Trưởng phòng | Phòng Kế hoạch | ĐNPC | | X |
+| 66 | Trần Thanh Bình | Chuyên viên | Phòng Kế hoạch | ĐNPC | | X |
+| 67 | Phan Anh Tuấn | Trưởng phòng | Phòng Kỹ thuật | QNPC | | X |
+| 68 | Phạm Thị Luận | Chuyên viên | Phòng Kỹ thuật | QNPC | | X |
+| 69 | Nguyễn Anh Tuấn | Chuyên viên | Phòng Kế hoạch | GLPC | | X |
+| 70 | Trần Quang Nhật | Tổ trưởng | Phòng Kế hoạch | GLPC | | X |
+| 71 | Hồ Xuân Hiếu | Chuyên viên | Phòng Kỹ thuật | GLPC | | X |
+| 72 | Bùi Quang Đông | Chuyên viên | Phòng Kỹ thuật | GLPC | | X |
+| 73 | Nguyễn Văn Thư | Chuyên viên | Phòng Quản lý đầu tư | GLPC | | X |
+| 74 | Nguyễn Ngọc Luân | Chuyên viên | Phòng Quản lý đầu tư | GLPC | | X |
+| 75 | Nguyễn Văn Huy | Phó Ban | Ban QLDA | ĐLPC | | X |
+| 76 | Hà Thị Kim Oanh | Phó Phòng | Phòng Quản lý đầu tư | ĐLPC | | X |
+| 77 | Hồ Hoàng Huy | Phó Xí nghiệp | Xí nghiệp LĐCT | KHoPC | | X |
+| 78 | Nguyễn Lê Văn Khải | Chuyên viên | Phòng Kế hoạch | KHoPC | | X |
+| 79 | Tạ Quang Khánh | Trưởng ban | Ban Quản lý dự án | KHPC | | X |
+| 80 | Đặng phất | Chuyên viên | Phòng Kế hoạch | KHPC | | X |
+| 81 | Nguyễn Đình Trúc | Chuyên viên | Phòng Kỹ thuật | KHPC | | X |
+| 82 | Nguyễn Quang Hòa | Phó Trưởng phòng | Phòng Kinh doanh | CPSC | | X |
+| 83 | Trương Đăng Triều | Chuyên viên | Phòng Kinh doanh | CPSC | | X |
+| 84 | Nguyễn Hữu Giang | Trưởng phòng | Phòng QLĐT | CPCIT | | X |
+| 85 | Lương Thị Phương Nhung | Chuyên viên | Phòng QLĐT | CPCIT | | X |
+| 86 | Hồ Lê Bảo Trâm | Chuyên viên | Phòng Tổng hợp | CPCIT | | X |
+| 87 | Lê Văn Thành | Chánh Văn phòng | Văn phòng | ETC | | X |
+| 88 | Hồ Hy Vinh | Trưởng phòng | Phòng Kế hoạch Vật tư | ETC | | X |
+| 89 | Đào Trực | Quản đốc | Phân xưởng Hóa dầu | ETC | | X |
+| 90 | Vũ Bá Thành | Trưởng phòng | Phòng Kế hoạch | PEC | | X |
+| 91 | Dương Minh Hoàng | Trưởng phòng | Phòng Tổ chức Hành chính | PEC | | X |
+| 92 | Nguyễn Vân | Trưởng phòng | Phòng Kế hoạch Vật tư | CPCNPMU | | X |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #8
+chunk_type=table | section=Phụ lục: DANH SÁCH HỌC VIÊN THAM GIA | table=Phụ lục: DANH SÁCH HỌC VIÊN THAM GIA | quality=pass | chars=806
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3809/QĐ-EVNCPC - QĐ cử cán bộ tham gia khóa đào tạo công tác bảo vệ môi trường năm 2026
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Phụ lục: DANH SÁCH HỌC VIÊN THAM GIA
+Phần: 3/3
+| STT | Họ và tên | Chức danh | Đơn vị Phòng/Ban | Đơn vị Đơn vị | Hình thức đào tạo Tập trung | Hình thức đào tạo Trực tuyến |
+| --- | --- | --- | --- | --- | --- | --- |
+| 93 | Phùng Thị Kim Hoa | Chuyên viên | Phòng Kế hoạch Vật tư | CPCNPMU | | X |
+| 94 | Võ Thị Kim Chinh | Phó phòng | Phòng Kế hoạch Vật tư | CPCEMEC | | X |
+| 95 | Đào Thị Thủy Tiên | Chuyên viên | Phòng Kế hoạch Vật tư | CPCEMEC | | X |
+| 96 | Nguyễn Đức Linh | Trưởng phòng | Phòng Kế hoạch Đầu tư | PC3-INVEST | | X |
+| 97 | Lê Hồ Thùy Trâm | Chuyên viên | Phòng Hành chính Nhân sự | PC3-INVEST | | X |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #9
+chunk_type=document_body | section=Phụ lục | artifact=appendix | quality=pass | chars=223
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3809/QĐ-EVNCPC - QĐ cử cán bộ tham gia khóa đào tạo công tác bảo vệ môi trường năm 2026
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục
+Phụ lục: DANH SÁCH HỌC VIÊN THAM GIA

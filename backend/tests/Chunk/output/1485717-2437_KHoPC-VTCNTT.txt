@@ -1,0 +1,74 @@
+================================================================================
+id_vb        : 1485717
+ky_hieu      : 2437/KHoPC-VTCNTT
+trich_yeu    : Về việc gián đoạn kết nối các kênh truyền WAN IT trong ngày 25/6/2026
+
+noi_ban_hanh : Công ty Điện lực Khánh Hòa
+ngay_vb      : 2026-06-24
+ten_file     : 06052026_Gian doan WAN IT ngay25-6-2026.pdf
+TỔNG SỐ CHUNK: 4
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=200
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 2437/KHoPC-VTCNTT
+Ngày văn bản: 24/06/2026
+Trích yếu: Về việc gián đoạn kết nối các kênh truyền WAN IT trong ngày 25/6/2026
+
+Nơi ban hành: Công ty Điện lực Khánh Hòa
+Người ký: Lê Minh Long
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1110
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 2437/KHoPC-VTCNTT - Về việc gián đoạn kết nối các kênh truyền WAN IT trong ngày 25/6/2026
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Công ty Điện lực Khánh Hòa
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY ĐIỆN LỰC KHÁNH HÒA
+
+Số: 2437/KHoPC-VTCNTT Khánh Hòa, ngày 24 tháng 6 năm 2026 Số: /KHoPC-VTCNTT Khánh Hòa, ngày tháng 6 năm 2026 V/v gián đoạn kết nối các kênh truyền WAN IT trong ngày 25/6/2026
+
+Kính gửi: Công ty Công nghệ thông tin Điện lực miền Trung.
+
+Công ty Điện lực Khánh Hòa (KHoPC) có kế hoạch lắp đặt thiết bị định tuyến mới
+
+tại Phòng máy chủ Công ty trong ngày 25/6/2026. Trong thời gian chuyển đấu nối từ
+
+thiết bị hiện hữu sang thiết bị mới có thể gây gián đoạn kênh truyền WAN IT từ Công ty về EVNCPC (gián đoạn truy cập các hệ thống thông tin của EVNCPC tại KHoPC).
+
+Vì vậy, Công ty kính thông báo Công ty Công nghệ thông tin Điện lực miền Trung
+
+thời gian có thể gián đoạn các kênh truyền WAN IT nói trên như sau:
+
+Công ty rất mong nhận được sự hỗ trợ từ Quý đơn vị để hoàn thành tốt công việc được giao.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=504
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 2437/KHoPC-VTCNTT - Về việc gián đoạn kết nối các kênh truyền WAN IT trong ngày 25/6/2026
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Công ty Điện lực Khánh Hòa
+Bảng: Bảng DOffice 1
+| Vị trí công tác | Thời gian dự kiến thực hiện công tác | Nội dung công tác | Ghi chú |
+| --- | --- | --- | --- |
+| Phòng máy chủ KHoPC | Từ 17 giờ 00 đến 18 giờ 30 ngày 25/6/ 2026. | Chuyển đấu nối kênh truyền WAN IT | Trong quá trình công tác có thể gây gián đoạn các kênh truyền WAN IT từ Công ty về EVNCPC. |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=footer_signature | quality=pass | chars=153
+────────────────────────────────────────────────────────────────────────────────
+KT. GIÁM ĐỐC Nơi nhận: PHÓ GIÁM ĐỐC - Như trên;
+
+- Ban Giám đốc (báo cáo);
+
+- Các đơn vị trực thuộc (để biết);
+
+- Lưu: VT, VTCNTT (Phi.01).
+
+Lê Minh Long

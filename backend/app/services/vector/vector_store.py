@@ -131,6 +131,19 @@ class QdrantVectorStore:
         "loai_vb",
         "linh_vuc",
         "trang_thai_hieu_luc",
+        # Tên chuẩn BA (Kế hoạch nhóm 07) — "đi trước 1 bước": index sẵn để filter khi API trả
+        # dữ liệu. GIỮ song song tên cũ (id_vb/ky_hieu/loai_vb/linh_vuc/ngay_vb) ở trên.
+        "id",                       # BA #1  — khoá liên kết ES↔Qdrant
+        "document_no",              # BA #3  — số/ký hiệu VB
+        "source_system",            # BA #5  — hệ thống nguồn (EOFFICE/DOFFICE)
+        "doc_group",                # BA #11 — loại công văn
+        "doc_type",                 # BA #12 — loại văn bản
+        "doc_category",             # BA #13 — nhóm nghiệp vụ
+        "issue_date",               # BA #18 — ngày ban hành
+        "owner_department_id",      # BA #22 — phòng ban chủ trì
+        "priority",                 # BA #30 — độ khẩn
+        "reference_document_ids",   # BA #29 — VB căn cứ
+        "related_document_ids",     # BA #28 — VB liên quan
         # ACL flatten (2 list keyword): allow ["dv_/pb_/nv_"] + deny ["pb_/nv_"].
         "acl_subjects",
         "acl_deny",
@@ -539,8 +552,10 @@ class QdrantVectorStore:
     @staticmethod
     def _to_search_result(point: Any) -> VectorSearchResult:
         payload = dict(point.payload or {})
-        content = str(payload.get("text") or payload.get("content") or "")
+        # chunk_text = tên mới (nhánh doffice); giữ text/content cho nguồn khác + point cũ.
+        content = str(payload.get("chunk_text") or payload.get("text") or payload.get("content") or "")
         metadata = dict(payload)
+        metadata.pop("chunk_text", None)
         metadata.pop("text", None)
         metadata.pop("content", None)
         # Preserve compatibility with old points while making canonical fields
@@ -912,10 +927,11 @@ def get_artifact_vector_store() -> QdrantVectorStore:
 
 
 def _doffice_vector_store(collection_name: str) -> QdrantVectorStore:
-    """Qdrant store dense+sparse cho thiết kế DOffice 3-DB (chung tham số, khác tên).
+    """Qdrant store cho thiết kế DOffice 3-DB (chung tham số, khác tên).
 
-    Cả Col chunks lẫn Col docmeta đều dùng dense (Qwen3-Embedding-8B, semantic) +
-    sparse (keyword, mạnh cho ký hiệu) -> giữ được cả truy hồi ngữ nghĩa lẫn từ khóa.
+    Cả Col chunks lẫn Col docmeta CHỈ dùng dense (Qwen3-Embedding-8B, semantic);
+    lexical/keyword do ES BM25 đảm nhiệm, fusion ở tầng application. Sparse tắt qua
+    ``sparse_embedding_enabled`` (collection cũ còn schema sparse vẫn hợp lệ).
     """
     return QdrantVectorStore(
         client=AsyncQdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key),

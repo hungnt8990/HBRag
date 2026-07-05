@@ -1,0 +1,90 @@
+================================================================================
+id_vb        : 1487063
+ky_hieu      : 4456/ĐNPC-QLDA+VTCNTT
+trich_yeu    : Gián đoạn tuyến cáp quang T500 Đà Nẵng - T110 Đại Lộc (mạch 1) trong thời gian thi công CT Cải tạo đường dây 179/T500 Đà Nẵng - 174/Đại Lộc (từ VT36 đến VT40) 
+noi_ban_hanh : Công ty Điện lực Đà Nẵng
+ngay_vb      : 2026-06-25
+ten_file     : Gian doan cap quang ĐN-ĐL.pdf
+TỔNG SỐ CHUNK: 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=292
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 4456/ĐNPC-QLDA+VTCNTT
+Ngày văn bản: 25/06/2026
+Trích yếu: Gián đoạn tuyến cáp quang T500 Đà Nẵng - T110 Đại Lộc (mạch 1) trong thời gian thi công CT Cải tạo đường dây 179/T500 Đà Nẵng - 174/Đại Lộc (từ VT36 đến VT40) 
+Nơi ban hành: Công ty Điện lực Đà Nẵng
+Người ký: Phan Hiền Trí
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=2903
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 4456/ĐNPC-QLDA+VTCNTT - Gián đoạn tuyến cáp quang T500 Đà Nẵng - T110 Đại Lộc (mạch 1) trong thời gian thi công CT Cải tạo đường dây 179/T500 Đà Nẵng - 174/Đại Lộc (từ VT36 đến VT40)
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Công ty Điện lực Đà Nẵng
+CỘNG HOÀ XÃ HỘI CHỦNGHĨA VIỆT NAM TỔNG CÔNG TY
+
+Độc lập - Tựdo - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+CÔNG TY ĐIỆN LỰC ĐÀ NẴNG
+
+Số: 4456/ĐNPC-QLDA+VTCNTT Đà Nẵng, ngày 25 tháng 6 năm 2026 V/v gián đoạn tuyến cáp quang T500 Đà Nẵng - T110 Đại Lộc (mạch 1)
+
+trong thời gian thi công CT Cải tạo đường dây 179/T500 Đà Nẵng
+
+- 174/Đại Lộc (từVT36 đến VT40)
+
+Kính gửi:
+
+- Công ty Viễn thông Điện lực và Công nghệthông tin;
+
+- Công ty Công nghệthông tin Điện lực miền Trung;
+
+- Công ty Truyền tải điện 2;
+
+- Trung tâm Kỹthuật Khu vực 2 - Tập đoàn Công nghiệp Viễn thông Quân đội Viettel;
+
+- Công ty Cổphần Viễn thông FPT.
+
+Căn cứQuyết định số2043/QĐ-ĐNPC ngày 26/10/2025 của Công ty Điện lực Đà Nẵng vềviệc phê duyệt Báo cáo Kinh tế- Kỹthuật đầu tư xây dựng dựán Cải tạo đường dây 179/T500 Đà Nẵng - 174/Đại Lộc (từVT36 đến VT40);
+
+Căn cứPhương án kỹthuật thi công công trình đối với Gói 1 - Cung cấp vật tư, thi công xây dựng và lắp đặt thiết bịcông trình thuộc dựán Cải tạo đường dây 179/T500 Đà Nẵng - 174/Đại Lộc (từVT36 đến VT40) được lập ngày 29/4/2026 và đã được Lãnh đạo ĐNPC phê duyệt;
+
+Căn cứQuyết định số1485/QĐ-ĐNPC ngày 28/5/2026 của Công ty Điện lực Đà Nẵng vềviệc phê duyệt Phương án đóng điện nghiệm thu công trình Cải tạo đường dây 179/T500 Đà Nẵng - 174/Đại Lộc (từVT36 đến VT40);
+
+Căn cứPhương thức vận hành HTĐ miền Trung tuần 26/2026 do Trung tâm Điều độHệthống điện miền Trung ban hành theo văn bản số1723/CSO-ĐĐ ngày 19/6/2026.
+
+Công ty Điện lực Đà Nẵng (ĐNPC) đang triển khai thực hiện dựán Cải tạo đường dây 179/T500 Đà Nẵng - 174/Đại Lộc (từVT36 đến VT40), trong đó thực hiện: Lắp đặt, đấu nối dây dẫn cùng chủng loại (ACSR/Mz 185/29, cả3 pha) và dây cáp quang OPGW 57-24 từcột C36 đến C40, C40 đến 48 với chiều dài tuyến 1.304 mét (tổng chiều dài ĐD 179/T500 Đà Nẵng - 174/T110 Đại Lộc không thay đổi); Thu hồi đoạn ĐD từcột 36 đến 40 và 40 đến 48 cũ.
+
+Theo PATC được duyệt, ĐNPC sẽcô lập tuyến cáp quang T500 Đà Nẵng - T110 Đại Lộc (mạch 1) trong thời gian dựkiến từ13h00 ngày 25/6/2026 đến ngày 28/6/2026 đểthực hiện chuyển đấu nối cáp quang từVT 40 (cũ) qua VT 36 (mới) và VT 40 (mới đồng thời hàn nối 2 hộp nối cáp quang tại VT 36 (mới), 40 (mới). Trong quá trình thi công sẽ gián đoạn thông tin trên tuyến cáp quang T500 Đà Nẵng - T110 Đại Lộc mạch 1 trong thời gian dựkiến như trên.
+
+Đểđảm bảo hệthống viễn thông hoạt động liên tục, Công ty Điện lực Đà Nẵng kính đềnghịcác đơn vịcó phương án vận hành dựphòng và phối hợp hỗtrợĐNPC trong thời gian thi công.
+
+Trân trọng./.
+
+Đầu mối liên hệ:
+
++ Ông Vũ Minh Lai, Phụtrách thi công trực tiếp, SĐT 0966.099.199
+
++ Ông Lê Văn Đức, chuyên viên phòng VTCNTT ĐNPC, SĐT 0963.144.777
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=146
+────────────────────────────────────────────────────────────────────────────────
+KT. GIÁM ĐỐC Nơi nhận: PHÓ GIÁM ĐỐC - Như trên;
+
+- EVNCPC (b/cáo);
+
+- Ban Giám đốc;
+
+- KT, ĐĐ;
+
+- XNLĐCT;
+
+- Lưu: VT, QLDA, VTCNTT.
+
+Phan Hiền Trí

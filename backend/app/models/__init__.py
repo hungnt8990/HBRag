@@ -1,3 +1,4 @@
+from app.models.api_request_log import ApiRequestLog
 from app.models.chat import ChatMessage, ChatSession
 from app.models.chunk import Chunk
 from app.models.citation import Citation
@@ -16,6 +17,7 @@ from app.models.retrieval import RetrievalLog
 from app.models.user import Role, User
 
 __all__ = [
+    "ApiRequestLog",
     "ChatMessage",
     "ChatSession",
     "Chunk",

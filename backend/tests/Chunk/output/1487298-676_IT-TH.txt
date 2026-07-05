@@ -1,0 +1,116 @@
+================================================================================
+id_vb        : 1487298
+ky_hieu      : 676/IT-TH
+trich_yeu    : V/v Thanh toán tiền Cước dịch vụ nhắn tin SMS CSKH sử dụng điện tháng 05/2026
+
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-25
+ten_file     : 202606 CV ĐNTT IT-PCs Gói SMS (merge).pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=208
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 676/IT-TH
+Ngày văn bản: 25/06/2026
+Trích yếu: V/v Thanh toán tiền Cước dịch vụ nhắn tin SMS CSKH sử dụng điện tháng 05/2026
+
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Trần Khắc Tuấn
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1820
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 676/IT-TH - V/v Thanh toán tiền Cước dịch vụ nhắn tin SMS CSKH sử dụng điện tháng 05/2026
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG Đà Nẵng, ngày 25 tháng 6 năm 2026 Số: 676/IT-TH V/v Thanh toán tiền Cước dịch vụ nhắn tin SMS CSKH sử dụng điện
+
+tháng 5/2026
+
+Kính gửi:
+
+- Công ty Điện lực Quảng Trị;
+
+- Công ty Điện lực Huế;
+
+- Công ty Điện lực Đà Nẵng;
+
+- Công ty Điện lực Quảng Ngãi;
+
+- Công ty Điện lực Gia Lai;
+
+- Công ty Điện lực Khánh Hoà;
+
+- Công ty Điện lực Đắk Lắk.
+
+Trên cơ sở: (i) Hợp đồng số HD2500210673_2512091552 ngày 15/12/2025 giữa Công ty Cổ phần phần mềm Viễn thông miền Nam và CPCIT; (ii) Biên bản số 010526/ĐSTN-IT-CTĐL ngày 01/06/2026 giữa CPCIT và 7 Công ty Điện lực về việc Tổng hợp số lượng tin nhắn phục vụ chăm sóc khách hàng sử dụng điện và quản lý điều hành kỳ đối soát tháng 5/2026; (iii) Biên bản đối soát xác nhận khối lượng hoàn thành, chất lượng tin nhắn tháng 5/2026 ngày 03/6/2026; (iv)
+
+Hóa đơn giá trị gia tăng Cước dịch vụ nhắn tin SMS chăm sóc khách hàng sử dụng điện và phục vụ quản lý điều hành tháng 5/2026 của Công ty Cổ phần phần mềm Viễn thông miền Nam xuất cho CPCIT ngày 03/6/2026; ngày 24/6/2026, CPCIT đã xuất hóa đơn Cước dịch vụ nhắn tin SMS chăm sóc khách hàng sử dụng điện tháng 5/2026 của các Công ty Điện lực chi tiết như Bảng kê đính kèm.
+
+CPCIT kính mong các Quý công ty thanh toán số tiền như Bảng kê đính kèm và chuyển vào tài khoản của CPCIT. Thông tin tài khoản:
+
+- Tên tài khoản: Công ty Công nghệ thông tin Điện lực miền Trung - Tổng công ty Điện lực miền Trung.
+
+- Số tài khoản: 0041000951898.
+
+- Tại ngân hàng: TMCP Ngoại thương Việt Nam - CN Đà Nẵng.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=63
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: GIÁM ĐỐC
+
+- Như trên;
+
+- Lưu: VT, TH.
+
+Trần Khắc Tuấn
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=2310
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 676/IT-TH - V/v Thanh toán tiền Cước dịch vụ nhắn tin SMS CSKH sử dụng điện tháng 05/2026
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: Bảng DOffice 1
+| TT | Mẫu số ký hiệu hóa đơn | Số hóa đơn | Ngày hóa đơn | Ngày ký | Tên người mua | Mã số thuế người mua | Tổng giá trị hàng hóa, dịch vụ | Thuế suất thuế GTGT | Tổng tiền thuế GTGT | Tổng tiền thanh toán | Loại hóa đơn | Trạng thái | Người lập |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 |
+| 1 | K26TIT | 71 | 24/06/2026 | 24/06/2026 | CÔNG TY ĐIỆN LỰC QUẢNG TRỊ - CHI NHÁNH TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG | 0400101394-002 | 8.122.562 | 10 | 812.256 | 8.934.818 | Phát sinh | CQT chấp nhận | TRAMHLB. CPC.CNG |
+| 2 | K26TIT | 72 | 24/06/2026 | 24/06/2026 | CÔNG TY ĐIỆN LỰC HUẾ - CHI NHÁNH TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG | 0400101394-003 | 3.421.542 | 10 | 342.154 | 3.763.696 | Phát sinh | CQT chấp nhận | TRAMHLB. CPC.CNG |
+| 3 | K26TIT | 73 | 24/06/2026 | 24/06/2026 | CÔNG TY ĐIỆN LỰC ĐÀ NẴNG - CHI NHÁNH TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG | 0400101394-039 | 7.317.124 | 10 | 731.713 | 8.048.837 | Phát sinh | CQT chấp nhận | TRAMHLB. CPC.CNG |
+| 4 | K26TIT | 74 | 24/06/2026 | 24/06/2026 | Công ty Điện lực Quảng Ngãi - Chi nhánh Tổng công ty Điện lực miền Trung | 0400101394-006 | 21.046.812 | 10 | 2.104.681 | 23.151.493 | Phát sinh | CQT chấp nhận | TRAMHLB. CPC.CNG |
+| 5 | K26TIT | 75 | 24/06/2026 | 24/06/2026 | Công ty Điện lực Gia Lai | 0400101394-010 | 22.807.354 | 10 | 2.280.735 | 25.088.089 | Phát sinh | CQT chấp nhận | TRAMHLB. CPC.CNG |
+| 6 | K26TIT | 76 | 24/06/2026 | 24/06/2026 | CÔNG TY ĐIỆN LỰC KHÁNH HÒA - CHI NHÁNH TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG | 0400101394-040 | 712.302 | 10 | 71.230 | 783.532 | Phát sinh | CQT chấp nhận | TRAMHLB. CPC.CNG |
+| 7 | K26TIT | 77 | 24/06/2026 | 24/06/2026 | Công ty Điện lực Đắk Lắk -Chi nhánh Tổng công ty Điện lực miền Trung | 0400101394-012 | 42.559.530 | 10 | 4.255.953 | 46.815.483 | Phát sinh | CQT chấp nhận | TRAMHLB. CPC.CNG |
+| 77 | 24/06/2026 | 24/06/2026 | Công ty Điện lực Đắk Lắk -Chi nhánh Tổng công ty Điện lực miền Trung | 0400101394-012 | 105.987.226 | | 10.598.722 | 116.585.948 | | CQT chấp nhận | TRAMHLB. CPC.CNG | | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_body | section=Văn bản đính kèm | artifact=attached_document | quality=pass | chars=641
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 676/IT-TH - V/v Thanh toán tiền Cước dịch vụ nhắn tin SMS CSKH sử dụng điện tháng 05/2026
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: Văn bản đính kèm
+BẢNG KÊ HÓA ĐƠN, CHỨNG TỪ HÀNG HÓA, DỊCH VỤ BÁN RA
+
+Từ ngày 24/06/2026 đến ngày 24/06/2026 Chi nhánh: Không xác định
+
+Tên người nộp thuế: CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG - TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG Mã số thuế: 0400101394-017 Địa chỉ: 393 Trưng Nữ Vương, Phường Hoà Cường, Thành phố Đà Nẵng, Việt Nam
+
+Đà Nẵng, Ngày 24 tháng 06 năm 2026
+
+NGƯỜI LẬP NGƯỜI NỘP THUẾ hoặc
+
+ĐẠI DIỆN HỢP PHÁP CỦA NGƯỜI NỘP THUẾ
+
+Hồ Lê Bảo Trâm

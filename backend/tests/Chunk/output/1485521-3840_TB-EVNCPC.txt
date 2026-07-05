@@ -1,0 +1,76 @@
+================================================================================
+id_vb        : 1485521
+ky_hieu      : 3840/TB-EVNCPC
+trich_yeu    : Thông báo kết luận của TGĐ Ngô Tấn Cư tại cuộc họp giao ban tuần 26/2026
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-24
+ten_file     : 22.6.26 GB tuan 26.pdf
+TỔNG SỐ CHUNK: 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=205
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3840/TB-EVNCPC
+Ngày văn bản: 24/06/2026
+Trích yếu: Thông báo kết luận của TGĐ Ngô Tấn Cư tại cuộc họp giao ban tuần 26/2026
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Tán Quốc Bảo
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=2583
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3840/TB-EVNCPC - Thông báo kết luận của TGĐ Ngô Tấn Cư tại cuộc họp giao ban tuần 26/2026
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+TỔNG CÔNG TY Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 24 tháng 6 năm 2026
+
+Số: 3840/TB-EVNCPC
+
+THÔNG BÁO
+
+Kết luận của TGĐ Ngô Tấn Cư tại cuộc họp giao ban tuần 26/2026
+
+Ngày 22/6/2026, tại cơ quan Tổng công ty, TGĐ Ngô Tấn Cư chủ trì cuộc họp giao ban tuần 26/2026. Tham dự cuộc họp có PBT Đảng ủy, các thành viên HĐTV, Ban TGĐ, Chủ tịch Công đoàn, KSVCT, Bí thư Đoàn Thanh niên, lãnh đạo Văn phòng và các Ban TCT; đại diện lãnh đạo NPMU, CPCIT. Sau khi nghe ý kiến của các thành viên tham dự họp, TGĐ kết luận:
+
+1. Báo cáo của Ban KT về sự cố ĐZ 110kV 178/Đông Hà 220 - 178/Phong Điền 220, ĐZ 110kV 172/T110 Sơn Hòa - 171/T110 Sông Hinh cho thấy công tác thi công lắp đặt, giám sát, kiểm tra định kỳ của các đơn vị chưa tốt. Để kịp thời chấn chỉnh nhằm giảm sự cố lưới điện, trong tháng 07/2026 TGĐ sẽ chủ trì hội nghị trực tuyến về công tác QLVH lưới điện; giao Ban KT chuẩn bị báo cáo.
+
+PTGĐ Lê Hữu Danh, PTGĐ Trần Văn Gia giúp chỉ đạo nội dung này.
+
+2. Từ ngày 01/7/2026, thủ tục kiểm tra, nghiệm thu về PCCC đối với công trình sẽ được bãi bỏ. Để hạn chế sai sót trong quá trình vận hành sau này, yêu cầu các Ban/đơn vị, Hội đồng nghiệm thu lưu ý tuân thủ chặt chẽ hồ sơ thiết kế PCCC đã được cấp có thẩm quyền phê duyệt trong quá trình triển khai thi công, giám sát và tổ chức nghiệm thu đưa công trình vào sử dụng. PTGĐ Lê Hữu Danh giúp chỉ đạo nội dung này.
+
+3. Trong giai đoạn cao điểm nắng nóng, yêu cầu các đơn vị thường xuyên kiểm tra công tác lưu trữ tại kho bãi, nhà xưởng, văn phòng, điều kiện vận hành các thiết bị PCCC để đảm bảo an toàn phòng chống cháy nổ.
+
+4. Công tác kiểm tra/làm việc tại các đơn vị theo các chương trình đã phê duyệt hàng năm hoặc theo chuyên đề là cần thiết để đảm bảo việc tuân thủ của các đơn vị theo phân cấp/ủy quyền của TCT, hạn chế sai sót. Tuy nhiên, việc kiểm tra, giám sát cần phải được tổ chức phù hợp để không làm ảnh hưởng đến các hoạt động SXKD của đơn vị, đặc biệt trong những lúc cao điểm vận hành lưới điện hoặc phòng chống, khắc phục hậu quả thiên tai. Giao VP chủ trì rà soát, điều phối chương trình công tác của các Ban, các sự kiện/hội nghị tổ chức tại các đơn vị phù hợp tại từng thời điểm, tham mưu lãnh đạo TCT điều chỉnh trong trường hợp cần thiết.
+
+Thừa lệnh TGĐ, Văn phòng TCT thông báo để các đ/c PTGĐ, các đơn vị thành viên và các Ban biết, thực hiện./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=213
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: TL. TỔNG GIÁM ĐỐC
+
+- Đảng ủy (b/cáo); KT. CHÁNH VĂN PHÒNG
+
+- HĐTV (b/cáo); PHÓ CHÁNH VĂN PHÒNG
+
+- Ban TGĐ (b/cáo);
+
+- CĐ TCT;
+
+- KSVCT;
+
+- Các đơn vị thành viên;
+
+- Các Ban;
+
+- Lưu: VT, VP.
+
+Tán Quốc Bảo

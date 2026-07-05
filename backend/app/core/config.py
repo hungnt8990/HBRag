@@ -39,15 +39,20 @@ class Settings(BaseSettings):
     qdrant_artifact_collection_name: str = "hbrag_artifacts_v1"
     # Thiết kế DOffice 3-DB (job đồng bộ mới): 2 collection Qdrant + 1 index ES BM25.
     # Col 1: vector từng chunk nội dung. Col 2: 1 point/văn bản cho metadata (mọi
-    # trường TRỪ noi_dung) — tìm theo ngữ nghĩa (dense) lẫn ký hiệu (sparse).
-    qdrant_chunks_collection_name: str = "hbrag_doffice_chunks_v1"
-    qdrant_docmeta_collection_name: str = "hbrag_doffice_docmeta_v1"
-    # ES BM25 cấp văn bản (không vector, không chunk).
-    doffice_documents_index_name: str = "hbrag_doffice_documents_v1"
+    # trường TRỪ noi_dung). Qdrant CHỈ dense; lexical (ký hiệu/BM25) do ES đảm nhiệm,
+    # fusion/rerank ở tầng application (document_semantic_search).
+    # 2026-07-05: đổi sang cặp collection MỚI nhánh kho AI dùng chung (id = UUIDv7 từ
+    # kho_ai_dung_chung; job jobs/doffice_sync/run_kho_qdrant.py đổ dữ liệu).
+    qdrant_chunks_collection_name: str = "hbrag_doffice_chunks"
+    qdrant_docmeta_collection_name: str = "hbrag_doffice_docmeta"
+    # ES BM25 cấp văn bản: 2026-07-05 đổi sang index kho AI dùng chung (đã có sẵn trên ES
+    # mới 10.72.121.232, mapping strict do nhóm BA quản — KHÔNG tự tạo/ghi từ app).
+    doffice_documents_index_name: str = "kho_ai_dung_chung"
     doffice_documents_index_v2_name: str = "hbrag_doffice_documents_v2"
     doffice_documents_index_alias: str = "hbrag_doffice_documents"
-    # ES BM25 cấp CHUNK (nhánh 2): mỗi chunk = 1 record + ACL nén, để BM25 đúng đoạn/căn cứ.
-    doffice_chunks_index_name: str = "hbrag_doffice_chunks_es_v1"
+    # ES BM25 cấp CHUNK (nhánh 2): mỗi chunk = 1 record, ACL copy từ doc nguồn (đã nén sẵn).
+    # Job run_kho_chunk.py tạo index + ghi chunk; id = UUIDv7, id_full = id doc nguồn.
+    doffice_chunks_index_name: str = "kho_ai_dung_chung_chunk"
     # Dev: vẫn ghi chunk vào PostgreSQL để soi; product có thể tắt.
     store_chunks_in_pg: bool = True
     # DOffice job Qdrant: làm sạch -> chunk -> LƯU chunk vào PG -> embedding. True = giữ
@@ -80,7 +85,10 @@ class Settings(BaseSettings):
 
     dense_vector_name: str = "dense"
     sparse_vector_name: str = "sparse"
-    sparse_embedding_enabled: bool = True
+    # TẮT sparse (2026-07-04): kiến trúc ES=BM25 lexical, Qdrant=dense, fusion ở app.
+    # Tắt -> factory trả None, point mới CHỈ dense, search Qdrant dense-only (không
+    # sparse prefetch). Collection cũ còn schema sparse vẫn hợp lệ, KHÔNG cần recreate.
+    sparse_embedding_enabled: bool = False
     sparse_embedding_provider: str = "hashing"          # hashing | learned
     sparse_embedding_hash_dimensions: int = 1_048_576
     # Sparse HỌC ĐƯỢC (BGE-M3/SPLADE) qua HTTP — module độc lập embedding_sparse_learned.py,
@@ -132,6 +140,10 @@ class Settings(BaseSettings):
 
     elasticsearch_enabled: bool = False
     elasticsearch_url: str = "http://localhost:9200"
+    # ES mới (10.72.121.232) bật security: basic auth + self-signed cert. None = không auth.
+    elasticsearch_username: str | None = None
+    elasticsearch_password: str | None = None
+    elasticsearch_verify_ssl: bool = False
     elasticsearch_index_name: str = "hbrag_chunks_bm25_v1"
     elasticsearch_timeout_seconds: int = 30
     elasticsearch_index_batch_size: int = 128

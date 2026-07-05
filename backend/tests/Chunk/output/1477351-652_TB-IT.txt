@@ -1,0 +1,76 @@
+================================================================================
+id_vb        : 1477351
+ky_hieu      : 652/TB-IT
+trich_yeu    : Thông báo Khởi công gói thầu CMIS.DR.2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật hệ thống máy chủ vật lý thuộc dự án Đầu tư hạ tầng phục vụ ứng dụng quản lý thông tin khách hàng sử dụng điện tại vị trí dự phòng TTDL năm 2026
+
+
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-17
+ten_file     : 2026 06 16  CPCIT_Thong bao khoi cong goi thau CMIS.DR.2026-01.HH.pdf
+TỔNG SỐ CHUNK: 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=363
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 652/TB-IT
+Ngày văn bản: 17/06/2026
+Trích yếu: Thông báo Khởi công gói thầu CMIS.DR.2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật hệ thống máy chủ vật lý thuộc dự án Đầu tư hạ tầng phục vụ ứng dụng quản lý thông tin khách hàng sử dụng điện tại vị trí dự phòng TTDL năm 2026
+
+
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Nguyễn Sơn Bình
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1728
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 652/TB-IT - Thông báo Khởi công gói thầu CMIS.DR.2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật hệ thống máy chủ vật lý thuộc dự án Đầu tư hạ tầng phục vụ ứng dụng quản lý thông tin khách hàng sử dụng điện tại vị trí dự phòng TTDL năm 2026
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+TỔNG CÔNG TY CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 17 tháng 6 năm 2026 Số: 652/TB-IT
+
+THÔNG BÁO
+
+Khởi công gói thầu CMIS.DR.2026-01.HH: Cung cấp, triển khai dịch vụ kỹ
+
+thuật hệ thống máy chủ vật lý
+
+Dự án Đầu tư hạ tầng phục vụ ứng dụng quản lý thông tin khách hàng
+
+sử dụng điện tại vị trí dự phòng TTDL năm 2026
+
+Căn cứ Hợp đồng số HD2600138496_2606121645 ký ngày 16/6/2026 giữa Công ty Công nghệ thông tin Điện lực miền Trung - Tổng công ty Điện lực miền Trung và Công ty cổ phần Phát triển Công nghệ Viễn thông Tin học Sun Việt để thực hiện gói thầu CMIS.DR.2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật hệ thống máy chủ vật lý thuộc dự án Đầu tư hạ tầng phục vụ ứng dụng quản lý thông tin khách hàng sử dụng điện tại vị trí dự phòng TTDL năm 2026;
+
+Công ty Công nghệ thông tin Điện lực miền Trung thông báo khởi công gói thầu thuộc dự án nêu trên với các nội dung như sau:
+
+- Thời gian giao hàng và thực hiện dịch vụ kỹ thuật: không quá 182 ngày kể từ ngày Hợp đồng có hiệu lực.
+
+- Ngày khởi công: Ngày 16/6/2026.
+
+- Ngày hoàn thành dự kiến: Ngày 15/12/2026.
+
+Kính đề nghị Công ty cổ phần Phát triển Công nghệ Viễn thông Tin học Sun Việt căn cứ các điều khoản và các phụ lục kèm theo Hợp đồng để tổ chức triển khai thực hiện đảm bảo chất lượng, tiến độ của gói thầu.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=193
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. GIÁM ĐỐC
+
+- Công ty cổ phần Phát triển Công PHÓ GIÁM ĐỐC nghệ Viễn thông Tin học Sun Việt;
+
+- Giám đốc CPCIT (báo cáo);
+
+- Ban QLDA;
+
+- TH, KTMVT;
+
+- Lưu: VT, ĐT.
+
+Nguyễn Sơn Bình

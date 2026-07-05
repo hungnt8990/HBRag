@@ -4,6 +4,9 @@ Tách khỏi job PG+ES (``run_unified --skip-qdrant``). Đọc doc THÔ từ PG 
 ``qdrant_indexed`` != true) -> làm sạch (normalize + nén ACL) -> chunk -> embed -> Qdrant
 Col1 (chunks) + Col2 (docmeta) -> đánh dấu ``qdrant_indexed=true``.
 
+Embed CHỈ dense (``sparse_embedding_enabled=False`` -> factory trả None): Qdrant = dense
+vector search, lexical/BM25 = Elasticsearch, hybrid fusion/rerank ở tầng application.
+
 Idempotent + resume qua CỜ PG: re-sync (job PG+ES) tạo lại doc -> cờ về false -> embed lại.
 Chạy LẶP định kỳ: quét xong đứng im chờ ``--interval`` giây rồi quét lần sau (mặc định 300s;
 0 = chạy 1 lần rồi thoát). Dùng khi model embedding chập chờn — cứ để chạy, có gì mới thì embed.
@@ -92,6 +95,15 @@ def _don_vi_env(name: str) -> list[int] | None:
     return out or None
 
 
+def _id_vb_env(name: str) -> list[str] | None:
+    """Parse danh sách id_vb từ env (phân tách bởi , ; hoặc khoảng trắng)."""
+    raw = os.getenv(name)
+    if not raw:
+        return None
+    parts = [p.strip() for p in raw.replace(";", ",").replace(" ", ",").split(",") if p.strip()]
+    return parts or None
+
+
 def _quiet_console() -> None:
     logging.basicConfig(level=logging.ERROR, format="%(levelname)s %(message)s")
     for noisy in ("httpx", "httpcore", "qdrant_client", "app", "asyncio", "elasticsearch"):
@@ -147,6 +159,7 @@ class QdrantJobRunner:
         big_chunk_threshold: int = _BIG_CHUNK_THRESHOLD,
         max_chunks: int = _MAX_CHUNK_THRESHOLD,
         don_vi_filter: list[int] | None = None,
+        id_vb_filter: list[str] | None = None,
     ) -> None:
         self._workers = max(1, workers)
         self._batch_size = max(1, batch_size)
@@ -155,6 +168,9 @@ class QdrantJobRunner:
         self._max_chunks = max(0, max_chunks)  # >0: bỏ qua doc vượt ngưỡng; 0 = không giới hạn
         # Lọc theo đơn vị QUẢN LÝ (don_vi_list trong ACL) — cùng ngữ nghĩa --don-vi của run_pg_es.
         self._don_vi_filter = [int(v) for v in don_vi_filter] if don_vi_filter else None
+        # Lọc theo id_vb (1 hoặc nhiều VB cụ thể). Khi đặt -> EMBED LẠI kể cả đã qdrant_indexed
+        # (bỏ điều kiện pending) để chạy thử/nạp lại đúng các VB chỉ định. Ưu tiên hơn --don-vi.
+        self._id_vb_filter = [str(v).strip() for v in id_vb_filter if str(v).strip()] if id_vb_filter else None
         self.stats = QStats()
         self.phase = "Khởi tạo"
         self.feeding_done = False
@@ -165,8 +181,13 @@ class QdrantJobRunner:
         Đơn vị nằm ở ``document_metadata->access->raw_assignment->don_vi_list`` (list int) —
         khớp field mà run_pg_es lọc trên nguồn DOffice (``don_vi_list`` đơn vị quản lý VB).
         """
-        where = _WHERE_PENDING
         params: dict = {"t": DOFFICE_SOURCE_TYPE}
+        if self._id_vb_filter:
+            # Chỉ định id_vb -> KHÔNG lọc pending (embed lại kể cả đã indexed), lọc theo id_vb.
+            where = "source_type = :t AND document_metadata->>'id_vb' = ANY(:id_vb)"
+            params["id_vb"] = list(self._id_vb_filter)
+            return where, params
+        where = _WHERE_PENDING
         if self._don_vi_filter:
             where += (
                 " AND EXISTS (SELECT 1 FROM jsonb_array_elements_text("
@@ -177,7 +198,9 @@ class QdrantJobRunner:
         return where, params
 
     def _scope_label(self) -> str:
-        """Phạm vi đang quét (đơn vị nào / tất cả) — hiển thị trên dashboard + summary."""
+        """Phạm vi đang quét (id_vb / đơn vị / tất cả) — hiển thị trên dashboard + summary."""
+        if self._id_vb_filter:
+            return "id_vb " + ", ".join(self._id_vb_filter)
         if self._don_vi_filter:
             return "đơn vị " + ", ".join(str(v) for v in self._don_vi_filter)
         return "TẤT CẢ đơn vị"
@@ -610,17 +633,18 @@ async def _main(args: argparse.Namespace) -> None:
     big_threshold = args.big_chunk if args.big_chunk is not None else _int_env("DOFFICE_QDRANT_BIG_CHUNK", _BIG_CHUNK_THRESHOLD)
     max_chunks = args.max_chunk if args.max_chunk is not None else _int_env("DOFFICE_QDRANT_MAX_CHUNK", _MAX_CHUNK_THRESHOLD)
     don_vi = args.don_vi if args.don_vi else _don_vi_env("DOFFICE_QDRANT_DON_VI")
+    id_vb = args.id_vb if args.id_vb else _id_vb_env("DOFFICE_QDRANT_ID_VB")
 
     loggers.get("run").info(
-        "Job Qdrant: workers=%s batch=%s interval=%ss sequential=%s limit=%s big_chunk>%s max_chunk>%s(bỏ qua) don_vi=%s",
-        workers, batch, interval, sequential, limit, big_threshold, max_chunks, don_vi,
+        "Job Qdrant: workers=%s batch=%s interval=%ss sequential=%s limit=%s big_chunk>%s max_chunk>%s(bỏ qua) don_vi=%s id_vb=%s",
+        workers, batch, interval, sequential, limit, big_threshold, max_chunks, don_vi, id_vb,
     )
     while True:
         # Tuần tự -> 1 worker (không song song).
         runner = QdrantJobRunner(
             workers=1 if sequential else workers, batch_size=batch, limit=limit,
             big_chunk_threshold=big_threshold, max_chunks=max_chunks,
-            don_vi_filter=don_vi,
+            don_vi_filter=don_vi, id_vb_filter=id_vb,
         )
         start = time.monotonic()
         try:
@@ -669,5 +693,10 @@ if __name__ == "__main__":
         "--don-vi", nargs="+", type=int, default=None,
         help="Chi embed van ban thuoc don vi (don_vi_list trong ACL) — nhu --don-vi cua run_pg_es. "
              "Override DOFFICE_QDRANT_DON_VI. De trong = tat ca.",
+    )
+    parser.add_argument(
+        "--id-vb", nargs="+", type=str, default=None,
+        help="Chi embed cac id_vb chi dinh (1 hoac nhieu). EMBED LAI ke ca da qdrant_indexed. "
+             "Override DOFFICE_QDRANT_ID_VB. Uu tien hon --don-vi.",
     )
     asyncio.run(_main(parser.parse_args()))

@@ -1,0 +1,58 @@
+================================================================================
+id_vb        : 1481688
+ky_hieu      : 24/IT-CĐCPCIT
+trich_yeu    : V/v xét tặng Kỷ niệm chương “Vì sự nghiệp xây dựng tổ chức Công đoàn Việt Nam” 2026
+
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-20
+ten_file     : CĐIT-vv xét tặng Kỷ niệm chương công đoàn VN 2026.pdf
+TỔNG SỐ CHUNK: 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=219
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 24/IT-CĐCPCIT
+Ngày văn bản: 20/06/2026
+Trích yếu: V/v xét tặng Kỷ niệm chương “Vì sự nghiệp xây dựng tổ chức Công đoàn Việt Nam” 2026
+
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Nguyễn Sơn Bình
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=984
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 24/IT-CĐCPCIT - V/v xét tặng Kỷ niệm chương “Vì sự nghiệp xây dựng tổ chức Công đoàn Việt Nam” 2026
+Ngày ban hành: 20/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+CÔNG ĐOÀN TỔNG CÔNG TY CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+CÔNG ĐOÀN CÔNG TY CNTT ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 20 tháng 6 năm 2026 Số: 24/IT-CĐCPCIT V/v xét tặng Kỷ niệm chương "Vì sự nghiệp xây dựng tổ chức Công đoàn
+
+Việt Nam" 2026
+
+Kính gửi: Công đoàn Tổng công ty Điện lực miền Trung
+
+Thực hiện nội dung Công văn số 169/CĐĐMT ngày 12/6/2026 về việc xét tặng Kỷ niệm chương "Vì sự nghiệp xây dựng tổ chức Công đoàn Việt Nam" 2026. Sau khi nghiên cứu Hướng dẫn số 33/HD-TLĐ ngày 01/10/2024 của Tổng Liên đoàn Lao động Việt Nam, Công đoàn Công ty Công nghệ thông tin Điện lực miền Trung (CPCIT) hiện nay không có trường hợp nào đủ tiêu chuẩn, điều kiện để đề xuất xét tặng.
+
+Công đoàn CPCIT kính báo cáo Công đoàn Tổng công ty.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=87
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: TM. BCH CÔNG ĐOÀN
+
+- Như trên; CHỦ TỊCH
+
+- Lưu: VT, CĐCPCIT.
+
+Nguyễn Sơn Bình

@@ -3,6 +3,97 @@
 > Tài liệu này mô tả tổng thể backend để người mới (hoặc Claude ở phiên sau) đọc là
 > hiểu dự án có gì. **Mỗi khi hoàn thành một thay đổi đáng kể, phải cập nhật file này.**
 >
+> 🏗️ **2026-07-05 (rev3) — run_kho_chunk: trạng thái từ ES + dashboard + dừng an toàn + loop; tách quản Qdrant**:
+> (1) Bỏ HẲN checkpoint PostgreSQL — đã/chưa chunk suy TỪ ES (`KhoAiEsClient.existing_chunk_id_full`: `id_full` đã
+> có chunk chưa). Job quét nguồn, CHỈ chunk văn bản CHƯA có chunk. (2) Hiển thị MỘT bảng in-place (`cs.Spinner`):
+> tổng nguồn / đã chunk (mới+sẵn có) / chưa chunk / đang xử lý — không cuộn nhiều dòng. (3) Dừng an toàn: Ctrl-C set
+> `_STOP`, kiểm tra giữa các văn bản -> dừng SAU khi chunk xong văn bản hiện tại (Ctrl-C lần 2 buộc thoát). (4) LOOP
+> lại: `--interval`/`KHO_JOB_INTERVAL` mặc định 300s (5 phút), 0 = 1 lượt. (5) **Tách quản Qdrant**: chỉ
+> `run_kho_qdrant` tạo/recreate 2 collection dense (`ensure_qdrant_collections`/`reset_qdrant_stage`); `run_kho_chunk`
+> KHÔNG đụng Qdrant. reset=9 tách stage: chunk-reset xoá ES chunk (không PG/Qdrant); qdrant-reset recreate 2
+> collection + `unmark_all_chunks`. Verify live: 2 lượt liên tiếp -> lượt 2 nhận diện đúng "sẵn có"; loop 3 lượt/8s;
+> tách store OK (chunk-reset giữ Qdrant 404, qdrant mới tạo 200). Chi tiết: `backend/CLAUDE.md`.
+>
+> 🏗️ **2026-07-05 (rev2) — Chốt SCHEMA field + job chạy 1 lượt**: 2 job kho AI **CHẠY 1 LƯỢT rồi dừng**
+> (bỏ `--interval`/idle-loop); quét theo batch, xử lý tới đâu in tới đó. Payload lưu **ĐÚNG danh sách field
+> nghiệp vụ chốt** (không dư, không field compat tên cũ) — thêm `security_level` (chưa có ở nguồn -> tự xuất hiện
+> khi API bổ sung). ES chunk: `id,id_full,document_id,title,source_system,doc_group,doc_type,doc_category,
+> issue_date,owner_department_id,security_level,acl_subjects,acl_deny,chunk_id,chunk_order,chunk_text,chunk_type,
+> section_path,content_hash` + 2 field cơ chế bắt buộc `table_context`(carrier)+`qdrant_indexed`(cờ). Qdrant docmeta
+> + chunk theo 2 list riêng (chunk = doc-level từ record ES chunk, bù related/reference/priority từ doc nguồn +
+> chunk-level). `--reset 9` xoá thêm **checkpoint PostgreSQL** (`clear_prefix("kho_ai_chunk")`), vẫn KHÔNG đụng
+> `kho_ai_dung_chung`. Retrieval hiện hành query field tên cũ -> nay MẤT lọc năm/tháng + boost mã (ACL + dense +
+> BM25 chunk_text còn chạy); TODO remap retrieval sang schema BA. Verify live: chunk+embed doc có ACL -> payload
+> đúng spec (acl_subjects/acl_deny/doc_group... khớp; field rỗng bỏ), reset sạch 0 point/0 chunk, nguồn 16354 nguyên.
+> Chi tiết field + vận hành: `backend/CLAUDE.md` mục "Nhánh KHO AI DÙNG CHUNG". 104 test pass.
+>
+> 🏗️ **2026-07-05 — Nhánh KHO AI DÙNG CHUNG: 2 job mới + đổi toàn bộ index/collection retrieval**:
+> Nguồn mới = index ES **`kho_ai_dung_chung`** (10.72.121.232, ~16k doc, mapping strict do nhóm BA quản,
+> `id` = UUIDv7, ACL **đã nén sẵn** `acl_subjects`/`acl_deny`, nội dung ở `ocr_content`, schema BA:
+> `document_no/title/signer/summary/issue_date/doc_group{cv_den,cv_di,cv_noi_bo}/...`). **Job 1
+> `run_kho_chunk.py|.bat`**: quét theo batch (sort `updated_at,id`, checkpoint search_after+updated_after
+> lưu PG `job_sync_checkpoints`, tách theo phạm vi `--issuer-org`) -> làm sạch `ocr_content` (tái dùng
+> `normalize_doffice_source` qua map field `build_doffice_style_source`) -> `build_doffice_chunks` (profile
+> doffice_admin) -> ghi index **`kho_ai_dung_chung_chunk`** (job tự tạo, analyzer vi_bm25 + synonyms_set;
+> mỗi chunk: `id`=UUIDv7 mới, `id_full`=id doc nguồn, `chunk_text`(+`ocr_content` cùng giá trị), field doc
+> đem sang theo spec + field tên CŨ tương thích retrieval `id_vb/ky_hieu/trich_yeu/nam/thang/ngay_vb/
+> id_dv_ban_hanh`, ACL copy nguyên trạng KHÔNG nén lại, `qdrant_indexed=false`). Chunk KHÔNG lưu PG.
+> **Job 2 `run_kho_qdrant.py|.bat`**: quét chunk pending (composite agg theo `id_full`), TUẦN TỰ từng doc:
+> embed nhánh FULL trước (docmeta: `title+signer+summary` làm sạch `clean_for_chunking`) -> từng chunk
+> (`chunk_text` có sẵn, không làm sạch lại), CHỈ DENSE (sparse tắt), upsert 2 collection MỚI
+> **`hbrag_doffice_chunks`** + **`hbrag_doffice_docmeta`** (tự tạo nếu chưa có; point id = id chunk / id doc
+> UUIDv7; payload theo spec + field compat) -> đánh dấu `qdrant_indexed=true` trên ES (`_refresh` trước quét).
+> **`--reset 9`** (cả 2 job, env `KHO_JOB_RESET`/`KHO_QDRANT_RESET`): wipe ES chunk + 2 collection Qdrant
+> (+ checkpoint ở job 1) — TUYỆT ĐỐI không đụng `kho_ai_dung_chung`; `--reset 0` = chạy theo đánh dấu.
+> **Đổi cấu hình toàn cục** (`config.py` + `.env`): `QDRANT_CHUNKS/DOCMETA_COLLECTION_NAME` ->
+> `hbrag_doffice_chunks`/`hbrag_doffice_docmeta`; `DOFFICE_DOCUMENTS/CHUNKS_INDEX_NAME` ->
+> `kho_ai_dung_chung`/`kho_ai_dung_chung_chunk`; `ELASTICSEARCH_URL` -> `https://10.72.121.232:9200` +
+> settings MỚI `elasticsearch_username/password/verify_ssl` (tài khoản `elastic` — role `doffice` bị 403
+> trên `kho_ai_dung_chung*`); helper `es_client_kwargs()` (`retrieval_shared.py`) gắn auth/verify cho MỌI
+> httpx client ES (`retrieval_doffice_bm25/document_index/elasticsearch_keyword_search/acl_inspect`).
+> Đã push synonyms_set `vi_abbreviations` lên cluster mới. Client mới `jobs/doffice_sync/clients/kho_client.py`
+> (uuid7(), scroll, ensure/bulk/mark/reset). Verify live: chunk 2 doc -> 9 chunk ES; embed -> 9 point chunks
+> + 2 point docmeta; reset + re-chunk + re-embed + `--id-full` OK; 135 test pass. ⚠️ Retrieval BM25 doc-level
+> (`DofficeBm25DocumentStore.search_documents`) query field cũ (`trich_yeu/noi_dung...`) trên `kho_ai_dung_chung`
+> (field `title/ocr_content/summary`) -> match kém; nhánh chunk BM25 + Qdrant fusion hoạt động nhờ field compat.
+> TODO: remap field query doc-level BM25 sang schema BA khi chuyển hẳn.
+>
+> 🎯 **2026-07-04 — TẮT sparse Qdrant: kiến trúc rạch ròi ES=BM25 lexical / Qdrant=dense / app=fusion+rerank**:
+> `sparse_embedding_enabled=False` (default, `app/core/config.py`) -> `get_sparse_embedding_provider()` trả None:
+> run_qdrant embed CHỈ dense (point mới không có sparse vector), search Qdrant dense-only (bỏ nhánh sparse prefetch
+> RRF nội bộ Qdrant trong `vector_store.search`). Kênh lexical/keyword = ES BM25 (2 index full+chunk) như cũ;
+> hybrid fusion (RRF weighted) + rerank vẫn ở tầng application (`document_semantic_search.py` — không đổi code,
+> `sparse=None` tự bỏ qua). **KHÔNG cần re-embed, KHÔNG recreate collection**: dense vector cũ dùng nguyên,
+> schema sparse còn trong collection cũ vẫn hợp lệ (`matches_config` chỉ đòi sparse khi cờ bật), point cũ mang
+> sparse vector thừa vô hại. Muốn bật lại: env `SPARSE_EMBEDDING_ENABLED=true` (data cũ mới có sparse; data mới
+> phải re-embed bằng run_qdrant). Code sparse (hashing/learned) giữ nguyên, chỉ dormant. 471 test pass
+> (sửa 2 assertion test_vector_indexing theo hành vi dense-only).
+>
+> 🖥️ **2026-07-03 (f) — Đổi Qdrant server + metadata nghiệp vụ + run_qdrant --id-vb** (verify live):
+> **(1) Qdrant server MỚI**: `.env` `QDRANT_URL=http://10.72.117.69:6333` + `QDRANT_API_KEY` (cũ 10.72.113.21).
+> Tạo lại 2 collection 4096-dim trên server mới. **(2) API doffice_vanban trả ACL THẬT** trong `_source`
+> (don_vi_list/phong_ban_list/ca_nhan_list) -> `vanban_client._SOURCE`+`VanbanRecord` thêm 3 list + `has_acl`;
+> `unified_runner._enqueue_acl_filtered` đọc ACL từ record (fallback QuyenEsClient). **(3) Metadata theo plan**:
+> `ingestion_doffice_business_fields.py` suy luận `loai_vb` (từ ky_hieu) + `linh_vuc` (rule keyword ngành điện)
+> -> gộp vào source ở `prepare_postgres` + idempotent lại trong `embed_to_qdrant`; thêm vào `_DOCMETA_FIELDS`
+> + `_C1_DOC_FILTER_STR_FIELDS`. **B1**: `_DOCMETA_EMBED_FIELDS` bỏ `ten_file` (chỉ trich_yeu+tom_tat+noi_ban_hanh)
+> -> vector docmeta sạch ngữ nghĩa. **(4) run_qdrant `--id-vb`** (1/nhiều VB, embed lại kể cả đã indexed) +
+> env `DOFFICE_QDRANT_ID_VB`; `run_qdrant.bat` 3 chế độ (id_vb/đơn vị/tất cả). **(5) Payload store CHỈ ACL NÉN**
+> (acl_subjects/acl_deny), KHÔNG raw_assignment (PG vẫn giữ raw làm nguồn nén lại). Chạy thử 8 VB (1068586,
+> 1479034, 1479029, 1479790, 1474990, 1476649, 1475606, 1468950) OK: 92 chunk + 8 docmeta, loai_vb/linh_vuc đúng,
+> ACL nén.
+> **(6) Schema chunk (payload Qdrant Col1)**: `chunk_id` + `id` (point) = **UUID v7** (`new_chunk_id()`
+> `app/core/chunk_ids.py`, time-ordered) THAY uuid5 tất định — sinh 1 lần ở `create_chunks` (PG), ghi
+> `metadata['chunk_uuid']` để nhánh ES dùng CÙNG id (giữ join 3 store); point_id Qdrant = `database_chunk_id`
+> (`_build_point`). `chunk_index`→thêm alias **`chunk_order`**; `text`→đổi tên **`chunk_text`** (nhánh doffice,
+> reader `_to_search_result`/`_chunk_context_seed` fallback); **`section_path`** = chuỗi "chương > điều > khoản";
+> **`table_context`** gộp tên bảng+cột+dòng+trang; `content_hash` (SHA-256 chunk_text) giữ nguyên. Đổi ở
+> `qdrant_payload._apply_doffice_chunk_schema` (`rag_chunk.py`). Re-run 8 VB: point.id==chunk_id==uuid7,
+> join PG↔Qdrant OK, content_hash==sha256(PG). 79 test pass (sửa 4 test test_vector_indexing theo schema mới).
+> **CHƯA làm — item 3**: pipeline EOffice `eoffice_congvan` (4.5tr công văn, UUID, ACL
+> don_vi_id/phong_ban_thuc_hien/ca_nhan_thuc_hien, noi_dung inline có text) + `eoffice_nhanvien` — chờ chốt mô
+> hình ACL UUID. Plan: `~/.claude/plans/curl-location-request-get-structured-blum.md`.
+>
 > 📐 **Schema metadata chuẩn hoá** (PG/ES/Qdrant C1+C2): xem [`docs/METADATA_SCHEMA.md`](METADATA_SCHEMA.md).
 > **Đã áp**: Col1 chunk gắn thêm field lọc cấp văn bản `nam/thang/ngay_vb/id_dv_ban_hanh` (qua
 > `_build_c1_doc_filter_payload` + `set_acl_payload_for_document` trong `index_qdrant`) — filter thời gian/đơn vị
@@ -65,7 +156,62 @@
 > (delete_by_id_vb trước bulk). Verify E2E trên ES live: ensure_index + bulk + search BM25 + ACL fields + 1 doc thật
 > 3 chunk khớp. 183 test pass. (run_qdrant KHÔNG index ES — chỉ embed Qdrant.)
 >
-> Cập nhật gần nhất: 2026-07-03 (e) — **Fix 4 bug MẤT NỘI DUNG khi chunk DOffice** (từ báo cáo QA ~50 văn bản
+> Cập nhật gần nhất: 2026-07-04 (c) — **Fix `footer_signature` nuốt VĂN BẢN ĐÍNH KÈM sau khối chữ ký**
+> (PHẢI re-chunk + re-embed dữ liệu cũ; kiểm chứng trên 102 văn bản thật `tests/Chunk/data.txt`). Triệu chứng: nhiều
+> VB OCR gộp cả file đính kèm (Kế hoạch/Quy định/Đề cương/Tờ trình...) vào `noi_dung` NGAY SAU "Nơi nhận"/chữ ký ->
+> chunk `footer_signature` (không index/embed) nuốt trọn hàng chục nghìn ký tự nội dung thật (202570: 41443;
+> 1479942: 34816; 1483491: 24409). Fix ở `ingestion_doffice_content_normalizer.py`:
+> (1) `_attached_document_start` tìm điểm bắt đầu phần đính kèm trong vùng footer bằng 2 tín hiệu — quốc hiệu
+> (`QUOC_HIEU_PATTERN`, cho phép 60 ký tự tiền tố vì OCR 2 cột) xuất hiện SAU marker footer; hoặc tổng quát: sau dòng
+> "Lưu: ..." (mục cuối khối Nơi nhận) + tối đa 4 dòng chức danh/tên người ký (`_is_signature_line`/`_is_person_name_line`)
+> mà còn nội dung -> điểm cắt; guard >=300 ký tự HOẶC có `[[TABLE_n]]` (bảng chunk riêng nên placeholder ngắn vẫn là
+> nội dung). (2) `split_footer_signature` cắt footer tại điểm đó; (3) `extract_attached_document_text` (cùng helper,
+> không lệch ranh giới) đưa phần đính kèm thành element `document_body` `artifact_type=attached_document`,
+> `section_title="Văn bản đính kèm"`, span theo base_plain_text — đi đúng đường phụ lục (heading-aware chunker chia
+> theo Chương/Điều/mục; `_prose_reading_pos` cộng base để sắp thứ tự đọc). Kèm 2 fix phụ: `_strip_toc_lines` lọc dòng
+> MỤC LỤC (chấm leader >=4 + số trang — 1483491 sinh 16 chunk TOC trùng tiêu đề nội dung thật) khỏi prose
+> body/phụ lục/đính kèm (KHÔNG sửa `strip_markdown_noise` vì dùng chung cho ô bảng/summary); gỡ placeholder
+> `[[TABLE_n]]` còn kẹt trong footer (sau khi tính `footer_span`). Kết quả đo 102 VB: 0 chunk >6000 ký tự, 0 degraded,
+> footer max <1500 (202570 footer 41443->130, ra 31 chunk; 1479942 5->39 chunk); 26 test `test_doffice_ingestion` pass.
+> Test tool: `tests/Chunk/chunk_test.py` nay CACHE raw `_source` vào `tests/Chunk/raw/<id_vb>.json` (chạy offline khi
+> hiệu chỉnh chunker; `--refresh` ép tải lại từ ES).
+>
+> 2026-07-04 (b) — **Đường dẫn cấu trúc Chương > Điều > Khoản trong chunk pháp quy**
+> (`chunker_adaptive_chunking.py`; PHẢI re-chunk + re-embed mới có hiệu lực trên dữ liệu cũ). Trước: VB đánh số
+> (1./1.1./1.1.1) đã có `section_path` đầy đủ tiêu đề, nhưng VB pháp quy chỉ có SỐ ("Chương I > Điều 5") và
+> KHÔNG có cấp Khoản (Điều dài cắt theo ký tự, mọi mảnh mang `clause_number` của khoản ĐẦU TIÊN). Fix:
+> (1) `_legal_path` mang cả TIÊU ĐỀ ("Chương I QUY ĐỊNH CHUNG > Điều 2 Đối tượng áp dụng", cắt 90 ký tự/cấp,
+> `_legal_section_title` = join path); (2) `_legal_clause_chunks` mới: Điều > max_chars cắt theo ranh giới KHOẢN
+> (chỉ nhận khoản đánh số liên tục từ 1 -> né danh sách lồng), gom khoản liên tiếp tới max_chars, mỗi chunk mang
+> `clause_number` đúng phạm vi ("3"/"3-5") + `section_path`+dòng "Mục:" nối thêm "Khoản ..." + `source_span` đúng
+> vùng khoản; không nhận diện được khoản -> fallback `_bounded_chunks` như cũ. Payload Qdrant/ES tự hưởng
+> (`_apply_doffice_chunk_schema` join list -> chuỗi "chương > điều > khoản"). Cùng đợt, 3 fix PHỤ LỤC (từ VB thật
+> 1476649/3684_EVNCPC-KD): (3) tiêu đề phụ lục bẻ dòng bị CẮT CỤT ("...THẤP" mất "ĐIỂM KHI CÀI ĐẶT...") ->
+> `_appendix_heading_span` nối các dòng VIẾT HOA liền sau (tối đa 2) + ép tiêu đề về 1 dòng; (4) dòng "Mục:" của
+> chunk phụ lục trước chỉ có tiêu đề LÁ -> giờ nối cả `section_path` (Phụ lục ... > I. ... > 1.1. ...) như chunk
+> thường, `_merge_appendix_preamble` thêm guard chống trùng tiêu đề; (5) chunk chỉ-tiêu-đề của phụ lục ("I. Ngày
+> cài đặt...") hết miễn trừ khỏi filter lược — bị lược khi tiêu đề đã theo path chunk sau (1476649: 16->14 chunk,
+> hết chunk mồ côi); (6) bảng phụ lục mất ngữ cảnh mục cha (tên rơi hết về "Bảng DOffice N") do gate `has_appendix`
+> trong `parse_html_tables` áp `APPENDIX_MARKER_PATTERN` (anchor đầu dòng) lên noi_dung THÔ — "Phụ lục" ở đó có tiền
+> tố markdown/thẻ (`**Phụ lục**`) nên không khớp -> thêm `APPENDIX_MARKER_RAW_PATTERN` khoan dung tiền tố; giờ bảng
+> lấy đúng heading mục cha làm tên ("Bảng: 1.2. Trường hợp 2: Cài đặt từ 04h00 đến 06h00..."), khôi phục liên kết
+> prose<->bảng của thiết kế v2 tách bảng. 57 test chunk/doffice/rag_chunk pass.
+>
+> 2026-07-04 (a) — **Làm sạch rác OCR trong BẢNG DOffice trước khi chunk** (từ test thực tế
+> `tests/Chunk/chunk_test.py` trên VB có bảng; PHẢI re-chunk + re-embed dữ liệu cũ mới có hiệu lực). Triệu chứng:
+> ô bảng nguồn bị OCR "nổ" nội dung xuống nhiều dòng / lặp rác (token `'H[`, nguyên cụm từ, cả hàng `| H[ |`) hàng
+> trăm-nghìn lần -> PHÁ cấu trúc markdown (ô markdown phải nằm 1 dòng) -> `TableChunker` không cắt được -> chunk bảng
+> khổng lồ vô nghĩa (đo được 30k-53k ký tự, vẫn `quality=pass`). Fix Ở LUỒNG DOFFICE (không đụng file chia sẻ
+> `chunker_text_cleaning.py`): trong `ingestion_doffice_content_normalizer.py` thêm `_sanitize_table_cell` (gộp `\n`
+> trong ô về space, `|`->`/`, cắt fragment JSON docling `[{"bbox"...` giới hạn 1 dòng, nén token lặp
+> `_collapse_repeated_tokens` + cụm-từ lặp `_collapse_repeated_span` cho ô dài) + `_collapse_repeated_rows` (nén hàng
+> giống hệt lặp >=4 lần) — áp trong `table_to_markdown`/`table_to_text`; bbox cũng cắt ở `strip_markdown_noise` (phủ
+> prose). `chunker_doffice_chunking._table_chunks` đánh dấu `quality=degraded` nếu mảnh bảng vẫn > 2×table_max (lưới
+> an toàn). Kết quả đo: 16939 chunk bảng 53869->4247; 1144287 27446->3031, tổng 20->6 chunk; MỌI chunk bảng nay
+> <=~5800 ký tự; dữ liệu thật (Hạng mục 1-11...) giữ nguyên. 82 test chunk/normalizer pass. (Lỗi footer nuốt VB
+> đính kèm ghi nhận ở đợt này ĐÃ FIX ở 2026-07-04 (c) phía trên.)
+>
+> Cập nhật trước: 2026-07-03 (e) — **Fix 4 bug MẤT NỘI DUNG khi chunk DOffice** (từ báo cáo QA ~50 văn bản
 > "thiếu quyết định đầu trang/nội dung Giám đốc/mục 1,2,3"; PHẢI re-chunk + re-embed dữ liệu cũ mới có hiệu lực):
 > **(1) `_legal_chunks` bỏ rơi toàn bộ text TRƯỚC "Điều 1"** (quốc hiệu, tiêu đề QUYẾT ĐỊNH, "GIÁM ĐỐC...", các đoạn
 > "Căn cứ...") -> giờ giữ thành chunk `document_preamble` (như `_section_chunks`). **(2) Section "mỏng"**: mỗi mục 1
@@ -80,7 +226,7 @@
 > hút đuôi < `_MIN_TAIL_CHARS`(200) vào phần trước (hết chunk cuối 1 từ). Verify: 461 test pass; sweep 150 VB ngẫu
 > nhiên: hết mất khối nội dung (còn vài dòng lẻ do OCR homoglyph Cyrillic/bảng nguồn lệch rowspan — lỗi dữ liệu nguồn).
 >
-> Cập nhật trước: 2026-07-03 (d) — **Tối ưu latency /api/document-search/search** (đo live, evidence vẫn strong):
+> Cập nhật trước nữa: 2026-07-03 (d) — **Tối ưu latency /api/document-search/search** (đo live, evidence vẫn strong):
 > query lặp ~3.9s -> **~0.6s**; query mới (process ấm) -> **~1.6s**; crag warm 3.2s -> ~10ms. Các thay đổi:
 > **(1) BM25 doc-level song song fusion**: `execute_document_search` đưa `_search_es`(+fuzzy fallback) vào task
 > (`_doc_bm25`), fusion nhận `bm25_hits_task` và await MUỘN ngay trước RRF (tham số `bm25_hits` list vẫn giữ cho
@@ -670,13 +816,16 @@
 ## 1. Dự án là gì
 
 Backend RAG (Retrieval-Augmented Generation) cho EVNCPC: ingest văn bản (chủ yếu từ
-DOffice), chunk + embedding, lưu vào Qdrant (vector + sparse) và Elasticsearch (BM25),
-truy hồi hybrid (vector + keyword + RRF + rerank) rồi sinh câu trả lời có trích dẫn.
+DOffice), chunk + embedding, lưu vào Qdrant (dense vector) và Elasticsearch (BM25 lexical),
+truy hồi hybrid fusion + rerank ở tầng application rồi sinh câu trả lời có trích dẫn.
+Phân vai rạch ròi (2026-07-04): **ES = BM25 lexical**, **Qdrant = dense vector search**
+(sparse TẮT — `sparse_embedding_enabled=False`), **application = hybrid fusion/reranking**.
 
 - **Framework:** FastAPI. Entrypoint: `app/main.py`.
 - **CSDL nghiệp vụ:** PostgreSQL (SQLAlchemy async + Alembic).
-- **Vector store:** Qdrant `http://10.72.113.21:6333`, collection `hbrag_chunks_qwen3_8b_v1`
-  (dense 4096-dim Qwen3-Embedding-8B + sparse).
+- **Vector store:** Qdrant `http://10.72.117.69:6333`, 2 collection doffice
+  `hbrag_doffice_chunks_v1` + `hbrag_doffice_docmeta_v1` (dense 4096-dim Qwen3-Embedding-8B,
+  KHÔNG sparse).
 - **Keyword store:** Elasticsearch `http://10.72.113.21:9200`, index `hbrag_chunks_bm25_v1`.
 - **Nguồn DOffice:** Elasticsearch `https://10.72.121.232:9200/doffice_vanban` (HTTPS + Basic auth
   `DOFFICE_ES_USERNAME`/`DOFFICE_ES_PASSWORD`, self-signed -> `DOFFICE_ES_VERIFY_SSL=false`).

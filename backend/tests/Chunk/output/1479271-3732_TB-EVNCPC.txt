@@ -1,0 +1,442 @@
+================================================================================
+id_vb        : 1479271
+ky_hieu      : 3732/TB-EVNCPC
+trich_yeu    : Thông báo kiểm tra theo kế hoạch tại CPSC
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-18
+ten_file     : 2. EVNCPC TB KTRA TAI CPSC THEO KH T6. 2026.pdf
+TỔNG SỐ CHUNK: 22
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=176
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3732/TB-EVNCPC
+Ngày văn bản: 18/06/2026
+Trích yếu: Thông báo kiểm tra theo kế hoạch tại CPSC
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Trần Công Minh
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=586
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+Độc lập - Tự do - Hạnh phúc TỔNG CÔNG TY
+
+ĐIỆN LỰC MIỀN TRUNG
+
+Số: 3732/TB-EVNCPC Đà Nẵng, ngày 18 tháng 6 năm 2026
+
+THÔNG BÁO
+
+Về việc thực hiện kế hoạch kiểm tra năm 2026
+
+Thực hiện Kế hoạch kiểm tra thường xuyên năm 2026 của EVNCPC theo Văn bản số 9744/KH-EVNCPC ngày 30/12/2025, EVNCPC thông báo chương trình làm việc của Đoàn kiểm tra EVNCPC tại CPSC như sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=1. Thành phần: | quality=pass | chars=429
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 1. Thành phần:
+1. Thành phần:
+
+- Trưởng đoàn: Lãnh đạo Ban Tổ chức và Nhân sự.
+
+- Phó Trưởng đoàn: Lãnh đạo Văn phòng.
+
+- Thành viên đoàn:
+
++ Văn phòng: 01 Cán sự.
+
++ Ban TCNS: 03 Chuyên viên.
+
++ Ban VTCNTT: 01 Lãnh đạo Ban và 01 Chuyên viên.
+
++ CPCIT: 01 nhân sự phụ trách ATTT.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=2. Nội dung: | quality=pass | chars=524
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 2. Nội dung:
+2. Nội dung:
+
+Kiểm tra công tác tổ chức cán bộ, lao động, tiền lương, đào tạo, các chế độ chính sách và KPI;
+
+Kiểm tra và hướng dẫn các đơn vị một số nội dung về công tác lập HSCV, VTLT, việc chấp hành, triển khai thực hiện các văn bản chỉ đạo, các quy định của pháp luật, EVN và EVNCPC về công tác VTLT, bảo vệ BMNN;
+
+Kiểm tra vận hành hệ thống VT, CNTT, ATTT.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_section | section=3. Phạm vi: Từ ngày 01/01/2025 đến 31/3/2026. | quality=pass | chars=871
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 3. Phạm vi: Từ ngày 01/01/2025 đến 31/3/2026.
+3. Phạm vi: Từ ngày 01/01/2025 đến 31/3/2026.
+
+4. Thời gian và hình thức: kiểm tra trực tuyến và trực tiếp
+
+- Kiểm tra trực tuyến: từ ngày 25-26 và 29-30/6/2026.
+
+- Kiểm tra trực tiếp tại CPSC: từ ngày 01-02/7/2026.
+
+5. Tổ chức thực hiện:
+
+- CPSC chuẩn bị báo cáo và hồ sơ, tài liệu liên quan theo đề cương gửi về EVNCPC trong sáng ngày 24/6/2026; bố trí cán bộ có trách nhiệm làm việc với Đoàn kiểm tra.
+
+- Đoàn thực hiện kiểm tra trực tuyến, trực tiếp và kết hợp trích xuất dữ liệu từ các chương trình quản lý để đối chiếu, rà soát.
+
+- Văn phòng EVNCPC bố trí phương tiện đi lại cho Đoàn.
+
+Đề nghị CPSC và các Ban EVNCPC có liên quan phối hợp thực hiện./.
+TL. TỔNG GIÁM ĐỐC
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=footer_signature | quality=pass | chars=159
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: CHÁNH VĂN PHÒNG
+
+- TGĐ EVNCPC (báo cáo);
+
+- CPSC (t/hiện);
+
+- VP, Ban VTCNTT (t/hiện);
+
+- Ban PC;
+
+- CPCIT (t/hiện);
+
+- Lưu: VT, TCNS.
+Trần Công Minh
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=document_preamble | section=preamble | artifact=attached_document | quality=pass | chars=185
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+ĐỀ CƯƠNG KIỂM TRA TẠI CPSC
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=document_section | section=I. CÔNG TÁC TỔ CHỨC CÁN BỘ, LAO ĐỘNG, TIỀN LƯƠNG, CÁC CHẾ ĐỘ CHÍNH SÁCH, ĐẠO TẠO VÀ KPI | artifact=attached_document | quality=pass | chars=1377
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: I. CÔNG TÁC TỔ CHỨC CÁN BỘ, LAO ĐỘNG, TIỀN LƯƠNG, CÁC CHẾ ĐỘ CHÍNH SÁCH, ĐẠO TẠO VÀ KPI
+I. CÔNG TÁC TỔ CHỨC CÁN BỘ, LAO ĐỘNG, TIỀN LƯƠNG, CÁC CHẾ ĐỘ CHÍNH SÁCH, ĐẠO TẠO VÀ KPI
+
+1. Công tác tổ chức
+
+Kiểm tra việc triển khai sắp xếp mô hình tổ chức EVNCPC phê duyệt.
+
+2. Công tác cán bộ
+
+2.1 Công tác quy hoạch, kiện toàn nhân sự cán bộ lãnh đạo, quản lý diện EVN, EVNCPC và đơn vị quản lý
+
+a) Việc thể chế hóa các quy chế, quy định về công tác cán bộ: thống kê các quy chế, quy định đã thể chế hóa và ban hành áp dụng trong đơn vị.
+
+b) Công tác nhận xét, đánh giá, xếp loại chất lượng cán bộ: kế hoạch triển khai, tiêu chí nhận xét, đánh giá, xếp loại chất lượng đối với cán bộ. Lập bảng tổng hợp kết quả nhận xét, đánh giá, xếp loại chất lượng cán bộ các năm trong kỳ báo cáo;
+
+c) Quy hoạch cán bộ: kế hoạch triển khai; kết quả rà soát, bổ sung, xây dựng mới quy hoạch cán bộ trong kỳ báo cáo; quyết định phê duyệt và danh sách cán bộ quy hoạch (kèm theo Phụ lục 1-2).
+
+d) Bổ nhiệm, bổ nhiệm lại, điều động và bổ nhiệm, điều động, luân chuyển cán bộ: số lượng, danh sách cán bộ được bổ nhiệm, bổ nhiệm lại, điều động, luân chuyển trong kỳ báo cáo; đơn vị chuẩn bị hồ sơ cán bộ kiện toàn trong kỳ báo cáo (kèm theo Phụ lục 3-4).
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #8
+chunk_type=document_section | section=e) Quản lý hồ sơ cán bộ và những vấn đề liên quan khác: | artifact=attached_document | quality=pass | chars=574
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: e) Quản lý hồ sơ cán bộ và những vấn đề liên quan khác:
+e) Quản lý hồ sơ cán bộ và những vấn đề liên quan khác:
+
+- Thực hiện kiểm tra trực tiếp tại đơn vị trong việc lưu trữ, quản lý hồ sơ cán bộ theo quy định hiện hành.
+
+- Việc thực hiện các ý kiến chỉ đạo của EVN, EVNCPC trong công tác cán bộ.
+
+- Khiếu nại và kết quả giải quyết khiếu nại trong công tác cán bộ (nếu có).
+
+2.2 Công tác kê khai, công khai tài sản, thu nhập
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #9
+chunk_type=document_section | section=a) Công tác lãnh đạo, chỉ đạo: | artifact=attached_document | quality=pass | chars=436
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: a) Công tác lãnh đạo, chỉ đạo:
+a) Công tác lãnh đạo, chỉ đạo:
+
+- Việc chỉ đạo các đơn vị, cá nhân có nghĩa vụ kê khai tài sản, thu nhập;
+
+- Việc lập danh sách đối tượng kê khai tài sản, thu nhập; mẫu kê khai tài sản, thu nhập và yêu cầu người có nghĩa vụ kê khai thực hiện việc kê khai;
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #10
+chunk_type=document_section | section=b) Kết quả kê khai tài sản, thu nhập: | artifact=attached_document | quality=pass | chars=418
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: b) Kết quả kê khai tài sản, thu nhập:
+b) Kết quả kê khai tài sản, thu nhập:
+
+- Số người phải kê khai; số người thực hiện kê khai; số bản kê khai theo phân cấp quản lý;
+
+- Số người thực hiện kê khai; số người chưa kê khai; số người kê khai không đúng thời hạn quy định.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #11
+chunk_type=document_section | section=c) Việc tiếp nhận, kiểm tra, quản lý bản kê khai: | artifact=attached_document | quality=pass | chars=423
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: c) Việc tiếp nhận, kiểm tra, quản lý bản kê khai:
+c) Việc tiếp nhận, kiểm tra, quản lý bản kê khai:
+
+- Việc mở sổ theo dõi giao nhận bản kê khai;
+
+- Tổng số bản kê khai chưa đúng quy định phải kê khai lại;
+
+- Việc sao lưu, quản lý lưu trữ các bản kê khai tài sản, thu nhập.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #12
+chunk_type=document_section | section=d) Trình tự, thủ tục thực hiện việc công khai bản kê khai tài sản, thu nhập: | artifact=attached_document | quality=pass | chars=527
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: d) Trình tự, thủ tục thực hiện việc công khai bản kê khai tài sản, thu nhập:
+d) Trình tự, thủ tục thực hiện việc công khai bản kê khai tài sản, thu nhập:
+
+- Kế hoạch công khai bản kê khai tài sản, thu nhập trong đơn vị;
+
+- Hình thức thực hiện việc công khai bản kê khai tài sản, thu nhập; hình thức công khai bản kê khai tài sản, thu nhập khi bổ nhiệm cán bộ lãnh đạo, quản lý.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #13
+chunk_type=document_section | section=e) Kết quả thực hiện và báo cáo về kê khai tài sản, thu nhập. | artifact=attached_document | quality=pass | chars=485
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: e) Kết quả thực hiện và báo cáo về kê khai tài sản, thu nhập.
+e) Kết quả thực hiện và báo cáo về kê khai tài sản, thu nhập.
+
+3. Công tác lao động và các chế độ chính sách
+
+3.1 Về số lao động.
+
+3.2 Về tuyển dụng lao động: Công tác tổ chức thi tuyển dụng lao động tại đơn vị.
+
+3.3 Về thực hiện ký kết hợp đồng lao động.
+
+3.4 Về nộp BHXH.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #14
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=1013
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 1
+| STT | Nội dung Số lượng lao động | 31/12/2025 | 31/3/2026 |
+| --- | --- | --- | --- |
+| 1 | Lao động chính thức (theo dõi trên HRMS) | | |
+| 2 | Lao động không chính thức (Ký HĐLĐ có xác định thời hạn, theo dõi trên QLNS) | | |
+| II | Lao động bình quân | | |
+| 1 | Lao động chính thức (theo dõi trên HRMS) | | |
+| 2 | Lao động không chính thức (Ký HĐLĐ có xác định thời hạn, theo dõi trên QLNS) | | |
+| III | Lao động tăng trong kỳ | | |
+| 1 | Tuyển dụng mới | | |
+| 2 | Tăng do điều động nội bộ từ các đơn vị trong EVNCPC | | |
+| 3 | Đổi con theo Quy chế đãi ngộ | | |
+| 4 | Tuyển dụng lao động ký HĐLĐ có xác định thời hạn (theo dõi trên QLNS) | | |
+| IV | Lao động giảm trong kỳ | | |
+| 1 | Do điều động nội bộ đến các đơn vị khác thuộc EVNCPC | | |
+| 2 | Số lao động nghỉ theo chế độ đãi ngộ | | |
+| 3 | Số lao động nghỉ vì lý do khác | | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #15
+chunk_type=document_section | section=4. Công tác tiền lương: công tác quản lý, trích lập và sử dụng quỹ tiền lương (SXKD điện, ngoài SXKD điện) tại đơn vị; quy định phân phối tiền lương. | artifact=attached_document | quality=pass | chars=1162
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 4. Công tác tiền lương: công tác quản lý, trích lập và sử dụng quỹ tiền lương (SXKD điện, ngoài SXKD điện) tại đơn vị; quy định phân phối tiền lương.
+4. Công tác tiền lương: công tác quản lý, trích lập và sử dụng quỹ tiền lương (SXKD điện, ngoài SXKD điện) tại đơn vị; quy định phân phối tiền lương.
+
+5. Công tác bồi dưỡng nghề, đào tạo
+
+5.1 Công tác bồi dưỡng nghề
+
+- Số lượng công nhân tham gia BDN.
+
+- Số lớp BDN từng nghề.
+
+- Phương thức sắp xếp lớp, tổ chức bồi dưỡng nghề.
+
+- Cách thức kiểm tra sau khi kết thúc bồi dưỡng nghề.
+
+- Các văn bản liên quan đã ban hành trong quá trình tổ chức bồi dưỡng nghề.
+
+5.2 Công tác tổ chức thi thực hành các nghề tại đơn vị
+
+- Thời gian tổ chức thi.
+
+- Số lượng công nhân dự thi từng nghề.
+
+- Số lượng hiện trường thi từng nghề.
+
+- Danh sách cán bộ coi thi, chấm thi tại từng hiện trường.
+
+5.3 Quá trình xây dựng kế hoạch đào tạo
+
+- Thời gian triển khai xây dựng kế hoạch.
+
+- Việc chấp hành các quy định của EVN, EVNCPC trong công tác đào tạo phát triển nguồn nhân lực.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #16
+chunk_type=document_section | section=6. Công tác KPI: Tình hình triển khai đánh giá hiệu quả công việc (KPI) bộ phận/cá nhân trên chương trình KPI core: | artifact=attached_document | quality=pass | chars=477
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 6. Công tác KPI: Tình hình triển khai đánh giá hiệu quả công việc (KPI) bộ phận/cá nhân trên chương trình KPI core:
+6. Công tác KPI: Tình hình triển khai đánh giá hiệu quả công việc (KPI) bộ phận/cá nhân trên chương trình KPI core:
+
+- Quy định đánh giá KPI.
+
+- Quy định xét thi đua.
+
+- Thực tế kết quả đánh giá bộ phận/cá nhân.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #17
+chunk_type=document_section | section=II. CÔNG TÁC VĂN PHÒNG | artifact=attached_document | quality=pass | chars=585
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: II. CÔNG TÁC VĂN PHÒNG
+II. CÔNG TÁC VĂN PHÒNG
+
+1. Việc chấp hành, triển khai thực hiện các văn bản chỉ đạo, các quy định của pháp luật, EVN và EVNCPC về văn thư, lưu trữ.
+
+- Tuyên truyền, phổ biến các văn bản hướng dẫn, chỉ đạo, quy định của pháp luật, EVN và EVNCPC.
+
+- Xây dựng, ban hành các chỉ tiêu hiệu quả về công tác văn thư lưu trữ.
+
+- Công tác thanh tra, kiểm tra việc thực hiện các quy định của pháp luật về văn thư, lưu trữ.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #18
+chunk_type=document_section | section=2. Công tác văn thư | artifact=attached_document | quality=pass | chars=716
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 2. Công tác văn thư
+2. Công tác văn thư
+
+- Soạn thảo và ban hành văn bản.
+
+- Quản lý văn bản đi, văn bản đến.
+
++ Phát hành văn bản đảm bảo đúng quy định (Ứng dụng chữ ký số, giao
+
+dịch điện tử.
+
++ Phát hành văn bản đi ký giấy sau khi văn thư cấp số đưa lên hệ thống D-
+
+Office không muộn hơn quy định tại khoản 1 Điều 18 Nghị định số 30/2020/NĐ-CP của Chính phủ về công tác văn thư, không đưa file lên hệ thống D-Office để quản lý và lập hồ sơ công việc.
+
++ Không để trống số, trống file văn bản trên hệ thống sổ văn bản phát hành
+
+đi.
+
+- Quản lý và sử dụng con dấu.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #19
+chunk_type=document_section | section=3. Công tác lập, lưu, nộp HSCV (điện tử/giấy) vào lưu trữ cơ quan | artifact=attached_document | quality=pass | chars=618
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 3. Công tác lập, lưu, nộp HSCV (điện tử/giấy) vào lưu trữ cơ quan
+3. Công tác lập, lưu, nộp HSCV (điện tử/giấy) vào lưu trữ cơ quan
+
+- Tình hình lập, lưu, nộp lưu HSCV (điện tử/giấy) vào lưu trữ cơ quan (cung cấp số liệu).
+
+- Việc thu thập, chỉnh lý, giao nhận hồ sơ, tài liệu về lưu trữ cơ quan.
+
+Kết quả chỉnh lý hồ sơ giấy tồn đọng.
+
+- Bảo quản hồ sơ, tài liệu (bố trí diện tích kho,...).
+
+- Khai thác, sử dụng tài liệu.
+
+- Công tác hủy hồ sơ, tài liệu hết giá trị.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #20
+chunk_type=document_section | section=4. Công tác Bảo vệ bí mật | artifact=attached_document | quality=pass | chars=877
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 4. Công tác Bảo vệ bí mật
+4. Công tác Bảo vệ bí mật
+
+- Việc ban hành các văn bản triển khai thực hiện công tác bảo vệ bí mật tại đơn vị.
+
+- Thực hiện việc soạn thảo, in ấn, đề xuất xác định độ mật của văn bản; phát hành và tiếp nhận xử lý tài liệu bí mật (cung cấp số liệu).
+
+- Trang bị, sử dụng các sổ quản lý sao, chụp bí mật nhà nước; đăng ký bí mật nhà nước đi, đến, số chuyển giao văn bản mật và các con dấu mật theo quy định tại Thông tư số 24/2020/TT-BCA của Bộ Công an về việc ban hành biểu mẫu sử dụng trong công tác bảo vệ bí mật nhà nước.
+
+- Bố trí, phân công, giao nhiệm vụ những người được tiếp cận và trực tiếp quản lý bí mật tại đơn vị; thực hiện việc ký cam kết bảo vệ bí mật, lưu giữ bản cam kết theo quy định.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #21
+chunk_type=document_section | section=III. CÔNG TÁC VẬN HÀNH HỆ THỐNG VT, CNTT, ATTT: Phụ lục 5 đính kèm | artifact=attached_document | quality=pass | chars=591
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3732/TB-EVNCPC - Thông báo kiểm tra theo kế hoạch tại CPSC
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: III. CÔNG TÁC VẬN HÀNH HỆ THỐNG VT, CNTT, ATTT: Phụ lục 5 đính kèm
+III. CÔNG TÁC VẬN HÀNH HỆ THỐNG VT, CNTT, ATTT: Phụ lục 5 đính kèm
+
+IV. CÁC NỘI DUNG KHÁC
+
+- Những vướng mắc, bất cập trong quá trình thực hiện các nội dung liên quan đến các lĩnh vực kiểm tra nêu trên và kiến nghị của đơn vị (nếu có).
+
+- Ngoài ra, Đoàn còn kiểm tra, xem xét những nội dung khác có liên quan đến nội dung và phạm vi kiểm tra theo Đề cương này khi cần thiết.

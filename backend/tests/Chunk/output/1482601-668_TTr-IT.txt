@@ -1,0 +1,109 @@
+================================================================================
+id_vb        : 1482601
+ky_hieu      : 668/TTr-IT
+trich_yeu    : Về việc cấp tiền lãi vay BIDV Q2/2026
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-22
+ten_file     : TTr lai vay BIDV - Q22026.pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=168
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 668/TTr-IT
+Ngày văn bản: 22/06/2026
+Trích yếu: Về việc cấp tiền lãi vay BIDV Q2/2026
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Trần Khắc Tuấn
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1572
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 668/TTr-IT - Về việc cấp tiền lãi vay BIDV Q2/2026
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+TỔNG CÔNG TY CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 22 tháng 6 năm 2026
+
+Số: 668/TTr-IT
+
+TỜ TRÌNH
+
+cấp tiền để trả lãi vay công trình Về việc
+
+Kính gửi: Tổng công ty Điện lực miền Trung
+
+Căn cứ các hợp đồng vay giữa Công ty Công nghệ thông tin Điện lực miền Trung - Tổng công ty Điện lực miền Trung (CPCIT) và Ngân hàng TMCP Đầu tư và Phát triển Việt Nam - Chi nhánh Sông Hàn (BIDV Sông Hàn) về việc vay vốn các dự án;
+
+Căn cứ các thông báo số 970/BIDV.SHA-KHDN, 971/BIDV.SHA-KHDN, 972/BIDV.SHA-KHDN, 973/BIDV.SHA-KHDN ngày 08/6/2026 của BIDV Sông Hàn;
+
+Công ty Công nghệ thông tin Điện lực miền Trung đã vay vốn tại BIDV Sông Hàn để đầu tư xây dựng các công trình. Theo thông báo của Ngân hàng, khoản lãi vay đến hạn phải trả tại ngày 30/6/2026 và 01/7/2026 đề nghị cấp đợt này là 2.132.179.094 đồng Bằng chữ: Hai tỷ, một trăm ba mươi hai triệu, một trăm bảy mươi chín nghìn, không trăm chín mươi bốn đồng). Bảng kê chi tiết theo công trình như Phụ lục đính kèm.
+
+Để kịp thời chi trả cho BIDV Sông Hàn, CPCIT kính mong Tổng công ty xem xét cấp số tiền nêu trên cho CPCIT, thông tin chuyển khoản như sau:
+
+- Đơn vị thụ hưởng: Công ty Công nghệ thông tin Điện lực miền Trung - Tổng công ty Điện lực miền Trung.
+
+- Số tài khoản: 5650386868.
+
+- Tại ngân hàng: TMCP Đầu tư và Phát triển Việt Nam - Chi nhánh Sông Hàn.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=63
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: GIÁM ĐỐC
+
+- Như trên;
+
+- Lưu: VT, TH.
+
+Trần Khắc Tuấn
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=3889
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 668/TTr-IT - Về việc cấp tiền lãi vay BIDV Q2/2026
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: Bảng DOffice 1
+| STT | Tên dự án | Dư nợ tính lãi | Gốc vay phải trả | Lãi vay phải trả | Tổng lãi vay và gốc vay phải trả | Ngày hoàn thành dự án | Lãi đưa vào SXKD | Lãi đưa vào XDCB | Ghi chú |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 2 | 3=1+2 | 4 | 5 | 6 | 7 | | | |
+| 1 | Nâng cao hệ thống Backup dữ liệu EVNCPC (Giai đoạn 1 - 2021) | 5.790.777.780 | | 121.273.166 | 121.273.166 | 24/06/2022 | 121.273.166 | | Trả lãi 30/6/2026 |
+| 2 | Chuẩn hóa CSDL lưới điện 110kV EVNCPC theo chuẩn GIS | 4.235.455.055 | | 88.700.872 | 88.700.872 | 10/08/2022 | 88.700.872 | | Trả lãi 30/6/2026 |
+| 3 | Bổ sung hệ thống lưu trữ cho TTDL EVNCPC | 5.849.722.220 | | 122.507.607 | 122.507.607 | 16/09/2022 | 122.507.607 | | Trả lãi 30/6/2026 |
+| 4 | Bổ sung tài nguyên phục vụ dự phòng các ứng dụng trọng yếu của EVNCPC | 5.723.888.890 | | 119.872.347 | 119.872.347 | 20/10/2022 | 119.872.347 | | Trả lãi 30/6/2026 |
+| 5 | Nâng cao hạ tầng phục vụ ứng dụng quản lý thông tin khách hàng sử dụng điện | 5.538.722.220 | | 115.994.500 | 115.994.500 | 16/09/2022 | 115.994.500 | | Trả lãi 30/6/2026 |
+| 6 | Nâng cấp cổng thông tin điện tử EVNCPC Portal - GĐ3 | 1.856.352.843 | | 38.876.606 | 38.876.606 | 29/11/2022 | 38.876.606 | | Trả lãi 30/6/2026 |
+| 7 | Nâng cao tính sẵn sàng hệ thống Network | 4.178.415.695 | | 87.506.328 | 87.506.328 | 23/05/2023 | 87.506.328 | | Trả lãi 30/6/2026 |
+| 8 | Dự phòng rủi ro hạ tầng TTDL EVNCPC 2022 | 1.326.400.000 | | 28.108.778 | 28.108.778 | 28/12/2022 | 28.108.778 | | Trả lãi 30/6/2026 |
+| 9 | Đầu tư mở rộng năng lực hệ thống quản lý HNTH tại TTDL EVNCPC năm 2022 | 2.997.400.000 | | 63.520.244 | 63.520.244 | 22/06/2023 | 63.520.244 | | Trả lãi 30/6/2026 |
+| 10 | Đầu tư nâng cao vận hành dịch vụ Active Directory, dịch vụ quét mã nguồn ứng dụng năm 2022 | 3.550.200.000 | | 75.235.060 | 75.235.060 | 14/04/2023 | 75.235.060 | | Trả lãi 30/6/2026 |
+| 11 | Đầu tư tài nguyên chuyên dụng phục vụ hệ thống cổng thông tin Portal EVNCPC năm 2022 | 7.373.000.000 | | 154.408.799 | 154.408.799 | 22/03/2024 | 154.408.799 | | Trả lãi 01/7/2026 |
+| 12 | Tăng cường hệ thống sao lưu dữ liệu EVNCPC năm 2022 | 8.289.000.000 | | 173.592.099 | 173.592.099 | 28/07/2023 | 173.592.099 | | Trả lãi 01/7/2026 |
+| 13 | Tăng cường tính sẵn sàng cho hệ thống ứng dụng tại site dự phòng năm 2022 | 6.458.000.000 | | 135.246.444 | 135.246.444 | 16/12/2023 | 135.246.444 | | Trả lãi 01/7/2026 |
+| 14 | Đầu tư hệ thống sao lưu phục hồi dữ liệu phục vụ các ứng dụng trọng yếu năm 2022 | 7.241.000.000 | | 151.644.395 | 151.644.395 | 23/01/2024 | 151.644.395 | | Trả lãi 01/7/2026 |
+| 15 | Đầu tư tăng cường ATTT tại TTDL EVNCPC năm 2022 | 7.896.000.000 | | 165.361.710 | 165.361.710 | 16/11/2023 | 165.361.710 | | Trả lãi 01/7/2026 |
+| 16 | Tăng cường thiết bị CNTT nhằm đảm bảo an toàn dữ liệu phục vụ công tác SXKD năm 2022 | 6.618.000.000 | | 138.597.238 | 138.597.238 | 15/12/2023 | 138.597.238 | | Trả lãi 01/7/2026 |
+| 17 | Trang bị, nâng cấp các bản quyền phần mềm bảo mật cho hệ thống ATTT tại TTDL EVNCPC năm 2022 | 3.851.000.000 | | 80.649.436 | 80.649.436 | 19/05/2023 | 80.649.436 | | Trả lãi 01/7/2026 |
+| 18 | Trang bị tính năng và đảm bảo hoạt động ổn định cho các thiết bị, phần mềm bảo mật tại TTDL EVNCPC năm 2023 | 1.682.000.000 | | 35.225.227 | 35.225.227 | 09/11/2023 | 35.225.227 | | Trả lãi 01/7/2026 |
+| 19 | Đầu tư nâng cao ATTT hệ thống mạng EVNCPC 2021 | 7.418.500.000 | | 155.361.682 | 155.361.682 | 31/05/2022 | 155.361.682 | | Trả lãi 01/7/2026 |
+| 20 | Đầu tư nâng cấp hệ thống HNTH cơ quan EVNCPC | 3.843.700.000 | | 80.496.556 | 80.496.556 | 27/09/2022 | 80.496.556 | | Trả lãi 01/7/2026 |
+| | Tổng cộng | 101.717.534.703 | | 2.132.179.094 | 2.132.179.094 | | 2.132.179.094 | | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_body | section=Văn bản đính kèm | artifact=attached_document | quality=pass | chars=246
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 668/TTr-IT - Về việc cấp tiền lãi vay BIDV Q2/2026
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: Văn bản đính kèm
+BẢNG CHI TIẾT LÃI VAY NGÂN HÀNG TMCP ĐẦU TƯ VÀ PHÁT TRIỂN VIỆT NAM - CHI NHÁNH SÔNG HÀN

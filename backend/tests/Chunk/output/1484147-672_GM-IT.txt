@@ -1,0 +1,87 @@
+================================================================================
+id_vb        : 1484147
+ky_hieu      : 672/GM-IT
+trich_yeu    : Về việc rà soát kỹ thuật và công tác chuẩn bị nghiệm thu Dự án Xây dựng công cụ chuyển đổi dữ liệu và khởi tạo khung CSDL GIS hạ thế EVNCPC
+
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-23
+ten_file     : Giay-Moi-Nghiem-Thu-CDT-Gis Ha the 2026_Final.pdf
+TỔNG SỐ CHUNK: 4
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=270
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 672/GM-IT
+Ngày văn bản: 23/06/2026
+Trích yếu: Về việc rà soát kỹ thuật và công tác chuẩn bị nghiệm thu Dự án Xây dựng công cụ chuyển đổi dữ liệu và khởi tạo khung CSDL GIS hạ thế EVNCPC
+
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Trần Khắc Tuấn
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1337
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 672/GM-IT - Về việc rà soát kỹ thuật và công tác chuẩn bị nghiệm thu Dự án Xây dựng công cụ chuyển đổi dữ liệu và khởi tạo khung CSDL GIS hạ thế EVNCPC
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: preamble
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 23 tháng 6 năm 2026
+
+Số: /GM-IT
+
+GIẤY MỜI
+
+Về việc rà soát kỹ thuật và công tác chuẩn bị nghiệm thu Dự án Xây dựng công cụ chuyển đổi dữ liệu và khởi tạo khung CSDL GIS hạ thế EVNCPC
+
+Căn cứ Quyết định số 222/QĐ-IT ngày 11/3/2026 của CPCIT về việc phê duyệt Báo cáo kinh tế kỹ thuật dự án Xây dựng công cụ chuyển đổi dữ liệu và khởi tạo khung CSDL GIS hạ thế EVNCPC;
+
+Căn cứ Công văn số 2438/EVNCPC-VTCNTT+KD+KT+AT ngày 22/4/2026 của EVNCPC về việc cử cán bộ tham gia hội đồng nghiệm thu cấp chủ đầu tư các dự án ĐTXD năm 2026 của CPCIT;
+
+Căn cứ Quyết định số 521/QĐ-IT ngày 23/5/2026 của Công ty Công nghệ thông tin Điện lực miền Trung về việc thành lập hội đồng nghiệm thu cấp Chủ đầu tư và phân công nhiệm vụ thành viên Hội đồng nghiệm thu dự án Xây dựng công cụ chuyển đổi dữ liệu và khởi tạo khung CSDL GIS hạ thế EVNCPC;
+
+Chủ tịch Hội đồng nghiệm thu cấp chủ đầu tư kính mời các thành viên tham gia họp với nội dung sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=I. Thành phần: Theo Quyết định số 521/QĐ-IT ngày 23/5/2026 của Công ty Công nghệ thông tin Điện lực miền Trung (kèm theo). | quality=pass | chars=923
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 672/GM-IT - Về việc rà soát kỹ thuật và công tác chuẩn bị nghiệm thu Dự án Xây dựng công cụ chuyển đổi dữ liệu và khởi tạo khung CSDL GIS hạ thế EVNCPC
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: I. Thành phần: Theo Quyết định số 521/QĐ-IT ngày 23/5/2026 của Công ty Công nghệ thông tin Điện lực miền Trung (kèm theo).
+I. Thành phần: Theo Quyết định số 521/QĐ-IT ngày 23/5/2026 của Công ty Công nghệ thông tin Điện lực miền Trung (kèm theo).
+
+II. Nội dung:
+
+Họp rà soát kỹ thuật, chuẩn bị nghiệm thu hoàn thành đưa vào sử dụng dự án Xây dựng công cụ chuyển đổi dữ liệu và khởi tạo khung CSDL GIS hạ thế EVNCPC theo kế hoạch như sau:
+
+- Thời gian: Từ 14h00-17h00 ngày 29/6/2026 (thứ hai).
+
+- Địa điểm: Phòng họp Đăk Bla - 393 Trưng Nữ Vương - P. Hòa Cường - TP
+
+Đà Nẵng.
+
+CPCIT kính mời các thành viên hội đồng nghiệm thu tham dự đầy đủ, theo thời gian nêu trên.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=footer_signature | quality=pass | chars=127
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: CHỦ TỊCH
+
+- Như mục I;
+
+HĐNT CẤP CHỦ ĐẦU TƯ
+
+- Ban: KT, KD và VTCNTT EVNCPC;
+
+GIÁM ĐỐC - Lưu: VT, ĐT.
+
+Trần Khắc Tuấn

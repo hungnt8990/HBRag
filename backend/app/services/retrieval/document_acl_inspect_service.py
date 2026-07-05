@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import String, cast, select
 
 from app.core.config import settings
+from app.services.retrieval.retrieval_shared import es_client_kwargs
 from app.db.session import AsyncSessionLocal
 from app.models.document import Document
 from app.services.retrieval.document_search_service import DocumentSearchError
@@ -97,7 +98,7 @@ async def _from_es(id_vb: str) -> dict[str, Any] | None:
         "query": {"term": {"id_vb": str(id_vb)}},
     }
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(15.0)) as client:
             resp = await client.post(f"{store.url}/{store.index_name}/_search", json=body)
         if resp.status_code == 404:
             return None

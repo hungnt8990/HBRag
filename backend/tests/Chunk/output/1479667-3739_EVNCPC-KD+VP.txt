@@ -1,0 +1,83 @@
+================================================================================
+id_vb        : 1479667
+ky_hieu      : 3739/EVNCPC-KD+VP
+trich_yeu    : Hưởng ứng, tham gia cuộc thi trực tuyến “Tìm hiểu kiến thức về sử dụng năng lượng tiết kiệm và hiệu quả năm 2026”.
+
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-18
+ten_file     : 1706-Hưởng ứng cuộc thi SDNLTKHQ 2026.pdf
+TỔNG SỐ CHUNK: 4
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=255
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3739/EVNCPC-KD+VP
+Ngày văn bản: 18/06/2026
+Trích yếu: Hưởng ứng, tham gia cuộc thi trực tuyến “Tìm hiểu kiến thức về sử dụng năng lượng tiết kiệm và hiệu quả năm 2026”.
+
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Nguyễn Hữu Khánh
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1255
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3739/EVNCPC-KD+VP - Hưởng ứng, tham gia cuộc thi trực tuyến “Tìm hiểu kiến thức về sử dụng năng lượng tiết kiệm và hiệu quả năm 2026”.
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM TỔNG CÔNG TY Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+Số: 3739/EVNCPC-KD+VP Đà Nẵng, ngày 18 tháng 6 năm 2026 V/v hưởng ứng, tham gia cuộc thi trực tuyến "Tìm hiểu kiến thức về sử dụng năng lượng tiết kiệm và hiệu quả năm 2026".
+
+Kính gửi: Các đơn vị thành viên EVNCPC.
+
+Thực hiện văn bản số 3408/EVN-TTVHDN+MTPTBV ngày 15/6/2026 về việc hưởng ứng, tham gia cuộc thi trực tuyến Tìm hiểu kiến thức về sử dụng năng lượng tiết kiệm và hiệu quả năm 2026" (gửi kèm theo), Tổng công ty Điện lực miền Trung đề nghị các đơn vị:
+
+1. Tích cực tuyên truyền, phổ biến nội dung phát động cuộc thi trực tuyến "Tìm hiểu kiến thức về sử dụng năng lượng tiết kiệm và hiệu quả năm 2026" đến toàn thể CBCNV và người lao động cùng người thân, kế hoạch cụ thể như sau:
+
+- Thời gian thi: Đến ngày 20/7/2026.
+
+- Đối tượng: Tất cả các CBCNV, người lao động và người thân.
+
+- Thể lệ và cách thức tham dự: Trực tuyến tại địa chỉ:
+
+https://cuocthi2026.tietkiemnangluong.com.vn/
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=2. Các tổ chức Công đoàn, Đoàn Thanh niên các cấp cùng phối hợp vận động, khuyến khích các CBCNV, người lao động và người thân tích cực tham gia cuộc thi. | quality=pass | chars=592
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3739/EVNCPC-KD+VP - Hưởng ứng, tham gia cuộc thi trực tuyến “Tìm hiểu kiến thức về sử dụng năng lượng tiết kiệm và hiệu quả năm 2026”.
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 2. Các tổ chức Công đoàn, Đoàn Thanh niên các cấp cùng phối hợp vận động, khuyến khích các CBCNV, người lao động và người thân tích cực tham gia cuộc thi.
+2. Các tổ chức Công đoàn, Đoàn Thanh niên các cấp cùng phối hợp vận động, khuyến khích các CBCNV, người lao động và người thân tích cực tham gia cuộc thi.
+
+Tổng công ty đề nghị các đơn vị triển khai thực hiện./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=footer_signature | quality=pass | chars=247
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận : KT. TỔNG GIÁM ĐỐC
+
+- Như trên;
+
+PHÓ TỔNG GIÁM ĐỐC - HĐTV EVNCPC (báo cáo);
+
+- TGĐ EVNCPC (báo cáo);
+
+- Các PTGĐ;
+
+- Công đoàn TCT (để phối hợp);
+
+- Đoàn Thanh niên TCT (để phối hợp);
+
+- Các Ban TCT;
+
+- Lưu: VT, VP, KD.
+
+Nguyễn Hữu Khánh

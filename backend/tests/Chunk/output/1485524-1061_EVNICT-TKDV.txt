@@ -1,0 +1,88 @@
+================================================================================
+id_vb        : 1485524
+ky_hieu      : 1061/EVNICT-TKDV
+trich_yeu    : Phối hợp thực hiện thử nghiệm cuộc gọi tổng đài 1558
+noi_ban_hanh : Công ty Viễn thông Điện lực và Công nghệ thông tin
+ngay_vb      : 2026-06-24
+ten_file     : Phối hợp thực hiện thử nghiệm cuộc gọi tổng đài 1558_v5.pdf
+TỔNG SỐ CHUNK: 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=212
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 1061/EVNICT-TKDV
+Ngày văn bản: 24/06/2026
+Trích yếu: Phối hợp thực hiện thử nghiệm cuộc gọi tổng đài 1558
+Nơi ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Người ký: Nguyễn Trường Giang
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1424
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1061/EVNICT-TKDV - Phối hợp thực hiện thử nghiệm cuộc gọi tổng đài 1558
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+Độc lập - Tự do - Hạnh phúc CÔNG TY VIỄN THÔNG ĐIỆN LỰC
+
+VÀ CÔNG NGHỆ THÔNG TIN
+
+Số: 1061/EVNICT-TKDV Hà Nội, ngày 24 tháng 6 năm 2026 Số: / Hà nội, ngày tháng 3 năm 2026
+
+V/v phối hợp thực hiện thử nghiệm cuộc
+
+gọi tổng đài 1558
+
+Kính gửi:
+
+- Tổng Công ty Điện lực miền Bắc, miền Trung, miền Nam;
+
+- Tổng Công ty Điện lực Tp. Hà Nội, Tp. Hồ Chí Minh.
+
+Căn cứ văn bản 7750/EVN-KHCNCĐS của Tập đoàn Điện lực Việt Nam (EVN)
+
+ngày 04 tháng 12 năm 2025 về việc tổ chức thử nghiệm giải pháp thiết lập hệ thống tổng
+
+đài CSKH tập trung của EVN (Tổng đài 1558);
+
+Căn cứ văn bản 544/EVN-KDMBĐ ngày 28 tháng 1 năm 2026 về việc thống nhất
+
+nghiệp vụ và kịch bản chăm sóc khách hàng qua Tổng đài 1558.
+
+Sau khi hoàn thành kết nối từ các nhà mạng đến Tổng đài 1558, nhằm đảm bảo hệ
+
+thống hoạt động ổn định, thông suốt trước khi đưa vào vận hành chính thức, Công ty
+
+Viễn thông Điện lực và Công nghệ thông tin (EVNICT) kính đề nghị các Tổng công ty
+
+phối hợp thực hiện tiếp nhận cuộc gọi từ Tổng đài 1558, thời gian thử nghiệm từ ngày
+
+24/6/2026 đến ngày 29/6/2026.
+
+Sau khi kết thúc thử nghiệm, EVNICT sẽ báo cáo Tập đoàn kết quả để triển khai,
+
+vận hành chính thức Tổng đài 1558.
+
+Trân trọng ./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=190
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. GIÁM ĐỐC
+
+- Như trên; PHÓ GIÁM ĐỐC
+
+- Các Ban EVN: KHCNCĐS, KDMBĐ (để b/c);
+
+- Giám đốc (để b/c);
+
+- PGĐ Phạm Ngọc Hiển (để p/hợp c/đạo);
+
+- Lưu: VT, TKDV.
+
+Nguyễn Trường Giang

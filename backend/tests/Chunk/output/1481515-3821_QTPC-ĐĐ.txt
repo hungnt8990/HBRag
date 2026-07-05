@@ -1,0 +1,67 @@
+================================================================================
+id_vb        : 1481515
+ky_hieu      : 3821/QTPC-ĐĐ
+trich_yeu    : V/v đăng ký người dùng thử nghiệm phần mềm kết nối dữ liệu tự động hệ thống SCADA-hệ thống OMS.
+noi_ban_hanh : Công ty Điện lực Quảng Trị
+ngay_vb      : 2026-06-20
+ten_file     : VB dang ky OMS - QTPC.pdf
+TỔNG SỐ CHUNK: 4
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=223
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3821/QTPC-ĐĐ
+Ngày văn bản: 20/06/2026
+Trích yếu: V/v đăng ký người dùng thử nghiệm phần mềm kết nối dữ liệu tự động hệ thống SCADA-hệ thống OMS.
+Nơi ban hành: Công ty Điện lực Quảng Trị
+Người ký: Nguyễn Đăng Phi
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=862
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3821/QTPC-ĐĐ - V/v đăng ký người dùng thử nghiệm phần mềm kết nối dữ liệu tự động hệ thống SCADA-hệ thống OMS.
+Ngày ban hành: 20/06/2026
+Cơ quan ban hành: Công ty Điện lực Quảng Trị
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY ĐIỆN LỰC QUẢNG TRỊ
+
+Số: 3821/QTPC-ĐĐ Quảng Trị, ngày 20 tháng 6 năm 2026 V/v đăng ký người dùng thử nghiệm phần mềm kết nối dữ liệu tự động hệ thống SCADA-hệ thống OMS.
+
+Kính gửi: Công ty CNTT Điện lực miền Trung
+
+Thực hiện chỉ đạo của Tổng Công ty Điện lực miền Trung tại công văn số 3665/EVNCPC-KT+VTCNTT ngày 16/6/2026 về việc vận hành thử nghiệm phần mềm kết nối dữ liệu tự động hệ thống SCADA-hệ thống OMS. Công ty Điện lực Quảng Trị đăng ký danh sách người dùng thử nghiệm như sau:
+
+Công ty Điện lực Quảng Trị thông báo cho Quý Công ty được biết.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=table | section=Thực hiện chỉ đạo của Tổng Công ty Điện lực miền Trung tại công văn số 3665/EVNCPC-KT+VTCNTT ngày 16/6/2026 về việc vận hành thử nghiệm phần mềm kết nối dữ liệu tự động hệ thống SCADA-hệ thống OMS. Công ty Điện lực Quảng Trị đăng ký danh sách người dùng thử nghiệm như sau | table=Thực hiện chỉ đạo của Tổng Công ty Điện lực miền Trung tại công văn số 3665/EVNCPC-KT+VTCNTT ngày 16/6/2026 về việc vận hành thử nghiệm phần mềm kết nối dữ liệu tự động hệ thống SCADA-hệ thống OMS. Công ty Điện lực Quảng Trị đăng ký danh sách người dùng thử nghiệm như sau | quality=pass | chars=770
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3821/QTPC-ĐĐ - V/v đăng ký người dùng thử nghiệm phần mềm kết nối dữ liệu tự động hệ thống SCADA-hệ thống OMS.
+Ngày ban hành: 20/06/2026
+Cơ quan ban hành: Công ty Điện lực Quảng Trị
+Bảng: Thực hiện chỉ đạo của Tổng Công ty Điện lực miền Trung tại công văn số 3665/EVNCPC-KT+VTCNTT ngày 16/6/2026 về việc vận hành thử nghiệm phần mềm kết nối dữ liệu tự động hệ thống SCADA-hệ thống OMS. Công ty Điện lực Quảng Trị đăng ký danh sách người dùng thử nghiệm như sau
+| STT | Họ và tên | Chức danh |
+| --- | --- | --- |
+| 1 | Lê Đăng Linh | PTP Điều độ |
+| 2 | Dương Chí Hiếu | Điều độ Viên |
+| 3 | Hồ Sĩ Trung | Điều độ viên, KS SCADA |
+| 4 | Võ Xuân Thủy | Điều độ viên, KS SCADA |
+| 5 | Trần Quốc Tiến | Điều độ viên, KS SCADA |
+| 6 | Nguyễn Quang Bắc | Nhân viên |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=footer_signature | quality=pass | chars=101
+────────────────────────────────────────────────────────────────────────────────
+KT. GIÁM ĐỐC Nơi nhận: PHÓ GIÁM ĐỐC - Như trên;
+
+- EVNCPC (báo cáo);
+
+- Lưu: VT, ĐĐ.
+
+Nguyễn Đăng Phi

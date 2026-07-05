@@ -1,0 +1,115 @@
+================================================================================
+id_vb        : 1479048
+ky_hieu      : 3488/EVN-KDMBĐ
+trich_yeu    : Bổ sung tính năng quản lý điện mặt trời mái nhà trên hệ thống CMIS
+noi_ban_hanh : Tập đoàn Điện lực Việt Nam
+ngay_vb      : 2026-06-18
+ten_file     : EVN.CV gửi đvi bổ sung quản lý đmtmn (2).pdf
+TỔNG SỐ CHUNK: 7
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=192
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3488/EVN-KDMBĐ
+Ngày văn bản: 18/06/2026
+Trích yếu: Bổ sung tính năng quản lý điện mặt trời mái nhà trên hệ thống CMIS
+Nơi ban hành: Tập đoàn Điện lực Việt Nam
+Người ký: Ngô Sơn Hải
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=819
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3488/EVN-KDMBĐ - Bổ sung tính năng quản lý điện mặt trời mái nhà trên hệ thống CMIS
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: preamble
+TẬP ĐOÀN CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC VIỆT NAM Độc lập - Tự do - Hạnh phúc
+
+Số: 3488/EVN-KDMBĐ Số: /EVN-KDMBĐ Hà Nội, ngày tháng 6 năm 2026 V/v bổ sung tính năng quản lý điện mặt trời mái nhà trên hệ thống CMIS
+
+Kính gửi:
+
+- Các Tổng công ty Điện lực;
+
+- Công ty Viễn thông Điện lực và Công nghệ thông tin.
+
+Tập đoàn Điện lực Việt Nam (Tập đoàn) nhận được văn bản số 3853/EVNSPC-KD ngày 27/5/2026 của Tổng công ty Điện lực miền Nam (EVNSPC) về việc tình hình quản lý nguồn ĐMTMN tự sản xuất, tự tiêu thụ và đề nghị bổ sung tính năng trên hệ thống CMIS. Sau khi xem xét, Tập đoàn giao các đơn vị thực hiện các nội dung như sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=1. Giao EVNICT hiệu chỉnh bổ sung các tính năng quản lý điện mặt trời mái nhà trong chương trình CMIS, chi tiết như trong Phụ lục. Hoàn thành trong tháng 7/2026. | quality=pass | chars=737
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3488/EVN-KDMBĐ - Bổ sung tính năng quản lý điện mặt trời mái nhà trên hệ thống CMIS
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 1. Giao EVNICT hiệu chỉnh bổ sung các tính năng quản lý điện mặt trời mái nhà trong chương trình CMIS, chi tiết như trong Phụ lục. Hoàn thành trong tháng 7/2026.
+1. Giao EVNICT hiệu chỉnh bổ sung các tính năng quản lý điện mặt trời mái nhà trong chương trình CMIS, chi tiết như trong Phụ lục. Hoàn thành trong tháng 7/2026.
+
+2. Các TCTĐL: Chỉ đạo các đơn vị ghi nhận thông tin trạng thái thông báo, lắp đặt vận hành và thực hiện các thủ tục cần thiết theo đúng quy định để cập nhật quản lý trong chương trình CMIS.
+
+Tập đoàn yêu cầu các đơn vị khẩn trương thực hiện./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=footer_signature | quality=pass | chars=113
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. TỔNG GIÁM ĐỐC Như trên; PHÓ TỔNG GIÁM ĐỐC TGĐ (để b/c);
+
+Ban KHCNCĐS;
+
+Lưu: VT, KDMBĐ.
+
+Ngô Sơn Hải
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_section | section=Phụ lục: CÁC YÊU CẦU BỔ SUNG TRONG CHƯƠNG TRÌNH CMIS | artifact=appendix | quality=pass | chars=275
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3488/EVN-KDMBĐ - Bổ sung tính năng quản lý điện mặt trời mái nhà trên hệ thống CMIS
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: Phụ lục: CÁC YÊU CẦU BỔ SUNG TRONG CHƯƠNG TRÌNH CMIS
+Phụ lục:
+
+CÁC YÊU CẦU BỔ SUNG TRONG CHƯƠNG TRÌNH CMIS
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=document_section | section=Phụ lục: CÁC YÊU CẦU BỔ SUNG TRONG CHƯƠNG TRÌNH CMIS > 1. Hiệu chỉnh và bổ sung tính năng | artifact=appendix | quality=pass | chars=1106
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3488/EVN-KDMBĐ - Bổ sung tính năng quản lý điện mặt trời mái nhà trên hệ thống CMIS
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: Phụ lục: CÁC YÊU CẦU BỔ SUNG TRONG CHƯƠNG TRÌNH CMIS > 1. Hiệu chỉnh và bổ sung tính năng
+1. Hiệu chỉnh và bổ sung tính năng
+
+- Bổ sung thêm thông tin quản lý để phân biệt tình trạng thực hiện hoặc phân loại trạng thái thực hiện đối với các nguồn ĐMTMN tự sản xuất, tự tiêu thụ có đấu nối và không bán điện dư. Các trạng thái bao gồm:
+
+o Mới gửi thông tin đăng ký/thông báo, chưa vận hành: ghi nhận ngày nhận thông báo theo NĐ58;
+
+o Đã lắp đặt/vận hành chưa gửi thông báo: ghi nhận vận hành;
+
+o Đã lắp đặt/vận hành và đã gửi thông báo: ghi nhận ngày nhận thông báo theo Nghị định số 58/2025/NĐ-CP ngày 03/3/2025 của Chính phủ, ngày ghi nhận vận hành.
+
+- Hiệu chỉnh chức năng khai báo nguồn ĐMTMN tự sản xuất, tự tiêu thụ: khi nhập thông tin mã khách hàng thì hệ thống gợi ý thông tin của khách hàng hiện tại, cho chọn điểm đo và hiển thị thông tin trạm/lộ từ điểm đo hiện tại (tránh nhập lại dữ liệu nhiều lần và đảm bảo tính chính xác).
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=document_section | section=Phụ lục: CÁC YÊU CẦU BỔ SUNG TRONG CHƯƠNG TRÌNH CMIS > 2. Hiệu chỉnh và bổ sung báo cáo | artifact=appendix | quality=pass | chars=747
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3488/EVN-KDMBĐ - Bổ sung tính năng quản lý điện mặt trời mái nhà trên hệ thống CMIS
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: Phụ lục: CÁC YÊU CẦU BỔ SUNG TRONG CHƯƠNG TRÌNH CMIS > 2. Hiệu chỉnh và bổ sung báo cáo
+2. Hiệu chỉnh và bổ sung báo cáo
+
+- Hiệu chỉnh biểu báo cáo 1.6: thêm thông tin các nguồn điện tự sản xuất tự tiêu thụ không đấu nối; cho lọc theo 3 loại: công suất inverter, tấm quang điện và pin lưu trữ.
+
+- Hiệu chỉnh bổ sung điều kiện lọc theo Cơ chế tại báo cáo 1.8.
+
+- Bổ sung báo cáo quản lý các nguồn điện mặt trời tự sản xuất, tự tiêu thụ đang thực hiện theo mẫu sau:
+
+- Bổ sung thêm báo cáo theo tính toán điện năng phát theo hệ số PVout cho các nguồn điện đã lắp đặt theo mẫu sau:

@@ -1,0 +1,104 @@
+================================================================================
+id_vb        : 1479026
+ky_hieu      : 3731/EVNCPC-VTCNTT
+trich_yeu    : V/v diễn tập tấn công lừa đảo qua email năm 2026
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-18
+ten_file     : EVNCPC-Triên-khai-email-phishing-2026.pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=191
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3731/EVNCPC-VTCNTT
+Ngày văn bản: 18/06/2026
+Trích yếu: V/v diễn tập tấn công lừa đảo qua email năm 2026
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Trần Nguyễn Bảo An
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1095
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3731/EVNCPC-VTCNTT - V/v diễn tập tấn công lừa đảo qua email năm 2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM TỔNG CÔNG TY Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 18 tháng 6 năm 2026
+
+Số: 3731/EVNCPC-VTCNTT V/v diễn tập tấn công lừa đảo qua email
+
+năm 2026
+
+Kính gửi: Công ty CNTT Điện lực miền Trung
+
+Tổng công ty nhận được văn bản số 613/IT-ATTT ngày 11/6/2026 của
+
+CPCIT về việc triển khai email phishing nâng cao nhận thức đảm bảo an ninh
+
+mạng (ANM) CBCNV năm 2026 (đính kèm). Sau khi xem xét, Tổng công ty có
+
+ý kiến như sau:
+
+- Thống nhất các nội dung chiến dịch diễn tập tấn công lừa đảo qua email
+
+(email phishing) do CPCIT xây dựng tại văn bản 613/IT-ATTT nêu trên.
+
+- Giao CPCIT tổ chức thực hiện theo kế hoạch đã đề xuất; Báo cáo, đánh giá
+
+kết quả diễn tập (theo nội dung tại phụ lục đính kèm) về EVNCPC sau khi hoàn
+
+thành./.
+
+KT. TỔNG GIÁM ĐỐC Nơi nhận:
+
+- Như trên; PHÓ TỔNG GIÁM ĐỐC
+
+- TGĐ EVNCPC (báo cáo);
+
+- Lưu: VT, VTCNTT.
+
+Trần Nguyễn Bảo An
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=Phụ lục BẢNG SỐ LIỆU TỔNG HỢP, THỐNG KÊ DIỄN TẬP EMAIL PHISHING | artifact=appendix | quality=pass | chars=289
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3731/EVNCPC-VTCNTT - V/v diễn tập tấn công lừa đảo qua email năm 2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục BẢNG SỐ LIỆU TỔNG HỢP, THỐNG KÊ DIỄN TẬP EMAIL PHISHING
+Phụ lục
+
+BẢNG SỐ LIỆU TỔNG HỢP, THỐNG KÊ DIỄN TẬP EMAIL PHISHING
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=1. Tổng hợp kết quả diễn tập email phishing | table=1. Tổng hợp kết quả diễn tập email phishing | quality=pass | chars=785
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3731/EVNCPC-VTCNTT - V/v diễn tập tấn công lừa đảo qua email năm 2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: 1. Tổng hợp kết quả diễn tập email phishing
+| TT | Đơn vị | Kịch bản | Số email đã gửi | Số email đã gửi thành công | Số email đã đọc | Tỉ lệ đọc email | Số email báo cáo theo quy định | Tỷ lệ email báo cáo/số email đã đọc | Số người dùng đã click vào link/file | Tỉ lệ click link/số email đã đọc | Số người dùng đã nhập username, password | Tỉ lệ người dùng đã nhập username, password |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... |
+| 2 | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=table | section=2. Thống kê chi tiết tình hình diễn tập email phishing | table=2. Thống kê chi tiết tình hình diễn tập email phishing | quality=pass | chars=635
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3731/EVNCPC-VTCNTT - V/v diễn tập tấn công lừa đảo qua email năm 2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: 2. Thống kê chi tiết tình hình diễn tập email phishing
+| STT | Họ và tên | Email/AD | Đơn vị | Phòng/Ban | Đọc email | Chuyển tiếp email về quản trị theo quy định | Click link, file mã độc | Cung cấp username, password |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | Nguyễn Văn A | Anv | ... | ... | X | X | X | |
+| 2 | ... | ... | ... | ... | X | X | | |
+| 3 | ... | ... | ... | ... | X | X | X | X |
+| ... | ... | ... | ... | ... | ... | ... | ... | ... |

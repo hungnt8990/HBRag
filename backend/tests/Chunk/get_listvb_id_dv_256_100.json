@@ -1,0 +1,602 @@
+[
+  {
+    "id_vb": 1488211,
+    "ky_hieu": "3887/EVNCPC-AT",
+    "trich_yeu": "Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra",
+    "ngay_vb": "2026-06-26"
+  },
+  {
+    "id_vb": 1488122,
+    "ky_hieu": "4488/ĐNPC-VTCNTT",
+    "trich_yeu": "Báo cáo thử nghiệm Công cụ chuyển đổi dữ liệu GIS Hạ thế và Khung cơ sở dữ liệu GIS Hạ thế",
+    "ngay_vb": "2026-06-26"
+  },
+  {
+    "id_vb": 1488073,
+    "ky_hieu": "6459/QNPC-KH",
+    "trich_yeu": "Cung cấp thông tin về kết quả thực hiện các hợp đồng xây lắp, mua sắm hàng hóa và các hợp đồng EPC, EC, PC với EVNCPC và các đơn vị thành viên EVNCPC",
+    "ngay_vb": "2026-06-26"
+  },
+  {
+    "id_vb": 1488056,
+    "ky_hieu": "677/IT-VH",
+    "trich_yeu": "V/v rà soát và báo cáo lại danh sách tài khoản truy cập CSDL, API khai thác dữ liệu.\n",
+    "ngay_vb": "2026-06-25"
+  },
+  {
+    "id_vb": 1488046,
+    "ky_hieu": "3678/EVN-KHCNCĐS",
+    "trich_yeu": "Xin ý kiến tham số bảo trì các phần mềm dùng chung năm 2026",
+    "ngay_vb": "2026-06-25"
+  },
+  {
+    "id_vb": 1487809,
+    "ky_hieu": "63126/CV-PM",
+    "trich_yeu": "V/v thông báo thông tin các nhân sự triển khai gói thầu và tiến độ cấp 2 cho hợp đồng số HD2600138496_2606121645",
+    "ngay_vb": "2026-06-25"
+  },
+  {
+    "id_vb": 1487801,
+    "ky_hieu": "63026/CV-PM",
+    "trich_yeu": "V/v thông báo thông tin các nhân sự triển khai gói thầu và tiến đô cấp 2 cho hợp đồng số HD2600141278_2606161556",
+    "ngay_vb": "2026-06-25"
+  },
+  {
+    "id_vb": 1487761,
+    "ky_hieu": "1076/EVNICT-TTHT+TTPM",
+    "trich_yeu": "Thông báo kế hoạch cập nhật bản vá các hệ thống CNTT của EVN (Tháng 7/2026)",
+    "ngay_vb": "2026-06-25"
+  },
+  {
+    "id_vb": 1487751,
+    "ky_hieu": "3669/EVN-TTVHDN",
+    "trich_yeu": "Lưu ý một số nội dung liên quan đến công tác truyền thông trong Nghị định 174/2026/NĐ-CP ngày 15/5/2026",
+    "ngay_vb": "2026-06-25"
+  },
+  {
+    "id_vb": 1487339,
+    "ky_hieu": "3875/EVNCPC-TCKT",
+    "trich_yeu": "V/v báo cáo số liệu thực hiện 6 tháng đầu năm và ước thực hiện cả năm 2026\n",
+    "ngay_vb": "2026-06-25"
+  },
+  {
+    "id_vb": 1487321,
+    "ky_hieu": "3874/EVNCPC-VTCNTT",
+    "trich_yeu": " Cập nhật phiên bản DO, SmartEVN Ver 2.4.0 và các dịch vụ dùng chung",
+    "ngay_vb": "2026-06-25"
+  },
+  {
+    "id_vb": 1487298,
+    "ky_hieu": "676/IT-TH",
+    "trich_yeu": "V/v Thanh toán tiền Cước dịch vụ nhắn tin SMS CSKH sử dụng điện tháng 05/2026\n",
+    "ngay_vb": "2026-06-25"
+  },
+  {
+    "id_vb": 1487135,
+    "ky_hieu": "179-NQ/ĐU",
+    "trich_yeu": "Nghị quyết về việc ban hành Quy định Quản lý hoạt động khoa học và công nghệ trong Tổng công ty Điện lực miền Trung\n",
+    "ngay_vb": "2026-06-25"
+  },
+  {
+    "id_vb": 1487063,
+    "ky_hieu": "4456/ĐNPC-QLDA+VTCNTT",
+    "trich_yeu": "Gián đoạn tuyến cáp quang T500 Đà Nẵng - T110 Đại Lộc (mạch 1) trong thời gian thi công CT Cải tạo đường dây 179/T500 Đà Nẵng - 174/Đại Lộc (từ VT36 đến VT40) ",
+    "ngay_vb": "2026-06-25"
+  },
+  {
+    "id_vb": 1487055,
+    "ky_hieu": "3871/EVNCPC-VTCNTT",
+    "trich_yeu": "Hỗ trợ cấp đầu số và kết nối điện thoại nội bộ SIP phone",
+    "ngay_vb": "2026-06-25"
+  },
+  {
+    "id_vb": 1486792,
+    "ky_hieu": "675/IT-ĐT+KTMVT+TH",
+    "trich_yeu": "V/v thông báo hoàn thiện hồ sơ thanh quyết toán hợp đồng gói thầu HNTH2025-01.HH",
+    "ngay_vb": "2026-06-25"
+  },
+  {
+    "id_vb": 1486513,
+    "ky_hieu": "2441/KHoPC-VTCNTT",
+    "trich_yeu": "V/v báo cáo kết quả hoàn thành xây dựng khung website KHoPC",
+    "ngay_vb": "2026-06-24"
+  },
+  {
+    "id_vb": 1486272,
+    "ky_hieu": "4438/ĐNPC-ĐĐ",
+    "trich_yeu": "Cập nhật, chuẩn hóa toàn bộ dữ liệu lưới điện trên DMS phục vụ kết nối SCADA-OMS ABB",
+    "ngay_vb": "2026-06-24"
+  },
+  {
+    "id_vb": 1486124,
+    "ky_hieu": "3856/QĐ-EVNCPC",
+    "trich_yeu": "QĐ cử cán bộ tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông\n",
+    "ngay_vb": "2026-06-24"
+  },
+  {
+    "id_vb": 1486117,
+    "ky_hieu": "3855/EVNCPC-AT",
+    "trich_yeu": "Cập nhật nội dung triển khai và báo cáo định kỳ PCCC&CNCH ",
+    "ngay_vb": "2026-06-24"
+  },
+  {
+    "id_vb": 1486039,
+    "ky_hieu": "674/BC-IT",
+    "trich_yeu": "Về việc hoàn thành hiệu chỉnh phần mềm Trắc nghiệm CNKT EVNCPC",
+    "ngay_vb": "2026-06-24"
+  },
+  {
+    "id_vb": 1485717,
+    "ky_hieu": "2437/KHoPC-VTCNTT",
+    "trich_yeu": "Về việc gián đoạn kết nối các kênh truyền WAN IT trong ngày 25/6/2026\n",
+    "ngay_vb": "2026-06-24"
+  },
+  {
+    "id_vb": 1485667,
+    "ky_hieu": "278-CV/ĐU",
+    "trich_yeu": "Về việc quán triệt các Chuyên đề của Đảng ủy EVN\n",
+    "ngay_vb": "2026-06-24"
+  },
+  {
+    "id_vb": 1485524,
+    "ky_hieu": "1061/EVNICT-TKDV",
+    "trich_yeu": "Phối hợp thực hiện thử nghiệm cuộc gọi tổng đài 1558",
+    "ngay_vb": "2026-06-24"
+  },
+  {
+    "id_vb": 1485521,
+    "ky_hieu": "3840/TB-EVNCPC",
+    "trich_yeu": "Thông báo kết luận của TGĐ Ngô Tấn Cư tại cuộc họp giao ban tuần 26/2026",
+    "ngay_vb": "2026-06-24"
+  },
+  {
+    "id_vb": 1485235,
+    "ky_hieu": "1051/EVNICT-TTPM",
+    "trich_yeu": "V/v thay đổi IP hệ thống máy chủ CSDL quản lý kỹ thuật EVN",
+    "ngay_vb": "2026-06-24"
+  },
+  {
+    "id_vb": 1485216,
+    "ky_hieu": "177/GM-EVNICT",
+    "trich_yeu": "Giấy mời họp trao đổi về khảo sát phục vụ dự án “Nâng cấp hệ thống chữ ký số chuyên dùng của EVN”",
+    "ngay_vb": "2026-06-24"
+  },
+  {
+    "id_vb": 1486781,
+    "ky_hieu": "19/VH",
+    "trich_yeu": "GIẤY ĐỀ NGHỊ CẤP VẬT TƯ/ SẢN PHẨM",
+    "ngay_vb": "2026-06-23"
+  },
+  {
+    "id_vb": 1484696,
+    "ky_hieu": "28-KH/ĐU",
+    "trich_yeu": "Kế hoạch triển khai thực hiện Đề án số 02-ĐA/TU ngày 10/4/2026 của Ban Thường vụ Thành ủy về xây dựng và nhân rộng các mô hình “Dân vận khéo” tiêu biểu trên địa bàn thành phố Đà Nẵng giai đoạn 2026-2030",
+    "ngay_vb": "2026-06-23"
+  },
+  {
+    "id_vb": 1484235,
+    "ky_hieu": "673/IT-ĐT+KTMVT",
+    "trich_yeu": "V/v mời đối chiếu tài liệu E-HSDT gói thầu SAOLUU2026-01.HH",
+    "ngay_vb": "2026-06-23"
+  },
+  {
+    "id_vb": 1484209,
+    "ky_hieu": "3809/QĐ-EVNCPC",
+    "trich_yeu": "QĐ cử cán bộ tham gia khóa đào tạo công tác bảo vệ môi trường năm 2026\n",
+    "ngay_vb": "2026-06-23"
+  },
+  {
+    "id_vb": 1484147,
+    "ky_hieu": "672/GM-IT",
+    "trich_yeu": "Về việc rà soát kỹ thuật và công tác chuẩn bị nghiệm thu Dự án Xây dựng công cụ chuyển đổi dữ liệu và khởi tạo khung CSDL GIS hạ thế EVNCPC\n",
+    "ngay_vb": "2026-06-23"
+  },
+  {
+    "id_vb": 1484122,
+    "ky_hieu": "3596/EVN-PC",
+    "trich_yeu": "Phối hợp tổ chức Hội thảo lấy ý kiến Dự án Luật sửa đổi, bổ sung một số điều của Luật Điện lực",
+    "ngay_vb": "2026-06-23"
+  },
+  {
+    "id_vb": 1484064,
+    "ky_hieu": "3805/EVNCPC-TH",
+    "trich_yeu": "V/v triển khai công tác QLRR theo quy trình mới\n",
+    "ngay_vb": "2026-06-23"
+  },
+  {
+    "id_vb": 1483958,
+    "ky_hieu": "3585/EVN-KHCNCĐS",
+    "trich_yeu": "Diễn tập ứng cứu xử lý sự cố VTDR cấp Tập đoàn năm 2026",
+    "ngay_vb": "2026-06-23"
+  },
+  {
+    "id_vb": 1483865,
+    "ky_hieu": "2751/HPC-VTCNTT",
+    "trich_yeu": "Cấp phát hạ tầng kỹ thuật kết nối các điện thoại nội bộ đến các TBA 110kV",
+    "ngay_vb": "2026-06-23"
+  },
+  {
+    "id_vb": 1483828,
+    "ky_hieu": "30/KTMVT",
+    "trich_yeu": "GIẤY ĐỀ NGHỊ CẤP VẬT TƯ/ SẢN PHẨM",
+    "ngay_vb": "2026-06-23"
+  },
+  {
+    "id_vb": 1483782,
+    "ky_hieu": "670/TTr-IT",
+    "trich_yeu": "Về việc cấp tiền gốc và lãi vay MB Q2/2026",
+    "ngay_vb": "2026-06-23"
+  },
+  {
+    "id_vb": 1483765,
+    "ky_hieu": "671/TTr-IT",
+    "trich_yeu": "Về việc cấp tiền gốc và lãi vay Techcombank Q2/2026",
+    "ngay_vb": "2026-06-23"
+  },
+  {
+    "id_vb": 1483491,
+    "ky_hieu": "3794/QĐ-EVNCPC",
+    "trich_yeu": "QĐ về việc ban hành Quy định bảo vệ môi trường trong Tổng công ty Điện lực miền Trung\n",
+    "ngay_vb": "2026-06-23"
+  },
+  {
+    "id_vb": 1483489,
+    "ky_hieu": "3792/EVNCPC-KT+VTCNTT",
+    "trich_yeu": "Góp ý tài liệu yêu cầu nâng cấp phần mềm Quản lý kỹ thuật (PMIS 3.0)\n",
+    "ngay_vb": "2026-06-23"
+  },
+  {
+    "id_vb": 1488146,
+    "ky_hieu": "178-NQ/ĐU",
+    "trich_yeu": "Nghị quyết Kết quả rà soát, bổ sung quy hoạch cán bộ nhiệm kỳ 2025 - 2030 và xây dựng mới quy hoạch cán bộ, nhiệm kỳ 2030-2035",
+    "ngay_vb": "2026-06-22"
+  },
+  {
+    "id_vb": 1486083,
+    "ky_hieu": "290/VP",
+    "trich_yeu": "Giấy đề nghị số 290",
+    "ngay_vb": "2026-06-22"
+  },
+  {
+    "id_vb": 1483222,
+    "ky_hieu": "277-CV/ĐU",
+    "trich_yeu": "Gửi “Bản tin Sinh hoạt chi bộ - Số Chuyên đề Quý II năm 2026”",
+    "ngay_vb": "2026-06-22"
+  },
+  {
+    "id_vb": 1483210,
+    "ky_hieu": "3788/TB-EVNCPC",
+    "trich_yeu": "TB rà soát thống nhất quy trình quản lý Công tác và quản lý Phương tiện xe ô tô.",
+    "ngay_vb": "2026-06-22"
+  },
+  {
+    "id_vb": 1483200,
+    "ky_hieu": "27-KH/ĐU",
+    "trich_yeu": "Kế hoạch triển khai 04 thủ tục hành chính của Đảng trên môi trường điện tử tại Đảng bộ Tổng công ty Điện lực miền Trung \n",
+    "ngay_vb": "2026-06-22"
+  },
+  {
+    "id_vb": 1483046,
+    "ky_hieu": "3786/EVNCPC-PC",
+    "trich_yeu": "Phổ biến, rà soát, đánh giá tác động của VBPL ban hành trong tháng 5/2026",
+    "ngay_vb": "2026-06-22"
+  },
+  {
+    "id_vb": 1482838,
+    "ky_hieu": "94-CV/ĐTN",
+    "trich_yeu": "Về việc tuyên truyền, phổ biến, triển khai thực hiện các chỉ đạo của Đảng ủy EVNCPC trong tháng 6/2026\n",
+    "ngay_vb": "2026-06-22"
+  },
+  {
+    "id_vb": 1482837,
+    "ky_hieu": "93-CV/ĐTN",
+    "trich_yeu": "V/v hưởng ứng, tham gia cuộc thi “Tìm hiểu pháp luật  về sử dụng năng lượng tiết kiệm và hiệu quả năm 2026” \n",
+    "ngay_vb": "2026-06-22"
+  },
+  {
+    "id_vb": 1482807,
+    "ky_hieu": "3785/EVNCPC-VTCNTT+KD",
+    "trich_yeu": "Về việc Chuyển đổi hạ tầng máy chủ CSDL CMIS Kho nợ\n",
+    "ngay_vb": "2026-06-22"
+  },
+  {
+    "id_vb": 1482761,
+    "ky_hieu": "669/TB-IT",
+    "trich_yeu": "Thông báo khởi công gói thầu HDDT.DR.2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật hệ thống máy chủ vật lý thuộc dự án Đầu tư hạ tầng máy chủ triển khai hóa đơn điện tử tại vị trí dự phòng TTDL năm 2026",
+    "ngay_vb": "2026-06-22"
+  },
+  {
+    "id_vb": 1482652,
+    "ky_hieu": "1045/EVNICT-TTPM",
+    "trich_yeu": "Cập nhật phiên bản chương trình CMIS&UDHT",
+    "ngay_vb": "2026-06-22"
+  },
+  {
+    "id_vb": 1482601,
+    "ky_hieu": "668/TTr-IT",
+    "trich_yeu": "Về việc cấp tiền lãi vay BIDV Q2/2026",
+    "ngay_vb": "2026-06-22"
+  },
+  {
+    "id_vb": 1482590,
+    "ky_hieu": "1045/EVNICT-TTPM",
+    "trich_yeu": "Cập nhật phiên bản chương trình CMIS&UDHT",
+    "ngay_vb": "2026-06-22"
+  },
+  {
+    "id_vb": 1482052,
+    "ky_hieu": "667/IT-VH",
+    "trich_yeu": "Về việc khôi phục dữ liệu ERP",
+    "ngay_vb": "2026-06-22"
+  },
+  {
+    "id_vb": 1481802,
+    "ky_hieu": "17/VH",
+    "trich_yeu": "test 2106 -4",
+    "ngay_vb": "2026-06-21"
+  },
+  {
+    "id_vb": 1481688,
+    "ky_hieu": "24/IT-CĐCPCIT",
+    "trich_yeu": "V/v xét tặng Kỷ niệm chương “Vì sự nghiệp xây dựng tổ chức Công đoàn Việt Nam” 2026\n",
+    "ngay_vb": "2026-06-20"
+  },
+  {
+    "id_vb": 1481687,
+    "ky_hieu": "666/TB-IT",
+    "trich_yeu": "Khởi công gói thầu FIREWALL110.2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật thiết bị tường lửa cho các TBA 110kV và NMTĐ tại các Đơn vị thành viên ",
+    "ngay_vb": "2026-06-20"
+  },
+  {
+    "id_vb": 1481515,
+    "ky_hieu": "3821/QTPC-ĐĐ",
+    "trich_yeu": "V/v đăng ký người dùng thử nghiệm phần mềm kết nối dữ liệu tự động hệ thống SCADA-hệ thống OMS.",
+    "ngay_vb": "2026-06-20"
+  },
+  {
+    "id_vb": 1481407,
+    "ky_hieu": "665/IT-TH",
+    "trich_yeu": "Đăng ký học viên tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông",
+    "ngay_vb": "2026-06-19"
+  },
+  {
+    "id_vb": 1481240,
+    "ky_hieu": "62/ĐT",
+    "trich_yeu": "V/v đề nghị thẩm định pháp lý Dự thảo hợp đồng gói thầu 06.PTV: Cung cấp dịch vụ bản đồ nền",
+    "ngay_vb": "2026-06-19"
+  },
+  {
+    "id_vb": 1480568,
+    "ky_hieu": "3757/EVNCPC-KT",
+    "trich_yeu": "Đề xuất xét, công nhận sáng kiến cấp EVN\n",
+    "ngay_vb": "2026-06-19"
+  },
+  {
+    "id_vb": 1480240,
+    "ky_hieu": "664/TB-IT",
+    "trich_yeu": "Khởi công gói thầu INTERNET-WAN2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật Internet firewall, WAN firewall và Module mở rộng",
+    "ngay_vb": "2026-06-19"
+  },
+  {
+    "id_vb": 1480225,
+    "ky_hieu": "663/IT-ĐT",
+    "trich_yeu": "Về việc Thông báo chấp thuận E-HSDT và trao hợp đồng",
+    "ngay_vb": "2026-06-19"
+  },
+  {
+    "id_vb": 1480021,
+    "ky_hieu": "3742/QĐ-EVNCPC",
+    "trich_yeu": "QĐ về chế độ biên soạn bài giảng học tập và mức chi phí cho các lớp bồi dưỡng ngắn hạn áp dụng tạm thời trong EVNCPC\n",
+    "ngay_vb": "2026-06-19"
+  },
+  {
+    "id_vb": 1479942,
+    "ky_hieu": "732/QĐ-EVN",
+    "trich_yeu": "QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.",
+    "ngay_vb": "2026-06-19"
+  },
+  {
+    "id_vb": 1479886,
+    "ky_hieu": "276-CV/ĐU",
+    "trich_yeu": "Thực hiện Quy định số 20-QĐ/TW và Hướng dẫn số 01-HD/TW\n",
+    "ngay_vb": "2026-06-19"
+  },
+  {
+    "id_vb": 1479837,
+    "ky_hieu": "23/PM",
+    "trich_yeu": "GIẤY ĐỀ NGHỊ CẤP VẬT TƯ, SẢN PHẨM",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1479796,
+    "ky_hieu": "661/IT-ĐT+KTMVT",
+    "trich_yeu": "V/v đề nghị báo giá thiết bị, bản quyền phần mềm - Gửi Công ty TNHH FPT IS",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1479791,
+    "ky_hieu": "662/IT-ĐT+KTMVT",
+    "trich_yeu": "V/v cung cấp thông tin để triển khai thực hiện hợp đồng gói thầu CORE2026-01.HH",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1479790,
+    "ky_hieu": "660/QĐ-IT",
+    "trich_yeu": "Phê duyệt kết quả lựa chọn nhà thầu qua mạng Gói thầu số 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình Cung cấp dịch vụ bản đồ nền\n",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1479667,
+    "ky_hieu": "3739/EVNCPC-KD+VP",
+    "trich_yeu": "Hưởng ứng, tham gia cuộc thi trực tuyến “Tìm hiểu kiến thức về sử dụng năng lượng tiết kiệm và hiệu quả năm 2026”.\n",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1479614,
+    "ky_hieu": "1027/EVNICT-TTPM",
+    "trich_yeu": "Triển khai hệ thống nâng cấp báo cáo kinh doanh và dịch vụ khách hàng",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1479271,
+    "ky_hieu": "3732/TB-EVNCPC",
+    "trich_yeu": "Thông báo kiểm tra theo kế hoạch tại CPSC",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1479048,
+    "ky_hieu": "3488/EVN-KDMBĐ",
+    "trich_yeu": "Bổ sung tính năng quản lý điện mặt trời mái nhà trên hệ thống CMIS",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1479034,
+    "ky_hieu": "3730/EVNCPC-VTCNTT",
+    "trich_yeu": "Triển khai chính thức hệ thống SSO-2FA",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1479029,
+    "ky_hieu": "5255/GLPC-ĐĐ",
+    "trich_yeu": "V/v Cập nhật, chuẩn hóa toàn bộ dữ liệu lưới điện trên DMS theo đúng cấu trúc dữ liệu của giải pháp kết nối SCADA-OMS ABB",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1479026,
+    "ky_hieu": "3731/EVNCPC-VTCNTT",
+    "trich_yeu": "V/v diễn tập tấn công lừa đảo qua email năm 2026",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1478933,
+    "ky_hieu": "3728/TB-EVNCPC",
+    "trich_yeu": "Thông báo kết luận của TGĐ Ngô Tấn Cư tại hội nghị giao ban EVNCPC tháng 6/2026\n",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1478932,
+    "ky_hieu": "3727/TB-EVNCPC",
+    "trich_yeu": "Thông báo kết luận của TGĐ Ngô Tấn Cư tại Hội nghị đầu tư xây dựng - quản lý đấu thầu EVNCPC năm 2026\n",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1478797,
+    "ky_hieu": "659/IT-KTMVT",
+    "trich_yeu": "Báo cáo vướng mắc khi thực hiện công tác đào tạo, cấp chứng chỉ vận hành HTVT",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1478663,
+    "ky_hieu": "104/QĐ-HĐTV",
+    "trich_yeu": "Quyết định v/v bổ nhiệm Kế toán trưởng Tập đoàn Điện lực Việt Nam (Đ/c Nguyễn Xuân Phú)",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1478645,
+    "ky_hieu": "2813/KHPC-VTCNTT+KD",
+    "trich_yeu": "Báo cáo kết quả thực hiện đảm bảo ATTT các chương trình tự phát triển có kết nối CSDL CMIS",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1478567,
+    "ky_hieu": "658/TTr-IT",
+    "trich_yeu": "Đề nghị cấp tiền lãi vay Vietcombank Q2/2026",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1478561,
+    "ky_hieu": "657/QĐ-IT",
+    "trich_yeu": "QUYẾT ĐỊNH\nVề việc phê duyệt quyết toán dự án hoàn thành\nDự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.\n",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1478560,
+    "ky_hieu": "656/IT-ĐT+KTMVT",
+    "trich_yeu": "V/v đề nghị báo giá thiết bị, bản quyền phần mềm - Gửi Công ty cổ phần Công nghệ và Năng lượng Quang Trung",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1478533,
+    "ky_hieu": "655/IT-ĐT+KTMVT",
+    "trich_yeu": "V/v đề nghị báo giá thiết bị, bản quyền phần mềm - Gửi Công ty cổ phần Công nghệ One",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1478531,
+    "ky_hieu": "654/IT-ĐT+KTMVT",
+    "trich_yeu": "V/v đề nghị báo giá thiết bị, bản quyền phần mềm - Gửi Công ty cổ phần Công nghệ Bằng Hữu",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1478523,
+    "ky_hieu": "3724/EVNCPC-TCNS",
+    "trich_yeu": "Giải quyết lao động nghỉ trước tuổi theo Quy định đãi ngộ ",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1478356,
+    "ky_hieu": "355/QĐ-HĐTV",
+    "trich_yeu": "QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung",
+    "ngay_vb": "2026-06-18"
+  },
+  {
+    "id_vb": 1478063,
+    "ky_hieu": "275-CV/ĐU",
+    "trich_yeu": "Quán triệt, tuyên truyền và triển khai Chỉ thị số 18-CT/TU ngày 03/6/2026 của BTV Thành ủy",
+    "ngay_vb": "2026-06-17"
+  },
+  {
+    "id_vb": 1477877,
+    "ky_hieu": "176/CTr-CĐĐMT",
+    "trich_yeu": "CTHĐ thực hiện Nghị quyết số 79-NQ/TW ngày 06/01/2026 của Bộ Chính trị về phát triển kinh tế nhà nước",
+    "ngay_vb": "2026-06-17"
+  },
+  {
+    "id_vb": 1477849,
+    "ky_hieu": "3705/EVNCPC-VTCNTT+KD",
+    "trich_yeu": "Đầu mối tiếp nhận, quản lý tài khoản Technician trên ServiceDesk EVN",
+    "ngay_vb": "2026-06-17"
+  },
+  {
+    "id_vb": 1477370,
+    "ky_hieu": "653/IT-VH+KTMVT",
+    "trich_yeu": "Về việc chuyển đổi hạ tầng máy chủ cơ sở dữ liệu CMIS Kho nợ.",
+    "ngay_vb": "2026-06-17"
+  },
+  {
+    "id_vb": 1477358,
+    "ky_hieu": "176-NQ/ĐU",
+    "trich_yeu": "Nghị quyết về việc ban hành Quy định bảo vệ môi trường trong Tổng công ty Điện lực miền Trung\n",
+    "ngay_vb": "2026-06-17"
+  },
+  {
+    "id_vb": 1477351,
+    "ky_hieu": "652/TB-IT",
+    "trich_yeu": "Thông báo Khởi công gói thầu CMIS.DR.2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật hệ thống máy chủ vật lý thuộc dự án Đầu tư hạ tầng phục vụ ứng dụng quản lý thông tin khách hàng sử dụng điện tại vị trí dự phòng TTDL năm 2026\n\n",
+    "ngay_vb": "2026-06-17"
+  },
+  {
+    "id_vb": 1477255,
+    "ky_hieu": "2837/CPCETC-KHVT",
+    "trich_yeu": "V/v kết quả thực hiện các hợp đồng xây lắp với EVNCPC và các đơn vị thành viên thuộc EVNCPC, gói thầu 26GT-12: Cung cấp vật liệu và thi công xây dựng công trình",
+    "ngay_vb": "2026-06-17"
+  },
+  {
+    "id_vb": 1477006,
+    "ky_hieu": "3697/EVNCPC-TCNS",
+    "trich_yeu": "Tổ chức đào tạo ứng dụng công nghệ mới vào công tác truyền thông",
+    "ngay_vb": "2026-06-17"
+  },
+  {
+    "id_vb": 1476673,
+    "ky_hieu": "3690/QĐ-EVNCPC",
+    "trich_yeu": "QĐ về việc giao điều chỉnh kế hoạch vốn SCL năm 2026 - CPCIT",
+    "ngay_vb": "2026-06-17"
+  },
+  {
+    "id_vb": 1476649,
+    "ky_hieu": "3684/EVNCPC-KD",
+    "trich_yeu": "V/v rà soát chuẩn bị triển khai thay đổi khung giờ cao điểm, thấp điểm, bình \nthường của hệ thống điện quốc gia ",
+    "ngay_vb": "2026-06-17"
+  }
+]

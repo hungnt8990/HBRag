@@ -1,0 +1,126 @@
+================================================================================
+id_vb        : 1486083
+ky_hieu      : 290/VP
+trich_yeu    : Giấy đề nghị số 290
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-22
+ten_file     : CV_Di_1_20260624154151442.PDF
+TỔNG SỐ CHUNK: 6
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=146
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 290/VP
+Ngày văn bản: 22/06/2026
+Trích yếu: Giấy đề nghị số 290
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Trần Công Minh
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=578
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 290/VP - Giấy đề nghị số 290
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Số: 290/VP
+
+Đà Nẵng, ngày 22 tháng 6 năm 2026
+
+GIẤY ĐỀ NGHỊ
+
+Kính gửi: Công ty CNTT Điện lực miền Trung
+
+Căn cứ Tờ trình được Lãnh đạo Tổng công ty phê duyệt cấp VTTB cho Ban KTGS (bà Nguyễn Thu Anh, Huỳnh Thị Long);
+Đề nghị CPCIT cung cấp vật tư thiết bị theo đề nghị:
+
++ Vật tư/thiết bị được cấp không thuộc TSCĐ.
+
++ Đơn vị nhận vật tư/thiết bị có trách nhiệm quản lý, sử dụng Vật tư/thiết bị được cấp theo các quy định hiện hành của Nhà nước và Tổng công ty./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=496
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 290/VP - Giấy đề nghị số 290
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 1
+| CÔNG TY CNTT ĐIỆN LỰC MIỀN TRUNG | CÔNG TY CNTT ĐIỆN LỰC MIỀN TRUNG |
+| --- | --- |
+| ĐẾN | Số: 1162 |
+| | Ngày: 24/6/2026 |
+| Chuyển: | |
+| Số và ký hiệu HS: Căn cứ Quy định quản lý chi tiêu áp dụng trong Cơ quan Tổng công ty Điện lực miền Trung; | Số và ký hiệu HS: Căn cứ Quy định quản lý chi tiêu áp dụng trong Cơ quan Tổng công ty Điện lực miền Trung; |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=Bảng DOffice 2 | table=Bảng DOffice 2 | quality=pass | chars=277
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 290/VP - Giấy đề nghị số 290
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 2
+| TT | Vật tư | Số lượng | Các thông số cơ bản | Ghi chú |
+| --- | --- | --- | --- | --- |
+| 1. | CPU | 02 cái | Theo đề nghị và quy định | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=footer_signature | quality=pass | chars=107
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận:
+
+- Như trên;
+
+- Đơn vị nhận VT/TB;
+
+- Lưu: VP.
+
+TL. TỔNG GIÁM ĐỐC
+CHÁNH VĂN PHÒNG
+
+Trần Công Minh
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=document_body | section=Văn bản đính kèm | artifact=attached_document | quality=pass | chars=1011
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 290/VP - Giấy đề nghị số 290
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Văn bản đính kèm
+TỜ TRÌNH
+V/v xin cấp vật tư thiết bị văn phòng
+
+- Kính gửi: - Lãnh đạo Tổng công ty Điện lực miền Trung;
+
+- Ban Tài chính kế toán;
+
+- Văn phòng Tổng công ty.
+
+Ngày 14 tháng 4 năm 2026 vừa qua, Công ty Công nghệ thông tin Điện lực miền Trung (CPC IT) đã thực hiện kiểm tra 02 CPU của chuyên viên Ban KTGS là Nguyễn Thu Anh và Huỳnh Thị Long. Theo đó Biên bản xác nhận tình trạng của 02 cụm CPU là sử dụng từ năm 2015-2017, cấu hình thấp, không đáp ứng được HĐH Windown 11 và các phần mềm ứng dụng khác; không sữa chữa và khắc phục được.
+
+Ban KTGS kính trình Lãnh đạo TCT cho phép thay 02 CPU mới theo ý kiến đề xuất của CPC IT như Biên bản kiểm tra, xác nhận tình trạng sản phẩm đính kèm.
+
+Trân trọng./.
+
+Nơi nhận:
+
+- Như trên;
+
+- Lưu: VT, KTGS.
+
+TRƯỞNG BAN
+
+Lê Kỳ Anh
+
+Ý kiến Ban Tài chính kế toán
+
+Vũ Thị Kiều Văn
+Ý kiến phê duyệt của Phó Tổng Giám đốc
+Hồ Thăng Thu
+
+Đồng ý

@@ -1,0 +1,75 @@
+================================================================================
+id_vb        : 1486513
+ky_hieu      : 2441/KHoPC-VTCNTT
+trich_yeu    : V/v báo cáo kết quả hoàn thành xây dựng khung website KHoPC
+noi_ban_hanh : Công ty Điện lực Khánh Hòa
+ngay_vb      : 2026-06-24
+ten_file     : 23062026 gửi EVNCPC vv báo cáo kết quả hoàn thành khung website KHoPC.pdf
+TỔNG SỐ CHUNK: 4
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=189
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 2441/KHoPC-VTCNTT
+Ngày văn bản: 24/06/2026
+Trích yếu: V/v báo cáo kết quả hoàn thành xây dựng khung website KHoPC
+Nơi ban hành: Công ty Điện lực Khánh Hòa
+Người ký: Lê Minh Long
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1059
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 2441/KHoPC-VTCNTT - V/v báo cáo kết quả hoàn thành xây dựng khung website KHoPC
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Công ty Điện lực Khánh Hòa
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY ĐIỆN LỰC KHÁNH HÒA
+
+Số: /KHoPC-VTCNTT Khánh Hòa, ngày tháng 06 năm 2026
+
+V/v báo cáo kết quả hoàn thành xây dựng khung website KHoPC
+
+Kính gửi: Tổng công ty Điện lực miền Trung
+
+Thực hiện chỉ đạo của EVNCPC về việc nhiệm vụ xây dựng lại website KHoPC theo khung giao diện chung;
+
+Qua quá trình triển khai phối hợp với CPCIT, khung giao diện website KHoPC đã được xây dựng theo đúng định hướng giao diện dùng chung của EVNCPC; các chức năng cơ bản phục vụ công tác quản trị, đăng tải và hiển thị thông tin đã được cấu hình và vận hành thử nghiệm thành công. Website đã sẵn sàng cho công tác nhập liệu, cập nhật tin bài và triển khai vận hành chính thức, chi tiết nội dung thực hiện cụ thể như sau:
+
+KHoPC kính báo cáo Tổng công ty kết quả hoàn thành xây dựng khung website Công ty.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=1357
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 2441/KHoPC-VTCNTT - V/v báo cáo kết quả hoàn thành xây dựng khung website KHoPC
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Công ty Điện lực Khánh Hòa
+Bảng: Bảng DOffice 1
+| ST T | Hạng mục công việc | Thời gian dự kiến | Trạng thái | Đầu ra sản phẩm |
+| --- | --- | --- | --- | --- |
+| 1 | Cung cấp môi trường stagging để thử nghiệm khung website | | Đã hoàn thành | https://khanhhoa-staging.cpc.vn/ |
+| 2 | Xây dựng cấu trúc khung website | Trước 22/6/2026 | Đã hoàn thành | https://khungwebs ite.cpc.vn/ |
+| 3 | Khai báo các trang (menu) cho website | Trước 22/6/2026 | Đã hoàn thành | https://khungwebs ite.cpc.vn/ |
+| 4 | Xây dựng cấu trúc các trang (menu) cho website | Trước 22/6/2026 | Đã hoàn thành | https://khungwebs ite.cpc.vn/ |
+| 5 | Khắc phục các tồn tại phát sinh trong quá trình thực hiện | Trong giai đoạn thực hiện | Đã hoàn thành | https://khungwebs ite.cpc.vn/ |
+| 6 | Hoàn thiện nội dung các trang (menu) cho website | Trong giai đoạn thực hiện | Đã hoàn thành | https://khungwebs ite.cpc.vn/ |
+| 7 | Hoàn thành rà soát, nhập liệu và chuẩn hóa các bài viết từ website cũ sang website mới | Trong tháng 7/2026 | Đang thực hiện | https://khungwebs ite.cpc.vn/ |
+| 8 | Trỏ địa chỉ https://dlkhanhhoa.cpc.vn về lại khung website chung EVNCPC | Trong tháng 7/2026 | Sau khi hoàn thiện dữ liệu website | https://dlkhanhho a.cpc.vn |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=footer_signature | quality=pass | chars=140
+────────────────────────────────────────────────────────────────────────────────
+KT. GIÁM ĐỐC Nơi nhận PHÓ GIÁM ĐỐC - Như trên;
+
+- Ban Giám đốc (để báo cáo);
+
+- CPCIT (để biết);
+
+- Lưu: VT, VTCNTT (Bình.01).
+
+Lê Minh Long

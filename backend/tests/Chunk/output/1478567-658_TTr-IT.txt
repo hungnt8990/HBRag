@@ -1,0 +1,121 @@
+================================================================================
+id_vb        : 1478567
+ky_hieu      : 658/TTr-IT
+trich_yeu    : Đề nghị cấp tiền lãi vay Vietcombank Q2/2026
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-18
+ten_file     : Lai-VCB-T62026.pdf
+TỔNG SỐ CHUNK: 6
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=175
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 658/TTr-IT
+Ngày văn bản: 18/06/2026
+Trích yếu: Đề nghị cấp tiền lãi vay Vietcombank Q2/2026
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Trần Khắc Tuấn
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1690
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 658/TTr-IT - Đề nghị cấp tiền lãi vay Vietcombank Q2/2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 18 tháng 6 năm 2026
+
+Số: 658/TTr-IT
+
+TỜ TRÌNH
+
+Về việc xin cấp tiền để trả khoản lãi vay công trình
+
+Kính gửi: Tổng công ty Điện lực miền Trung
+
+Căn cứ hợp đồng tín dụng số 110/2024/CVTDH/VCB-KHDN ngày 28/6/2024 và hợp đồng tín dụng số 68/2025/CVTDH/VCB-KHDN ngày 11/12/2025 giữa Công ty Công nghệ thông tin Điện lực miền Trung - Tổng công ty Điện lực miền Trung và Ngân hàng TMCP Ngoại thương Việt Nam - CN Đà Nẵng về việc vay vốn các dự án;
+
+Căn cứ thông báo nợ đến hạn của Ngân hàng TMCP Ngoại thương Việt Nam - Chi nhánh Đà Nẵng ngày 01/6/2026.
+
+Công ty Công nghệ thông tin Điện lực miền Trung (CPCIT) đã vay vốn tại Ngân hàng TMCP Ngoại thương Việt Nam - CN Đà Nẵng để đầu tư xây dựng các công trình.
+
+Theo thông báo của Ngân hàng, khoản lãi vay đến hạn phải trả của các khoản vay này tại ngày 26/6/2026 là: 1.727.893.841 đồng (Bằng chữ: Một tỷ, bảy trăm hai mươi bảy triệu, tám trăm chín mươi ba nghìn, tám trăm bốn mươi mốt đồng). Bảng kê chi tiết theo công trình như phụ lục đính kèm.
+
+Để kịp thời chi trả cho Ngân hàng TMCP Ngoại thương Việt Nam - CN Đà Nẵng, CPCIT kính mong Tổng công ty xem xét cấp số tiền nêu trên cho CPCIT, thông tin chuyển khoản như sau:
+
+- Đơn vị thụ hưởng: Công ty Công nghệ thông tin Điện lực miền Trung - Tổng công ty Điện lực miền Trung
+
+- Số tài khoản: 0041000951898
+
+- Tại ngân hàng: Ngân hàng TMCP Ngoại thương Việt Nam - CN Đà Nẵng
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=63
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: GIÁM ĐỐC
+
+- Như trên;
+
+- Lưu: VT, TH.
+
+Trần Khắc Tuấn
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=1583
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 658/TTr-IT - Đề nghị cấp tiền lãi vay Vietcombank Q2/2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: Bảng DOffice 1
+| STT | Tên dự án | Số dư nợ vay hiện tại | Gốc vay phải trả | Lãi vay phải trả | Ngày hoàn thành dự án | Lãi đưa vào SXKD | Lãi đưa vào XDCB | Ghi chú |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 2 | 3 | 4 | 5=2-4 | 6 | | | |
+| 1 | Bổ sung tài nguyên, chia sẻ tải cho hệ thống máy chủ phiến năm 2023 | 5.635.000.000 | | 116.466.959 | 14/05/2024 | 116.466.959 | | |
+| 2 | Tối ưu kiến trúc và nâng cao năng lực Hệ thống mạng Trung tâm dữ liệu EVNCPC năm 2023 | 5.344.000.000 | | 110.452.427 | 24/06/2024 | 110.452.427 | | |
+| 3 | Tăng cường hệ thống máy chủ cho Trung tâm CSKH tại TTDL EVNCPC năm 2023 | 8.967.000.000 | | 185.334.379 | 28/05/2024 | 185.334.379 | | |
+| 4 | Đảm bảo ổn định Hệ thống giám sát an toàn thông tin tại Trung tâm dữ liệu EVNCPC năm 2023 | 8.855.000.000 | | 183.019.507 | 16/05/2024 | 183.019.507 | | |
+| 5 | Đầu tư nâng cao hiệu suất và tăng tính sẵn sàng hệ thống mạng Core, Access TTDL năm 2022 | 7.478.000.000 | | 154.558.991 | 26/09/2024 | 154.558.991 | | |
+| 6 | Trang bị bản quyền phần mềm phục vụ công tác xây dựng bảng biểu, báo cáo của EVNCPC năm 2024 | 1.911.000.000 | | 39.497.490 | 26/08/2024 | 39.497.490 | | |
+| 7 | Nâng cao ATTT cho hệ thống máy chủ, máy trạm năm 2025 | 11.598.000.000 | | 236.789.852 | 30/09/2025 | 236.789.852 | | |
+| 8 | Đầu tư hệ thống sao lưu dữ liệu giai đoạn 01 năm 2025 | 7.833.000.000 | | 159.921.962 | 14/11/2025 | 159.921.962 | | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=table | section=Bảng DOffice 2 | table=Bảng DOffice 2 | quality=pass | chars=976
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 658/TTr-IT - Đề nghị cấp tiền lãi vay Vietcombank Q2/2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: Bảng DOffice 2
+| STT | Tên dự án | Số dư nợ vay hiện tại | Gốc vay phải trả | Lãi vay phải trả | Ngày hoàn thành dự án | Lãi đưa vào SXKD | Lãi đưa vào XDCB | Ghi chú |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 2 | 3 | 4 | 5=2-4 | 6 | | | |
+| 9 | Nâng cao an toàn cho ứng dụng Mobile | 2.287.000.000 | | 46.692.395 | 28/11/2025 | 46.692.395 | | |
+| 10 | Thiết lập CSDL công tác thí nghiệm trong EVNCPC | 1.495.000.000 | | 30.522.575 | 14/11/2025 | 30.522.575 | | |
+| 11 | Đầu tư hạ tầng phục vụ Ứng dụng quản lý thông tin khách hàng sử dụng điện tại TTDL năm 2025 | 13.685.000.000 | | 279.398.959 | 10/10/2025 | 279.398.959 | | |
+| 12 | Đầu tư hạ tầng lưu trữ năm 2025 | 9.073.000.000 | | 185.238.345 | 08/12/2025 | 185.238.345 | | |
+| | Tổng cộng | 84.161.000.000 | | 1.727.893.841 | | 1.727.893.841 | | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=document_body | section=Văn bản đính kèm | artifact=attached_document | quality=pass | chars=307
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 658/TTr-IT - Đề nghị cấp tiền lãi vay Vietcombank Q2/2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: Văn bản đính kèm
+BẢNG CHI TIẾT LÃI VAY NGÂN HÀNG TMCP NGOẠI THƯƠNG VIỆT NAM - CHI NHÁNH ĐÀ NẴNG
+
+Tính đến ngày 26/6/2026
+
+Đơn vị tính: đồng
+
+Đơn vị tính: đồng

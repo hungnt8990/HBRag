@@ -1,0 +1,181 @@
+================================================================================
+id_vb        : 1477006
+ky_hieu      : 3697/EVNCPC-TCNS
+trich_yeu    : Tổ chức đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-17
+ten_file     : 3. CV. GUI DON VI LOP TRUYEN THONG.pdf
+TỔNG SỐ CHUNK: 8
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=199
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3697/EVNCPC-TCNS
+Ngày văn bản: 17/06/2026
+Trích yếu: Tổ chức đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Hồ Thăng Thu
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=769
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3697/EVNCPC-TCNS - Tổ chức đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+TỔNG CÔNG TY Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 17 tháng 6 năm 2026 Số: 3697/EVNCPC-TCNS V/v tổ chức đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+
+Kính gửi: Các Đơn vị thành viên EVNCPC.
+
+Thực hiện kế hoạch đào tạo năm 2026 theo Quyết định số 1790/QĐ-EVN ngày 25/12/2025 của EVN về việc giao kế hoạch sản xuất kinh doanh - đầu tư xây dựng - tài chính năm 2026 cho EVNCPC, EVNCPC thông báo tổ chức "Đào tạo ứng dụng công nghệ mới vào công tác truyền thông", với các nội dung như sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=1. Mục tiêu: | quality=pass | chars=1026
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3697/EVNCPC-TCNS - Tổ chức đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 1. Mục tiêu:
+1. Mục tiêu:
+
+- Nâng cao kỹ năng ứng dụng công nghệ mới trong công tác truyền thông cho đội ngũ tuyên truyền viên;
+
+- Thực hiện chỉ tiêu kế hoạch EVN giao về đào tạo nghiệp vụ truyền thông hằng năm.
+
+2. Nội dung chương trình đào tạo:
+
+ Lý thuyết (1/2 ngày):
+
+- Học lý thuyết về Prompt Engineering;
+
+- Tìm hiểu và thực hành sử dụng các công cụ AI như ChatGPTs, Gemini Gems, NotebookLM để cá nhân hóa nội dung đa phương tiện;
+
+- Làm quen với các mô hình tạo ảnh (Nano Banana Pro, Nano 2), nắm cách viết prompt hiệu quả và sử dụng hình ảnh tham chiếu trong quá trình tạo ảnh.
+
+ Thực hành (1/2 ngày):
+
+- Thực hành xây dựng workflow (flow);
+
+- Tạo hình ảnh với các công cụ AI (Nano 2, Nano Banana Pro...);
+
+- Làm quen với quy trình tạo video bằng công cụ AI VEO3, bao gồm kỹ thuật Start-End và tư duy xây dựng một video/phim ngắn hoàn chỉnh.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=3. Hình thức, giảng viên, thời lượng, đối tượng, số lượng đào tạo: | quality=pass | chars=935
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3697/EVNCPC-TCNS - Tổ chức đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 3. Hình thức, giảng viên, thời lượng, đối tượng, số lượng đào tạo:
+3. Hình thức, giảng viên, thời lượng, đối tượng, số lượng đào tạo:
+
+a. Hình thức đào tạo:
+
+- Đào tạo tập trung: Tại Trường Cao đẳng Điện lực miền Trung - 04 Nguyễn Tất Thành - Phường Hội An Tây - Tp. Đà Nẵng.
+
+b. Giảng viên giảng dạy: Ông Nguyễn Quốc Hưng - Founder của Dino Studio & Dino Media AI Concept.
+
+c. Thời lượng: 01 ngày, dự kiến ngày 03/07/2026 (thứ Sáu).
+
+d. Thành phần, số lượng tham dự: Dự kiến 76 người.
+
+- Thành phần: Cán bộ làm công tác truyền thông tại đơn vị.
+
+- Số lượng phân bổ:
+
++ Văn phòng EVNCPC: 07 người;
+
++ QTPC, ĐNPC, QNPC, GLPC, ĐLPC: 6 người/ đơn vị;
+
++ HPC, KHoPC, KHPC: 04 người/đơn vị;
+
++ CPSC, ETC, CPCIT, PEC, NPMU, CPCCC, EMEC, CEPC, PC3I:
+
+03 người/đơn vị.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_section | section=4. Chi phí đào tạo: | quality=pass | chars=1563
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3697/EVNCPC-TCNS - Tổ chức đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 4. Chi phí đào tạo:
+4. Chi phí đào tạo:
+
+- Đối với cán bộ của các đơn vị trực thuộc EVNCPC: Do EVNCPC chi trả từ nguồn chi phí SXKD năm 2026.
+
+- Đối với cán bộ của các đơn vị còn lại: Do đơn vị cử cán bộ tham gia đào tạo chi trả (EVNCPC chi trả trước, đơn vị chuyển trả sau).
+
+Để triển khai chương trình đào tạo nêu trên, EVNCPC yêu cầu:
+
+CEPC:
+
+- Chuẩn bị các điều kiện cần thiết để tổ chức khóa đào tạo đảm bảo các yêu cầu của EVNCPC (Mời giảng viên, chi phí giảng dạy cho giảng viên, tổ chức khai mạc, chuẩn bị tài liệu cho học viên,...).
+
+- Phối hợp rà soát chương trình, nội dung đào tạo; liên hệ với đơn vị để mời các cán bộ có kinh nghiệm tham gia đào tạo.
+
+- Trong quá trình tổ chức khóa đào tạo, nếu có vấn đề gì thay đổi, phát sinh, CEPC báo cáo EVNCPC để kịp thời xử lý.
+
+- Phối hợp theo dõi đánh giá chất lượng khóa đào tạo.
+
+- Sau khi kết thúc khóa đào tạo, báo cáo kết quả về EVNCPC.
+
+- Lập dự trù chi phí tổ chức, báo cáo về EVNCPC trước ngày 24/06/2026 để xem xét phê duyệt trước khi thực hiện.
+
+Các đơn vị EVNCPC:
+
+- Các đơn vị cử cán bộ tham dự đăng ký học viên theo chỉ tiêu nêu trên lên phần mềm Quản lý nhân sự (HRMS), đồng thời gửi văn bản đăng ký (kèm file excel theo mẫu như Phụ lục) gửi về Ban TCNS-EVNCPC ngày 20/06/2026 để EVNCPC xem xét cử tham gia.
+
+- Các cán bộ được cử tham dự có trách nhiệm tham gia khoá học đầy đủ, nghiêm túc, tuân thủ nội quy lớp học./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=footer_signature | quality=pass | chars=122
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. TỔNG GIÁM ĐỐC
+
+PHÓ TỔNG GIÁM ĐỐC - Như trên;
+
+- TGĐ EVNCPC (báo cáo);
+
+- VP;
+
+- Lưu: VT, TCNS.
+
+Hồ Thăng Thu
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=table | section=Phụ lục: DANH SÁCH ĐĂNG KÝ THAM GIA | table=Phụ lục: DANH SÁCH ĐĂNG KÝ THAM GIA | quality=pass | chars=504
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3697/EVNCPC-TCNS - Tổ chức đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Phụ lục: DANH SÁCH ĐĂNG KÝ THAM GIA
+| TT | Họ và tên | Năm sinh (ngắn gọn) | Chức danh (ngắn gọn) | Đơn vị Phòng/Ban | Đơn vị Đơn vị |
+| --- | --- | --- | --- | --- | --- |
+| 1. | Nguyễn Văn A | 1980 | Chuyên viên | | ĐNPC |
+| 2. | Nguyễn Văn B | 1985 | Chuyên viên | | ĐNPC |
+| 3. | | | | | |
+| 4. | | | | | |
+| ... | | | | | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=document_body | section=Phụ lục | artifact=appendix | quality=pass | chars=218
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3697/EVNCPC-TCNS - Tổ chức đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục
+Phụ lục: DANH SÁCH ĐĂNG KÝ THAM GIA

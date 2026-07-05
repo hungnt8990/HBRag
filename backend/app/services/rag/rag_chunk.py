@@ -1049,7 +1049,70 @@ def qdrant_payload(chunk: RagChunk, *, store_raw_text: bool = False) -> dict[str
                 payload.pop(key, None)
         if payload.get("enriched") is False:
             payload.pop("enriched", None)
+        _apply_doffice_chunk_schema(payload)
     return payload
+
+
+def _apply_doffice_chunk_schema(payload: dict[str, Any]) -> None:
+    """Chuẩn hoá schema chunk DOffice theo yêu cầu (in-place):
+    - ``chunk_order`` = thứ tự chunk trong văn bản (từ ``chunk_index``).
+    - ``chunk_text`` = nội dung đoạn (đổi tên từ ``text``, cho phép tiếng Việt/ký tự).
+    - ``section_path`` = chuỗi "chương > điều > khoản" (gộp từ list heading).
+    - ``table_context`` = gộp tên bảng + cột + vùng dòng + trang (chunk bảng).
+    - ``id`` = khoá liên kết ES↔Qdrant theo chuẩn BA (alias của ``document_id`` nội bộ).
+    - ``document_no`` = số/ký hiệu văn bản theo chuẩn BA (từ ``ky_hieu``).
+    - ``source_system`` = hệ thống nguồn (BA #5) — hằng ``"DOFFICE"``.
+    ``content_hash`` (SHA-256 nội dung chunk) đã có sẵn ở cấp chunk (không đụng).
+
+    ⚠️ Đây là lớp "đi trước 1 bước": thêm tên chuẩn BA nhưng GIỮ ``document_id`` làm khoá join
+    nội bộ (không đổi nghĩa) + GIỮ ``id_vb``/``ky_hieu`` để không phá retrieval. Việc rename
+    breaking (``document_id`` -> ``id`` nguồn) là quyết định riêng, KHÔNG làm ở đây.
+    """
+    # Định danh + hệ thống nguồn theo tên chuẩn BA (thuần bổ sung, không đụng khoá cũ).
+    doc_id = payload.get("document_id")
+    if doc_id not in (None, ""):
+        payload.setdefault("id", doc_id)  # BA #1
+    ky_hieu = payload.get("ky_hieu") or payload.get("document_code")
+    if ky_hieu:
+        payload.setdefault("document_no", ky_hieu)  # BA #3
+    payload.setdefault("source_system", "DOFFICE")  # BA #5
+    if payload.get("chunk_index") is not None:
+        payload["chunk_order"] = payload.get("chunk_index")
+    text_val = payload.pop("text", None)
+    if text_val is not None:
+        payload["chunk_text"] = text_val
+    section = payload.get("section_path")
+    if isinstance(section, (list, tuple)):
+        joined = " > ".join(str(p).strip() for p in section if str(p).strip())
+        if joined:
+            payload["section_path"] = joined
+        else:
+            payload.pop("section_path", None)
+    table_context = _build_table_context(payload)
+    if table_context:
+        payload["table_context"] = table_context
+
+
+def _build_table_context(payload: dict[str, Any]) -> str | None:
+    """Gộp ngữ cảnh bảng thành 1 chuỗi: tên bảng · cột · vùng dòng · trang."""
+    parts: list[str] = []
+    name = payload.get("table_name")
+    if name:
+        parts.append(f"Bảng: {name}")
+    columns = payload.get("table_columns")
+    if isinstance(columns, (list, tuple)):
+        cols = [str(c).strip() for c in columns if str(c).strip()]
+        if cols:
+            parts.append("Cột: " + ", ".join(cols))
+    row_start, row_end = payload.get("row_start"), payload.get("row_end")
+    if row_start is not None or row_end is not None:
+        parts.append(f"Dòng: {row_start if row_start is not None else '?'}–{row_end if row_end is not None else '?'}")
+    pages = payload.get("pages")
+    if isinstance(pages, (list, tuple)) and pages:
+        parts.append("Trang: " + ", ".join(str(p) for p in pages))
+    elif pages not in (None, "", []):
+        parts.append(f"Trang: {pages}")
+    return " | ".join(parts) if parts else None
 
 
 def _optional_int(value: Any) -> int | None:

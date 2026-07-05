@@ -1,0 +1,303 @@
+================================================================================
+id_vb        : 1488211
+ky_hieu      : 3887/EVNCPC-AT
+trich_yeu    : Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-26
+ten_file     : 2026 trien khai AT sau ktr AT dot 1.pdf
+TỔNG SỐ CHUNK: 18
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=196
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3887/EVNCPC-AT
+Ngày văn bản: 26/06/2026
+Trích yếu: Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Trần Văn Gia
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=2743
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3887/EVNCPC-AT - Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+TỔNG CÔNG TY Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+Số: 3887/EVNCPC-AT
+
+Đà Nẵng, ngày 26 tháng 6 năm 2026 V/v kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau
+
+kiểm tra
+
+Kính gửi: Các đơn vị thành viên
+
+Thực hiện kế hoạch kiểm tra thường xuyên số 9744/KH-EVNCPC ngày 30/12/2025 của EVNCPC và các thông báo số: 1437/TB-EVNCPC ngày 16/3/2026, số 1641/TB-EVNCPC ngày 25/3/2026 của EVNCPC về chương trình kiểm tra tổng thể công tác ATVSLĐ năm 2026, trong tháng 6/2026, EVNCPC đã tiến hành kiểm tra tại ĐNPC, QNPC, GLPC,
+
+Căn cứ kết quả kiểm tra, để tuân thủ thực hiện quy định về ATVSLĐ, ngăn ngừa các rủi ro về an toàn, pháp lý, EVNCPC yêu cầu các đơn vị thực hiện:
+
+1. Tổ chức tự rà soát để khắc phục các tồn tại được phát hiện qua kiểm tra đã nêu cụ thể tại Phụ lục đính kèm (nếu có), đảm bảo không lặp lại các tồn tại này trong lần kiểm tra tiếp theo của cấp trên, EVNCPC;
+
+2. Triển khai thực hiện đồng bộ các quy trình, quy định an toàn của EVNCPC đã ban hành gồm: Quy định công tác quản lý ATVSLĐ ban hành theo quyết định số 3024/QĐ-EVNCPC ngày 21/5/2026, Quy trình an toàn điện ban hành theo quyết định số 2816/QĐ-EVNCPC ngày 12/5/2026 và Quy trình an toàn thủy, cơ, nhiệt, hóa ban hành theo quyết định số 2815/QĐ-EVNCPC ngày 12/5/2026.
+
+3. Nâng cao chất lượng công tác nhận diện mối nguy, đánh giá rủi ro gắn liền với nội dung công việc, vị trí công tác trên lưới điện, xây dựng đầy đủ, triển khai hiệu quả các biện pháp ngăn ngừa ngay từ khâu khảo sát hiện trường, chuẩn bị công tác.
+
+4. Cán bộ lãnh đạo, cán bộ quản lý và cán bộ an toàn các cấp tăng cường kiểm tra hiện trường, giám sát chặt chẽ việc thực thi quy trình an toàn gắn liền với chấp hành kỷ luật lao động, kỷ luật vận hành. Các tổ/đội trực tiếp sản xuất nghiêm túc thực hiện sinh hoạt đầu giờ để tuyên truyền về an toàn, phổ biến đánh giá rủi ro, biện pháp ngăn ngừa đến người lao động.
+
+5. Về kiểm định các thiết bị có yêu cầu nghiêm ngặt về an toàn lao động, các đơn vị căn cứ Quyết định số 2278/QĐ-EVNCPC ngày 16/4/2026 của EVNCPC v/v ban hành danh mục các trường hợp có thể áp dụng hình thức ký hợp đồng trực tiếp trong hoạt động mua sắm của Tổng công ty Điện lực miền Trung để xem xét, ưu tiên lựa chọn các tổ chức kiểm định thuộc các cơ quan chuyên ngành có kinh nghiệm, năng lực để thực hiện kiểm định, cũng như hỗ trợ hướng dẫn, tư vấn hiệu quả. Đồng thời kịp thời xử lý trách nhiệm đối với các đơn vị kiểm định đã thực hiện không đúng quy trình kiểm định, cập nhật hồ sơ, lý lịch thiết bị thiếu chuẩn xác.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=6. Đối với các đơn vị đã được kiểm tra, tập trung khắc phục các tồn tại đã nêu cụ thể tại các biên bản, báo cáo kết quả về EVNCPC trước ngày 15/7/2026./. | quality=pass | chars=479
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3887/EVNCPC-AT - Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 6. Đối với các đơn vị đã được kiểm tra, tập trung khắc phục các tồn tại đã nêu cụ thể tại các biên bản, báo cáo kết quả về EVNCPC trước ngày 15/7/2026./.
+6. Đối với các đơn vị đã được kiểm tra, tập trung khắc phục các tồn tại đã nêu cụ thể tại các biên bản, báo cáo kết quả về EVNCPC trước ngày 15/7/2026./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=footer_signature | quality=pass | chars=203
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. TỔNG GIÁM ĐỐC
+
+- Như trên; PHÓ TỔNG GIÁM ĐỐC
+
+- TGĐ EVNCPC (để b/c);
+
+- Công đoàn EVNCPC;
+
+- Người đại diện phần vốn EVNCPC tại CTCP;
+
+- Ban: KT, KD, TCNS, PC;
+
+- Lưu: VT, AT.
+
+Trần Văn Gia
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_section | section=Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 | artifact=appendix | quality=pass | chars=290
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3887/EVNCPC-AT - Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026
+Phụ lục
+
+KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=document_section | section=Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > I. Lập và thực hiện kế hoạch công tác ATVSLĐ: | artifact=appendix | quality=pass | chars=943
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3887/EVNCPC-AT - Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > I. Lập và thực hiện kế hoạch công tác ATVSLĐ:
+I. Lập và thực hiện kế hoạch công tác ATVSLĐ:
+
+1. Chưa có đầy đủ bản đăng ký kế hoạch ATVSLĐ năm của cấp tổ/đội (theo quy định tại: điểm d khoản 2 Điều 76 của Luật ATVSLĐ; khoản 2 Điều 11 của QĐ.79 EVNCPC);
+
+2. Chưa thực hiện đánh giá đầy đủ toàn bộ các nội dung kế hoạch ATVSLĐ đã đăng ký (theo quy định tại: điểm a khoản 3 Điều 11 của QĐ.79 EVNCPC)
+
+II. Thực hiện quy trình và biện pháp an toàn:
+
+1. Người chỉ huy trực tiếp chưa thực hiện đầy đủ bước kiểm soát nhân viên đơn vị công tác - khóa danh sách nhân viên đơn vị công tác khi bắt đầu làm việc khi thực hiện một số Phiếu công tác (PCT) điện tử (theo quy định tại điểm e khoản 2 Điều 12 của QT ATĐ EVNCPC).
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=document_section | section=Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > 2. Người Cấp phiếu chưa thực hiện đầy đủ bước kiểm tra, xác nhận hoàn thành PCT (theo quy định tại điểm c khoản 3 Điều 6 của QT ATĐ EVNCPC). | artifact=appendix | quality=pass | chars=987
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3887/EVNCPC-AT - Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > 2. Người Cấp phiếu chưa thực hiện đầy đủ bước kiểm tra, xác nhận hoàn thành PCT (theo quy định tại điểm c khoản 3 Điều 6 của QT ATĐ EVNCPC).
+2. Người Cấp phiếu chưa thực hiện đầy đủ bước kiểm tra, xác nhận hoàn thành PCT (theo quy định tại điểm c khoản 3 Điều 6 của QT ATĐ EVNCPC).
+
+3. Người Cấp phiếu chỉ ghi vị trí, không ghi cụ thể tên xuất tuyến để thực hiện đặt nối đất di động trên đường dây (theo quy định tại điểm a khoản 3 Điều 6 của QT ATĐ EVNCPC).
+
+4. Chưa thực hiện đầy đủ biện pháp an toàn, chế độ điều khiển từ xa/tại chỗ (Remote/Local) của thiết bị đóng cắt phải được chuyển về vị trí tại chỗ (Local) trong thời gian có người công tác trên thiết bị đóng cắt này hoặc ĐD, TBĐ liên quan (theo quy định tại khoản 4 Điều 38 của QT ATĐ EVNCPC).
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=document_section | section=Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > 5. Chưa thực hiện đúng quy định về công nhận chức danh thực hiện PCT/LCT hàng năm (theo quy định tại khoản 8 Điều 3 của QT ATĐ EVNCPC). | artifact=appendix | quality=pass | chars=921
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3887/EVNCPC-AT - Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > 5. Chưa thực hiện đúng quy định về công nhận chức danh thực hiện PCT/LCT hàng năm (theo quy định tại khoản 8 Điều 3 của QT ATĐ EVNCPC).
+5. Chưa thực hiện đúng quy định về công nhận chức danh thực hiện PCT/LCT hàng năm (theo quy định tại khoản 8 Điều 3 của QT ATĐ EVNCPC).
+
+III. Huấn luyện ATVSLĐ, an toàn điện:
+
+1. Kế hoạch tổ chức huấn luyện ATVSLĐ năm 2026 cho nhóm 4 chưa đúng thời gian định kỳ hàng năm (theo quy định tại khoản 2 Điều 21 của NĐ 44/2016).
+
+2. Đăng ký kế hoạch huấn luyện ATVSLĐ chưa phù hợp, CBCNV thuộc các nhóm có thời gian huấn luyện định kỳ, cập nhật kiến thức kỹ năng ATVSLĐ 02 năm/lần lại được đăng ký hàng năm (theo quy định tại khoản 2 Điều 21 của NĐ 44/2016).
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #8
+chunk_type=document_section | section=Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > IV. Đánh giá rủi ro về ATVSLĐ: | artifact=appendix | quality=pass | chars=1105
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3887/EVNCPC-AT - Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > IV. Đánh giá rủi ro về ATVSLĐ:
+IV. Đánh giá rủi ro về ATVSLĐ:
+
+1. Chưa lập kế hoạch đánh giá rủi ro về ATVSLĐ từ cấp đơn vị cơ sở (theo quy định tại điều 4 của TT 07/2016; điều 52 của QĐ.79 EVNCPC).
+
+2. Hồ sơ đánh giá rủi ro ATVSLĐ hằng năm tại đơn vị, đơn vị cơ sở chưa đầy đủ: thiếu hồ sơ lập kế hoạch đánh giá, hồ sơ quá trình triển khai đánh giá, hồ sơ tổng hợp kết quả đánh giá, hồ sơ công bố kết quả đánh giá và hướng dẫn NLĐ tự đánh giá nguy cơ rủi ro (theo quy định tại điều 3 của TT 07/2016; phụ lục 9 của QĐ.79 EVNCPC và theo các quy trình, quy định nội bộ đơn vị ban hành).
+
+3. Việc nhận diện, phân tích mối nguy trong Phiếu đánh giá rủi ro khi thực hiện công tác chưa phù hợp với thực tế công việc, dẫn đến việc đánh giá, đề ra biện pháp ngăn ngừa chưa phù hợp (ví dụ sử dụng xe gàu SCĐN làm việc trên cao nhưng lại nhận diện mối nguy là ngã cao khi trèo trụ).
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #9
+chunk_type=document_section | section=Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > V. Trang bị và sử dụng, bảo quản trang thiết bị an toàn, công cụ dụng cụ thi công, phương tiện bảo vệ cá nhân, thiết bị YCNN về ATLĐ: | artifact=appendix | quality=pass | chars=1171
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3887/EVNCPC-AT - Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > V. Trang bị và sử dụng, bảo quản trang thiết bị an toàn, công cụ dụng cụ thi công, phương tiện bảo vệ cá nhân, thiết bị YCNN về ATLĐ:
+V. Trang bị và sử dụng, bảo quản trang thiết bị an toàn, công cụ dụng cụ thi công, phương tiện bảo vệ cá nhân, thiết bị YCNN về ATLĐ:
+
+1. Chưa tổng hợp, khai báo đầy đủ các thiết bị có YCNN về ATLĐ khi đưa vào sử dụng với Sở Lao động - Thương binh và Xã hội (nay là Sở Nội vụ) (theo quy định tại khoản 2 Điều 3 của NĐ 4/2023; điểm c khoản 1 Điều 21 của QĐ.79 EVNCPC).
+
+2. Tại lý lịch quản lý thiết bị YCNN về ATLĐ chưa cập nhật đầy đủ kết quả thử nghiệm định kỳ hoặc thiếu chữ ký, dấu của Kiểm định viên (theo quy định tại mục 3.5.1.5.1 của QCVN 7:2012/BLĐTBXH; điểm b khoản 2 Điều 21 của QĐ.79 EVNCPC).
+
+3. Tại biên bản kiểm định ĐỊNH KỲ, tải trọng để thử tải động và (hoặc) thử tải tĩnh của phương tiện thi công chưa đúng quy định pháp luật (theo quy định tại mục 3.3.2 của QCVN 22:2018/BGTVT), cụ thể:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #10
+chunk_type=document_section | section=Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > i) Biên bản kiểm định ĐỊNH KỲ: thử tải trọng động của gàu nâng người là 200kg (100% tải làm việc cho phép) thấp hơn quy định tải trọng thử là 110% tải trọng làm việc cho phép; | artifact=appendix | quality=pass | chars=987
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3887/EVNCPC-AT - Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > i) Biên bản kiểm định ĐỊNH KỲ: thử tải trọng động của gàu nâng người là 200kg (100% tải làm việc cho phép) thấp hơn quy định tải trọng thử là 110% tải trọng làm việc cho phép;
+i) Biên bản kiểm định ĐỊNH KỲ: thử tải trọng động của gàu nâng người là 200kg (100% tải làm việc cho phép) thấp hơn quy định tải trọng thử là 110% tải trọng làm việc cho phép;
+
+ii) Biên bản kiểm định ĐỊNH KỲ: ghi thử trọng tải tương ứng 312,5 kg, thử tải tĩnh 275kg và thử tải động 250kg; như vậy trọng tải làm việc không đúng thực tế, thử tải tĩnh và thử tải động không đúng theo quy định.
+
+4. Chưa thực hiện kiểm định, cấp Biên bản kiểm định, Giấy chứng nhận kiểm định đối với phần gàu nâng người mà chỉ thực hiện kiểm tra (theo quy định tại mục 3.3.2 của QCVN 22:2018/BGTVT).
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #11
+chunk_type=document_section | section=Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > VI. Công tác quản lý hành lang bảo vệ an toàn công trình lưới điện: | artifact=appendix | quality=pass | chars=537
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3887/EVNCPC-AT - Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > VI. Công tác quản lý hành lang bảo vệ an toàn công trình lưới điện:
+VI. Công tác quản lý hành lang bảo vệ an toàn công trình lưới điện:
+
+Năm 2025 và 6 tháng đầu năm 2026 chưa thực hiện rà soát, cập nhật vị trí nguy hiểm lên Phần mềm QL ATLĐ EVNCPC (theo quy định điểm e khoản 2 Điều 60 của QĐ.79 EVNCPC).
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #12
+chunk_type=document_section | section=Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > VII. Công tác PCCC&CNCH: | artifact=appendix | quality=pass | chars=499
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3887/EVNCPC-AT - Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > VII. Công tác PCCC&CNCH:
+VII. Công tác PCCC&CNCH:
+
+1. Cấp Điện lực, Xí nghiệp, Công ty chưa lập kế hoạch kiểm tra định kỳ về công tác PCCC&CNCH đối với cơ sở thuộc diện quản lý về PCCC theo chương trình kiểm tra hằng năm (theo quy định tại Điều 80 của QĐ.79 EVNCPC).
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #13
+chunk_type=document_section | section=Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > 2. Chưa đảm bảo duy trì tình trạng sẵn sàng, hoạt động tin cậy, ổn định đối với các phương tiện, thiết bị, dụng cụ, vật tư PCCC&CNCH (theo quy định khoản 1 Điều 70 của QĐ.79 EVNCPC). | artifact=appendix | quality=pass | chars=1099
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3887/EVNCPC-AT - Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > 2. Chưa đảm bảo duy trì tình trạng sẵn sàng, hoạt động tin cậy, ổn định đối với các phương tiện, thiết bị, dụng cụ, vật tư PCCC&CNCH (theo quy định khoản 1 Điều 70 của QĐ.79 EVNCPC).
+2. Chưa đảm bảo duy trì tình trạng sẵn sàng, hoạt động tin cậy, ổn định đối với các phương tiện, thiết bị, dụng cụ, vật tư PCCC&CNCH (theo quy định khoản 1 Điều 70 của QĐ.79 EVNCPC).
+
+3. Hồ sơ kiểm tra, bảo dưỡng Hệ thống phương tiện PCCC&CNCH đã được trang bị chưa đầy đủ theo quy chuẩn, tiêu chuẩn về PCCC&CNCH hiện hành như hệ thống báo cháy, ắc quy dự phòng trong các tủ báo cháy tại các TBA 110kV (theo quy định khoản 1 Điều 70 của QĐ.79 EVNCPC).
+
+4. Chưa quan tâm chất lượng tổ chức huấn luyện, bồi dưỡng nghiệp vụ PCCC&CNCH cho tất cả các đối tượng theo quy định đặc biệt là Đội PCCC cơ sở, Tổ TTLĐ, nhân viên bảo vệ tại các TBA 110kV (theo quy định Điều 76 của QĐ.79 EVNCPC).
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #14
+chunk_type=document_section | section=Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > VIII. Hệ thống quản lý an toàn sức khỏe nghề nghiệp theo tiêu chuẩn quốc tế ISO 45001:2018: | artifact=appendix | quality=pass | chars=821
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3887/EVNCPC-AT - Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > VIII. Hệ thống quản lý an toàn sức khỏe nghề nghiệp theo tiêu chuẩn quốc tế ISO 45001:2018:
+VIII. Hệ thống quản lý an toàn sức khỏe nghề nghiệp theo tiêu chuẩn quốc tế ISO 45001:2018:
+
+Chưa duy trì, kiểm soát áp dụng đầy đủ hệ thống quản lý ATVSLĐ theo tiêu chuẩn quốc tế ISO 45001:2018 từ cấp đơn vị cơ sở (Điện lực, Xí nghiệp,...) như: chưa ban hành Mục tiêu an toàn sức khỏe nghề nghiệp, kế hoạch thực hiện, đánh giá thực hiện mục tiêu an toàn định kỳ, phổ biến cho CBCNV, chương trình đánh giá nội bộ hệ thống quản lý chất lượng hằng năm,...(theo quy định tại Điều 7 của QĐ.79 EVNCPC)
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #15
+chunk_type=document_section | section=Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > IX. Công tác tự kiểm tra và giải quyết các đề xuất, kiến nghị của các đoàn kiểm tra: | artifact=appendix | quality=pass | chars=535
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3887/EVNCPC-AT - Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > IX. Công tác tự kiểm tra và giải quyết các đề xuất, kiến nghị của các đoàn kiểm tra:
+IX. Công tác tự kiểm tra và giải quyết các đề xuất, kiến nghị của các đoàn kiểm tra:
+
+Đơn vị cấp 4 chưa thực hiện kiểm tra định kỳ công tác ATVSLĐ theo quy định (theo quy định điểm a khoản 2 Điều 34 của QĐ.79 EVNCPC).
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #16
+chunk_type=document_section | section=Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > X. Kiểm tra thực tế hiện trường: | artifact=appendix | quality=pass | chars=999
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3887/EVNCPC-AT - Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > X. Kiểm tra thực tế hiện trường:
+X. Kiểm tra thực tế hiện trường:
+
+1. Thay thế ATM cấp nguồn cho máy bơm chữa cháy bằng điện đảm bảo hoạt động ổn định, tin cậy (hiện trạng tại TBA 110 kV Điện Nam - Điện Ngọc ATM nhảy khi máy bơm khởi động).
+
+2. Phiếu xác nhận khối lượng bảo trì, bảo dưỡng các đầu báo cháy chưa đầy đủ (kiểm tra xác suất tài liệu nghiệm thu bảo dưỡng TBA 110 kV An Khê thiếu 01 đầu báo nhiệt tại phòng ắc quy).
+
+3. Tăng cường huấn luyện, bồi dưỡng, thực tập cho Đội PCCC cơ sở để sử dụng thuần thục, nhanh chóng phương tiện PCCC đã được trang bị (tại TBA 110 kV An Khê, các nhân viên vận hành mất 4p55' mới thao tác mở được nước ở vòi nước chữa cháy; tại TBA 110 kV Kon Tum 2, nhân viên vận hành nhầm lẫn tủ module mở rộng là tủ trung tâm báo cháy).
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #17
+chunk_type=document_section | section=Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > 4. Các dụng cụ an toàn hỏng/thí nghiệm không đạt phải được để ở khu vực riêng, không để chung với các dụng cụ đang sử dụng (TBA 110 kV KonPlong). | artifact=appendix | quality=pass | chars=2489
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3887/EVNCPC-AT - Kết quả kiểm tra công tác ATVSLĐ 2026 và khắc phục sau kiểm tra
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục KẾT QUẢ KIỂM TRA TỔNG THỂ CÔNG TÁC ATVSLĐ NĂM 2026 > 4. Các dụng cụ an toàn hỏng/thí nghiệm không đạt phải được để ở khu vực riêng, không để chung với các dụng cụ đang sử dụng (TBA 110 kV KonPlong).
+4. Các dụng cụ an toàn hỏng/thí nghiệm không đạt phải được để ở khu vực riêng, không để chung với các dụng cụ đang sử dụng (TBA 110 kV KonPlong).
+
+5. Tại cơ sở nhà làm việc Điện lực Đắk Tô:
+
+i) Hồ sơ theo dõi PCCC chưa có hồ sơ thiết kế hệ thống PCCC kèm theo hồ sơ thẩm duyệt; ii) Tại phòng máy bơm PCCC:
+
+hướng dẫn vận hành dán ở cửa Phòng máy bơm PCCC không đúng với thực tế của trạm bơm, tủ điều khiển trạm bơm đang đặt ở trong phòng máy chủ bên cạnh, không đặt trong phòng máy bơm.
+
+Ghi chú: giải thích các từ viết tắt:
+
+- Luật ATVSLĐ: Luật số 84/2015/QH13 của Quốc hội: Luật an toàn, vệ sinh lao động, ban hành ngày 25/6/2015, có hiệu lực ngày 01/7/2016;
+
+- NĐ 44/2016: Nghị định số 44/2016/NĐ-CP của Chính phủ Quy định chi tiết một số điều của Luật an toàn, vệ sinh lao động về hoạt động kiểm định kỹ thuật an toàn lao động, huấn luyện an toàn, vệ sinh lao động và quan trắc môi trường lao động, ban hành ngày 15/5/2016, có hiệu lực ngày 01/7/2017;
+
+- NĐ 4/2023: Nghị định số 4/2023/NĐ-CP của Chính phủ Sửa đổi, bổ sung một số điều của các Nghị định liên quan đến điều kiện đầu tư kinh doanh và thủ tục hành chính thuộc phạm vi quản lý nhà nước của Bộ Lao động - Thương binh và Xã hội, ban hành ngày 13/02/2023, có hiệu lực ngày 13/02/2023;
+
+- TT 07/2016: Thông tư số 07/2016/TT-BLĐTBXH của Bộ LĐTBXH Quy định một số nội dung tổ chức thực hiện công tác an toàn vệ sinh Lao động đối với cơ sở sản xuất, kinh doanh, ban hành ngày 15/5/2016, có hiệu lực ngày 01/7/2017;
+
+- QCVN 7:2012/BLĐTBXH: Quy chuẩn kỹ thuật quốc gia về an toàn lao động đối với thiết bị nâng do Bộ LĐTBXH ban hành theo Thông tư số 05/2012/TT-BLĐTBXH ngày 30/3/2012;
+
+- QCVN 22:2018/BGTVT: Quy chuẩn kỹ thuật quốc gia về chế tạo và kiểm tra phương tiện, thiết bị xếp dỡ, do Bộ Giao thông vận tải ban hành theo Thông tư số 27/2019/TT-BGTVT ngày 07/8/2019;
+
+- QĐ.79 EVNCPC: Quy định quản lý công tác ATVSLĐ EVNCPC ban hành theo quyết định số 3024/QĐ-EVNCPC ngày 21/5/2026 của EVNCPC;
+
+- QT ATĐ EVNCPC: Quy trình an toàn điện EVNCPC ban hành theo quyết định số 2816/QĐ-EVNCPC ngày 12/5/2026 của EVNCPC.
+
+----------------------------------

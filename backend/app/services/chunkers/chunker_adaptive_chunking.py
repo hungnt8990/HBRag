@@ -235,10 +235,109 @@ def _legal_chunks(
             metadata["clause_number"] = clause.group("number")
         if point:
             metadata["point_label"] = point.group("label")
+        clause_chunks = _legal_clause_chunks(
+            article_text,
+            base_metadata=metadata,
+            article_start=start,
+            max_chars=max_chars,
+            overlap_chars=overlap_chars,
+        )
+        if clause_chunks:
+            chunks.extend(clause_chunks)
+        else:
+            chunks.extend(
+                _bounded_chunks(
+                    article_text,
+                    base_metadata=metadata,
+                    max_chars=max_chars,
+                    overlap_chars=overlap_chars,
+                )
+            )
+    return chunks
+
+
+def _legal_clause_chunks(
+    article_text: str,
+    *,
+    base_metadata: dict[str, Any],
+    article_start: int,
+    max_chars: int,
+    overlap_chars: int,
+) -> list[EvidenceChunk]:
+    """Cắt Điều DÀI theo ranh giới KHOẢN, nối cấp "Khoản N" vào section_path.
+
+    Trả [] khi Điều đủ ngắn (1 chunk) hoặc không nhận diện được >=2 khoản đánh số
+    liên tục (1., 2., ...) -> caller giữ đường cũ (_bounded_chunks cắt theo ký tự).
+    Mỗi chunk kết quả mang ``clause_number`` đúng phạm vi ("3" hoặc "3-5") +
+    section_path/heading_path/section_title nối thêm "Khoản ..." -> đường dẫn
+    Chương > (Mục) > Điều > Khoản đầy đủ cả trong metadata lẫn dòng "Mục:".
+    """
+    if len(article_text) <= max_chars:
+        return []
+    # Chỉ nhận khoản đánh số LIÊN TỤC từ 1 -> loại danh sách đánh số lồng bên trong
+    # một khoản (thường lặp lại "1." giữa chừng) khỏi ranh giới cắt.
+    matches: list[re.Match[str]] = []
+    expected = 1
+    for match in CLAUSE_RE.finditer(article_text):
+        if int(match.group("number")) == expected:
+            matches.append(match)
+            expected += 1
+    if len(matches) < 2:
+        return []
+
+    intro = article_text[: matches[0].start()].strip()  # dòng "Điều N. ..." (+ đoạn dẫn)
+    # (số khoản, text, start, end) — offset tương đối trong article_text.
+    segments: list[tuple[str, str, int, int]] = []
+    for index, match in enumerate(matches):
+        seg_end = matches[index + 1].start() if index + 1 < len(matches) else len(article_text)
+        seg_text = article_text[match.start() : seg_end].strip()
+        if seg_text:
+            segments.append((match.group("number"), seg_text, match.start(), seg_end))
+    if len(segments) < 2:
+        return []
+
+    # Gom các khoản liên tiếp vào cùng chunk tới khi chạm max_chars.
+    groups: list[list[tuple[str, str, int, int]]] = []
+    current: list[tuple[str, str, int, int]] = []
+    current_len = len(intro)
+    for segment in segments:
+        if current and current_len + len(segment[1]) > max_chars:
+            groups.append(current)
+            current = []
+            current_len = 0
+        current.append(segment)
+        current_len += len(segment[1])
+    if current:
+        groups.append(current)
+    if len(groups) < 2:
+        return []
+
+    base_path = list(base_metadata.get("section_path") or [])
+    chunks: list[EvidenceChunk] = []
+    for group_index, group in enumerate(groups):
+        numbers = [number for number, _text, _s, _e in group]
+        label = f"Khoản {numbers[0]}" if len(numbers) == 1 else f"Khoản {numbers[0]}-{numbers[-1]}"
+        group_text = "\n".join(seg_text for _n, seg_text, _s, _e in group)
+        span_start = 0 if group_index == 0 and intro else group[0][2]
+        if group_index == 0 and intro:
+            group_text = f"{intro}\n{group_text}"
+        group_path = [*base_path, label]
+        group_metadata = {
+            **base_metadata,
+            "clause_number": numbers[0] if len(numbers) == 1 else f"{numbers[0]}-{numbers[-1]}",
+            "section_path": group_path,
+            "heading_path": group_path,
+            "section_title": " > ".join(group_path),
+            "source_span": {"start": article_start + span_start, "end": article_start + group[-1][3]},
+        }
+        group_metadata.pop("point_label", None)
+        point = POINT_RE.search(group_text)
+        if point:
+            group_metadata["point_label"] = point.group("label")
         chunks.extend(
             _bounded_chunks(
-                article_text,
-                base_metadata=metadata,
+                group_text,
+                base_metadata=group_metadata,
                 max_chars=max_chars,
                 overlap_chars=overlap_chars,
             )
@@ -396,15 +495,53 @@ def _combine_sections(group: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+# Tiêu đề phụ lục trong PDF thường bị bẻ dòng giữa chừng ("... CAO ĐIỂM, THẤP" /
+# "ĐIỂM KHI CÀI ĐẶT...") -> nối thêm tối đa từng này dòng VIẾT HOA ngay sau vào tiêu đề.
+_APPENDIX_TITLE_EXTRA_LINES = 2
+
+
+def _appendix_heading_span(text: str, match: re.Match[str]) -> tuple[str, int]:
+    """Tiêu đề phụ lục ĐẦY ĐỦ (ép về 1 dòng) + vị trí kết thúc heading.
+
+    ``APPENDIX_HEADING_RE`` chỉ bắt tới hết 1 dòng -> tiêu đề bẻ dòng bị cắt cụt
+    ("... THẤP" mất "ĐIỂM KHI CÀI ĐẶT..."). Nối tiếp các dòng VIẾT HOA liền sau
+    (bỏ qua dòng trống) vào tiêu đề, dừng khi gặp heading khác/bảng/dòng thường.
+    """
+    title = " ".join(match.group("title").split())
+    end = match.end()
+    extra = 0
+    for raw_line in text[end:].split("\n"):
+        line = raw_line.strip()
+        if not line:
+            if extra >= _APPENDIX_TITLE_EXTRA_LINES:
+                break
+            end += len(raw_line) + 1
+            continue
+        if (
+            extra >= _APPENDIX_TITLE_EXTRA_LINES
+            or len(line) > 180
+            or line != line.upper()
+            or not any(ch.isalpha() for ch in line)
+            or "|" in line
+            or HEADING_RE.match(line)
+            or APPENDIX_HEADING_RE.match(line)
+        ):
+            break
+        title = f"{title} {line}"
+        end += len(raw_line) + 1
+        extra += 1
+    return title, min(end, len(text))
+
+
 def _detect_structure_headings(text: str) -> list[StructureHeading]:
     headings: list[StructureHeading] = []
     for match in APPENDIX_HEADING_RE.finditer(text):
-        title = normalize_text_for_chunking(match.group("title"))
+        title, heading_end = _appendix_heading_span(text, match)
         if title:
             headings.append(
                 StructureHeading(
                     start=match.start(),
-                    end=match.end(),
+                    end=heading_end,
                     level=0,
                     title=title,
                     label="appendix",
@@ -468,14 +605,16 @@ def _bounded_chunks(
         return []
     context = standard_document_context(base_metadata)
     section_title = base_metadata.get("section_title")
-    # Dùng CẢ section_path (cha > con) cho dòng "Mục:" -> giữ heading cha (vd "1. CPCIT:")
-    # cho các mục con ("1.1.", "1.2."), tránh mất ngữ cảnh đơn vị chịu trách nhiệm.
-    # Phụ lục giữ section_title vì tiền tố "Phụ lục NN" do _merge_appendix_preamble lo.
+    # Dùng CẢ section_path (cha > con) cho dòng "Mục:" -> giữ heading cha (vd "1. CPCIT:",
+    # "Phụ lục XÁC ĐỊNH...") cho các mục con, tránh mất ngữ cảnh. Áp dụng CẢ phụ lục:
+    # path đã chứa heading phụ lục gốc; trường hợp tiêu đề "Phụ lục NN" mỏng do
+    # _merge_appendix_preamble gộp có guard chống trùng ở phía doffice.
+    # Mỗi phần path ép về 1 dòng (tiêu đề phụ lục nguồn có thể chứa xuống dòng).
     section_path = base_metadata.get("section_path")
-    if base_metadata.get("artifact_type") != "appendix" and isinstance(section_path, (list, tuple)):
-        muc = " > ".join(str(part).strip() for part in section_path if str(part).strip())
+    if isinstance(section_path, (list, tuple)) and any(str(part).strip() for part in section_path):
+        muc = " > ".join(" ".join(str(part).split()) for part in section_path if str(part).strip())
     else:
-        muc = section_title
+        muc = " ".join(str(section_title).split()) if section_title else None
     prefix = [*context]
     if muc and f"Mục: {muc}" not in prefix:
         prefix.append(f"Mục: {muc}")
@@ -552,13 +691,21 @@ def _legal_section_title(
     section: re.Match[str] | None,
     article: re.Match[str],
 ) -> str:
-    parts: list[str] = []
-    if chapter:
-        parts.append(f"Chương {chapter.group('number')} {chapter.group('title')}".strip())
-    if section:
-        parts.append(f"Mục {section.group('number')} {section.group('title')}".strip())
-    parts.append(f"Điều {article.group('number')} {article.group('title')}".strip())
-    return " > ".join(part for part in parts if part)
+    return " > ".join(_legal_path(chapter, section, article))
+
+
+# Tiêu đề quá dài trong đường dẫn cấu trúc bị cắt bớt để dòng "Mục:" không phình chunk.
+_LEGAL_PATH_TITLE_MAX = 90
+
+
+def _legal_path_part(label: str, number: str, title: str | None) -> str:
+    part = f"{label} {number}".strip()
+    clean = " ".join(str(title or "").split()).strip(" .:-")
+    if clean:
+        if len(clean) > _LEGAL_PATH_TITLE_MAX:
+            clean = clean[:_LEGAL_PATH_TITLE_MAX].rstrip() + "…"
+        part = f"{part} {clean}"
+    return part
 
 
 def _legal_path(
@@ -566,10 +713,16 @@ def _legal_path(
     section: re.Match[str] | None,
     article: re.Match[str],
 ) -> list[str]:
+    """Đường dẫn cấu trúc "Chương N tiêu đề > Mục N tiêu đề > Điều N tiêu đề".
+
+    Mang CẢ tiêu đề (không chỉ số) để dòng ``Mục:`` trong chunk và payload
+    ``section_path`` tự giải thích được ngữ cảnh; cấp Khoản do
+    :func:`_legal_clause_chunks` nối thêm khi Điều dài phải cắt.
+    """
     path: list[str] = []
     if chapter:
-        path.append(f"Chương {chapter.group('number')}")
+        path.append(_legal_path_part("Chương", chapter.group("number"), chapter.group("title")))
     if section:
-        path.append(f"Mục {section.group('number')}")
-    path.append(f"Điều {article.group('number')}")
+        path.append(_legal_path_part("Mục", section.group("number"), section.group("title")))
+    path.append(_legal_path_part("Điều", article.group("number"), article.group("title")))
     return path

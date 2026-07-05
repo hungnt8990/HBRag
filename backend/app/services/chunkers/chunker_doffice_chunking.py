@@ -147,10 +147,10 @@ def _is_section_title_only_chunk(content: str, metadata: dict[str, Any]) -> bool
 
     if str(metadata.get("chunk_type") or "") != "document_section":
         return False
-    # Heading cấu trúc của PHỤ LỤC (Phụ lục NN, "(N) F0X_...", "Mục tiêu"...) tuy ngắn
-    # nhưng là ngữ cảnh cần giữ cho retrieval; không coi là tiêu đề rỗng.
-    if metadata.get("artifact_type") == "appendix":
-        return False
+    # Heading cấu trúc của PHỤ LỤC ("I. Ngày cài đặt...", "Mục tiêu"...) cũng được xét
+    # như heading thường: caller chỉ LƯỢC khi tiêu đề đã được mang theo section_path
+    # của chunk phía sau (_title_carried_by_later_chunk) -> heading không có mục con
+    # vẫn giữ nguyên, không mất ngữ cảnh retrieval.
 
     lines = [line.strip() for line in content.strip().splitlines() if line.strip()]
     body_lines = [line for line in lines if not line.startswith(_SECTION_CONTEXT_PREFIXES)]
@@ -223,6 +223,12 @@ def _appendix_full_title(content: str, metadata: dict) -> str:
 def _merge_appendix_preamble(preamble: tuple[str, dict], content: str) -> str:
     """Gộp tiêu đề phụ lục (preamble) vào dòng ``Mục:`` của chunk kế tiếp làm mục cha."""
     title = _appendix_full_title(preamble[0], preamble[1])
+    # Dòng "Mục:" của chunk kế giờ nối cả section_path -> nếu đã mang tiêu đề phụ lục
+    # (heading cha nằm trong path) thì khỏi gộp, tránh "Phụ lục 02 > Phụ lục 02 > ...".
+    sect = " ".join(str(preamble[1].get("section_title") or "").split()).casefold().strip(" :-")
+    muc_match = re.search(r"(?m)^Mục:\s*(.+)$", content)
+    if sect and muc_match and sect in muc_match.group(1).casefold():
+        return content
     merged = re.sub(
         r"(?m)^Mục:\s*(.+)$",
         lambda m: f"Mục: {title} > {m.group(1)}",
@@ -382,7 +388,7 @@ def _prose_reading_pos(element: NormalizedElement, metadata: dict) -> int | None
     pos = span.get("start")
     if not isinstance(pos, int):
         return None
-    if metadata.get("artifact_type") == "appendix":
+    if metadata.get("artifact_type") in {"appendix", "attached_document"}:
         base = (element.metadata.get("source_span") or {}).get("start") or 0
         return int(base) + pos
     return pos
@@ -563,6 +569,12 @@ def _table_chunks(
             metadata["chunk_strategy"] = "table_chunker_split"
         else:
             metadata["chunk_strategy"] = "table_single"
+        # Lưới an toàn: sau khi normalizer đã nén rác OCR, mảnh bảng lẽ ra <= table_max.
+        # Nếu 1 mảnh VẪN vượt gấp đôi ngưỡng -> nhiều khả năng còn rác bất thường ->
+        # đánh dấu degraded để retrieval hạ trọng số (không chặn hẳn, tránh mất dữ liệu).
+        if len(piece) > 2 * table_max_chars:
+            metadata["quality_status"] = "degraded"
+            metadata["quality_gate_reasons"] = ["oversize_table_chunk"]
         results.append((content, metadata))
     return results
 

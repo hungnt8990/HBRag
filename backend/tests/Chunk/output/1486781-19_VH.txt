@@ -1,0 +1,84 @@
+================================================================================
+id_vb        : 1486781
+ky_hieu      : 19/VH
+trich_yeu    : GIẤY ĐỀ NGHỊ CẤP VẬT TƯ/ SẢN PHẨM
+noi_ban_hanh : VH
+ngay_vb      : 2026-06-23
+ten_file     : Giay-De-Nghi-Cap-Vat-Tu-Mobaxterm (1).pdf
+TỔNG SỐ CHUNK: 4
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=130
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 19/VH
+Ngày văn bản: 23/06/2026
+Trích yếu: GIẤY ĐỀ NGHỊ CẤP VẬT TƯ/ SẢN PHẨM
+Nơi ban hành: VH
+Người ký: Nguyễn Sơn Bình
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=723
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 19/VH - GIẤY ĐỀ NGHỊ CẤP VẬT TƯ/ SẢN PHẨM
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: VH
+CÔNG TY CÔNG NGHỆ THÔNG TIN CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc PHÒNG VẬN HÀNH
+
+Đà Nẵng, ngày 23 tháng 6 năm 2026
+
+Số: 19/VH
+
+GIẤY ĐỀ NGHỊ CẤP VẬT TƯ, SẢN PHẨM
+
+Kính gửi: Phó Giám đốc Công ty CNTT Điện lực miền Trung
+
+- Bộ phận đề nghị: Phòng Vận hành.
+
+- Căn cứ yêu cầu: Phục vụ công việc phòng Vận hành.
+
+- Kính đề nghị Phó Giám đốc Công ty duyệt cho bộ phận chúng tôi loại vật tư/sản phẩm như sau:
+
+Tổng chi phí dự kiến: 27.820.800 đồng (Bằng chữ:Hai mươi bảy triệu tám trăm hai
+
+mươi nghìn tám trăm đồng).
+
+Phòng Vận hành kính trình Phó Giám đốc Công ty xem xét phê duyệt./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=781
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 19/VH - GIẤY ĐỀ NGHỊ CẤP VẬT TƯ/ SẢN PHẨM
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: VH
+Bảng: Bảng DOffice 1
+| TT | Tên vật tư/sản | Tên vật tư/sản phẩm | Tên vật tư/sản | Đơn vị tính | Số lượng | Đơn giá (đã bao gồm VAT) (đồng) | Thành tiền (đã bao gồm VAT (đồng) | Mục đích sử dụng |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | Bản quyền phần mềm MobaXterm Professional | User | 12 | 2.318.400 | 27.820.800 | Trang bị phần mềm có bản quyền cho phòng vận hành phục vụ kết nối (SSH/SFTP/RDP) và quản trị an toàn tới các máy chủ Unix, Linux (cấp cho: PP Hoàng Xuân Dũng, Võ Văn Hòa, Nguyễn Ngọc Thịnh, Lê Bá Trình, Nguyễn Bảo Nguyên, Phạm Chấn Phước, Võ Văn Phúc, Thái Huy Quang, Phan Quang Hoàng Anh, Đoàn Gia Hy, Nguyễn Thanh Phú, Nguyễn Ngân Hà) | | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=footer_signature | quality=pass | chars=224
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: PHÒNG VẬN HÀNH
+
+- Như trên;
+
+- ĐT, TH;
+
+- GĐ (báo cáo);
+
+- Lưu: VT, VH.
+
+Nguyễn Thanh Châu
+
+PHÒNG QUẢN LÝ ĐẦU TƯ PHÒNG TỔNG HỢP
+
+Nguyễn Hữu Giang Nguyễn Vĩnh Phương
+
+Ý kiến phê duyệt của PGĐ Nguyễn Sơn Bình
+
+Đồng ý

@@ -1,0 +1,68 @@
+================================================================================
+id_vb        : 1486039
+ky_hieu      : 674/BC-IT
+trich_yeu    : Về việc hoàn thành hiệu chỉnh phần mềm Trắc nghiệm CNKT EVNCPC
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-24
+ten_file     : CV-Hoanthanh-tracnghiem-cnkt-3587.pdf
+TỔNG SỐ CHUNK: 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=193
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 674/BC-IT
+Ngày văn bản: 24/06/2026
+Trích yếu: Về việc hoàn thành hiệu chỉnh phần mềm Trắc nghiệm CNKT EVNCPC
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Nguyễn Sơn Bình
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1077
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 674/BC-IT - Về việc hoàn thành hiệu chỉnh phần mềm Trắc nghiệm CNKT EVNCPC
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+CÔNG TY CÔNG NGHỆ THÔNG TIN
+
+Đà Nẵng, ngày 24 tháng 6 năm 2026 ĐIỆN LỰC MIỀN TRUNG
+
+Số: 674/BC-IT
+
+BÁO CÁO
+
+Về việc hoàn thành hiệu chỉnh phần mềm Trắc nghiệm CNKT EVNCPC
+
+Kính gửi: Tổng công ty Điện lực miền Trung
+
+Tổng Công ty Điện lực miền Trung đã có văn bản số 3587/EVNCPC-TCNS+KD+KT+AT ngày 11/06/2026 về việc triển khai kỳ TNB, TGB năm 2026 phần thực hành các nghề Kỹ thuật và Kinh doanh. Trong đó EVNCPC giao nhiệm vụ cho Công ty Công nghệ thông tin Điện lực miền Trung (CPCIT):
+
+Hiệu chỉnh, bổ sung phần tổng hợp kết quả kiểm tra thực hành hồi sinh tổng hợp của công nhân dự thi trên hình nhân chương trình trắc nghiệm của EVNCPC.
+
+CPCIT đã phối hợp với Ban TC&NS và Ban VTCNTT hoàn thành các nội dung trên (Đính kèm báo cáo UAT).
+
+Vậy, CPCIT kính báo cáo Tổng Công ty về kết quả đã hoàn thành.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=128
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. GIÁM ĐỐC
+
+- Như trên; PHÓ GIÁM ĐỐC
+
+- Giám đốc (báo cáo);
+
+- Phòng VH (Phối hợp);
+
+- Lưu: VT, PM.
+
+Nguyễn Sơn Bình

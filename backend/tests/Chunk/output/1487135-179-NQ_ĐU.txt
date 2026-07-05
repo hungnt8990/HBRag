@@ -1,0 +1,91 @@
+================================================================================
+id_vb        : 1487135
+ky_hieu      : 179-NQ/ĐU
+trich_yeu    : Nghị quyết về việc ban hành Quy định Quản lý hoạt động khoa học và công nghệ trong Tổng công ty Điện lực miền Trung
+
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-25
+ten_file     : 2. NQ BCH thông qua TTr 3746.pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=244
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 179-NQ/ĐU
+Ngày văn bản: 25/06/2026
+Trích yếu: Nghị quyết về việc ban hành Quy định Quản lý hoạt động khoa học và công nghệ trong Tổng công ty Điện lực miền Trung
+
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Nguyễn Thanh
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1330
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 179-NQ/ĐU - Nghị quyết về việc ban hành Quy định Quản lý hoạt động khoa học và công nghệ trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+ĐẢNG CỘNG SẢN VIỆT NAM ĐẢNG BỘ PHƯỜNG HÒA CƯỜNG
+
+ĐẢNG ỦY TỔNG CÔNG TY Đà Nẵng, ngày 25 tháng 6 năm 2026 Đà Nẵng, ngày tháng năm 2026 ĐIỆN LỰC MIỀN TRUNG
+
+Số 179-NQ/ĐU Số: -NQ/ĐU
+
+NGHỊ QUYẾT
+
+về việc ban hành Quy định Quản lý hoạt động khoa học và công nghệ
+
+trong Tổng công ty Điện lực miền Trung
+
+-----
+
+- Căn cứ Điều lệ Đảng Cộng sản Việt Nam và các quy định, hướng dẫn thi hành Điều lệ Đảng;
+
+- Căn cứ Quy định số 48-QĐ/TW ngày 20/12/2021 của Ban Bí thư về chức năng, nhiệm vụ của đảng bộ, chi bộ cơ sở trong doanh nghiệp nhà nước;
+
+- Căn cứ Quyết định số 550-QĐ/ĐU ngày 30/01/2026 của Đảng ủy Phường Hòa Cường về việc thành lập lại Đảng bộ cơ sở Tổng công ty Điện lực miền Trung và chỉ định tham gia Ban Chấp hành Đảng bộ, Ban Thường vụ Đảng ủy, Bí thư, Phó Bí thư Đảng ủy nhiệm kỳ 2025-2030;
+
+- Căn cứ Quy chế làm việc của Ban Chấp hành Đảng bộ Tổng công ty Điện lực miền Trung khóa XV, nhiệm kỳ 2025-2030;
+
+- Căn cứ kết quả ý kiến của các đồng chí Ủy viên Ban Chấp hành Đảng bộ Tổng công ty sau khi xem xét Tờ trình số 3746/TTr-EVNCPC ngày 19/6/2026 của EVNCPC,
+
+BAN CHẤP HÀNH ĐẢNG BỘ
+
+QUYẾT NGHỊ
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=legal_clause | section=Điều 1 Thông qua việc ban hành Quy định Quản lý hoạt động khoa học và công nghệ trong Tổng công t… | quality=pass | chars=498
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 179-NQ/ĐU - Nghị quyết về việc ban hành Quy định Quản lý hoạt động khoa học và công nghệ trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Điều 1 Thông qua việc ban hành Quy định Quản lý hoạt động khoa học và công nghệ trong Tổng công t…
+Điều 1. Thông qua việc ban hành Quy định Quản lý hoạt động khoa học và công nghệ trong Tổng công ty Điện lực miền Trung theo đề nghị tại Tờ trình số 3746/TTr-EVNCPC ngày 19/6/2026.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=legal_clause | section=Điều 2 HĐTV, TGĐ EVNCPC căn cứ chức năng, nhiệm vụ, thẩm quyền thực hiện việc xây dựng và ban hàn… | quality=pass | chars=474
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 179-NQ/ĐU - Nghị quyết về việc ban hành Quy định Quản lý hoạt động khoa học và công nghệ trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Điều 2 HĐTV, TGĐ EVNCPC căn cứ chức năng, nhiệm vụ, thẩm quyền thực hiện việc xây dựng và ban hàn…
+Điều 2. HĐTV, TGĐ EVNCPC căn cứ chức năng, nhiệm vụ, thẩm quyền thực hiện việc xây dựng và ban hành Quy định nêu trên phù hợp theo các quy định hiện hành./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=footer_signature | quality=pass | chars=96
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: T/MĐẢNG ỦY
+
+- Như Điều 2, BÍ THƯ
+
+- UVBCH Đảng bộ TCT,
+
+- Lưu: VT, VPĐU.
+
+Nguyễn Thanh

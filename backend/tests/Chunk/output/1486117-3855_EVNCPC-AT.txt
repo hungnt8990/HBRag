@@ -1,0 +1,120 @@
+================================================================================
+id_vb        : 1486117
+ky_hieu      : 3855/EVNCPC-AT
+trich_yeu    : Cập nhật nội dung triển khai và báo cáo định kỳ PCCC&CNCH 
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-24
+ten_file     : EVNCPC-trien-khai.pdf
+TỔNG SỐ CHUNK: 6
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=191
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3855/EVNCPC-AT
+Ngày văn bản: 24/06/2026
+Trích yếu: Cập nhật nội dung triển khai và báo cáo định kỳ PCCC&CNCH 
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Trần Văn Gia
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=581
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3855/EVNCPC-AT - Cập nhật nội dung triển khai và báo cáo định kỳ PCCC&CNCH
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+Độc lập - Tự do - Hạnh phúc TỔNG CÔNG TY
+
+ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 24 tháng 6 năm 2026
+
+Số: 3855/EVNCPC-AT V/v cập nhật nội dung triển khai và báo cáo định kỳ PCCC&CNCH
+
+Kính gửi: Các đơn vị thành viên
+
+Thực hiện chỉ đạo của Tập đoàn Điện lực Việt Nam tại văn bản số 3583/EVN-KTAT ngày 23/6/2026 (VB 3583), EVNCPC yêu cầu các đơn vị:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=1. Phổ biến, nghiên cứu triển khai thực hiện các văn bản chỉ đạo của Đảng, Nhà nước, các quy định của pháp luật, chỉ đạo của Tập đoàn tại VB 3583. | quality=pass | chars=2316
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3855/EVNCPC-AT - Cập nhật nội dung triển khai và báo cáo định kỳ PCCC&CNCH
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 1. Phổ biến, nghiên cứu triển khai thực hiện các văn bản chỉ đạo của Đảng, Nhà nước, các quy định của pháp luật, chỉ đạo của Tập đoàn tại VB 3583.
+1. Phổ biến, nghiên cứu triển khai thực hiện các văn bản chỉ đạo của Đảng, Nhà nước, các quy định của pháp luật, chỉ đạo của Tập đoàn tại VB 3583.
+
+2. Trong đó, các đơn vị cần lưu ý một số nội dung sau:
+
+- Các Công ty Điện lực tiếp tục đẩy mạnh hoạt động tuyên truyền, phổ biến tài liệu an toàn sử dụng điện, PCCC do Bộ Công an, các bộ, ngành, địa phương, EVN, Tổng công ty ban hành đến toàn thể CBCNV đơn vị, khách hàng sử dụng điện, đặc biệt chú trọng các khách hàng sử dụng điện mới trong quá trình thực hiện thủ tục đấu nối điện sinh hoạt, sản xuất kinh doanh.
+
+- Các đơn vị, cơ sở chịu trách nhiệm phối hợp với cơ quan Cảnh sát PCCC&CNCH hoặc cơ sở đào tạo về nghiệp vụ PCCC&CNCH tổ chức huấn luyện, bồi dưỡng nghiệp vụ PCCC&CNCH cho tất cả các đối tượng theo quy định; tuyên truyền, phổ biến kiến thức về PCCC&CNCH cho tất cả người lao động trong đơn vị theo quy định tại điều 76 Quy định công tác quản lý ATVSLĐ trong EVNCPC (QĐ.79).
+
+- Căn cứ quy định tại khoản 2 điều 27 Nghị định số 105/2025/NĐ-CP, người đứng đầu cơ sở thuộc diện quản lý về PCCC lập kế hoạch trang bị và kết nối thiết bị truyền tin báo cháy với hệ thống Cơ sở dữ liệu về PCCC&CNCH và truyền tin báo cháy, hoàn thành chậm nhất đến ngày 01/7/2027.
+
+- Báo cáo cơ quan quản lý nhà nước: Gửi báo cáo kết quả thực hiện công tác PCCC của cơ sở theo Mẫu số PC04 kèm theo Nghị định 105/2025/NĐ-CP đến Ủy ban nhân dân cấp xã, cơ quan Công an, cơ quan chuyên môn về xây dựng trực tiếp quản lý hoặc cập nhật thông tin, dữ liệu trên hệ thống Cơ sở dữ liệu về PCCC&CNCH và truyền tin báo cháy trước ngày 15/6 và 15/12 hằng năm.
+
+- Các đơn vị báo cáo về nội dung công tác PCCC&CNCH cùng với báo cáo sơ kết/tổng kết Công tác an toàn theo mẫu Phụ lục 10 QĐ.79 (bổ sung Bảng số liệu như phụ lục đính kèm) chậm nhất ngày 30/6 và 31/12 hằng năm; cập nhật số liệu và đính kèm báo cáo trên Phần mềm quản lý ATLĐ của EVNCPC.
+
+Trong quá trình triển khai thực hiện, nếu có khó khăn, vướng mắc, yêu cầu đơn vị tổng hợp, báo cáo về EVNCPC để xem xét./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=footer_signature | quality=pass | chars=243
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. TỔNG GIÁM ĐỐC
+
+- Như trên; PHÓ TỔNG GIÁM ĐỐC
+
+- Đảng ủy EVNCPC (b/c);
+
+- HĐTV EVNCPC (b/c);
+
+- TGĐ EVNCPC (b/c);
+
+- Các PTGĐ;
+
+- Các Ban, VP EVNCPC;
+
+- Người đại diện phần vốn của EVNCPC tại các CTCP;
+
+Trần Văn Gia - Lưu: VT, AT.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=1904
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3855/EVNCPC-AT - Cập nhật nội dung triển khai và báo cáo định kỳ PCCC&CNCH
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 1
+| Mục theo PL4 | Nội dung báo cáo | Nội dung số liệu | Số lượng | Ghi chú |
+| --- | --- | --- | --- | --- |
+| 1.4 | Nội quy, quy định | Rà soát, ban hành mới/sửa đổi quy trình, quy định, hướng dẫn, nội quy, biện pháp PCCC&CNCH | | Ghi chú với với loại hình công nghệ mới như pin lưu trữ, trạm sạc xe điện ...(nếu có) |
+| 1.5 | Huấn luyện, bồi dưỡng nghiệp vụ nội bộ | CBCNV đã được tập huấn kỹ năng sử dụng phương tiện chữa cháy tại chỗ toàn đơn vị | | |
+| 1.7 | Trang bị phương tiện | Thiết bị, phương tiện PCCC được bổ sung, thay thế trong kỳ Thiết bị, phương tiện PCCC đã được loại bỏ (hỏng/không còn đáp ứng tiêu chuẩn kỹ thuật...) trong kỳ | | Đơn vị chủ động liệt kê danh mục, số lượng |
+| 1.8 | Quản lý hệ thống | Cơ sở phải lắp đặt truyền tin báo cháy Cơ sở đã hoàn thành lắp đặt truyền tin báo cháy | | |
+| 1.10 | Tuyên truyền và Tư vấn an toàn | Tỷ lệ khách hàng sử dụng điện mới được cung cấp tài liệu phổ biến an toàn PCCC khi đấu nối điện sinh hoạt, sản xuất | | Ghi chú rõ hình thức/cách thức thực hiện |
+| 1.11 | Thống kê Sự cố cận nguy | Sự cố Cận nguy được ghi nhận và đã thực hiện phổ biến, rút kinh nghiệm | | Ghi chú hiện tượng, sự kiện (mùi khét, báo cháy giả, chập điện nhỏ,...). |
+| 1.13 | Phối hợp liên ngành | Cuộc/lượt được huy động tham gia chữa cháy, diễn tập trong kỳ Cuộc/lượt phối hợp kiểm tra với địa phương trong kỳ Khách hàng bị ngừng cấp điện do vi phạm quy định PCCC theo quyết định của cơ quan nhà nước có thẩm quyền | | |
+| 1.14 | Chuyển đổi số | Tỷ lệ cơ sở đã triển khai cập nhật dữ liệu báo cáo PCCC&CNCH theo SMIS về EVN Tỷ lệ cơ sở thuộc diện gửi báo cáo định kỳ tới cơ quan Công an/Cơ quan Nhà nước có thẩm quyền đã triển khai theo hệ thống dữ liệu số của cơ quan chủ quản | | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=document_body | section=Văn bản đính kèm | artifact=attached_document | quality=pass | chars=297
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3855/EVNCPC-AT - Cập nhật nội dung triển khai và báo cáo định kỳ PCCC&CNCH
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Văn bản đính kèm
+BẢNG SỐ LIỆU
+
+(thuộc Phụ lục 4. Công tác PCCC&CNCH
+
+kèm Báo cáo sơ kết, tổng kết công tác an toàn 06 tháng/cả năm)

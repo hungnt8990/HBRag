@@ -1,0 +1,75 @@
+================================================================================
+id_vb        : 1482838
+ky_hieu      : 94-CV/ĐTN
+trich_yeu    : Về việc tuyên truyền, phổ biến, triển khai thực hiện các chỉ đạo của Đảng ủy EVNCPC trong tháng 6/2026
+
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-22
+ten_file     : T6.1. Phổ biến các VB cấp trên.pdf
+TỔNG SỐ CHUNK: 4
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=230
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 94-CV/ĐTN
+Ngày văn bản: 22/06/2026
+Trích yếu: Về việc tuyên truyền, phổ biến, triển khai thực hiện các chỉ đạo của Đảng ủy EVNCPC trong tháng 6/2026
+
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Hồ Ngọc Lưu
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1005
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 94-CV/ĐTN - Về việc tuyên truyền, phổ biến, triển khai thực hiện các chỉ đạo của Đảng ủy EVNCPC trong tháng 6/2026
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+ĐOÀN THANH NIÊN ĐOÀN TNCS HỒ CHÍ MINH
+
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM
+
+Đà Nẵng, ngày tháng 6 năm 2026 BCH ĐOÀN TỔNG CÔNG TY
+
+ĐIỆN LỰC MIỀN TRUNG
+
+Số: 94-CV/ĐTN
+
+V/v tuyên truyền, phổ biến, triển khai thực hiện các chỉ đạo của Đảng ủy EVNCPC trong tháng 6/2026
+
+Kính gửi: Các cơ sở Đoàn trực thuộc
+
+Thực hiện chỉ đạo của Đảng ủy Tổng công ty Điện lực miền Trung tại các văn bản số: 270-CV/ĐU ngày 11/6/2026 về việc tăng cường thông tin, tuyên truyền, hưởng ứng, tham gia Giải thưởng toàn quốc về Thông tin đối ngoại lần thứ XII; số 275-CV/ĐU ngày 17/6/2026 về việc quán triệt, tuyên truyền và triển khai Chỉ thị số 18-CT/TU ngày 03/6/2026 của BTV Thành ủy, Đoàn Thanh niên Tổng công ty Điện lực miền Trung (Đoàn Tổng công ty) yêu cầu các đơn vị triển khai, thực hiện nghiêm túc các nội dung sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=1. Phổ biến, tuyên truyền các nội dung trọng tâm được nêu tại các Công văn nêu trên (như các văn bản đính kèm) đến toàn thể đoàn viên thanh niên tại đơn vị. | quality=pass | chars=932
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 94-CV/ĐTN - Về việc tuyên truyền, phổ biến, triển khai thực hiện các chỉ đạo của Đảng ủy EVNCPC trong tháng 6/2026
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 1. Phổ biến, tuyên truyền các nội dung trọng tâm được nêu tại các Công văn nêu trên (như các văn bản đính kèm) đến toàn thể đoàn viên thanh niên tại đơn vị.
+1. Phổ biến, tuyên truyền các nội dung trọng tâm được nêu tại các Công văn nêu trên (như các văn bản đính kèm) đến toàn thể đoàn viên thanh niên tại đơn vị.
+
+2. Khuyến khích đoàn viên thanh niên tại đơn vị tích cực hưởng ứng, tham gia Giải thưởng toàn quốc về Thông tin đối ngoại lần thứ XII.
+
+3. Thường xuyên theo dõi, nắm bắt tình hình tư tưởng, dư luận trong đoàn viên thanh niên; tăng cường công tác bảo vệ nền tảng tư tưởng của Đảng, kịp thời đấu tranh, chủ động nhận diện và phản bác các quan điểm sai trái thù địch, xuyên tạc sự kiện, chống phá Đảng, Nhà nước./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=footer_signature | quality=pass | chars=128
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: TM. BAN THƯỜNG VỤ
+
+- Như trên; BÍ THƯ
+
+- Đảng ủy EVNCPC (b/c);
+
+- Ban TGĐU EVNCPC (b/c);
+
+- Lưu: VT, ĐTN.
+
+Hồ Ngọc Lưu

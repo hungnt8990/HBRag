@@ -1,0 +1,175 @@
+================================================================================
+id_vb        : 1479790
+ky_hieu      : 660/QĐ-IT
+trich_yeu    : Phê duyệt kết quả lựa chọn nhà thầu qua mạng Gói thầu số 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình Cung cấp dịch vụ bản đồ nền
+
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-18
+ten_file     : 31 QD KQLCNT Bandonen 2026.pdf
+TỔNG SỐ CHUNK: 8
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=270
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 660/QĐ-IT
+Ngày văn bản: 18/06/2026
+Trích yếu: Phê duyệt kết quả lựa chọn nhà thầu qua mạng Gói thầu số 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình Cung cấp dịch vụ bản đồ nền
+
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Trần Khắc Tuấn
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=2480
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 660/QĐ-IT - Phê duyệt kết quả lựa chọn nhà thầu qua mạng Gói thầu số 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình Cung cấp dịch vụ bản đồ nền
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: preamble
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 18 tháng 6 năm 2026
+
+Số: 660/QĐ-IT
+
+QUYẾT ĐỊNH
+
+Về việc phê duyệt kết quả lựa chọn nhà thầu qua mạng Gói thầu số 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình Cung cấp dịch vụ bản đồ nền
+
+GIÁM ĐỐC
+
+CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+Căn cứ Quyết định số 633/QĐ-HĐTV ngày 10/11/2022 của Hội đồng thành viên Tổng công ty Điện lực miền Trung (EVNCPC) về việc ban hành Quy chế Tổ chức và hoạt động của Công ty Công nghệ thông tin Điện lực miền Trung;
+
+Căn cứ Luật Đấu thầu số 22/2023/QH15 ngày 23/6/2023; sửa đổi, bổ sung tại Luật số 57/2024/QH15, Luật số 90/2025/QH15;
+
+Căn cứ Nghị định 214/2025/NĐ-CP ngày 04/8/2025 của Chính phủ về việc quy định chi tiết một số điều và biện pháp thi hành Luật Đấu thầu về lựa chọn nhà thầu;
+
+Căn cứ Thông tư số 79/2025/TT-BTC ngày 04/8/2025 của Bộ Tài chính về việc Hướng dẫn việc cung cấp, đăng tải thông tin về đấu thầu và mẫu hồ sơ đấu thầu trên Hệ thống mạng đấu thầu quốc gia;
+
+Căn cứ Thông tư số 80/2025/TT-BTC ngày 08/8/2025 của Bộ Tài chính về việc quy định chi tiết mẫu Hồ sơ yêu cầu, báo cáo đánh giá, báo cáo thẩm định, kiểm tra, báo cáo tình hình thực hiện hoạt động đấu thầu;
+
+Căn cứ Quyết định số 243/QĐ-HĐTV ngày 14/4/2026 của Tổng công ty Điện lực miền Trung (EVNCPC) về việc ban hành Quy chế mua sắm trong Tổng công ty Điện lực miền Trung;
+
+Căn cứ Văn bản số 298/EVNCPC-KH+TCKT+KD+VTCNTT ngày 15/01/2026 của EVNCPC về việc mua sắm CCDC và dịch vụ VT&CNTT phục vụ SXKD năm 2026;
+
+Căn cứ Quyết định số 413/QĐ-IT ngày 25/4/2026 của CPCIT về việc phê duyệt Dự toán chi phí và kế hoạch lựa chọn nhà thầu chương trình nêu trên;
+
+Căn cứ Quyết định số 530/QĐ-IT ngày 26/5/2026 của Giám đốc Công ty về việc phê duyệt hồ sơ mời thầu (E-HSMT) gói thầu: 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc chương trình nêu trên;
+
+Xét Báo cáo đánh giá E-HSDT số 02/BC-TCG ngày 10/6/2026 Gói thầu: 06.PTV:
+
+Cung cấp dịch vụ bản đồ nền thuộc chương trình nêu trên của Tổ chuyên gia và Báo cáo thẩm định kết quả lựa chọn nhà thầu ngày 12/6/2026 của Tổ thẩm định;
+
+Theo đề nghị của Trưởng phòng Quản lý đầu tư.
+
+QUYẾT ĐỊNH:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=legal_clause | section=Điều 1 Phê duyệt kết quả lựa chọn nhà thầu gói thầu: 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Ch… | quality=pass | chars=2229
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 660/QĐ-IT - Phê duyệt kết quả lựa chọn nhà thầu qua mạng Gói thầu số 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình Cung cấp dịch vụ bản đồ nền
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: Điều 1 Phê duyệt kết quả lựa chọn nhà thầu gói thầu: 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Ch…
+Điều 1 . Phê duyệt kết quả lựa chọn nhà thầu gói thầu: 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình: Cung cấp dịch vụ bản đồ nền, bao gồm:
+
+1. Thông tin về gói thầu:
+
+Số E-TBMT: IB2600180073 - 00 thời điểm đăng tải 26/5/2026;
+
+Tên gói thầu: 06.PTV: Cung cấp dịch vụ bản đồ nền;
+
+Giá gói thầu (Đã bao gồm thuế VAT): 615.752.500 VNĐ;
+
+Tên Chủ đầu tư: Công ty Công nghệ thông tin Điện lực miền Trung - Tổng công ty Điện lực miền Trung;
+
+Hình thức lựa chọn nhà thầu: Chào hàng cạnh tranh, trong nước, qua mạng, một giai đoạn một túi hồ sơ;
+
+Loại hợp đồng: Trọn gói;
+
+Thời gian thực hiện gói thầu: 380 ngày được tính từ ngày hợp đồng có hiệu lực đến ngày nghiệm thu hoàn thành gói thầu (bao gồm cả dịch vụ liên quan, nếu có), trong đó:
+
++ Thời gian chuẩn bị cung cấp dịch vụ: tính từ ngày hợp đồng có hiệu lực đến ngày nghiệm thu, bàn giao dịch vụ để đưa vào sử dụng trong thời gian tối đa 15 ngày.
+
++ Thời gian cung cấp dịch vụ: Thời gian cung cấp Dịch vụ bản đồ nền và dịch vụ quản lý: tính từ ngày nghiệm thu, bàn giao dịch vụ đưa vào sử dụng là 365 ngày (01 năm).
+
+Tùy chọn mua thêm: Không.
+
+2. Thông tin nhà thầu trúng thầu:
+
+() Thời gian thực hiện gói thầu: 380 ngày được tính từ ngày hợp đồng có hiệu lực đến ngày nghiệm thu hoàn thành gói thầu (bao gồm cả dịch vụ liên quan, nếu có), trong đó:
+
++ Thời gian chuẩn bị cung cấp dịch vụ: tính từ ngày hợp đồng có hiệu lực đến ngày nghiệm thu, bàn giao dịch vụ để đưa vào sử dụng trong thời gian tối đa 15 ngày.
+
++ Thời gian cung cấp dịch vụ: Thời gian cung cấp dịch vụ bản đồ nền và dịch vụ quản lý: tính từ ngày nghiệm thu, bàn giao dịch vụ đưa vào sử dụng là 365 ngày (01 năm).
+
+() Thời gian thực hiện hợp đồng: Tính từ ngày hợp đồng có hiệu lực đến ngày các bên hoàn thành đầy đủ các nghĩa vụ theo thỏa thuận trong hợp đồng, trong đó thời gian thực hiện gói thầu quy định như trên.
+
+3. Thông tin về nhà thầu không trúng thầu:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=674
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 660/QĐ-IT - Phê duyệt kết quả lựa chọn nhà thầu qua mạng Gói thầu số 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình Cung cấp dịch vụ bản đồ nền
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: Bảng DOffice 1
+| Stt | Tên nhà thầu | Mã số thuế | Giá dự thầu (VNĐ) | Giá dự thầu sau giảm giá (nếu có) (VNĐ) | Giá trúng thầu (VNĐ) | | Thời gian thực | | | Thời gian thực | | Nội dung khác (nếu có) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | Công ty TNHH Giải pháp Công nghệ Trường Thịnh Phát | 0315295332 | 579.348.000 | 579.348.000 | 579.348.000 | 380 ngày | 380 ngày | - | | | | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=legal_clause | section=Điều 2 Tổ chức thực hiện | quality=pass | chars=411
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 660/QĐ-IT - Phê duyệt kết quả lựa chọn nhà thầu qua mạng Gói thầu số 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình Cung cấp dịch vụ bản đồ nền
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: Điều 2 Tổ chức thực hiện
+Điều 2. Tổ chức thực hiện:
+
+Giao Tổ chuyên gia căn cứ nội dung được phê duyệt tại Điều 1 Quyết định này, tiến hành tổ chức hoàn thiện hợp đồng.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=table | section=Bảng DOffice 2 | table=Bảng DOffice 2 | quality=pass | chars=614
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 660/QĐ-IT - Phê duyệt kết quả lựa chọn nhà thầu qua mạng Gói thầu số 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình Cung cấp dịch vụ bản đồ nền
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: Bảng DOffice 2
+| STT | Tên nhà thầu | Mã số thuế | | Lý do nhà thầu không trúng thầu |
+| --- | --- | --- | --- | --- |
+| 1 | Công ty Cổ phần Công nghệ Qi | 0305350288 | Nhà thầu xếp hạng thứ 2 | |
+| 2 | Công ty TNHH Công nghệ Tích hợp Hệ thống PH | 0314577221 | Nhà thầu xếp hạng thứ 3 | |
+| 3 | Công ty Cổ phần Công nghệ Xnode | 0313550121 | Nhà thầu xếp hạng thứ 4 | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=legal_clause | section=Điều 3 Quyết định này có hiệu lực kể từ ngày ký. Tổ chuyên gia, Trưởng các phòng Công ty có liên… | quality=pass | chars=487
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 660/QĐ-IT - Phê duyệt kết quả lựa chọn nhà thầu qua mạng Gói thầu số 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình Cung cấp dịch vụ bản đồ nền
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: Điều 3 Quyết định này có hiệu lực kể từ ngày ký. Tổ chuyên gia, Trưởng các phòng Công ty có liên…
+Điều 3. Quyết định này có hiệu lực kể từ ngày ký. Tổ chuyên gia, Trưởng các phòng Công ty có liên quan chịu trách nhiệm thi hành Quyết định này./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=footer_signature | quality=pass | chars=86
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: GIÁM ĐỐC
+
+- Như Điều 3;
+
+- EVNCPC (báo cáo);
+
+- Lưu: VT, ĐT.
+
+Trần Khắc Tuấn

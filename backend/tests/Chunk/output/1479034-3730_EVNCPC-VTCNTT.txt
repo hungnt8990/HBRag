@@ -1,0 +1,129 @@
+================================================================================
+id_vb        : 1479034
+ky_hieu      : 3730/EVNCPC-VTCNTT
+trich_yeu    : Triển khai chính thức hệ thống SSO-2FA
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-18
+ten_file     : 20260617-VB-van hanh chinh thuc SSO-2FA-v3.pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=181
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3730/EVNCPC-VTCNTT
+Ngày văn bản: 18/06/2026
+Trích yếu: Triển khai chính thức hệ thống SSO-2FA
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Trần Nguyễn Bảo An
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1419
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3730/EVNCPC-VTCNTT - Triển khai chính thức hệ thống SSO-2FA
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+TỔNG CÔNG TY Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+Số: 3730/EVNCPC-VTCNTT Đà Nẵng, ngày 18 tháng 6 năm 2026 V/v triển khai chính thức hệ thống
+
+SSO-2FA.
+
+Kính gửi: Các đơn vị thành viên
+
+EVNCPC nhận được văn bản số 602/IT-VH+PM ngày 10/6/2026 của CPCIT về việc báo cáo kế hoạch triển khai chính thức hệ thống SSO-2FA.
+
+Qua rà soát kết quả UAT tại các đơn vị, nhằm nâng cao ATTT cho các phần mềm dùng chung của EVNCPC, Tổng công ty thống nhất triển khai chính thức hệ thống SSO-2FA cho 38 phần mềm tại phụ lục kèm theo và yêu cầu:
+
+- CPCIT: (i) Tổ chức hướng dẫn sử dụng cho người dùng trước ngày vận hành chính thức; (ii) Đảm bảo vận hành ổn định, an toàn hệ thống các phần mềm sau khi tính hợp SSO-2FA, hỗ trợ người dùng khi có vướng mắc phát sinh; (iii)
+
+Rà soát, báo cáo Tổng công ty kế hoạch tích hợp SSO-2FA cho các phần mềm còn lại trước ngày 15/09/2026.
+
+- Các đơn vị: (i) Cử cán bộ tham gia buổi hướng dẫn sử dụng do CPCIT tổ chức; (ii) Phổ biến cho người dùng đơn vị áp dụng, cài đặt, kích hoạt tính năng 2FA; (iii) CPCEMEC, CPCCC phối hợp CPCIT triển khai chính thức phần mềm do đơn vị QLVH.
+
+Đơn vị căn cứ thực hiện, kịp thời báo cáo vướng mắc (nếu có) về EVNCPC để xem xét, giải quyết./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=223
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. TỔNG GIÁM ĐỐC
+
+- Như trên; PHÓ TỔNG GIÁM ĐỐC
+
+- HĐTV (b/cáo);
+
+- TGĐ (b/cáo);
+
+- Các PTGĐ;
+
+- Các đơn vị thành viên (thực hiện);
+
+- VP CĐ, VP và các Ban TCT (thực hiện);
+
+- Lưu: VT, VTCNTT.
+
+Trần Nguyễn Bảo An
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=Phụ lục: DANH SÁCH PHẦN MỀM TRIỂN KHAI TÍCH HỢP SSO-2FA | table=Phụ lục: DANH SÁCH PHẦN MỀM TRIỂN KHAI TÍCH HỢP SSO-2FA | quality=pass | chars=3461
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3730/EVNCPC-VTCNTT - Triển khai chính thức hệ thống SSO-2FA
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Phụ lục: DANH SÁCH PHẦN MỀM TRIỂN KHAI TÍCH HỢP SSO-2FA
+| STT | STT Đợt 1 | STT | | Mã phần mềm Từ ngày 15/7/2026 | | Tên phần mềm | Tên phần mềm | | Đơn vị QLVH |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | CB011 | PM Kiểm hiện trường | CPCIT | | | | | | |
+| 2 | CB012 | PM Portal3 | CPCIT | | | | | | |
+| 3 | CB016 | PM Giám sát sản lượng điện bất thường | CPCIT | | | | | | |
+| 4 | CB018 | PM Đo xa 2.0 | CPCIT | | | | | | |
+| 5 | CB020 | PM Phân tích kinh tế - tài chính dự án đầu tư | CPCIT | | | | | | |
+| 6 | CB021 | PM Khai thác số liệu Kinh doanh | CPCIT | | | | | | |
+| 7 | CB028 | PM Lịch công tác | CPCIT | | | | | | |
+| 8 | CB038 | PM Quản lý công tác kiểm tra, thanh tra | CPCIT | | | | | | |
+| 9 | CB039 | PM Quản lý cáp viễn thông | CPCIT | | | | | | |
+| 10 | CB040 | PM Công tác Hội đồng thành viên | CPCIT | | | | | | |
+| 11 | CB042 | PM Quản lý trình chiếu TV | CPCIT | | | | | | |
+| 12 | CB043 | PM Quản lý kỹ thuật | CPCIT | | | | | | |
+| 13 | Đợt 2 | CB044 | Từ ngày 30/7/2026 | PM Quản lý kế hoạch | CPCIT | | | | |
+| 14 | Đợt 2 | CB001 | Từ ngày 30/7/2026 | Website EVNCPC | CPCIT | | | | |
+| 15 | Đợt 2 | CB002 | Từ ngày 30/7/2026 | Website khung các đơn vị | CPCIT | | | | |
+| 16 | Đợt 2 | CB003 | Từ ngày 30/7/2026 | PM CPC-eOffice Chat | CPCIT | | | | |
+| 17 | Đợt 2 | CB004 | Từ ngày 30/7/2026 | PM CPC-eOffice 7.1 | CPCIT | | | | |
+| 18 | Đợt 2 | CB007 | Từ ngày 30/7/2026 | PM KDDVKH | CPCIT | | | | |
+| 19 | Đợt 2 | CB008 | Từ ngày 30/7/2026 | PM Quản lý An toàn lao động | CPCIT | | | | |
+| 20 | Đợt 2 | CB009 | Từ ngày 30/7/2026 | PM Quản lý ĐMTMN | CPCIT | | | | |
+| 21 | Đợt 2 | CB010 | Từ ngày 30/7/2026 | PM Thông tin hiện trường | CPCIT | | | | |
+| 22 | Đợt 2 | CB015 | Từ ngày 30/7/2026 | PM Giao nhận điện năng đầu nguồn | CPCIT | | | | |
+| 23 | Đợt 2 | CB019 | Từ ngày 30/7/2026 | PM Quản lý nhân sự CPC | CPCIT | | | | |
+| 24 | Đợt 2 | CB024 | Từ ngày 30/7/2026 | PM Quản lý mua sắm thiết bị tập trung | CPCIT | | | | |
+| 25 | Đợt 2 | CB025 | Từ ngày 30/7/2026 | PM Khai thác số liệu ERP phục vụ TCKT | CPCIT | | | | |
+| 26 | Đợt 2 | CB029 | Từ ngày 30/7/2026 | PM Quản lý tiền lương đơn vị | CPCIT | | | | |
+| 27 | Đợt 2 | CB030 | Từ ngày 30/7/2026 | PM KPI Core | CPCIT | | | | |
+| 28 | Đợt 2 | CB036 | Từ ngày 30/7/2026 | PM Quản lý công tác Đảng | CPCIT | | | | |
+| 29 | Đợt 2 | CB037 | Từ ngày 30/7/2026 | PM Quản lý công tác văn phòng công đoàn | CPCIT | | | | |
+| 30 | Đợt 2 | CB041 | Từ ngày 30/7/2026 | PM Quản lý hồ sơ tuyển dụng trực tuyến | CPCIT | | | | |
+| 31 | Đợt 2 | CB045 | Từ ngày 30/7/2026 | PM Quản lý quy hoạch | CPCIT | | | | |
+| 32 | Đợt 2 | CB046 | Từ ngày 30/7/2026 | PM Quản lý kế hoạch sửa chữa lớn | CPCIT | | | | |
+| 33 | Đợt 2 | CB047 | Từ ngày 30/7/2026 | PM Quản lý công tác kiểm định, chất lượng thiết bị đo đếm | CPCEMEC | | | | |
+| 34 | Đợt 2 | CB048 | Từ ngày 30/7/2026 | PM Quản lý thông báo tập trung | CPCCC | | | | |
+| 35 | Đợt 2 | CB009.CB01 | Từ ngày 30/7/2026 | PM Huy động ĐMTMN | CPCIT | | | | |
+| 36 | Đợt 2 | CU002.CU02 | Từ ngày 30/7/2026 | PM Đọc dữ liệu thiết bị từ PMIS sang GIS Trung thế | CPCIT | | | | |
+| 37 | Đợt 2 | CB058 | Từ ngày 30/7/2026 | PM Quản lý công tác giấy đi đường, VPP | CPCIT | | | | |
+| 38 | Đợt 2 | CB062 | Từ ngày 30/7/2026 | PM Biên bản thí nghiệm | CPCIT | | | | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_body | section=Phụ lục | artifact=appendix | quality=pass | chars=214
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3730/EVNCPC-VTCNTT - Triển khai chính thức hệ thống SSO-2FA
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục
+Phụ lục: DANH SÁCH PHẦN MỀM TRIỂN KHAI TÍCH HỢP SSO-2FA

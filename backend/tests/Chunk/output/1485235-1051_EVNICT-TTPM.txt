@@ -1,0 +1,135 @@
+================================================================================
+id_vb        : 1485235
+ky_hieu      : 1051/EVNICT-TTPM
+trich_yeu    : V/v thay đổi IP hệ thống máy chủ CSDL quản lý kỹ thuật EVN
+noi_ban_hanh : Công ty Viễn thông Điện lực và Công nghệ thông tin
+ngay_vb      : 2026-06-24
+ten_file     : 062026-Van ban thay doi IP may chu CSDL QLKT.pdf
+TỔNG SỐ CHUNK: 7
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=213
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 1051/EVNICT-TTPM
+Ngày văn bản: 24/06/2026
+Trích yếu: V/v thay đổi IP hệ thống máy chủ CSDL quản lý kỹ thuật EVN
+Nơi ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Người ký: Phạm Ngọc Hiển
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=2056
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1051/EVNICT-TTPM - V/v thay đổi IP hệ thống máy chủ CSDL quản lý kỹ thuật EVN
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+Độc lập - Tự do - Hạnh phúc CÔNG TY VIỄN THÔNG ĐIỆN LỰC
+
+VÀ CÔNG NGHỆ THÔNG TIN
+
+Số: /EVNICT-TTPM Hà Nội, ngày tháng năm 2026 V/v thay đổi IP hệ thống máy chủ CSDL
+
+quản lý kỹ thuật EVN
+
+Kính gửi:
+
+- Công ty CNTT của các Tổng công ty Điện lực;
+
+- Tổng công ty Truyền tải điện Quốc gia;
+
+- Các Tổng Công ty phát điện 1, 2, 3 và các Đơn vị phát điện trực thuộc, thành viên (khối nhiệt điện than);
+
+- Công ty nhiệt điện Thái Bình;
+
+- Nhà máy nhiệt điện Vĩnh Tân 4, Duyên Hải 3MR, Quảng Trạch;
+
+- Công ty Mua bán điện.
+
+Công ty Viễn thông Điện lực và Công nghệ thông tin (EVNICT) xin chân thành cảm ơn sự hợp tác hỗ trợ của Quý đơn vị trong thời gian qua.
+
+Nhằm nâng cao chất lượng cung cấp dịch vụ và bảo đảm an toàn thông tin, EVNICT sẽ thực hiện thay đổi địa chỉ IP của hệ thống máy chủ Cơ sở dữ liệu Quản lý kỹ thuật EVN kể từ ngày 23/06/2026, cụ thể như sau:
+
+Bằng văn bản này, EVNICT kính đề nghị Quý đơn vị phối hợp cập nhật và điều chỉnh các thông số kết nối mạng liên quan đến các máy chủ được thay đổi địa chỉ IP nhằm bảo đảm việc kết nối, trao đổi dữ liệu được liên tục, thông suốt và ổn định. Đồng thời, đề nghị Quý đơn vị hủy bỏ các cấu hình, chính sách kết nối và các thiết lập liên quan đối với các địa chỉ IP cũ (10.0.44.61, 10.0.44.62 và 10.0.44.63) sau khi hoàn tất việc chuyển đổi sang các địa chỉ IP mới nêu trên nhằm bảo đảm an toàn thông tin và tránh phát sinh các kết nối không còn sử dụng.
+
+EVNICT cam kết tuân thủ đầy đủ các quy định, chính sách về bảo mật thông tin trong quá trình khai thác và sử dụng các dịch vụ kết nối. Danh sách các địa chỉ IP thay đổi và các thông tin liên quan được nêu chi tiết tại Phụ lục đính kèm.
+
+Đầu mối phối hợp thực hiện của EVNICT: Ông Nguyễn Văn Khoa -Trung tâm phát triển phần mềm - EVNICT; SĐT: 0966997688; Email: khoanv.evnit@evn.com.vn.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=359
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1051/EVNICT-TTPM - V/v thay đổi IP hệ thống máy chủ CSDL quản lý kỹ thuật EVN
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Bảng: Bảng DOffice 1
+| STT | Hệ thống | IP cũ | IP mới |
+| --- | --- | --- | --- |
+| 1 | CSDL QLKT EVN | 10.0.44.61 10.0.44.62 10.0.44.63 | 10.0.44.131 10.0.44.132 10.0.44.133 |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=footer_signature | quality=pass | chars=137
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT GIÁM ĐỐC Như trên; PHÓ GIÁM ĐÓC Giám đốc (để b/c);
+
+05 TCT điện lực;
+
+TTHT, TTANTT (để p/h);
+
+Lưu: VT, TTPM,
+
+Phạm Ngọc Hiển
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_section | section=Phụ lục: Thay đổi địa chỉ IP hệ thống máy chủ CSDL QLKT EVN BM.FW.02 PHIẾU ĐĂNG KÝ | artifact=appendix | quality=pass | chars=418
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1051/EVNICT-TTPM - V/v thay đổi IP hệ thống máy chủ CSDL quản lý kỹ thuật EVN
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Mục: Phụ lục: Thay đổi địa chỉ IP hệ thống máy chủ CSDL QLKT EVN BM.FW.02 PHIẾU ĐĂNG KÝ
+Phụ lục: Thay đổi địa chỉ IP hệ thống máy chủ CSDL QLKT EVN
+
+BM.FW.02 PHIẾU ĐĂNG KÝ
+
+KIỂM SOÁT TRUY CẬP TRÊN FIREWALL Các ứng dụng cung cấp dịch vụ)
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=document_section | section=Phụ lục: Thay đổi địa chỉ IP hệ thống máy chủ CSDL QLKT EVN BM.FW.02 PHIẾU ĐĂNG KÝ > I. THÔNG TIN ỨNG DỤNG CUNG CẤP DỊCH VỤ: | artifact=appendix | quality=pass | chars=576
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1051/EVNICT-TTPM - V/v thay đổi IP hệ thống máy chủ CSDL quản lý kỹ thuật EVN
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Mục: Phụ lục: Thay đổi địa chỉ IP hệ thống máy chủ CSDL QLKT EVN BM.FW.02 PHIẾU ĐĂNG KÝ > I. THÔNG TIN ỨNG DỤNG CUNG CẤP DỊCH VỤ:
+I. THÔNG TIN ỨNG DỤNG CUNG CẤP DỊCH VỤ:
+
+Ứng dụng: Hệ thống máy chủ QLKT của EVN
+
+Đầu mối liên Nguyễn Văn Khoa SĐT: 0966 997 688 lạc: Email: khoanv.evnit@evn.com.vn.
+
+II. THÔNG TIN CÁC GIAO DỊCH:
+
+III. THỜI GIAN YÊU CẦU: Ngày yêu cầu bắt đầu mở dịch vụ: 23/06/2026
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=table | section=Bảng DOffice 2 | table=Bảng DOffice 2 | quality=pass | chars=1370
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1051/EVNICT-TTPM - V/v thay đổi IP hệ thống máy chủ CSDL quản lý kỹ thuật EVN
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Bảng: Bảng DOffice 2
+| TT | Dịch vụ kiểm soát | Chi tiết dịch vụ kiểm soát Địa chỉ nguồn | Chi tiết dịch vụ kiểm soát Địa chỉ đích | Chi tiết dịch vụ kiểm soát Giao thức sử dụng | Chi tiết dịch vụ kiểm soát Ứng dụng sử dụng | Chi tiết dịch vụ kiểm soát Thời gian | Chi tiết dịch vụ kiểm soát Ghi chú |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | Kết nối từ hệ thống máy chủ CSDL QLKT EVN tới máy chủ CSDL của đơn vị | 10.0.44.131 10.0.44.132 10.0.44.133 | Hệ thống máy chủ CSDL của EVNNPC, EVNCPC, EVNSPC, EVNHCMC, EVNNPT | TCP 1433 | mssql-db | 24/7 | |
+| 2 | Kết nối từ hệ thống máy chủ CSDL QLKT EVN tới EVN Hà Nội | 10.0.44.131 10.0.44.132 10.0.44.133 | Hệ thống máy chủ CSDL của EVN Hà Nội | TCP 1444 | mssql-db | 24/7 | |
+| 3 | Kết nối từ máy chủ Web QLKT của đơn vị tới máy chủ CSDL QLKT EVN | 3 TCT phát điện và các đơn vị trực thuộc, thành viên (khối nhiệt điện than); Công ty NĐ Thái Bình; các NMNĐ: Vĩnh Tân 4; NĐ Duyên Hải 3MR và Quảng Trạch. | 10.0.44.131 10.0.44.132 10.0.44.133 | TCP 1433 | mssql-db | 24/7 | |
+| 4 | Kết nối từ máy chủ Web chào giá của EPTC tới máy chủ CSDL QLKT EVN | EPTC | 10.0.44.131 10.0.44.132 10.0.44.133 | TCP 1433 | mssql-db | 24/7 | |

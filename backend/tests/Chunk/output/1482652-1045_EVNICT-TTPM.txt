@@ -1,0 +1,284 @@
+================================================================================
+id_vb        : 1482652
+ky_hieu      : 1045/EVNICT-TTPM
+trich_yeu    : Cập nhật phiên bản chương trình CMIS&UDHT
+noi_ban_hanh : Công ty Viễn thông Điện lực và Công nghệ thông tin
+ngay_vb      : 2026-06-22
+ten_file     : 20260622_CV Phát hành phiên bản CMIS&UDHT.pdf
+TỔNG SỐ CHUNK: 14
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=196
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 1045/EVNICT-TTPM
+Ngày văn bản: 22/06/2026
+Trích yếu: Cập nhật phiên bản chương trình CMIS&UDHT
+Nơi ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Người ký: Phạm Ngọc Hiển
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1300
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1045/EVNICT-TTPM - Cập nhật phiên bản chương trình CMIS&UDHT
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Mục: preamble
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM CÔNG TY VIỄN THÔNG ĐIỆN LỰC Độc lập - Tự do - Hạnh phúc VÀ CÔNG NGHỆ THÔNG TIN
+
+Số: /EVNICT-TTPM Hà Nội, ngày 22 tháng 6 năm 2026 Hà Nội, ngày tháng 06 năm 2026 V/v cập nhật phiên bản chương trình
+
+CMIS&UDHT
+
+Kính gửi:
+
+- Tổng công ty Điện lực miền Bắc;
+
+- Tổng công ty Điện lực miền Trung;
+
+- Tổng công ty Điện lực miền Nam;
+
+- Tổng công ty Điện lực Tp. Hà Nội;
+
+- Tổng công ty Điện lực Tp. Hồ Chí Minh.
+
+Căn cứ văn bản số 3108/EVN-KDMBĐ ngày 02/06/2026 của Tập đoàn Điên lực Việt Nam (EVN) về việc xây dựng phần mềm đáp ứng triển khai cơ chế mua bán điện trực tiếp. Thực hiện hiệu chỉnh các yêu cầu phát sinh trong quá trình vận hành chương trình CMIS&UDHT tại các Tổng công ty Điện lực.
+
+Công ty Viễn thông điện lực và Công nghệ thông tin (EVNICT) kính gửi các Tổng công ty Điện lực phiên bản cập nhật chương trình CMIS&UDHT, cụ thể như sau:
+
+1. Đáp ứng cơ chế mua bán điện trực tiếp (DPPA): Hiệu chỉnh, bổ sung các chức năng và tiện ích trên chương trình nhằm phục vụ công tác triển khai, theo dõi nghiệp vụ mua bán điện trực tiếp theo quy định hiện hành.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=2. Bổ sung tính năng cảnh báo sản lượng điện tăng cao: | quality=pass | chars=1114
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1045/EVNICT-TTPM - Cập nhật phiên bản chương trình CMIS&UDHT
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Mục: 2. Bổ sung tính năng cảnh báo sản lượng điện tăng cao:
+2. Bổ sung tính năng cảnh báo sản lượng điện tăng cao:
+
+- Xây dựng chức năng tự động đưa ra cảnh báo trên hệ thống CMIS khi phát hiện sản lượng điện tiêu thụ trong tháng của khách hàng tăng cao đột biến.
+
+- Thiết lập cơ chế tự động đồng bộ thông tin thông báo đến khách hàng thông qua ứng dụng Chăm sóc khách hàng dùng chung của Tập đoàn (EVN CSKH).
+
+3. Đồng bộ và hiển thị tiến trình dịch vụ điện, điện mặt trời mái nhà: Hiệu chỉnh chức năng tiền tiếp nhận dịch vụ điện, cập nhật thông tin dự án điện mặt trời mái nhà trên chương trình CMIS đối với các hồ sơ tiếp nhận từ hệ thống khác tại các Tổng công ty; đồng bộ trạng thái và tiến trình xử lý lên ứng dụng EVN CSKH để khách hàng theo dõi.
+
+4. Quản lý hợp đồng mua bán điện: Xây dựng và bổ sung các chức năng lập, quản lý hợp đồng sửa đổi mua bán điện, bổ sung trên chương trình CMIS (theo đề nghị từ Tổng công ty Điện lực Tp. Hà Nội).
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=5. Hiệu chỉnh các yêu cầu phát sinh trong quá trình vận hành. | quality=pass | chars=873
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1045/EVNICT-TTPM - Cập nhật phiên bản chương trình CMIS&UDHT
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Mục: 5. Hiệu chỉnh các yêu cầu phát sinh trong quá trình vận hành.
+5. Hiệu chỉnh các yêu cầu phát sinh trong quá trình vận hành.
+
+(chi tiết tại Phụ lục kèm theo)
+
+Tài liệu hướng dẫn sử dụng những nội dung hiệu chỉnh, bổ sung đã được cập nhật tại địa chỉ: https://help.evn.com.vn/cmis/.
+
+Phiên bản chương trình CMIS&UDHT được cập nhật trên đường truyền SFTP địa chỉ: sftp://10.0.64.164/TRAODOI/CMIS/2026/20260420_DINHKY
+
+Công ty Viễn thông điện lực và Công nghệ thông tin thông báo tới các Tổng công ty Điện lực biết và phối hợp. Các khó khăn vướng mắc trong quá trình cập nhật phiên bản và vận hành chương trình vui lòng liên hệ với bộ phận hỗ trợ triển khai của EVNICT để giải quyết kịp thời.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=footer_signature | quality=pass | chars=247
+────────────────────────────────────────────────────────────────────────────────
+KT. GIÁM ĐỐC
+
+Nơi nhận: PHÓ GIÁM ĐỐC
+
+- Như trên;
+
+- Ban KDMBĐ, KHCNCĐS - EVN (để b/c) ;
+
+- TT CSKH, Công ty CNTT các TCTĐL (để p/h);
+
+- Giám đốc (để b/c);
+
+- PGĐ Giang (để P/h chỉ đạo);
+
+- KH, TKDV, TTHT (để p/h);
+
+Phạm Ngọc Hiển - Lưu: VT, TTPM.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=table | section=DANH SÁCH CHI TIẾT CHỨC NĂNG HIỆU CHỈNH | table=DANH SÁCH CHI TIẾT CHỨC NĂNG HIỆU CHỈNH | quality=pass | chars=3745
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1045/EVNICT-TTPM - Cập nhật phiên bản chương trình CMIS&UDHT
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Bảng: DANH SÁCH CHI TIẾT CHỨC NĂNG HIỆU CHỈNH
+| TT Cơ chế mua bán điện trực tiếp (DPPA) | Chức năng/ Phân hệ | Nội dung hiệu chỉnh/Bổ sung | Nội dung hiệu chỉnh/Bổ sung | Đơn vị | ID Sdp |
+| --- | --- | --- | --- | --- | --- |
+| 1. | Quản lý quá trình tham gia DPPA | - Bổ sung chức năng mới, cho phép xem quá trình tham gia DPPA, chuyển đổi tình trạng. (Script cập nhật gửi tại link sftp) | - Bổ sung chức năng mới, cho phép xem quá trình tham gia DPPA, chuyển đổi tình trạng. (Script cập nhật gửi tại link sftp) | EVN | |
+| 2. | Dự thảo hợp đồng ng oài sinh hoạt (luồng cấp điện mới) | - Bổ sung check chọn "Hiệu lực kể từ ngày tham gia cơ chế DPPA" để dự thảo hợp đồng ngoài sinh hoạt và in mẫu hợp đồng đối với khách hàng tham gia cơ chế. (Script cập nhật gửi tại link sftp) | - Bổ sung check chọn "Hiệu lực kể từ ngày tham gia cơ chế DPPA" để dự thảo hợp đồng ngoài sinh hoạt và in mẫu hợp đồng đối với khách hàng tham gia cơ chế. (Script cập nhật gửi tại link sftp) | EVN | |
+| 3. | Dự thảo hợp đồng ch ấm dứt ký mới (luồng CDKM_N) | - Tab "Khách hàng" thông tin nhóm khách hàng: Mặc định giá trị DPPA nếu khách hàng là nhóm đối tượng DPPA. - Bổ sung check chọn "Hiệu lực kể từ ngày tham gia cơ chế DPPA" để dự thảo hợp đồng ngoài sinh hoạt và in mẫu hợp đồng đối với khách hàng tham gia cơ chế. (Script cập nhật gửi tại link sftp) | - Tab "Khách hàng" thông tin nhóm khách hàng: Mặc định giá trị DPPA nếu khách hàng là nhóm đối tượng DPPA. - Bổ sung check chọn "Hiệu lực kể từ ngày tham gia cơ chế DPPA" để dự thảo hợp đồng ngoài sinh hoạt và in mẫu hợp đồng đối với khách hàng tham gia cơ chế. (Script cập nhật gửi tại link sftp) | EVN | |
+| 4. | Xác nhận ký (luồng CDKM_N) | - Khách hàng DPPA: Bổ sung thêm trường Ngày công bố tham gia DPPA. (Script cập nhật gửi tại link sftp) | - Khách hàng DPPA: Bổ sung thêm trường Ngày công bố tham gia DPPA. (Script cập nhật gửi tại link sftp) | EVN | |
+| 5. | Ch uyển khai thác | - Khách hàng DPPA: Bổ sung thêm trường Ngày công bố tham gia DPPA. (Script cập nhật gửi tại link sftp) | - Khách hàng DPPA: Bổ sung thêm trường Ngày công bố tham gia DPPA. (Script cập nhật gửi tại link sftp) | EVN | |
+| 6. | Hoàn tất (luồng CDHD_N) | - Trường hợp chấm dứt khách hàng DPPA sẽ thêm dòng chấm dứt với loại ngày chấm dứt ở bảng mới dựa vào mã hợp đồng chấm dứt. | - Trường hợp chấm dứt khách hàng DPPA sẽ thêm dòng chấm dứt với loại ngày chấm dứt ở bảng mới dựa vào mã hợp đồng chấm dứt. | EVN | |
+| 7. | Tính toán hóa đơn qu yết toán tiền điện DPPA | - | Hiệu chỉnh lỗi không lấy được đơn giá dịch vụ hệ thống điện năm N-1 khi năm Nchưa được khai báo, tương tự cho đơn giá đơn giá chênh lệch. | EVN | |
+| 8. | Danh mục hồ sơ | - Bổ sung thêm các loại hồ sơ cho nghiệp vụ phát triển khách hàng DPPA. (Script cập nhật gửi tại link sftp) | Hiệu chỉnh lỗi không lấy được đơn giá dịch vụ hệ thống điện năm N-1 khi năm Nchưa được khai báo, tương tự cho đơn giá đơn giá chênh lệch. | EVN | |
+| Cảnh báo sản lượng điện sử dụng tăng cao | Danh mục hồ sơ | - Bổ sung thêm các loại hồ sơ cho nghiệp vụ phát triển khách hàng DPPA. (Script cập nhật gửi tại link sftp) | Hiệu chỉnh lỗi không lấy được đơn giá dịch vụ hệ thống điện năm N-1 khi năm Nchưa được khai báo, tương tự cho đơn giá đơn giá chênh lệch. | | |
+| 9. | Cấu hình ngưỡng cảnh báo bất thường | - Bổ sung chức năng Cấu hình ngưỡng cảnh báo bất thường cho từng đơn vị, cho phép cấu hình tỷ lệ phần trăm sản lượng vượt so với tháng trước. | Hiệu chỉnh lỗi không lấy được đơn giá dịch vụ hệ thống điện năm N-1 khi năm Nchưa được khai báo, tương tự cho đơn giá đơn giá chênh lệch. | EVN | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=table | section=Bảng DOffice 2 | table=Bảng DOffice 2 | quality=pass | chars=4135
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1045/EVNICT-TTPM - Cập nhật phiên bản chương trình CMIS&UDHT
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Bảng: Bảng DOffice 2
+Phần: 1/2
+| | | (Script cập nhật gửi tại link sftp) |
+| --- | --- | --- |
+| 10. | Danh sách khách hàng bất thường | - Bổ sung chức năng Danh sách khách hàng bất thường, cho phép thống kê, theo dõi danh sách khách hàng có sản lượng bất thường. (Script cập nhật gửi tại link sftp) |
+| 11. | Tool tự động tạo danh sách ngưỡng và tạo thông báo | - Tool tự động tạo danh sách và thông báo sản lượng điện bất thường vượt ngưỡng theo cấu hình thì cảnh báo đến khách hàng. |
+| Đồng bộ dữ liệu CMIS - Ứng dụng EVN CSKH | Tool tự động tạo danh sách ngưỡng và tạo thông báo | - Tool tự động tạo danh sách và thông báo sản lượng điện bất thường vượt ngưỡng theo cấu hình thì cảnh báo đến khách hàng. |
+| 12. | Ti ền tiếp nhận | - Đồng bộ thông tin tiến trình thực hiện lên ứng dụng EVN CSKH đối với các yêu cầu dịch vụ điện tử phát sinh từ các hệ thống khác CSKH EVN: CMIS, CRM, CSKH TCT, DVC. (Script cập nhật gửi tại link sftp) |
+| 13. | Thêm mới CĐT không bán điện dư có đấu nối và không đấu nối | - Đồng bộ thông tin lên ứng dụng EVN CSKH đối với yêu cầu thêm mới CĐT không bán điện dư. (Script cập nhật gửi tại link sftp) |
+| 14. | Tool đồng bộ lên Kafka | - Đồng bộ dữ liệu từ chương trình CMIS lên ứng dụng EVN CSKH. |
+| Mẫu hợp đồng mua bán điện sửa đổi bổ sung (EVNHANOI) | Tool đồng bộ lên Kafka | - Đồng bộ dữ liệu từ chương trình CMIS lên ứng dụng EVN CSKH. |
+| 15. | Xây dựng chức năng m ới: "Lập hợp đồng sửa đổi bổ sung" | Bổ sung chức năng mới để lập hợp đồng sửa đổi bổ sung theo mẫu của đơn vị tại các luồng dich vụ điện: - Luồng gia hạn hợp đồng (GHAN_D); - Luồng thay đổi thông tin hợp đồng (TTKH_D); - Luồng di dời thiết bị đo đếm (DDOI_D); - Luồng tăng cường công suất (TCCS_D); - Luồng thay đổi định mức sử dụng điện (SOHO_D); - Luồng thay đổi mục đích sử dụng điện (MDSD_D). (Script cập nhật gửi tại link sftp) |
+| 16. | Lập phương án thay đổi công suất | - Bổ sung nút "Lập thỏa thuận bảo đảm thực hiện hợp đồng". - Hiệu chỉnh mẫu Phụ lục thỏa thuận bảo đảm thực hiện hợp đồng mua bán điện theo mẫu của EVNHANOI. |
+| 17. | Ghi nhận kết quả khảo sát | - Bổ sung nút để lập Phụ lục Thỏa thuận định mức sử dụng điện sinh hoạt. |
+| 18. | Hiệu chỉnh mẫu HĐMBĐ Sinh hoạt-Luật thủ đô 2026 | - Hiệu chỉnh theo mẫu ban hành của EVNHANOI, chỉnh lại hiển thị mã hợp đồng theo từng ô giống hợp đồng NSH. - Hiệu chỉnh phần căn cứ trong hợp đồng sửa đổi, bổ sung. |
+| 19. | Hiệu chỉnh mẫu HĐMBĐ Ngoài sinh hoạt-Luật thủ đô 2026 | - Hiệu chỉnh mẫu NSH, SH của EVNHANOI theo Luật thủ đô 2026: - Chỉnh căn cứ - Điều 3.3 - Điều 8.4 - Điều 8.7 - Điều 10.4 - Điều 11.1 - Điều 14.2: Bỏ Điều của Luật Điện lực - Hiệu chỉnh phần căn cứ trong hợp đồng sửa đổi, bổ sung. |
+| Hiệu chỉnh các yêu cầu phát sinh trong quá trình vận hành | Hiệu chỉnh mẫu HĐMBĐ Ngoài sinh hoạt-Luật thủ đô 2026 | - Hiệu chỉnh mẫu NSH, SH của EVNHANOI theo Luật thủ đô 2026: - Chỉnh căn cứ - Điều 3.3 - Điều 8.4 - Điều 8.7 - Điều 10.4 - Điều 11.1 - Điều 14.2: Bỏ Điều của Luật Điện lực - Hiệu chỉnh phần căn cứ trong hợp đồng sửa đổi, bổ sung. |
+| 20. | Dự thảo hợp đồng cấp điện mới | - Hiệu chỉnh cho phép cập nhật thông tin địa chính của điểm đo và khách hàng khác nhau. - Hiệu chỉnh lỗi khi ghi dữ liệu dự thảo bị dup. - Bổ sung thông tin để nhập chứng minh thư lãnh sự đối với khách hàng là người nước ngoài. (Script cập nhật gửi tại link sftp) |
+| 21. | Dự thảo chấm dứt ký mới | - Dự thảo chấm dứt ký mới hợp đồng mua bán điện sinh dup dữ liệu ở các bảng HDG. - Hiệu chỉnh lấy số tiền còn nợ trên BBCDHD. - Hiệu chỉnh định dạng email khi thực hiện dự thảo hợp đồng - Thêm checkbox là người nước ngoài và mở rộng phần nhập số giấy tờ (CMT) thành 20 ký tự. |
+| 22. | Lập biên bản thỏa thuận đấu nối | - Cập nhật căn cư số Thông tư và ngày: 05/2025/TT-BCT Ngày Thông tư: 01/02/2025. |
+| 23. | Hiệu chỉnh mẫu HĐMBĐ sửa đổi bổ sung - SPC | - Hiệu chỉnh mẫu hợp đồng ngoài sinh hoạt, bổ sung hiển thị thêm các thông tin khác theo cấp Công ty: Địa chỉ, Email với các hợp đồng 110kV. |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=table | section=Bảng DOffice 2 | table=Bảng DOffice 2 | quality=pass | chars=2741
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1045/EVNICT-TTPM - Cập nhật phiên bản chương trình CMIS&UDHT
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Bảng: Bảng DOffice 2
+Phần: 2/2
+| | | (Script cập nhật gửi tại link sftp) |
+| --- | --- | --- |
+| 24. | Hiệu chỉnh mẫu HĐMBĐ - CPC | - Hiệu chỉnh mẫu BBCDHD: phần ủy quyền hiển thị thông tin người ủy quyền như bên hợp đồng mua điện. - Mẫu hợp đồng mua bán điện NSH, NH: Hiệu chỉnh kênh thông báo trên mẫu HĐMBĐ đổi từ "EVNCPC CSKH" thành "EVNCPC CSKH, EVN CSKH". Hiệu chỉnh "trong thời hạn nêu tại Điều 16.4.c (i)" thành "trong thời hạn nêu tại Điều16.3.c (i) |
+| 25. | Hiệu chỉnh mẫu HĐMBĐ - HCM | - Hiệu chỉnh mẫu hợp đồng NSH, SH theo nội dung sửa đổi QTKD của Tổng công ty. |
+| 26. | Ký hồ sơ giấy tờ | - Hiệu chỉnh trường hợp file đã ký của khách hàng hợp lệ nhưng lỗi không upload được. - Lỗi che khuất thông tin Chữ ký số của khách hàng ký bằng USB trên file HĐMBĐ. - Ký usb lỗi sai hash đang tạo hash SHA2. |
+| 27. | Khách hàng ký số hồ sơ điện tử | - Khách hàng ký số hồ sơ điện tử bằng OTP trên UDHT, không lưu số điện thoại vào cột OTP. |
+| 28. | Xác nhận ký hợp đồng | - Lỗi khi xác nhận ký hợp đồng khi không có thông tin ngày sinh trong bảng HDG_DONGBO_CANHAN. |
+| 29. | Tra cứu thông tin hồ sơ giấy tờ | - Hiệu chỉnh các hồ sơ upload đã ký số không hiển thị khi tra cứu hồ sơ giấy tờ. |
+| 30. | Luồng thanh lý khách hàng ĐMTMN | - Hiệu chỉnh thanh lý khách hàng ĐMTMN khi đơn phương thanh lý bỏ kiểm tra ký số file TTTL. |
+| 31. | Thay đổi chủ thể, sửa đổ i phụ lục HĐMBĐ Nội bộ | - Hiệu chỉnh lỗi thay đổi chủ thể hợp đồng, sửa tên đại diện hoặc không có tên đại diện. |
+| 32. | Thay đổi chủ thể, sửa đổ i phụ lục HĐMBĐ (TLKL) theo lô | - Hiệu chỉnh thực hiện TLKL theo lô báo lỗi{"MESSAGE":"JSONObject[\"MA_KHA NG\"] not found.","TYPE":"ERROR"} |
+| 33. | Nhận chỉ số đo xa đầu nguồn | - Bổ sung chức năng "Nhận chỉ số đo xa đầu nguồn" cập nhật vào dữ liệu chỉ số tổn thất (TT_CHISO). |
+| 34. | Ch uyển khai thác | - Hiệu chỉnh lỗi khi chuyển khai thác, một số dữ liệu bảng phụ lục hợp đồng cập nhật thiếu hoặc sai (điểm đấu nối, mục đích sử dụng, ...) |
+| 35. | Quản lý danh sách kh ách hàng là hộ cho thuê trọ | - Hiệu chỉnh ràng buộc ngày kiểm tra khi thêm mới hoặc sửa biên bản kiểm tra phải thuộc tháng làm việc của phân hệ hợp đồng. |
+| 36. | Treo tháo thiết bị đo đếm | - Bổ sung kiểm tra khách hàng đang TLKL. |
+| 37. | Xuất nhận dữ liệu GCS đổi giá | - Bổ sung tính năng Xuất điểm đo thiếu chỉ số, tương tự như Xuất nhận dữ liệu GCS định kỳ. |
+| 38. | Tính toán hóa đơn điều chỉnh | - Bổ sung thêm cho phép cập nhật địa chỉ khách hàng thanh toán theo địa chính mới. - Tính toán hóa đơn điều chỉnh làm HBLL, hiệu chỉnh cho phép điều chỉnh mã ngân hàng |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #8
+chunk_type=table | section=35.Quản lý danh sách kh ách hàng là hộ cho thuê trọ- Hiệu chỉnh ràng buộc ngày kiểm tra khi thêm mới hoặc sửa biên bản kiểm tra phải thuộc tháng làm việc của phân hệ hợp đồng.CPC | table=35.Quản lý danh sách kh ách hàng là hộ cho thuê trọ- Hiệu chỉnh ràng buộc ngày kiểm tra khi thêm mới hoặc sửa biên bản kiểm tra phải thuộc tháng làm việc của phân hệ hợp đồng.CPC | quality=pass | chars=2170
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1045/EVNICT-TTPM - Cập nhật phiên bản chương trình CMIS&UDHT
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Bảng: 35.Quản lý danh sách kh ách hàng là hộ cho thuê trọ- Hiệu chỉnh ràng buộc ngày kiểm tra khi thêm mới hoặc sửa biên bản kiểm tra phải thuộc tháng làm việc của phân hệ hợp đồng.CPC
+| | | Hiệu chỉnh lỗi lập hóa đơn HBLL cho hóa đơn LL báo lỗi Input string was not in a correct format. |
+| --- | --- | --- |
+| 39. | Lập hóa đơn điều chỉnh trực tiếp | - Hiệu chỉnh Lập hóa đơn điều chỉnh trực tiếp, chặn không cho phép nhập sản lượng số thập phân. - Thông tin hóa đơn điều chỉnh (HDN_HDON_DC) chưa cập nhật số điện thoại (DTHOAI). - Hiệu chỉnh lỗi hóa đơn trực tiếp TC sai tiền thuế. - Lập hóa đơn HBLL cho hóa đơn LL báo lỗi ...TIEN_GTGT not found. - Lập hóa đơn điều chỉnh thay thế, khi sinh hóa đơn HB không cập nhật thông tin phát hành của hóa đơn cũ. - Trường hợp hóa đơn sai là hóa đơn điều chỉnh (TT), sau khi ghi dữ liệu chỉ sinh ra hóa đơn LL, thiếu hóa đơn HB. |
+| 40. | Hóa đơn điện tử | - Hiệu chỉnh chuyển đổi hóa đơn điện tử sang giấy không thực hiện được với hóa đơn chuyển bảng lịch sử. |
+| 41. | Cập nhật hóa đơn sau phát hành | - Cập nhật hóa đơn sau phát hành, khi cập nhật thông tin MA_KHTT, sẽ cập nhật lại cả TEN_KHTT, DCHI_KHTT. - Sửa thông tin tiêu đề phần loại khách hàng thành "Cá nhân, Tổ chức". |
+| 42. | Xác nhận thanh toán dịch vụ điện | - Bổ sung cập nhật thông tin NGUOI_SUA, NGAY_SUA. |
+| 43. | Lập đề nghị chuyển nợ khó đòi | - Kiểm soát ngày nhập nợ khó đòi trong tháng hạch toán, với trường hợp ngày nhập vào đầu tháng Nnhưng tháng hạch toán N-1. |
+| 44. | Cập nhật quá trình thu hồi nợ | - Hiệu chỉnh lỗi thực hiện hủy chuyển khách hàng bị phá sản, trạng thái nợ không cập nhật về 1. |
+| 45. | Quyết toán hóa đơn | - Ký số biên bản quyết toán thiếu thông tin trình ký. |
+| 46. | Tính toán bồi thường truy thu | - Hiệu chỉnh lỗi thông tin địa chỉ của khách hàng bị sai trên hóa đơn tính toán truy thu lập từ chức năng tính toán bồi thường, dù đã nhập lại thông tin trên form. - Cập nhật lại danh mục thiết bị sử dụng điện theo thông tư 42, được sử dụng khi tính toán |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #9
+chunk_type=table | section=Bảng DOffice 4 | table=Bảng DOffice 4 | quality=pass | chars=1903
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1045/EVNICT-TTPM - Cập nhật phiên bản chương trình CMIS&UDHT
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Bảng: Bảng DOffice 4
+| | | PP5 Bổ sung phân loại riêng cho 3 Thiết bị lạnh và 4 Điều hòa không khí. Lập biên bản thỏa thuận tính toán truy thu cháy hỏng lỗi tạo sai hóa đơn truy thu trường hợp khách hàng không ký mua CSPK nhưng vẫn sinh ra tiền vô công. Tính toán sai giá, khi áp giá mới với trường hợp áp nhiều dòng giá, không hiển thị đủ trên lưới khi chuyển qua chuyển lại tab. Tính toán truy thu cháy hỏng sai số giờ, hiệu chỉnh lỗi tính sai số ngày, giờ của tháng 8. Tính truy thu sai giá khách hàng ký mua CSPK hoá đơn ra không đúng: Số tiền của TD lại nhảy qua VC và tiền VC lại nhảy qua TD, cột sản lượng điện TT ra sản lượng âm và dương. Xem log tính bồi thường không hiển thị thông tin. Tính toán sai giá lưu sai thông tin thuế. Tính truy thu đo đếm hỏng không thực hiện tính theo ngày được với trường hợp khách hàng 3 BCS áp giá SHBT. |
+| --- | --- | --- |
+| 47. | Lập hóa đơn bồi thường trực tiếp | - Hiệu chỉnh chức năng tính toán bồi thường trực tiếp không cập nhật ID_BBAN trong bảng GS_BBAN_DCHINH. - Bổ sung ràng buộc không cho phép null MA_NN ở bước tạo hóa đơn điều chỉnh, gây lỗi duyệt tính toán. - Hiệu chỉnh lưu thông tin phụ lục tại chức năng Lập trực tiếp để có thể lập được biên bản điện tử. - Hiệu chỉnh lỗi thông tin hóa đơn điều chỉnh (GS_HDON_DC) chưa cập nhật số điện thoại (DTHOAI). - Hiệu chỉnh chức năng lập thỏa thuận tính toán bồi thường trực tiếp chặn không cho nhập giá trị thập phân sản lượng trực tiếp và sản lượng trừ phụ (giống chức năng Lập hóa đơn điều chỉnh trực tiếp bên Hóa đơn). |
+| 48. | Quản lý dự báo phụ tải khách hàng | - Hiệu chỉnh ngày dự báo phụ tải khách hàng theo văn bản số 1958/EVN-KDMBĐ ngày 07/4/2026: Điều chỉnh thời hạn báo cáo số liệu điện thương phẩm tháng N+1 trước ngày |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #10
+chunk_type=table | section=Bảng DOffice 5 | table=Bảng DOffice 5 | quality=pass | chars=1884
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1045/EVNICT-TTPM - Cập nhật phiên bản chương trình CMIS&UDHT
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Bảng: Bảng DOffice 5
+| | | 15 tháng N, áp dụng cho dự báo điện thương phẩm từ tháng 5/2026 |
+| --- | --- | --- |
+| 49. | Cập nhật thay đổi th ông tin khách hàng điện mặt trời | - Hiệu chỉnh không hiển thị thông tin để cập nhật với khách hàng ĐMTMN giá MT3 (NĐ58 tự sản tự tiêu). |
+| 50. | Cập nhật thông tin th ỏa thuận điện mặt trời | - Hiệu chỉnh lỗi cập nhật thiếu một số thông tin đối với khách hàng ĐMTMN tự sản tự tiêu: TLE_TTOAN, DUNG_LUONG, CONG_S UAT_IVT. |
+| 51. | Thêm mới CĐT không bán điện dư | - Bổ sung kiểm soát nhập ngày hiệu lực, ngày hết hiệu lực trong tháng làm việc MT. |
+| 52. | Danh mục lý do | - Bổ sung danh mục lý do: Thay đổi khung giờ theo QĐ963. (Script cập nhật gửi tại link sftp) |
+| 53. | Danh mục nhân viên | - Bổ sung trường nhập thông tin CCCD (không bắt buộc). |
+| 54. | Chuyển tháng làm việc | - Hiệu chỉnh kiểm tra điều kiện chuyển tháng MT, kiểm soát dữ liệu báo cáo MT đã được tổng hợp sau thời điểm lập hóa đơn điều chỉnh MT. - Hiệu chỉnh lỗi xem log chuyển tháng MT không hiển thị thông tin. |
+| 55. | Cập nhật địa chỉ sáp nhập | - Hiệu chỉnh kiểm soát khách hàng đang TLKL thì không cập nhật sáp nhập địa chính. |
+| 56. | Chuyển khách hàng giữa các đơn vị | - Chuyển dữ liệu khách hàng giữa các đơn vị bổ sung chuyển các bảng: HDG_KHANG_THUETRO HDG_KTRA_THUETRO HDG_BDAM_HDONG HDG_CTIET_BDHD HDG_TTIN_INHDONG HDG_KHANG_DTUONG HDG_RGIOI_XDCTRINH - Bổ sung kiểm tra khách hàng đã có chỉ số: khách hàng đã có chỉ số, sản lượng trong tháng, thì không cho chuyển. |
+| 57. | Tổng hợp báo cáo cấp điện | - Hiệu chỉnh tổng hợp cấp điện theo thông tin trạng thái đồng bộ dịch vụ công đã thành công. - Hiệu chỉnh cách lấy HTHUC_TNHAN bổ sung thêm điều kiện tiếp nhận qua cổng mới C12. |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #11
+chunk_type=table | section=Bảng DOffice 6 | table=Bảng DOffice 6 | quality=pass | chars=2121
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1045/EVNICT-TTPM - Cập nhật phiên bản chương trình CMIS&UDHT
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Bảng: Bảng DOffice 6
+| | | Hiệu chỉnh điều kiện lấy mã hình thức của chỉ tiêu III.7 và III.8: Tử số và mẫu số, sửa điều kiện thành Ma_Hthuc khác 2 giá trị [GD, BD] |
+| --- | --- | --- |
+| 58. | Tổng hợp báo cáo hợp đồng | - Hiệu chỉnh tổng hợp số lượng hợp đồng bị thiếu trường hợp CDKM hợp đồng trong tháng, nhưng ký số ngày tháng sau. |
+| 59. | Tổng hợp báo cáo đo đếm | - Hiệu chỉnh lại cách lấy số liệu đổi loại trường hợp có treo tháng tháng sau và trường hợp treo mới, rồi tháo luôn trong tháng. |
+| 60. | Báo cáo hóa đơn | - Hiệu chỉnh báo cáo chi tiết biểu 3.13 hiển thị sắp xếp theo mã đơn vị quản lý. - Hiệu chỉnh báo cáo chi tiết biểu 3.14 với KH2TP chỉ tổng hợp điểm đo 100% SXBT. - Hiệu chỉnh báo cáo chi tiết biểu 3.17 lấy sản lượng, số tiền không đúng. |
+| 61. | Tổng hợp báo cáo tổn thất | - Hiệu chỉnh tổng hợp báo cáo EVN cấp TCT lấy thông tin giao nhận giống báo cáo Kpp (sản lượng giao nhận cộng từ dữ liệu các đơn vị Công ty điện lực). |
+| 62. | Báo cáo cấp điện | - Hiệu chỉnh các biểu báo cáo của bộ chỉ số 766, hiệu chỉnh theo yêu cầu của EVN đã chốt thì các biểu báo cáo tổng hợp 2.1 và 2.2 và các biểu báo cáo chi tiết 2.22, 2.23, 2.24 và 2.25 sẽ không tính điểm cho mã đơn vị quản lý là Ban thuộc Tổng công ty. - Hiệu chỉnh báo cáo Bộ chỉ số 766 biểu 2.1. Báo cáo tổng hợp kết quả đánh giá bộ chỉ số dịch vụ công, trường hợp đơn vị tồn tại một số Điện lực trong tháng không phát sinh yêu cầu dịch vụ điện, dẫn đến một số mục đang không đạt 100%. - Bộ chỉ số 766, biểu 1.22: Hiệu chỉnh điều kiện "Kênh thực hiện" là "Trực tuyến" thì lấy tât cả hình thức loại trừ 2 Ma_hthuc là GD, BD. |
+| 63. | Báo cáo hợp đồng | - Hiệu chỉnh báo cáo chi tiết hợp đồng biểu 3.4, 3.5 và biểu 3.11 bổ sung thêm cột "NGAY_HLUC_APGIA" trên file xuất excel - Hiệu chỉnh báo cáo chi tiết hợp đồng biểu 3.7, in báo lỗi "Không có dữ liệu". - Hiệu chỉnh báo cáo 1.4. Tổng hợp số hợp đồng ký mua CSPK, hiệu chỉnh thêm phân nhóm theo các Công ty điện lực. |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #12
+chunk_type=table | section=Bảng DOffice 7 | table=Bảng DOffice 7 | quality=pass | chars=1230
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1045/EVNICT-TTPM - Cập nhật phiên bản chương trình CMIS&UDHT
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Bảng: Bảng DOffice 7
+| | | Hiệu chỉnh 1.14 Báo cáo tình hình đối soát với CSDL quốc gia dân cư không in được cấp TCT. |
+| --- | --- | --- |
+| 64. | Báo cáo đo đếm | - Hiệu chỉnh báo cáo chi tiết đo đếm 2.2 và 2.8 để đồng nhất cách lấy thiết bị đến hạn giống báo cáo tổng hợp biểu 1.2 và 1.6. - Hiệu chỉnh mở rộng các cột để hiển thị thông tin chi tiết tại biểu 1.5 - Tổng hợp thiết bị kiểm định không đạt. |
+| 65. | Báo cáo công nợ | - Báo cáo 2.12 Tỷ lệ thu theo phiên ghi chỉ số, hiệu chỉnh nếu mẫu số bằng 0 thì mặc định tỷ lệ thu bằng 0 của ngày ghi chỉ số đó. - Hiệu chỉnh báo cáo tổng hợp biểu 6.1 khi in theo tháng và lũy kế khác nhau, số tồn đầu tháng sau khác số tồn cuối tháng trước. - Hiệu chỉnh báo cáo tổng hợp biểu 6.2 thông tin số khách hàng, số hóa đơn không chính xác. |
+| 66. | Báo cáo ĐMTMN | - Hiệu chỉnh báo cáo ĐMTMN biểu 1.10- Tổng hợp kết quả rà soát, cập nhật hồ sơ của các dự án/hệ thống điện mặt trời mái nhà, tên đơn vị vẫn còn "Đội quản lý điện" |
+| 67. | Báo cáo tổn thất | - Hiệu chỉnh báo cáo trung áp, cao áp báo cáo tính toán KPP |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #13
+chunk_type=document_body | section=Phụ lục | artifact=appendix | quality=pass | chars=227
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1045/EVNICT-TTPM - Cập nhật phiên bản chương trình CMIS&UDHT
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Mục: Phụ lục
+PHỤ LỤC:
+
+DANH SÁCH CHI TIẾT CHỨC NĂNG HIỆU CHỈNH

@@ -1,0 +1,215 @@
+================================================================================
+id_vb        : 1480021
+ky_hieu      : 3742/QĐ-EVNCPC
+trich_yeu    : QĐ về chế độ biên soạn bài giảng học tập và mức chi phí cho các lớp bồi dưỡng ngắn hạn áp dụng tạm thời trong EVNCPC
+
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-19
+ten_file     : 15. Quyet dinh che do bien soan va muc chi dao tao CPC.pdf
+TỔNG SỐ CHUNK: 10
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=250
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3742/QĐ-EVNCPC
+Ngày văn bản: 19/06/2026
+Trích yếu: QĐ về chế độ biên soạn bài giảng học tập và mức chi phí cho các lớp bồi dưỡng ngắn hạn áp dụng tạm thời trong EVNCPC
+
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Hồ Thăng Thu
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1903
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3742/QĐ-EVNCPC - QĐ về chế độ biên soạn bài giảng học tập và mức chi phí cho các lớp bồi dưỡng ngắn hạn áp dụng tạm thời trong EVNCPC
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+TỔNG CÔNG TY Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG Số: 3742/QĐ-EVNCPC Đà Nẵng, ngày 19 tháng 6 năm 2026
+
+QUYẾT ĐỊNH
+
+Về Chế độ biên soạn bài giảng học tập và mức chi phí cho các lớp bồi dưỡng ngắn hạn áp dụng tạm thời trong EVNCPC
+
+TỔNG GIÁM ĐỐC TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG
+
+Căn cứ Quyết định số 90/QĐ-EVN ngày 12/4/2019, Quyết định số 293/QĐ-EVN ngày 20/9/2019, Quyết định số 116/QĐ-HĐTV ngày 05/8/2022, Quyết định số 01/QĐ-HĐTV ngày 02/1/2025, Quyết định số 07/QĐ-HĐTV ngày 03/1/2025, Quyết định số 08/QĐ-HĐTV ngày 03/1/2025, Quyết định số 20/QĐ-HĐTV ngày 15/1/2025, Quyết định số 126/QĐ-HĐTV ngày 16/5/2025 và Quyết định số 147/QĐ-HĐTV ngày 06/6/2025 của Hội đồng thành viên Tập đoàn Điện lực Việt Nam (EVN) về việc ban hành, sửa đổi, bổ sung Điều lệ tổ chức và hoạt động của Tổng công ty Điện lực miền Trung (EVNCPC);
+
+Căn cứ Quyết định số 468/QĐ-HĐTV ngày 30/5/2025 của Hội đồng thành viên EVNCPC về việc ban hành Quy chế quản trị trong EVNCPC;
+
+Căn cứ Quyết định số 252/QĐ-HĐTV ngày 15/4/2026 của Hội đồng thành viên EVNCPC về việc ban hành Quy chế phân cấp của EVNCPC;
+
+Căn cứ Nghị Quyết số 342/NQ-HĐTV ngày 10/6/2026 của Hội đồng thành viên EVNCPC về việc thông qua Chế độ biên soạn bài giảng học tập và mức chi phí cho các lớp bồi dưỡng ngắn hạn áp dụng tạm thời trong EVNCPC;
+
+Căn cứ Giấy ủy quyền số 3720/GUQ-EVNCPC ngày 18/6/2026 của EVNCPC về việc ban hành "Chế độ biên soạn bài giảng học tập và mức chi phí cho các lớp bồi dưỡng ngắn hạn áp dụng tạm thời trong EVNCPC";
+
+Theo đề nghị của các Trưởng Ban Tổ chức và Nhân sự, Tài chính kế toán, Quản lý đầu tư EVNCPC.
+
+QUYẾT ĐỊNH:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=legal_clause | section=Điều 1 Ban hành Chế độ biên soạn bài giảng học tập và mức chi phí cho các lớp bồi dưỡng ngắn hạn… | quality=pass | chars=487
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3742/QĐ-EVNCPC - QĐ về chế độ biên soạn bài giảng học tập và mức chi phí cho các lớp bồi dưỡng ngắn hạn áp dụng tạm thời trong EVNCPC
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Điều 1 Ban hành Chế độ biên soạn bài giảng học tập và mức chi phí cho các lớp bồi dưỡng ngắn hạn…
+Điều 1. Ban hành Chế độ biên soạn bài giảng học tập và mức chi phí cho các lớp bồi dưỡng ngắn hạn áp dụng tạm thời trong EVNCPC như phụ lục kèm theo Quyết định này.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=legal_clause | section=Điều 2 Quyết định này có hiệu lực kể từ ngày ban hành | quality=pass | chars=334
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3742/QĐ-EVNCPC - QĐ về chế độ biên soạn bài giảng học tập và mức chi phí cho các lớp bồi dưỡng ngắn hạn áp dụng tạm thời trong EVNCPC
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Điều 2 Quyết định này có hiệu lực kể từ ngày ban hành
+Điều 2. Quyết định này có hiệu lực kể từ ngày ban hành.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=legal_clause | section=Điều 3 Các Phó Tổng giám đốc EVNCPC, Kế toán trưởng, Chánh Văn phòng, Trưởng Ban EVNCPC, Hiệu trư… | quality=pass | chars=494
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3742/QĐ-EVNCPC - QĐ về chế độ biên soạn bài giảng học tập và mức chi phí cho các lớp bồi dưỡng ngắn hạn áp dụng tạm thời trong EVNCPC
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Điều 3 Các Phó Tổng giám đốc EVNCPC, Kế toán trưởng, Chánh Văn phòng, Trưởng Ban EVNCPC, Hiệu trư…
+Điều 3. Các Phó Tổng giám đốc EVNCPC, Kế toán trưởng, Chánh Văn phòng, Trưởng Ban EVNCPC, Hiệu trưởng, Giám đốc các đơn vị trực thuộc EVNCPC căn cứ Quyết định thi hành./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=footer_signature | quality=pass | chars=224
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. TỔNG GIÁM ĐỐC
+
+- Như Điều 3; PHÓ TỔNG GIÁM ĐỐC
+
+- HĐTV EVNCPC (báo cáo);
+
+- TGĐ EVNCPC (báo cáo);
+
+- CPCETC (để biết);
+
+- NĐD của EVNCPC tại KHPC, PC3-INVEST (để biết);
+
+- Lưu: VT, TCNS, TCKT, ĐT.
+
+Hồ Thăng Thu
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=document_section | section=Phụ lục: DANH MỤC, MỨC CHI PHÍ CHẾ ĐỘ BIÊN SOẠN BÀI GIẢNG HỌC TẬP, MỨC CHI PHÍ KHÁC CHO CÁC LỚP BỒI DƯỠNG NGẮN HẠN ÁP DỤNG TẠM THỜI TRONG EVNCPC | artifact=appendix | quality=pass | chars=515
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3742/QĐ-EVNCPC - QĐ về chế độ biên soạn bài giảng học tập và mức chi phí cho các lớp bồi dưỡng ngắn hạn áp dụng tạm thời trong EVNCPC
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục: DANH MỤC, MỨC CHI PHÍ CHẾ ĐỘ BIÊN SOẠN BÀI GIẢNG HỌC TẬP, MỨC CHI PHÍ KHÁC CHO CÁC LỚP BỒI DƯỠNG NGẮN HẠN ÁP DỤNG TẠM THỜI TRONG EVNCPC
+Phụ lục: DANH MỤC, MỨC CHI PHÍ CHẾ ĐỘ BIÊN SOẠN BÀI GIẢNG HỌC TẬP,
+
+MỨC CHI PHÍ KHÁC CHO CÁC LỚP BỒI DƯỠNG NGẮN HẠN ÁP DỤNG TẠM THỜI TRONG EVNCPC
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=document_section | section=Phụ lục: DANH MỤC, MỨC CHI PHÍ CHẾ ĐỘ BIÊN SOẠN BÀI GIẢNG HỌC TẬP, MỨC CHI PHÍ KHÁC CHO CÁC LỚP BỒI DƯỠNG NGẮN HẠN ÁP DỤNG TẠM THỜI TRONG EVNCPC > A. Chi phí thù lao cho giảng viên: | artifact=appendix | quality=pass | chars=1235
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3742/QĐ-EVNCPC - QĐ về chế độ biên soạn bài giảng học tập và mức chi phí cho các lớp bồi dưỡng ngắn hạn áp dụng tạm thời trong EVNCPC
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục: DANH MỤC, MỨC CHI PHÍ CHẾ ĐỘ BIÊN SOẠN BÀI GIẢNG HỌC TẬP, MỨC CHI PHÍ KHÁC CHO CÁC LỚP BỒI DƯỠNG NGẮN HẠN ÁP DỤNG TẠM THỜI TRONG EVNCPC > A. Chi phí thù lao cho giảng viên:
+A. Chi phí thù lao cho giảng viên:
+
+B. Danh mục chi khác
+
+Ghi chú:
+
+- Thời gian giảng dạy quy định: 45 phút/tiết lý thuyết và 60 phút/tiết thực hành. Tối đa không quá 3 ngày/báo cáo phân tích nhu cầu trước đào tạo.
+
+- Định mức biên soạn mới tài liệu tương đương không quá 3 trang A4/tiết. Trong trường hợp soạn bài giảng bằng slide quy đổi 6 slides tương đương 1 trang A4.
+
+- Chi phí đánh giá sau khóa đào tạo chỉ được thực hiện khi có yêu cầu.
+
+- Đối với phòng học, hội trường, hiện trường, trang thiết bị đào tạo chuyên dụng của Trường Cao đẳng Điện lực miền Trung/Các đơn vị trực thuộc, mức chi do EVNCPC phê duyệt tương ứng với mức khấu hao trang thiết bị theo quy định tài chính.
+
+- EVNCPC khuyến khích sử dụng chứng chỉ điện tử.
+
+- Ngoài các quy định nêu trên nếu có những phát sinh thực tế khác phải lập dự toán chi tiết.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #8
+chunk_type=table | section=Phụ lục: DANH MỤC, MỨC CHI PHÍ CHẾ ĐỘ BIÊN SOẠN BÀI GIẢNG HỌC TẬP, — MỨC CHI PHÍ KHÁC CHO CÁC LỚP BỒI DƯỠNG NGẮN HẠN ÁP DỤNG TẠM THỜI TRONG EVNCPC A. Chi phí thù lao cho giảng viên | table=Phụ lục: DANH MỤC, MỨC CHI PHÍ CHẾ ĐỘ BIÊN SOẠN BÀI GIẢNG HỌC TẬP, — MỨC CHI PHÍ KHÁC CHO CÁC LỚP BỒI DƯỠNG NGẮN HẠN ÁP DỤNG TẠM THỜI TRONG EVNCPC A. Chi phí thù lao cho giảng viên | quality=pass | chars=2355
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3742/QĐ-EVNCPC - QĐ về chế độ biên soạn bài giảng học tập và mức chi phí cho các lớp bồi dưỡng ngắn hạn áp dụng tạm thời trong EVNCPC
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Phụ lục: DANH MỤC, MỨC CHI PHÍ CHẾ ĐỘ BIÊN SOẠN BÀI GIẢNG HỌC TẬP, — MỨC CHI PHÍ KHÁC CHO CÁC LỚP BỒI DƯỠNG NGẮN HẠN ÁP DỤNG TẠM THỜI TRONG EVNCPC A. Chi phí thù lao cho giảng viên
+| STT | Giảng viên | Định mức thù lao Biên soạn mới tài liệu (đồng/trang) | Định mức thù lao Giảng dạy (đồng/tiết) | Định mức thù lao Đánh giá sau đào tạo (đồng/khóa đào tạo) |
+| --- | --- | --- | --- | --- |
+| 1 | Lãnh đạo Tập đoàn (HĐTV, Ban TGĐ) | 400.000 | 500.000 | 1.500.000 |
+| 2 | Trưởng ban Tập đoàn; Lãnh đạo (HĐTV, HĐQT, Chủ tịch Công ty, Giám đốc/Tổng giám đốc) các đơn vị cấp II và các đơn vị trực thuộc Tập đoàn, các chức danh tương đương; Giáo sư; Giảng viên nội bộ/Chuyên gia cấp Tập đoàn. | 350.000 | 400.000 | 1.000.000 |
+| 3 | Phó Trưởng ban Tập đoàn, Phó giám đốc/Phó Tổng giám đốc các đơn vị cấp II và các đơn vị trực thuộc Tập đoàn, các chức danh tương đương; Phó Giáo sư/Tiến sỹ; Giảng viên nội bộ/chuyên gia cấp Tổng công ty. | 300.000 | 350.000 | 1.000.000 |
+| 4 | Chuyên viên các Ban của Tập đoàn; Trưởng, Phó Trưởng phòng/ban các đơn vị cấp II và các đơn vị trực thuộc Tập đoàn; Lãnh đạo (HĐQT, Chủ tịch Công ty, Tổng giám đốc/Giám đốc) các đơn vị cấp III, các chức danh tương đương; Thạc sỹ; Giảng viên nội bộ đơn vị cấp II (không phải Tổng công ty); Giảng viên các Trường CĐĐL. | 250.000 | 300.000 | 800.000 |
+| 5 | Chuyên viên các đơn vị cấp II và các đơn vị trực thuộc Tập đoàn, Trưởng/Phó Trưởng phòng/ban các đơn vị cấp III; Kỹ sư/Công nhân bậc cao. | 200.000 | 250.000 | 500.000 |
+| 6 | Các đối tượng còn lại là CBVNV của EVN và các đơn vị thành viên | 200.000 | 200.000 | 500.000 |
+| 7 | Giảng viên, trợ giảng thuê ngoài (trong nước, nước ngoài). | Theo thỏa thuận hợp đồng hoặc chứng từ thực tế | 200.000 | 500.000 |
+| 8 | Hiệu đính, sửa đổi tài liệu | 20% chi phí biên soạn mới tài liệu đối với các đối tượng | 200.000 | 500.000 |
+| 9 | Một số chương trình đào tạo đặc thù, chuyên sâu có thể bổ sung hạng mục khảo sát và phân tích kết quả khảo sát để xây dựng chương trình đào tạo phù hợp. Chi phí tương ứng với thù lao giảng dạy. | 20% chi phí biên soạn mới tài liệu đối với các đối tượng | 200.000 | 500.000 |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #9
+chunk_type=table | section=4Chuyên viên các Ban của Tập đoàn; Trưởng, Phó Trưởng phòng/ban các đơn vị cấp II và các đơn vị trực thuộc Tập đoàn; Lãnh đạo (HĐQT, Chủ tịch Công ty, Tổng giám đốc/Giám đốc) các đơn vị cấp III, các chức danh tương đương; Thạc sỹ; Giảng viên nội bộ đơn vị cấp II (không phải Tổng công ty); Giảng viên các Trường CĐĐL.250.000300.000800.000 | table=4Chuyên viên các Ban của Tập đoàn; Trưởng, Phó Trưởng phòng/ban các đơn vị cấp II và các đơn vị trực thuộc Tập đoàn; Lãnh đạo (HĐQT, Chủ tịch Công ty, Tổng giám đốc/Giám đốc) các đơn vị cấp III, các chức danh tương đương; Thạc sỹ; Giảng viên nội bộ đơn vị cấp II (không phải Tổng công ty); Giảng viên các Trường CĐĐL.250.000300.000800.000 | quality=pass | chars=3532
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3742/QĐ-EVNCPC - QĐ về chế độ biên soạn bài giảng học tập và mức chi phí cho các lớp bồi dưỡng ngắn hạn áp dụng tạm thời trong EVNCPC
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: 4Chuyên viên các Ban của Tập đoàn; Trưởng, Phó Trưởng phòng/ban các đơn vị cấp II và các đơn vị trực thuộc Tập đoàn; Lãnh đạo (HĐQT, Chủ tịch Công ty, Tổng giám đốc/Giám đốc) các đơn vị cấp III, các chức danh tương đương; Thạc sỹ; Giảng viên nội bộ đơn vị cấp II (không phải Tổng công ty); Giảng viên các Trường CĐĐL.250.000300.000800.000
+| TT | Nội dung | Đơn vị tính | Mức chi (VNĐ) |
+| --- | --- | --- | --- |
+| I | Chi phí tổ chức thi nội bộ | | |
+| 1 | Xây dựng ngân hàng câu hỏi | | |
+| a | Soạn thảo câu hỏi trắc nghiệm đưa vào biên tập | đồng/câu | 20.000 |
+| b | Thẩm định và biên tập câu hỏi trắc nghiệm | đồng/câu | 20.000 |
+| 2 | Ra đề thi và xây dựng đáp án | | |
+| a | Đề thi tự luận/thực hành/vấn đáp (bao gồm đáp án/đề cương, barem chấm điểm) | đồng/đề | 1.200.000 |
+| b | Đề thi trắc nghiệm (tối thiểu 30 câu/đề) | đồng/đề | 1.200.000 |
+| 3 | Chi phụ cấp Hội đồng/Ban tổ chức thi: | | |
+| a | Chủ tịch Hội đồng | đồng/người/ngày | 500.000 |
+| b | Phó chủ tịch Hội đồng | đồng/người/ngày | 450.000 |
+| c | Ủy viên, thư ký, giám thị, các thành phần giúp việc khác | đồng/người/ngày | 350.000 |
+| d | Bảo vệ vòng ngoài cho Hội đồng/Ban tổ chức thi (nếu có) | đồng/người/ngày | 150.000 |
+| 4 | Tổ chức chấm thi/thẩm định/phúc khảo (nếu có) | | |
+| a | Thi tự luận, bài thi vấn đáp | đồng/bài (lần) | 120.000 |
+| b | Bài thi thực hành (Tối đa 6 bài thi/buổi/người chấm) | đồng/bài | 120.000 |
+| c | Thi trắc nghiệm | người/ngày | 450.000 |
+| II | Chi cho CBCNV tại Hội thảo/Hội đồng đánh giá/Lớp bồi dưỡng nội bộ ngắn hạn | | |
+| 1 | Chi thù lao cho cán bộ tham gia hội thảo | | |
+| a | Người chủ trì | đồng/buổi Hội thảo | 1.500.000 |
+| b | Thư ký hội thảo | đồng/buổi Hội thảo | 500.000 |
+| c | Báo cáo viên trình bày tại Hội thảo | đồng/báo cáo | 2.000.000 |
+| d | Báo cáo được đặt hàng nhưng không trình bày tại Hội thảo | đồng/báo cáo | 1.000.000 |
+| e | Thành viên tham gia Hội thảo | đồng/người/buổi Hội thảo | 200.000 |
+| 2 | Chi thù lao cho Hội đồng đánh giá Kế hoạch hành động các lớp CBQL cấp 2, 3 ,4 | | |
+| a | Chủ tịch Hội đồng | đồng/buổi | 1.000.000 |
+| b | Phó chủ tịch; Thành viên hội đồng... | đồng/buổi | 800.000 |
+| c | Chi khen thưởng học viên đạt loại giỏi/xuất sắc | đồng/người | 200.000 |
+| d | Nhân viên hỗ trợ lớp học/hội thảo (y tế, phục vụ, bảo vệ...) | ngày/người | 400.000 |
+| 3 | Chi phí phục vụ trực tiếp lớp đào tạo/Hội thảo | | |
+| a | Khánh tiết khai/bế giảng | đồng/lần | 1.500.000 |
+| b | Hội trường/phòng học | đồng/ngày | 2.000.000 |
+| c | Đóng quyển tài liệu | đồng/quyển | 30.000 |
+| d | In và cấp chứng chỉ | đồng/chứng chỉ | 100.000 |
+| e | Văn phòng phẩm cho học viên | đồng/người/khóa học | 50.000 |
+| f | Máy chiếu, bút bảng...và các trang bị cần thiết khác. | đồng/ngày | 1.500.000 |
+| g | Hỗ trợ tiền ăn cho học viên, giảng viên | đồng/ngày/người | 70.000 |
+| h | Giải khát giữa giờ | đồng/người/buổi | 30.000 |
+| 500 | | | |
+| l | Chi tiền thuốc y tế thông thường cho học viên | đồng/người/khóa | 20.000 |
+| 4 | Tổ chức đi tham quan, học tập thực tế | | |
+| a | Chi trả tiền phương tiện đưa, đón học viên/giảng viên đi khảo sát, thực tế | đồng/người/lượt đi | 200.000 |
+| b | Hỗ trợ một phần tiền ăn cho học viên và giảng viên trong những ngày đi thực tế | đồng/người/ngày | 150.000 |
+| 5 | Chi phí quản lý lớp học | 7% tổng chi phí | 150.000 |

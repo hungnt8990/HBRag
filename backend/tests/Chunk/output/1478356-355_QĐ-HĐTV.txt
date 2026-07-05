@@ -1,0 +1,640 @@
+================================================================================
+id_vb        : 1478356
+ky_hieu      : 355/QĐ-HĐTV
+trich_yeu    : QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-18
+ten_file     : QĐ vv Quy che DMCP, KHSXKD, GBBD - Copy.pdf
+TỔNG SỐ CHUNK: 32
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=255
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 355/QĐ-HĐTV
+Ngày văn bản: 18/06/2026
+Trích yếu: QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Nguyễn Thanh
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=862
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+PHIẾU THEO DÕI BAN HÀNH TÀI LIỆU
+
+Tên tài liệu: Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung.
+
+Mã hiệu: EVNCPC-TCKT/QC.62
+
+Lần ban hành
+
+Thời gian Mô tả lý do/nội dung Quyết định phê duyệt ban
+
+(BH)/Sử
+
+BH/SĐ ban hành hành
+
+a đổi (SĐ)
+
+Quyết định số: /QĐ-
+
+BH01 / /2026 Ban hành lần đầu
+
+HĐTV ngày / /2026 EVNCPC-PC/QĐ.68 B.01
+
+MỤC LỤC
+
+QUY CHẾ VỀ ĐỊNH MỨC CHI PHÍ, GIÁ BÁN BUÔN ĐIỆN, KẾ HOẠCH TÀI CHÍNH TRONG TÔNG CÔNG TY ĐIỆN LỰC MIÊN TRUNG (Ban hành kèm theo Quyết định số /QĐ-HĐTV ngà y / /2026
+
+của Tổng công ty Điện lực miền Trung)
+
+CHƯƠNG IQUY ĐỊNH CHUNG
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=2948
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 1
+| TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG | TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG S | TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG Số: 355/QĐ HĐTV | TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG | CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM Độc lập - Tự do - Hạnh phúc | CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM Độc lập - Tự do - Hạnh phúc | CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM Độc lập - Tự do - Hạnh phúc Đà Nẵn Đà Nẵn | CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM Độc lập - Tự do - Hạnh phúc ng, ngày 18 tháng 6 năm 2026 | CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM Độc lập - Tự do - Hạnh phúc | CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM Độc lập - Tự do - Hạnh phúc |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| | QUYẾT ĐỊNH Về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung | | | | | | | | |
+| H | HỘI ĐỒNG THÀNH VIÊN TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG | | | | | | | | |
+| (E 1 H 0 đ 1 T | Căn cứ Điều lệ tổ chức và hoạt động của Tổng công ty Điện lực miền Trung EVNCPC) được ban hành, sửa đổi, bổ sung theo Quyết định số 90/QĐ-EVN ngày 12/4/2019, Quyết định số 293/QĐ-EVN ngày 20/9/2019, Quyết định số 116/QĐ HĐTV ngày 05/8/2022, Quyết định số 01/QĐ-HĐTV ngày 02/1/2025, Quyết định số 07/QĐ-HĐTV ngày 03/1/2025, Quyết định số 08/QĐ-HĐTV ngày 03/1/2025, Quyế định số 20/QĐ-HĐTV ngày 15/1/2025, Quyết định số 126/QĐ-HĐTV ngày 16/5/2025 và Quyết định số 147/QĐ-HĐTV ngày 06/6/2025 của Hội đồng thành viên Tập đoàn Điện lực Việt Nam (EVN); | | | | | | | g y Đ-ố ết y n | |
+| ty S | Căn cứ Nghị quyết số 170-NQ/ĐU ngày 09/06/2026 của Đảng ủy Tổng công y Điện lực miền Trung về việc thông qua Quy chế về định mức chi phí, kế hoạch SXKD tài chính, giá bán buôn điện trong Tổng công ty Điện lực miền Trung; | | | | | | | g h | |
+| v p T | Căn cứ Nghị quyết số 338/NQ-HĐTV ngày 08/06/2026 của Hội đồng thành viên Tổng công ty Điện lực miền Trung về việc thông qua Quy chế về định mức ch phí, kế hoạch SXKD tài chính, giá bán buôn điện trong Tổng công ty Điện lực miền Trung; | | | | | | | h hi n | |
+| h | Theo đề nghị của Kế toán trưởng, Trưởng Ban Pháp chế, Trưởng Ban Tổng hợp Tổng công ty Điện lực miền Trung. QUYẾT ĐỊNH: | | | | | | | g | |
+| b h | Điều 1. Ban hành kèm theo Quyết định này "Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung", mã hiệu: EVNCPC-TCKT/QC.62 | | | | | | | á ã | |
+| tr | Điều 2. Quyết định này có hiệu lực kể từ ngày ký. Các quy định về định mức chi phí, giao giá bán buôn điện, kế hoạch tài chính rong EVNCPC tại Chương XII của Quy chế Quản lý tài chính kế toán trong Tổng | | | | | | | h g | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=Bảng DOffice 2 | table=Bảng DOffice 2 | quality=pass | chars=1791
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 2
+| c 2 TGc c | công ty Điện lực miền Trung ban hành kèm theo Quyết định số 690/QĐ HĐTV ngày 21/07/2025 hết hiệu lực thi hành kể từ ngày Quyết định này có hiệu lực. Điều 3. Hội đồng thành viên EVNCPC, Tổng giám đốc EVNCPC, các Phó | công ty Điện lực miền Trung ban hành kèm theo Quyết định số 690/QĐ HĐTV ngày | công ty Điện lực miền Trung ban hành kèm theo Quyết định số 690/QĐ HĐTV ngày | y ó C, ại n |
+| --- | --- | --- | --- | --- |
+| Tổng giám đốc EVNCPC, Kế toán trưởng, Chánh Văn phòng, Trưởng Ban EVNCPC Giám đốc đơn vị trực thuộc EVNCPC; Người đại diện phần vốn của EVNCPC tạ công ty cổ phần, công ty trách nhiệm hữu hạn và các tổ chức, cá nhân có liên quan chịu trách nhiệm thi hành Quyết định này./. | Tổng giám đốc EVNCPC, Kế toán trưởng, Chánh Văn phòng, Trưởng Ban EVNCPC Giám đốc đơn vị trực thuộc EVNCPC; Người đại diện phần vốn của EVNCPC tạ công ty cổ phần, công ty trách nhiệm hữu hạn và các tổ chức, cá nhân có liên quan chịu trách nhiệm thi hành Quyết định này./. | Tổng giám đốc EVNCPC, Kế toán trưởng, Chánh Văn phòng, Trưởng Ban EVNCPC Giám đốc đơn vị trực thuộc EVNCPC; Người đại diện phần vốn của EVNCPC tạ công ty cổ phần, công ty trách nhiệm hữu hạn và các tổ chức, cá nhân có liên quan chịu trách nhiệm thi hành Quyết định này./. | | |
+| Nơi nhận: - Như Điều 3; - EVN (báo cáo); - Đảng ủy EVNCPC (báo cáo); - KSV EVN tại EVNCPC; - Lưu: VT, PC, TCKT. | Nơi nhận: - Như Điều 3; - EVN (báo cáo); - Đảng ủy EVNCPC (báo cáo); - KSV EVN tại EVNCPC; - Lưu: VT, PC, TCKT. | | TM. HỘI ĐỒNG THÀNH VIÊN CHỦ TỊCH Nguyễn Thanh | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=legal_clause | section=Chương I QUY ĐỊNH CHUNG > Điều 1 Phạm vi điều chỉnh và đối tượng áp dụng | quality=pass | chars=732
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Chương I QUY ĐỊNH CHUNG > Điều 1 Phạm vi điều chỉnh và đối tượng áp dụng
+Điều 1. Phạm vi điều chỉnh và đối tượng áp dụng
+
+1. Phạm vi điều chỉnh
+
+Quy chế này quy định nội dung công việc định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong EVNCPC.
+
+2. Đối tượng áp dụng
+
+a) Cơ quan Tổng công ty Điện lực miền Trung.
+
+b) Các đơn vị trực thuộc Tổng công ty Điện lực miền Trung.
+
+c) Người đại diện phần vốn của Tổng công ty Điện lực miền Trung tại các công ty cổ phần, công ty trách nhiệm hữu hạn.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=legal_clause | section=Chương I QUY ĐỊNH CHUNG > Điều 2 Giải thích từ ngữ | quality=pass | chars=937
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Chương I QUY ĐỊNH CHUNG > Điều 2 Giải thích từ ngữ
+Điều 2. Giải thích từ ngữ
+
+Các từ ngữ trong Quy chế này được hiểu như sau:
+
+1. Đơn vị: bao gồm các đơn vị trực thuộc EVNCPC, Cơ quan EVNCPC.
+
+2. EVN: Tập đoàn Điện lực Việt Nam;
+
+3. EVNCPC: Tổng công ty Điện lực miền Trung;
+
+4. CTĐL: Công ty Điện lực;
+
+5. Các từ ngữ khác trong Quy chế này đã được giải thích trong các văn bản pháp luật, Điều lệ EVNCPC, Quy chế tài chính của EVNCPC và Quy chế phân cấp của EVNCPC thì có nghĩa như trong các văn bản đó.
+
+6. Mọi dẫn chiếu đến bất kỳ văn bản quy phạm pháp luật, quy chế nội bộ nào trong Quy chế này sẽ bao gồm những văn bản sửa đổi bổ sung, hoặc thay thế của văn bản, quy chế đó.
+
+CHƯƠNG II ĐỊNH MỨC CHI PHÍ
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=legal_clause | section=Chương II ĐỊNH MỨC CHI PHÍ > Điều 3 Quy định chung về xây dựng định mức chi phí | quality=pass | chars=1051
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Chương II ĐỊNH MỨC CHI PHÍ > Điều 3 Quy định chung về xây dựng định mức chi phí
+Điều 3. Quy định chung về xây dựng định mức chi phí
+
+1. Việc xây dựng định mức bao gồm toàn bộ quá trình từ khi bắt đầu có đề xuất (trên cơ sở nhu cầu thực tế), giao - nhận nhiệm vụ cho đến lựa chọn tư vấn (nếu cần thiết), tổ chức khảo sát, theo dõi, tổng hợp số liệu, báo cáo, bảo vệ trước các cơ quan và cấp có thẩm quyền, thực hiện những công việc liên quan khác đến khi có quyết định công bố, ban hành.
+
+2. Định mức chi phí được tính toán trên cơ sở định mức kinh tế - kỹ thuật và đơn giá chi tiết.
+
+3. Trong trường hợp chưa xây dựng được định mức kinh tế - kỹ thuật, định mức chi phí tổng hợp được xây dựng trên cơ sở xem xét quá trình thực hiện của các năm quá khứ và hiện tại, định hướng các năm tiếp theo để đáp ứng yêu cầu quản lý.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=legal_clause | section=Chương II ĐỊNH MỨC CHI PHÍ > Điều 4 Các định mức chi phí và căn cứ xây dựng định mức cho các CTĐL phục vụ SXKD điện > Khoản 1 | quality=pass | chars=2967
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Chương II ĐỊNH MỨC CHI PHÍ > Điều 4 Các định mức chi phí và căn cứ xây dựng định mức cho các CTĐL phục vụ SXKD điện > Khoản 1
+Điều 4. Các định mức chi phí và căn cứ xây dựng định mức cho các CTĐL phục vụ SXKD điện.
+1. Các định mức chi phí của CTĐL gồm định mức chi phí khâu phân phối và định mức chi phí khâu kinh doanh bán lẻ điện được tính bằng đồng/kWh, triệu đồng bao gồm:
+
+a) Định mức chi phí vật liệu bao gồm: công cụ, dụng cụ, dầu máy biến thế, dầu mỡ bôi trơn, vật tư, vật liệu cho sửa chữa thường xuyên, công tác thí nghiệm, sửa chữa sự cố (mang tính thường xuyên), hòm (hộp) công tơ, biến dòng điện, biến điện áp (không bao gồm hòm (hộp) công tơ, biến dòng điện, biến điện áp đối với phát triển khách hàng mới), vật liệu quản lý vận hành kinh doanh, quản lý vận hành lưới điện, điện nông thôn và các chi phí khác có liên quan.
+
+b) Định mức chi phí dịch vụ mua ngoài bao gồm chi phí trả cho tổ chức, cá nhân ngoài đơn vị ký hợp đồng cung cấp các dịch vụ: điện (không bao gồm chi phí mua điện của EVN, chi phí mua điện trên thị trường điện, chi phí mua điện từ các đơn vị phát điện, hộ gia đình theo phân cấp và chi phí mua điện do các CTĐL mua hộ theo phân cấp, ủy quyền của EVNCPC), nước, điện thoại, bưu phí, viễn thông, công nghệ thông tin, Internet, công nghệ, thuê kênh truyền, bản quyền, bảo hiểm tài sản, thuê tư vấn, kiểm toán, chi phí thuê ngoài (thuê mặt bằng, thuê tài sản, thuê dịch vụ), các dịch vụ liên quan đến công tác quản lý, vận hành, bảo dưỡng, kinh doanh điện, dịch vụ bán lẻ điện năng, dịch vụ điện nông thôn và các chi phí khác có liên quan.
+
+c) Định mức chi phí khác bằng tiền (không bao gồm tiền ăn ca, các loại thuế, phí, lệ phí, các khoản dự phòng) bao gồm các chi phí hội nghị, tiếp khách, công tác phí, tàu xe đi phép, đào tạo; chi phí sửa chữa (ngoài vật liệu), bảo hành công trình, an toàn lao động, kỹ thuật an toàn vệ sinh công nghiệp, phòng chống cháy nổ, bão lụt, y tế cơ quan, an ninh quốc phòng, chi phí sửa chữa lưới điện không cắt điện (chi phí hotline); chi phí phương tiện công tác cho các cán bộ điện lực phải dùng phương tiện cá nhân đi lại làm công tác vận hành, sửa chữa đường dây, ghi chỉ số công tơ, thu tiền điện, chi phí khoán (nếu có) cho công tác thu tiền điện; chi phí trả cho ngân hàng các dịch vụ thu tiền qua ngân hàng, các tổ chức cung ứng dịch vụ trung gian thanh toán thu tiền điện, qua thẻ ATM, ví điện tử (nếu có); chi phí nghiên cứu, phát triển khoa học công nghệ, sáng kiến cải tiến (theo quy định); quảng cáo, tuyên truyền và các chi phí khác có liên quan.
+
+d) Chi phí phát triển khách hàng bao gồm: chi phí phục vụ cho việc cấp điện cho khách hàng mới như vật tư, vật liệu lắp đặt, hòm (hộp) công tơ, biến dòng điện, biến điện áp và các chi phí khác có liên quan.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #8
+chunk_type=legal_clause | section=Chương II ĐỊNH MỨC CHI PHÍ > Điều 4 Các định mức chi phí và căn cứ xây dựng định mức cho các CTĐL phục vụ SXKD điện > Khoản 1 | quality=pass | chars=2006
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Chương II ĐỊNH MỨC CHI PHÍ > Điều 4 Các định mức chi phí và căn cứ xây dựng định mức cho các CTĐL phục vụ SXKD điện > Khoản 1
+g kiến cải tiến (theo quy định); quảng cáo, tuyên truyền và các chi phí khác có liên quan.
+
+d) Chi phí phát triển khách hàng bao gồm: chi phí phục vụ cho việc cấp điện cho khách hàng mới như vật tư, vật liệu lắp đặt, hòm (hộp) công tơ, biến dòng điện, biến điện áp và các chi phí khác có liên quan.
+
+e) Chi phí chăm sóc khách hàng và truyền thông bao gồm: các chi phí nhằm thông báo nhanh nhất thông tin liên quan đến việc cung cấp điện đối với khách hàng (dịch vụ voice brandname, tin nhắn SMS về lượng điện, tiền điện hàng tháng, tiền điện còn nợ, lịch cắt điện sửa chữa); chi phí cho các công việc, hoạt động của trung tâm chăm sóc khách hàng, tổ chức hoạt động phòng giao dịch khách hàng; đánh giá sự hài lòng của khách hàng, tổ chức hội nghị khách hàng, sản xuất ấn phẩm, in ấn tài liệu, tờ rơi hướng dẫn về quy định, thủ tục cấp điện, thanh toán; các công việc hợp tác truyền thông, phim, sách, ảnh, các chương trình tài trợ (đủ điều kiện đưa vào chi phí sản xuất kinh doanh), tiếp xúc, họp báo, hội nghị, hội thảo, tổ chức sự kiện liên quan đến truyền thông, quan hệ cộng đồng với dân chúng, báo chí, các tổ chức đoàn thể chính trị xã hội, các chương trình, hoạt động, sự kiện hướng tới khách hàng sử dụng điện như công tác tuyên truyền, vận động, quảng bá công tác tiết kiệm điện và các chi phí khác có liên quan.
+
+f) Chi phí công tơ bao gồm: toàn bộ chi phí lắp đặt mới, thay thế cháy hỏng thiết bị đo đếm gồm công tơ, công tơ điện tử, thiết bị thu thập và truyền dữ liệu, sim data; chi phí kiểm định công tơ (ban đầu, định kỳ, sau sửa chữa); phí sử dụng tần số vô tuyến; vận hành hệ thống thu thập dữ liệu và các chi phí khác có liên quan.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #9
+chunk_type=legal_clause | section=Chương II ĐỊNH MỨC CHI PHÍ > Điều 4 Các định mức chi phí và căn cứ xây dựng định mức cho các CTĐL phục vụ SXKD điện > Khoản 1 | quality=pass | chars=914
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Chương II ĐỊNH MỨC CHI PHÍ > Điều 4 Các định mức chi phí và căn cứ xây dựng định mức cho các CTĐL phục vụ SXKD điện > Khoản 1
+toàn bộ chi phí lắp đặt mới, thay thế cháy hỏng thiết bị đo đếm gồm công tơ, công tơ điện tử, thiết bị thu thập và truyền dữ liệu, sim data; chi phí kiểm định công tơ (ban đầu, định kỳ, sau sửa chữa); phí sử dụng tần số vô tuyến; vận hành hệ thống thu thập dữ liệu và các chi phí khác có liên quan.
+
+g) Định mức chi phí sửa chữa lớn bao gồm: toàn bộ chi phí cho công tác sửa chữa lớn các tài sản cố định khâu phân phối - bán lẻ điện (bao gồm chi phí sửa chữa bảo dưỡng theo tình trạng thiết bị (CBM)) được tính trên cơ sở nguyên giá tài sản cố định năm N-3.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #10
+chunk_type=table | section=Bảng DOffice 3 | table=Bảng DOffice 3 | quality=pass | chars=440
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 3
+QUY CHẾ VỀ ĐỊNH MỨC CHI PHÍ, GIÁ BÁN BUÔN ĐIỆN, KẾ HOẠCH TÀI CHÍNH TRONG TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG - Ban hành: 01 | EVNCPC-TCKT/QC.62 | EVNCPC-TCKT/QC.62 - Trang 1/11 | EVNCPC-TCKT/QC.62
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #11
+chunk_type=table | section=Bảng DOffice 4 | table=Bảng DOffice 4 | quality=pass | chars=440
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 4
+QUY CHẾ VỀ ĐỊNH MỨC CHI PHÍ, GIÁ BÁN BUÔN ĐIỆN, KẾ HOẠCH TÀI CHÍNH TRONG TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG - Ban hành: 01 | EVNCPC-TCKT/QC.62 | EVNCPC-TCKT/QC.62 - Trang 2/11 | EVNCPC-TCKT/QC.62
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #12
+chunk_type=legal_clause | section=Chương II ĐỊNH MỨC CHI PHÍ > Điều 4 Các định mức chi phí và căn cứ xây dựng định mức cho các CTĐL phục vụ SXKD điện > Khoản 2 | quality=pass | chars=832
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Chương II ĐỊNH MỨC CHI PHÍ > Điều 4 Các định mức chi phí và căn cứ xây dựng định mức cho các CTĐL phục vụ SXKD điện > Khoản 2
+2. Các căn cứ xây dựng định mức
+
+a) Các quy định về chức năng nhiệm vụ của khâu phân phối và khâu kinh doanh bán lẻ điện.
+
+b) Các số liệu của tài liệu thiết kế, quy trình vận hành, sửa chữa và những điều kiện kỹ thuật trong sản xuất, kinh doanh.
+
+c) Các tiêu chuẩn kỹ thuật, chất lượng do cơ quan có thẩm quyền quy định.
+
+d) Các chỉ tiêu về tiết kiệm vật tư, chi phí và lao động trong sản xuất, kinh doanh.
+
+e) Các số liệu thống kê hàng năm và các tài liệu có liên quan khác.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #13
+chunk_type=legal_clause | section=Chương II ĐỊNH MỨC CHI PHÍ > Điều 5 Các định mức chi phí và căn cứ xây dựng định mức cho các đơn vị khối quản lý ngành và phụ… | quality=pass | chars=2953
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Chương II ĐỊNH MỨC CHI PHÍ > Điều 5 Các định mức chi phí và căn cứ xây dựng định mức cho các đơn vị khối quản lý ngành và phụ…
+Điều 5. Các định mức chi phí và căn cứ xây dựng định mức cho các đơn vị khối quản lý ngành và phụ trợ hạch toán phụ thuộc EVNCPC phục vụ SXKD điện.
+
+1. Các định mức chi phí được tính bằng đồng/kWh, triệu đồng, bao gồm:
+
+a) Định mức chi phí vật liệu bao gồm: chi phí vật liệu, công cụ, vật liệu cho sửa chữa thường xuyên, sửa chữa sự cố, công tác thí nghiệm, máy móc, thiết bị, vật liệu, công cụ, dụng cụ đồ dùng cho văn phòng, công tác quản lý và các chi phí khác có liên quan.
+
+b) Định mức chi phí dịch vụ mua ngoài bao gồm: chi phí trả cho tổ chức, cá nhân ngoài đơn vị cung cấp các dịch vụ; tiền điện, nước, dịch vụ điện thoại, viễn thông, công nghệ thông tin, Internet, công nghệ, thuê kênh truyền, bản quyền; sách báo; chi phí thuê tư vấn, kiểm toán; chi phí thuê tài sản; chi phí bảo hiểm tài sản và chi phí cho các dịch vụ khác có ký hợp đồng cung cấp dịch vụ để phục vụ cho công tác quản lý và các công tác chuyên môn, vận hành hệ thống, chi nhuận bút cho các cộng tác viên báo chí và các chi phí khác có liên quan.
+
+c) Định mức chi phí khác bằng tiền (không bao gồm tiền ăn ca, các loại thuế, phí, lệ phí, các khoản dự phòng) gồm: công tác phí, tàu xe; chi phí hội nghị, tiếp khách; chi phí đào tạo; chi phí nghiên cứu, phát triển khoa học công nghệ, sáng kiến cải tiến (theo quy định); chi phí bảo hiểm vật chất xe ô tô; xăng xe, chi phí xe ô tô;
+
+chi phí dân quân tự vệ, bảo vệ, phòng chống bão lụt, chi phí sửa chữa thường xuyên (ngoài vật liệu), phòng cháy chữa cháy; chi phí bảo hộ lao động, trang phục làm việc, an toàn lao động, vệ sinh công nghiệp và môi trường; chi phí nước uống trong giờ làm việc, bồi dưỡng hiện vật ca đêm, bồi dưỡng hiện vật cho nghề nặng nhọc độc hại, nguy hiểm và nghề đặc biệt nặng nhọc, độc hại nguy hiểm; chi phí sơ cấp cứu tai nạn lao động, thuốc chữa bệnh thông thường, phục hồi chức năng cho người lao
+
+động; chi phí truyền thông; chi phí tuyển dụng, các khoản chi phí bằng tiền khác và các chi phí khác có liên quan.
+
+d) Chi phí sửa chữa lớn bao gồm toàn bộ chi phí cho công tác sửa chữa lớn hàng năm (bao gồm chi phí sửa chữa bảo dưỡng theo tình trạng thiết bị (CBM)) được xác định trên cơ sở các quy định về định mức sửa chữa lớn.
+
+2. Các căn cứ xây dựng định mức
+
+a) Các số liệu của tài liệu thiết kế, quy trình vận hành, sửa chữa và những điều kiện kỹ thuật trong sản xuất, kinh doanh.
+
+b) Các tiêu chuẩn kỹ thuật, chất lượng do cơ quan có thẩm quyền quy định.
+
+c) Các chỉ tiêu về tiết kiệm vật tư, chi phí, lao động trong sản xuất, kinh doanh.
+
+d) Các số liệu thống kê hàng năm và các tài liệu có liên quan khác.
+
+CHƯƠNG III GIÁ BÁN BUÔN ĐIỆN
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #14
+chunk_type=table | section=Bảng DOffice 5 | table=Bảng DOffice 5 | quality=pass | chars=440
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 5
+QUY CHẾ VỀ ĐỊNH MỨC CHI PHÍ, GIÁ BÁN BUÔN ĐIỆN, KẾ HOẠCH TÀI CHÍNH TRONG TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG - Ban hành: 01 | EVNCPC-TCKT/QC.62 | EVNCPC-TCKT/QC.62 - Trang 3/11 | EVNCPC-TCKT/QC.62
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #15
+chunk_type=legal_clause | section=Chương III GIÁ BÁN BUÔN ĐIỆN > Điều 6 Giá bán buôn điện của EVNCPC bán cho các CTĐL | quality=pass | chars=3176
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Chương III GIÁ BÁN BUÔN ĐIỆN > Điều 6 Giá bán buôn điện của EVNCPC bán cho các CTĐL
+Điều 6. Giá bán buôn điện của EVNCPC bán cho các CTĐL
+
+Giá bán buôn điện sẽ được tính toán thành các mức giá: giá bán buôn điện giờ cao điểm, giá bán buôn điện giờ thấp điểm và giá bán buôn điện giờ bình thường đảm bảo bình quân các mức giá bán buôn điện theo giờ tính toán tại mục a, b, c khoản 2 bằng kết quả tính toán giá bán buôn điện tại khoản 1 Điều này.
+
+a) Giá bán buôn điện giờ bình thường
+
+Giá bán buôn điện giờ bình thường T (đồng/kWh) là mức giá bán áp dụng trong giai đoạn thời gian giờ bình thường hàng ngày theo quy định hiện hành và được xác định theo công thức:
+
+mđ(kh)
+
+bt 12 ∑ (Acđj × h ) + A × i+ Abt j=1
+
+Các thông số tính toán kế hoạch chi phí mua điện, sản lượng điện, hệ số chênh lệch trong công thức nêu trên được xác định như sau:
+
+a1) Cmđ(kh) (đồng) là chi phí mua điện kế hoạch:
+
+hđ mđ(kh) = TDTi,N - Cppi,N - LNi,N - MPi,NTrong đó:
+
++ TDTi,N (đồng): tổng doanh thu dự kiến góp phần tạo doanh thu SXKD điện của CTĐL i năm N;
+
++ Cppi,N (đồng) : tổng chi phí phân phối, bán lẻ điện dự kiến của CTĐL i năm N;
+
++ LNi,N (đồng) : lợi nhuận định mức của CTĐL i năm N.
+
+hđ (đồng) là chi phí mua điện dự kiến từ các nhà máy điện, đơn vị + MPi,Nphát điện ký hợp đồng mua bán điện với CTĐL, chi phí mua điện từ điện mặt trời mái nhà (không bao gồm các nhà máy điện, đơn vị phát điện CTĐL mua theo phân cấp, ủy quyền của EVNCPC).
+
+a2) Sản lượng điện:
+
+hđ cđj + A + A = AGNi,N - ATSXi,N - MPi,NTrong đó:
+
+Các thành phần sau đây được quy định theo khoản 1 Điều này tính sản lượng mua EVNCPC để tính giá bán buôn điện cho CTĐL:
+
++ AGNi,N (kWh) là điện năng thực nhận đầu nguồn.
+
++ ATSXi,N (kWh) là điện năng tự sản xuất của đơn vị i năm Nhđ + MPi,N (kWh) là sản lượng điện mua dự kiến từ các nhà máy điện, đơn vị
+
+phát điện ký hợp đồng mua bán điện với CTĐL, sản lượng điện mua từ điện mặt trời mái nhà (không bao gồm các nhà máy điện, đơn vị phát điện CTĐL mua theo phân cấp, ủy quyền của EVNCPC) của CTĐL i năm N;
+
+Sản lượng mua EVNCPC của CTĐL để tính giá bán buôn điện tách theo giờ như sau:
+
++ Acđj (kWh) là Sản lượng điện mua giờ cao điểm tương ứng với tháng j (từ tháng 1 đến tháng 12).
+
++ A (kWh) là Sản lượng điện mua giờ bình thường.
+
++A (kWh) là Sản lượng điện mua giờ thấp điểm.
+
+a3) Hệ số chênh lệch:
+
++ h: Hệ số chênh lệch giá bán buôn giờ cao điểm và giá bán buôn điện giờ bình thường trong các tháng j
+
+ Với j = tháng 1,2,3,10,11,12: h = 1,65
+
+ Với j = tháng 4,5,6: h = 1,73
+
+ Với j = tháng 7,8,9: h = 1,56
+
++ i = 0,55 : Hệ số chênh lệch giá bán buôn điện giờ thấp điểm và giá bán buôn điện giờ bình thường.
+
+b) Giá bán buôn điện giờ cao điểm
+
+Giá bán buôn điện giờ cao điểm Tcđj (đồng/kWh) là mức giá bán áp dụng trong giai đoạn thời gian giờ cao điểm hàng ngày theo quy định hiện hành và được xác định theo công thức sau:
+
+Tcđj = Tx hj
+
+Trong đó: h được quy định tại điểm a khoản 2 Điều này.
+
+c) Giá bán buôn điện giờ thấp điểm
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #16
+chunk_type=legal_clause | section=Chương III GIÁ BÁN BUÔN ĐIỆN > Điều 6 Giá bán buôn điện của EVNCPC bán cho các CTĐL | quality=pass | chars=1018
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Chương III GIÁ BÁN BUÔN ĐIỆN > Điều 6 Giá bán buôn điện của EVNCPC bán cho các CTĐL
+iờ cao điểm
+
+Giá bán buôn điện giờ cao điểm Tcđj (đồng/kWh) là mức giá bán áp dụng trong giai đoạn thời gian giờ cao điểm hàng ngày theo quy định hiện hành và được xác định theo công thức sau:
+
+Tcđj = Tx hj
+
+Trong đó: h được quy định tại điểm a khoản 2 Điều này.
+
+c) Giá bán buôn điện giờ thấp điểm
+
+Giá bán buôn điện giờ thấp điểm T (đồng/kWh) là mức giá bán áp dụng trong giai đoạn thời gian giờ thấp điểm hàng ngày theo quy định hiện hành và được xác định theo công thức sau:
+
+T = T × i
+
+Trong đó: i được quy định tại điểm a khoản 2 Điều này.
+
+Đối với sản lượng điện thương phẩm tương ứng với sản lượng thuỷ điện nhỏ, mặt trời mái nhà, tự sản xuất của đơn vị trực thuộc các CTĐL tự cân đối tài chính.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #17
+chunk_type=table | section=Bảng DOffice 6 | table=Bảng DOffice 6 | quality=pass | chars=440
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 6
+QUY CHẾ VỀ ĐỊNH MỨC CHI PHÍ, GIÁ BÁN BUÔN ĐIỆN, KẾ HOẠCH TÀI CHÍNH TRONG TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG - Ban hành: 01 | EVNCPC-TCKT/QC.62 | EVNCPC-TCKT/QC.62 - Trang 4/11 | EVNCPC-TCKT/QC.62
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #18
+chunk_type=table | section=Bảng DOffice 7 | table=Bảng DOffice 7 | quality=pass | chars=440
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 7
+QUY CHẾ VỀ ĐỊNH MỨC CHI PHÍ, GIÁ BÁN BUÔN ĐIỆN, KẾ HOẠCH TÀI CHÍNH TRONG TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG - Ban hành: 01 | EVNCPC-TCKT/QC.62 | EVNCPC-TCKT/QC.62 - Trang 5/11 | EVNCPC-TCKT/QC.62
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #19
+chunk_type=legal_clause | section=Chương III GIÁ BÁN BUÔN ĐIỆN > Điều 7 Nguyên tắc xây dựng giá bán buôn điện | quality=pass | chars=722
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Chương III GIÁ BÁN BUÔN ĐIỆN > Điều 7 Nguyên tắc xây dựng giá bán buôn điện
+Điều 7. Nguyên tắc xây dựng giá bán buôn điện
+
+1. Giá bán buôn điện được tính toán theo các khung giờ (cao điểm, thấp điểm, bình thường).
+
+2. Giá bán buôn điện được xây dựng phù hợp với cơ chế quản lý tài chính, mô hình hoạt động, yêu cầu quản trị điều hành, các chỉ tiêu sản xuất kinh doanh của đơn vị.
+
+3. Trong năm, EVNCPC có thể áp dụng giá bán buôn điện tạm cho các CTĐL trong thời gian chưa có giá chính thức.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #20
+chunk_type=legal_clause | section=Chương III GIÁ BÁN BUÔN ĐIỆN > Điều 8 Thời điểm xây dựng và điều chỉnh giá bán buôn điện cho các CTĐL | quality=pass | chars=941
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Chương III GIÁ BÁN BUÔN ĐIỆN > Điều 8 Thời điểm xây dựng và điều chỉnh giá bán buôn điện cho các CTĐL
+Điều 8. Thời điểm xây dựng và điều chỉnh giá bán buôn điện cho các CTĐL
+
+1. Giá bán buôn điện của EVNCPC cho các CTĐL được xây dựng, ban hành và áp dụng từ ngày 01 tháng 01 hàng năm.
+
+2. Giá bán buôn điện cho các CTĐL được xem xét điều chỉnh khi cấp có thẩm quyền phê duyệt điều chỉnh mức giá bán lẻ điện bình quân hoặc trong năm, EVN
+
+điều chỉnh giá bán buôn điện cho EVNCPC hoặc trong năm có những yếu tố biến động khách quan (nếu có) tác động, ảnh hưởng đến tình hình, kết quả sản xuất kinh doanh, tài chính của EVNCPC cũng như của từng CTĐL. Việc điều chỉnh giá bán buôn điện áp dụng từ ngày 01 tháng 01.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #21
+chunk_type=table | section=Bảng DOffice 8 | table=Bảng DOffice 8 | quality=pass | chars=440
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 8
+QUY CHẾ VỀ ĐỊNH MỨC CHI PHÍ, GIÁ BÁN BUÔN ĐIỆN, KẾ HOẠCH TÀI CHÍNH TRONG TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG - Ban hành: 01 | EVNCPC-TCKT/QC.62 | EVNCPC-TCKT/QC.62 - Trang 6/11 | EVNCPC-TCKT/QC.62
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #22
+chunk_type=legal_clause | section=Chương III GIÁ BÁN BUÔN ĐIỆN > Điều 9 Quy trình, trình tự tính toán, điều chỉnh giá bán buôn điện | quality=pass | chars=2098
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Chương III GIÁ BÁN BUÔN ĐIỆN > Điều 9 Quy trình, trình tự tính toán, điều chỉnh giá bán buôn điện
+Điều 9. Quy trình, trình tự tính toán, điều chỉnh giá bán buôn điện
+
+1. Tổng Giám đốc chỉ đạo các Ban của EVNCPC phối hợp việc tính toán giá bán buôn điện trình Hội đồng Thành viên EVNCPC phê duyệt.
+
+2. Căn cứ theo tiến độ công việc, trình tự thực hiện của các Ban EVNCPC:
+
+a) Ban Tài chính Kế toán : Chủ trì việc tính toán giá bán buôn điện trên cơ sở từ số liệu do các CTĐL, các Ban chức năng và các đơn vị có liên quan cung cấp.
+
+b) Ban Kế Hoạch: Chủ trì rà soát cung cấp kế hoạch sửa chữa lớn EVNCPC giao cho các CTĐL cho Ban Tài chính Kế toán.
+
+c) Ban Kinh Doanh: Phối hợp với Ban Kế hoạch rà soát sản lượng điện thương phẩm và chủ trì rà soát cung cấp sản lượng, chi phí điện mua điện mặt trời mái nhà;
+
+giá bán lẻ điện bình quân; sản lượng điện EVNCPC bán cho các CTĐL theo giờ cao, thấp điểm, bình thường (sản lượng điện mua của các CTĐL), doanh thu công suất phản kháng từng CTĐL và tổng hợp toàn EVNCPC cung cấp cho Ban Tài chính Kế toán và Ban Kế hoạch.
+
+d) Ban Tổ chức & Nhân sự: Chủ trì tính toán, cung cấp kế hoạch tiền lương và các khoản trích theo lương, ăn ca của các đơn vị cho Ban Tài chính Kế toán và Ban Kế hoạch.
+
+e) Ban Kỹ Thuật: Chủ trì cung cấp kế hoạch tổn thất, truyền tải hộ, sản lượng điện tự sản xuất của từng đơn vị cung cấp cho Ban Kinh Doanh và phối hợp với Ban Kinh Doanh rà soát, tính toán sản lượng điện bán cho các công ty Điện lực.
+
+f) Trong trường hợp cần thiết Ban Tài chính Kế toán chủ trì, lấy ý kiến các Ban liên quan về các lĩnh vực chuyên môn cần thiết (nếu có) để hoàn thiện việc tính toán và trình duyệt giá bán buôn điện trong quá trình thực hiện.
+
+g) Các Ban chịu trách nhiệm về số liệu, tài liệu cung cấp cho Ban Tài chính Kế toán.
+
+CHƯƠNG IV
+
+KẾ HOẠCH TÀI CHÍNH VÀ ƯỚC THỰC HIỆN KẾT QUẢ SẢN XUẤT
+
+KINH DOANH CỦA EVNCPC
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #23
+chunk_type=table | section=Bảng DOffice 9 | table=Bảng DOffice 9 | quality=pass | chars=440
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 9
+QUY CHẾ VỀ ĐỊNH MỨC CHI PHÍ, GIÁ BÁN BUÔN ĐIỆN, KẾ HOẠCH TÀI CHÍNH TRONG TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG - Ban hành: 01 | EVNCPC-TCKT/QC.62 | EVNCPC-TCKT/QC.62 - Trang 7/11 | EVNCPC-TCKT/QC.62
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #24
+chunk_type=legal_clause | section=Chương IV KẾ HOẠCH TÀI CHÍNH VÀ ƯỚC THỰC HIỆN KẾT QUẢ SẢN XUẤT > Điều 10 Lập kế hoạch tài chính và ước thực hiện kết quả sản xuất kinh doanh của EVNCPC | quality=pass | chars=1554
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Chương IV KẾ HOẠCH TÀI CHÍNH VÀ ƯỚC THỰC HIỆN KẾT QUẢ SẢN XUẤT > Điều 10 Lập kế hoạch tài chính và ước thực hiện kết quả sản xuất kinh doanh của EVNCPC
+Điều 10. Lập kế hoạch tài chính và ước thực hiện kết quả sản xuất kinh doanh của EVNCPC
+
+Kế hoạch tài chính và ước thực hiện kết quả sản xuất kinh doanh của EVNCPC được xây dựng trên cơ sở:
+
+a) Kế hoạch điện sản xuất và điện mua của EVNCPC.
+
+b) Kế hoạch tỷ lệ điện dùng cho truyền tải và phân phối điện của EVNCPC.
+
+c) Kế hoạch sản lượng điện thương phẩm, giá bán lẻ điện thương phẩm bình quân của EVNCPC.
+
+d) Doanh thu liên quan đến hoạt động sản xuất kinh doanh điện (nếu có).
+
+e) Kế hoạch chi phí sản xuất kinh doanh của các đơn vị.
+
+f) Chi phí mua điện dự kiến qua thị trường điện và hợp đồng mua bán điện (của các nhà máy điện được phân bổ và các nhà máy điện ký hợp đồng mua bán điện trực tiếp với EVNCPC), chi phí mua điện từ điện mặt trời mái nhà (hoặc các loại hình)
+
+theo phân cấp, ủy quyền của EVN cho EVNCPC.
+
+g) Các khoản chi phí khác chưa được tính vào giá điện dự kiến phát sinh trong năm kế hoạch.
+
+h) Các khoản giảm trừ giá thành điện (nếu có).
+
+i) Doanh thu, chi phí, lãi lỗ hoạt động tài chính, và hoạt động sản xuất, kinh doanh khác (nếu có).
+
+j) Các yếu tố khác tác động, ảnh hưởng đến hoạt động sản xuất kinh doanh của EVNCPC và các đơn vị (nếu có).
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #25
+chunk_type=legal_clause | section=Chương IV KẾ HOẠCH TÀI CHÍNH VÀ ƯỚC THỰC HIỆN KẾT QUẢ SẢN XUẤT > Điều 11 Trình tự lập kế hoạch tài chính và ước thực hiện kết quả sản xuất kinh doanh của EVNCPC | quality=pass | chars=2048
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Chương IV KẾ HOẠCH TÀI CHÍNH VÀ ƯỚC THỰC HIỆN KẾT QUẢ SẢN XUẤT > Điều 11 Trình tự lập kế hoạch tài chính và ước thực hiện kết quả sản xuất kinh doanh của EVNCPC
+Điều 11. Trình tự lập kế hoạch tài chính và ước thực hiện kết quả sản xuất kinh doanh của EVNCPC
+
+1. Các đơn vị thành viên: lập báo cáo kế hoạch tài chính, ước thực hiện kết quả sản xuất kinh doanh theo yêu cầu điều hành sản xuất kinh doanh của EVN, EVNCPC;
+
+làm cơ sở điều chỉnh kế hoạch, điều chỉnh giá, lập kế hoạch, xây dựng giá cho năm tiếp theo, việc thực hiện các giải pháp (nếu có) để đạt kế hoạch.
+
+2. Trình tự thực hiện của các Ban EVNCPC :
+
+Ban Tài chính Kế toán: chủ trì việc tính toán, lập kế hoạch tài chính, ước thực hiện kết quả sản xuất kinh doanh của EVNCPC từ các số liệu do các đơn vị thành viên báo cáo, các Ban của EVNCPC cung cấp.
+
+Ban Kinh Doanh: chủ trì rà soát, tính toán sản lượng điện thương phẩm, giá bán lẻ điện bình quân của EVNCPC, sản lượng và chi phí mua điện trên thị trường điện, mua điện mặt trời mái nhà và các nguồn năng lượng khác (nếu có), sản lượng điện mua EVN theo giờ cao, thấp điểm, bình thường, doanh thu công suất phản kháng của EVNCPC.
+
+Ban Kỹ Thuật: chủ trì cung cấp số liệu tổn thất, sản lượng điện tự sản xuất, truyền tải hộ cho Ban Kinh doanh và phối hợp với Ban Kinh doanh rà soát, tính toán sản lượng điện mua của EVNCPC.
+
+Ban Tổ chức & Nhân sự: chủ trì tính toán, cung cấp kế hoạch, ước thực hiện tiền lương và các khoản tính theo lương cho Ban Tài chính Kế toán.
+
+Trong trường hợp cần thiết, Ban chủ trì lấy ý kiến các Ban liên quan về các lĩnh vực chuyên môn để hoàn thiện việc rà soát, tính toán và trình duyệt số liệu kế hoạch tài chính, ước thực hiện kết quả SXKD.
+
+Các Ban chịu trách nhiệm về số liệu, tài liệu cung cấp cho Ban Tài chính Kế toán và các Ban liên quan.
+
+CHƯƠNG VTỔ CHỨC THỰC HIỆN
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #26
+chunk_type=table | section=Bảng DOffice 10 | table=Bảng DOffice 10 | quality=pass | chars=441
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 10
+QUY CHẾ VỀ ĐỊNH MỨC CHI PHÍ, GIÁ BÁN BUÔN ĐIỆN, KẾ HOẠCH TÀI CHÍNH TRONG TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG - Ban hành: 01 | EVNCPC-TCKT/QC.62 | EVNCPC-TCKT/QC.62 - Trang 8/11 | EVNCPC-TCKT/QC.62
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #27
+chunk_type=legal_clause | section=Chương V TỔ CHỨC THỰC HIỆN > Điều 12 Tổ chức thực hiện | quality=pass | chars=660
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Chương V TỔ CHỨC THỰC HIỆN > Điều 12 Tổ chức thực hiện
+Điều 12. Tổ chức thực hiện
+
+1. Các tổ chức, cá nhân và các Đơn vị có trách nhiệm thi hành Quy chế này.
+
+2. Căn cứ quy định tại Quy chế này, người đại diện phần vốn của EVNCPC tại các công ty cổ phần, công ty TNHH có trách nhiệm biểu quyết, ban hành quy định về định mức chi phí, kế hoạch tài chính tại doanh nghiệp do mình làm đại diện, quản lý.
+
+CHƯƠNG VI THÔNG TIN LƯU TRỮ
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #28
+chunk_type=legal_clause | section=Chương VI THÔNG TIN LƯU TRỮ > Điều 13 Quy định về thông tin lưu trữ | quality=pass | chars=1088
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Chương VI THÔNG TIN LƯU TRỮ > Điều 13 Quy định về thông tin lưu trữ
+Điều 13. Quy định về thông tin lưu trữ
+
+Việc lưu trữ, thời gian lưu trữ, phương pháp hủy, bảo quản hồ sơ được thực hiện theo quy định của pháp luật, EVN, Quy định về công tác Văn phòng trong Tổng công ty Điện lực miền Trung và các QCNB có liên quan khác của EVNCPC.
+
+TÀI LIỆU VIỆN DẪN
+
+I. Văn bản quy phạm pháp luật:
+
+1. Thông tư số 99/2025/TT-BTC ngày 27/10/2025 của Bộ Tài chính hướng dẫn Chế độ kế toán doanh nghiệp.
+
+Các văn bản dẫn chiếu tại các mục nêu trên được hiểu bao gồm cả các sửa đổi bổ sung hoặc thay thế tương ứng sau này.
+
+II. Quy chế, quy định quản lý nội bộ của EVN, EVNCPC
+
+1. Quyết định 777/QĐ-EVN ngày 07/06/2025 của EVN về việc Quy định Xây dựng định mức, quản lý chi phí sản xuất kinh doanh, giá điện và giá dịch vụ về điện trong Tập đoàn Điện lực Việt Nam năm 2025.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #29
+chunk_type=table | section=Bảng DOffice 11 | table=Bảng DOffice 11 | quality=pass | chars=441
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 11
+QUY CHẾ VỀ ĐỊNH MỨC CHI PHÍ, GIÁ BÁN BUÔN ĐIỆN, KẾ HOẠCH TÀI CHÍNH TRONG TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG - Ban hành: 01 | EVNCPC-TCKT/QC.62 | EVNCPC-TCKT/QC.62 - Trang 9/11 | EVNCPC-TCKT/QC.62
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #30
+chunk_type=table | section=Bảng DOffice 12 | table=Bảng DOffice 12 | quality=pass | chars=441
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 12
+QUY CHẾ VỀ ĐỊNH MỨC CHI PHÍ, GIÁ BÁN BUÔN ĐIỆN, KẾ HOẠCH TÀI CHÍNH TRONG TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG - Ban hành: 01 | EVNCPC-TCKT/QC.62 | EVNCPC-TCKT/QC.62 - Trang 1/11 | EVNCPC-TCKT/QC.62
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #31
+chunk_type=table | section=Bảng DOffice 13 | table=Bảng DOffice 13 | quality=pass | chars=441
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 355/QĐ-HĐTV - QĐ về việc ban hành Quy chế về định mức chi phí, giá bán buôn điện, kế hoạch tài chính trong Tổng công ty Điện lực miền Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 13
+QUY CHẾ VỀ ĐỊNH MỨC CHI PHÍ, GIÁ BÁN BUÔN ĐIỆN, KẾ HOẠCH TÀI CHÍNH TRONG TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG - Ban hành: 01 | EVNCPC-TCKT/QC.62 | EVNCPC-TCKT/QC.62 - Trang 1/11 | EVNCPC-TCKT/QC.62

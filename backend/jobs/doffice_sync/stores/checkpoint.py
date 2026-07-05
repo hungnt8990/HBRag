@@ -74,3 +74,21 @@ class CheckpointStore:
             if row is not None:
                 await session.delete(row)
                 await session.commit()
+
+    async def clear_prefix(self, prefix: str) -> int:
+        """Xoá MỌI checkpoint có ``job_name`` bắt đầu bằng ``prefix`` (mọi phạm vi của 1 job).
+
+        Dùng khi reset toàn bộ: job chunk kho AI tách checkpoint theo phạm vi issuer_org
+        (``kho_ai_chunk``, ``kho_ai_chunk_org256``...) -> xoá hết để quét lại từ đầu. Trả số dòng đã xoá.
+        """
+        async with AsyncSessionLocal() as session:
+            rows = (
+                await session.execute(
+                    select(JobSyncCheckpoint).where(JobSyncCheckpoint.job_name.like(f"{prefix}%"))
+                )
+            ).scalars().all()
+            for row in rows:
+                await session.delete(row)
+            if rows:
+                await session.commit()
+            return len(rows)

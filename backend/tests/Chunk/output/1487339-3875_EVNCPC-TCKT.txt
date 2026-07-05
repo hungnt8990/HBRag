@@ -1,0 +1,83 @@
+================================================================================
+id_vb        : 1487339
+ky_hieu      : 3875/EVNCPC-TCKT
+trich_yeu    : V/v báo cáo số liệu thực hiện 6 tháng đầu năm và ước thực hiện cả năm 2026
+
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-25
+ten_file     : VB gui DVTV va cac Ban_TH 6th dau nam va UTH 2026.pdf
+TỔNG SỐ CHUNK: 4
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=210
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3875/EVNCPC-TCKT
+Ngày văn bản: 25/06/2026
+Trích yếu: V/v báo cáo số liệu thực hiện 6 tháng đầu năm và ước thực hiện cả năm 2026
+
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Hồ Thăng Thu
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=761
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3875/EVNCPC-TCKT - V/v báo cáo số liệu thực hiện 6 tháng đầu năm và ước thực hiện cả năm 2026
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+Độc lập - Tự do - Hạnh phúc TỔNG CÔNG TY
+
+ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 25 tháng 6 năm 2026 Số: 3875/EVNCPC-TCKT V/v báo cáo số liệu thực hiện 6 tháng đầu năm và ước thực hiện cả năm 2026
+
+Kính gửi: Các đơn vị thành viên EVNCPC
+
+Thực hiện văn bản số 3574/EVN-TCKT ngày 22/6/2026 (VB 3574) của EVN về việc báo cáo số liệu thực hiện 6 tháng đầu năm 2026 và ước thực hiện cả năm 2026, Tổng công ty đề nghị các đơn vị báo cáo số liệu thực hiện 6 tháng đầu năm, ước thực hiện cả năm 2026, cụ thể như sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=1. CPC NPMU và CPCIT: hoàn thành nhập số liệu dự kiến tạm tăng cho các đơn vị thành viên (TSCĐ tại các CTĐL thành viên) trên tiện ích khai thác số liệu ERP chậm nhất ngày 03/7/2026 . | quality=pass | chars=989
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3875/EVNCPC-TCKT - V/v báo cáo số liệu thực hiện 6 tháng đầu năm và ước thực hiện cả năm 2026
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 1. CPC NPMU và CPCIT: hoàn thành nhập số liệu dự kiến tạm tăng cho các đơn vị thành viên (TSCĐ tại các CTĐL thành viên) trên tiện ích khai thác số liệu ERP chậm nhất ngày 03/7/2026 .
+1. CPC NPMU và CPCIT: hoàn thành nhập số liệu dự kiến tạm tăng cho các đơn vị thành viên (TSCĐ tại các CTĐL thành viên) trên tiện ích khai thác số liệu ERP chậm nhất ngày 03/7/2026 .
+
+2. Các đơn vị thành viên:
+
+Báo cáo số liệu doanh thu, chi phí SXKD điện và SXKD khác thực hiện 6 tháng đầu năm và ước thực hiện cả năm 2026 theo mẫu tại Phụ lục Ikèm theo, gửi báo cáo về Tổng công ty chậm nhất ngày 04/7/2026 . Trong đó: Chi phí khấu hao và lãi vay năm 2026 được tính toán trên cơ sở các dự án hoàn thành đưa vào sử dụng đến ngày 30/6/2026 và dự kiến các dự án hoàn thành đưa vào sử dụng các tháng còn lại trong năm 2026.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=3. Các Ban KD, KT, KH, TCNS: | quality=pass | chars=926
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3875/EVNCPC-TCKT - V/v báo cáo số liệu thực hiện 6 tháng đầu năm và ước thực hiện cả năm 2026
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 3. Các Ban KD, KT, KH, TCNS:
+3. Các Ban KD, KT, KH, TCNS:
+
+Cung cấp số thực hiện 6 tháng đầu năm và ước thực hiện các tháng cuối năm 2026 các chỉ tiêu tại Phụ lục II kèm theo.
+
+Trên cơ sở các quyết định giao kế hoạch số 1790/QĐ-EVN ngày 25/12/2025, số 339/QĐ-EVN ngày 10/3/2026 của EVN, phân tích các nguyên nhân tăng, giảm các chỉ tiêu so với kế hoạch EVN giao, đề xuất các giải pháp và kiến nghị (theo mẫu Dự thảo báo cáo đính kèm).
+
+Các Ban gửi số liệu về Ban TCKT chậm nhất ngày 05/7/2026 để kịp thời tổng hợp, báo cáo EVN trước ngày 07/7/2026 theo thời hạn của VB 3574./.
+
+KT. TỔNG GIÁM ĐỐC Nơi nhận: PHÓ TỔNG GIÁM ĐỐC - Như trên;
+
+- TGĐ (báo cáo);
+
+- PTGĐ Nguyễn Hữu Khánh;
+
+- Các Ban: KH, KD, KT, TCNS;
+
+- Lưu: VT, TCKT.
+
+Hồ Thăng Thu

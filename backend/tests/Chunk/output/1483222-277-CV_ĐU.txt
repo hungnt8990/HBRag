@@ -1,0 +1,60 @@
+================================================================================
+id_vb        : 1483222
+ky_hieu      : 277-CV/ĐU
+trich_yeu    : Gửi “Bản tin Sinh hoạt chi bộ - Số Chuyên đề Quý II năm 2026”
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-22
+ten_file     : CV GỬI BẢN TIN SH QUÝ II NĂM 2026.pdf
+TỔNG SỐ CHUNK: 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=192
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 277-CV/ĐU
+Ngày văn bản: 22/06/2026
+Trích yếu: Gửi “Bản tin Sinh hoạt chi bộ - Số Chuyên đề Quý II năm 2026”
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Nguyễn Bình Nam
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1161
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 277-CV/ĐU - Gửi “Bản tin Sinh hoạt chi bộ - Số Chuyên đề Quý II năm 2026”
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+ĐẢNG BỘ PHƯỜNG HÒA CƯỜNG ĐẢNG CỘNG SẢN VIỆT NAM ĐẢNG ỦY TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày tháng năm 2026
+
+Số: - CV/ĐU
+
+V/v gửi "Bản tin Sinh hoạt chi bộ - Số Chuyên đề
+
+Quý II năm 2026"
+
+Kính gửi: Cấp ủy các tổ chức đảng trực thuộc
+
+Đảng ủy Tổng công ty Điện lực miền Trung vừa nhận được Bản tin Sinh hoạt chi bộ - Số Chuyên đề quý II năm 2026 do Ban Tuyên giáo và Dân vận Thành ủy Đà Nẵng phát hành (tài liệu kèm theo). Đảng ủy Tổng công ty đề nghị cấp ủy các tổ chức đảng trực thuộc triển khai tuyên truyền, phổ biến Bản tin Sinh hoạt chi bộ - Số Chuyên đề Quý II năm 2026 đến toàn thể cán bộ, đảng viên và người lao động.
+
+Việc tuyên truyền cần được thực hiện linh hoạt, lồng ghép trong sinh hoạt chi bộ, sinh hoạt chuyên đề bảo đảm nội dung bản tin được quán triệt đầy đủ. Đồng thời, các cấp ủy chủ động nắm bắt tình hình tư tưởng, dư luận, kịp thời định hướng thông tin, góp phần nâng cao nhận thức chính trị, củng cố niềm tin và tạo sự thống nhất trong toàn Đảng bộ Tổng công ty./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=164
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: T/MĐẢNG ỦY
+
+- Như trên, PHÓ BÍ THƯ
+
+- Đảng ủy P. Hòa Cường (để b/c),
+
+- Các đ/c UVBTV ĐU TCT,
+
+- Các tổ chức CT-XH TCT,
+
+- Lưu: VT, TGĐU.
+
+Nguyễn Bình Nam

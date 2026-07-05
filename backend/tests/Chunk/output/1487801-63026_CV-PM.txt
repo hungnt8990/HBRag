@@ -1,0 +1,120 @@
+================================================================================
+id_vb        : 1487801
+ky_hieu      : 63026/CV-PM
+trich_yeu    : V/v thông báo thông tin các nhân sự triển khai gói thầu và tiến đô cấp 2 cho hợp đồng số HD2600141278_2606161556
+noi_ban_hanh : CÔNG TY CP PTCN VT TIN HỌC SUN VIỆT
+ngay_vb      : 2026-06-25
+ten_file     : CV thông báo tiến độ và nhân sự 1556.pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=249
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 63026/CV-PM
+Ngày văn bản: 25/06/2026
+Trích yếu: V/v thông báo thông tin các nhân sự triển khai gói thầu và tiến đô cấp 2 cho hợp đồng số HD2600141278_2606161556
+Nơi ban hành: CÔNG TY CP PTCN VT TIN HỌC SUN VIỆT
+Người ký: Hoàng Mạnh Cường
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1514
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 63026/CV-PM - V/v thông báo thông tin các nhân sự triển khai gói thầu và tiến đô cấp 2 cho hợp đồng số HD2600141278_2606161556
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: CÔNG TY CP PTCN VT TIN HỌC SUN VIỆT
+Kính gửi: CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG -
+TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG
+
+Công ty Cổ phần Phát triển Công nghệ Viễn thông Tin học Sun Việt (SVTECH) xin gửi tới Quý Công ty lời chào trân trọng và lời cảm ơn chân thành vì sự hỗ trợ và hợp tác trong thời gian qua.
+
+Căn cứ theo tiến độ thực hiện hợp đồng số HD2600141278_2606161556, ký ngày 22/06/2026, giữa Công ty Công nghệ Thông tin Điện lực miền Trung - Tổng Công ty Điện lực miền Trung và Công ty Cổ phần Phát triển Công nghệ Viễn thông Tin học Sun Việt (SVTECH) về việc thực hiện gói thầu HDDT.DR.2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật hệ thống máy chủ vật lý, thuộc dự án: Đầu tư hạ tầng máy chủ triển khai hóa đơn điện tử tại vị trí dự phòng TTDL năm 2026.
+
+Để đảm bảo công tác quản lý, giám sát và phối hợp triển khai công việc được đồng bộ và hiệu quả, chúng tôi trân trọng thông báo thông tin các nhân sự triển khai gói thầu và tiến độ cấp 2 như phụ lục đính kèm:
+
+- Phụ lục danh sách nhân sự tham gia triển khai
+
+- Bảng tiến độ triển khai cấp 2
+
+Rất mong tiếp tục nhận được sự phối hợp, tạo điều kiện từ phía Quý Công ty để gói thầu được hoàn thành đúng tiến độ và đạt chất lượng tốt nhất.
+
+Trân trọng kính chào!
+
+Nơi nhân:
+
+- Như trên;
+
+- Lưu VT.
+
+ĐẠI DIỆN CÔNG TY SVTECH
+Phó Tổng Giám đốc
+
+HOÀNG MẠNH CƯỜNG
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=table | section=Phụ lục danh sách nhân sự tham gia triển khai | table=Phụ lục danh sách nhân sự tham gia triển khai | quality=pass | chars=826
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 63026/CV-PM - V/v thông báo thông tin các nhân sự triển khai gói thầu và tiến đô cấp 2 cho hợp đồng số HD2600141278_2606161556
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: CÔNG TY CP PTCN VT TIN HỌC SUN VIỆT
+Bảng: Phụ lục danh sách nhân sự tham gia triển khai
+| Họ và tên | CCCD | Vai trò trong dự án |
+| --- | --- | --- |
+| Đoàn Ngọc Thiện | 079094021059 | Quản lý dự án |
+| Trần Huỳnh Minh Tân | 082099001252 | Trưởng nhóm dự án |
+| Phan Minh Trí | 079093040493 | Kỹ sư |
+| Nguyễn Phước Thành | 091201007921 | Kỹ sư |
+| Trần Ngọc Hiếu | 079084013902 | Kỹ sư |
+| Dương Thiệu Khang | 079095020288 | Kỹ sư |
+| Đồng Xuân Anh | 022098001801 | Kỹ sư |
+| Văn Vũ Hoàng Long | 052200001639 | Kỹ sư |
+| Lê Tấn Lực | 079086031143 | Kỹ sư |
+| Nguyễn Trung Phát | 079089007168 | Kỹ sư |
+| Nguyễn Văn Mạnh | 036089011901 | Kỹ sư |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=Bảng DOffice 2 | table=Bảng DOffice 2 | quality=pass | chars=2800
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 63026/CV-PM - V/v thông báo thông tin các nhân sự triển khai gói thầu và tiến đô cấp 2 cho hợp đồng số HD2600141278_2606161556
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: CÔNG TY CP PTCN VT TIN HỌC SUN VIỆT
+Bảng: Bảng DOffice 2
+| # | Task Thực Hiện | PIC | Số ngày | Từ ngày | Đến ngày | Ghi chú |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | Đặt hàng bàn giao hàng hóa, chuẩn bị trước triển khai | SVTECH | 126 | 22/06/2026 | 25/10/2026 | |
+| 1.1 | Đặt hàng phần cứng thiết bị IBM Power System | SVTECH | 125 | 22/06/2026 | 24/10/2026 | |
+| 1.2 | Bàn giao hàng hóa cho Chủ đầu tư | SVTECH | 1 | 25/10/2026 | 25/10/2026 | |
+| 2 | Khảo sát và lập tài liệu triển khai | SVTECH - CPCIT | 28 | 01/07/2026 | 28/07/2026 | |
+| 2.1 | Khảo sát hạ tầng triển khai và thu thập yêu cầu triển khai | SVTECH - CPCIT | 7 | 01/07/2026 | 07/07/2026 | Thực hiện trong thời gian chờ hàng về |
+| 2.2 | Lập tài liệu thiết kế triển khai chi tiết | SVTECH | 14 | 08/07/2026 | 21/07/2026 | |
+| 2.3 | Kickoff - Trình bày kế hoạch triển khai với chủ đầu tư và phê duyệt kế hoạch | SVTECH - CPCIT | 7 | 22/07/2026 | 28/07/2026 | |
+| 3 | Triển khai cài đặt, cấu hình tích hợp máy chủ IBM | SVTECH | 34 | 26/10/2026 | 28/11/2026 | |
+| 3.1 | Lắp đặt thiết bị, đi dây nguồn, cáp Network, cáp FC và đánh nhãn | SVTECH | 7 | 26/10/2026 | 01/11/2026 | |
+| 3.2 | Smooth start thiết bị, cấu hình ip quản trị, update firmware cho thiết bị | SVTECH | 7 | 02/11/2026 | 08/11/2026 | |
+| 3.3 | Tích hợp IBM Power System vào HMC | SVTECH | 6 | 09/11/2026 | 14/11/2026 | |
+| 3.4 | Cấu hình tạo LPAR và cài đặt OS | SVTECH | 7 | 15/11/2026 | 21/11/2026 | |
+| 3.5 | Thực hiện thích hợp Network, SAN, zoning và mount vào hệ máy chủ. | SVTECH | 7 | 22/11/2026 | 28/11/2026 | |
+| 4 | Kiểm thử và Golive hệ thống | SVTECH - CPCIT | 12 | 29/11/2026 | 10/12/2026 | |
+| 4.1 | Thực hiện các bài kiểm thử theo thống nhất với chủ đầu tư | SVTECH | 5 | 29/11/2026 | 03/12/2026 | |
+| 4.2 | Golive hệ thống và theo dõi | SVTECH | 7 | 04/12/2026 | 10/12/2026 | |
+| 5 | Đào tạo, chuyển giao tài liệu | SVTECH - CPCIT | 5 | 11/12/2026 | 15/12/2026 | |
+| 6 | Nghiệm thu dự án | SVTECH - CPCIT | 5 | 16/12/2026 | 20/12/2026 | |
+| Thời gian giao hàng | Thời gian giao hàng | Thời gian giao hàng | Thời gian giao hàng | Thời gian giao hàng | Thời gian giao hàng | Thời gian giao hàng |
+| Tổng thời gian thực hiện dịch vụ | Tổng thời gian thực hiện dịch vụ | Tổng thời gian thực hiện dịch vụ | Tổng thời gian thực hiện dịch vụ | Tổng thời gian thực hiện dịch vụ | Tổng thời gian thực hiện dịch vụ | Tổng thời gian thực hiện dịch vụ |
+| Thời gian thực hiện gói thầu | Thời gian thực hiện gói thầu | Thời gian thực hiện gói thầu | Thời gian thực hiện gói thầu | Thời gian thực hiện gói thầu | Thời gian thực hiện gói thầu | Thời gian thực hiện gói thầu |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_body | section=Phụ lục | artifact=appendix | quality=pass | chars=305
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 63026/CV-PM - V/v thông báo thông tin các nhân sự triển khai gói thầu và tiến đô cấp 2 cho hợp đồng số HD2600141278_2606161556
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: CÔNG TY CP PTCN VT TIN HỌC SUN VIỆT
+Mục: Phụ lục
+Phụ lục danh sách nhân sự tham gia triển khai
+
+BẢNG TIẾN ĐỘ TRIỂN KHAI CẤP 2

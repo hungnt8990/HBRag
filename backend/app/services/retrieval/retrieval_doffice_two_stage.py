@@ -3,8 +3,9 @@
 Tái dùng nguyên ``TwoStageHybridSearchService`` (retrieval_document_index.py): chỉ thay
 ``document_index`` bằng :class:`DofficeStage1Resolver`. Stage-1 hợp nhất (RRF) 2 nguồn
 cấp văn bản — ES BM25 (`hbrag_doffice_documents_v1`) cho keyword + Qdrant docmeta
-(`hbrag_doffice_docmeta_v1`) cho ngữ nghĩa/ký hiệu — ra top-N document_id. Stage-2 search
-chunk trong Qdrant (`hbrag_doffice_chunks_v1`, dense+sparse) giới hạn trong N văn bản đó.
+(`hbrag_doffice_docmeta_v1`) cho ngữ nghĩa — ra top-N document_id. Stage-2 search
+chunk trong Qdrant (`hbrag_doffice_chunks_v1`, dense-only; lexical = ES BM25) giới hạn
+trong N văn bản đó.
 
 ES không còn index chunk -> nửa keyword cấp chunk (NoOp) để giữ contract HybridSearchService.
 """
@@ -67,7 +68,7 @@ class DofficeStage1Resolver:
             if doc_id:
                 scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (_RRF_K + rank)
 
-        # Qdrant docmeta (semantic + sparse ký hiệu).
+        # Qdrant docmeta (semantic, dense-only).
         try:
             docmeta_resp = await self._docmeta.search(query=query, top_k=top_n, acl_subject=acl_subject)
             docmeta_results = docmeta_resp.results

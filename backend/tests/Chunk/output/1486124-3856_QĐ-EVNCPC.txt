@@ -1,0 +1,220 @@
+================================================================================
+id_vb        : 1486124
+ky_hieu      : 3856/QĐ-EVNCPC
+trich_yeu    : QĐ cử cán bộ tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-24
+ten_file     : 7. QD cu hoc vien.pdf
+TỔNG SỐ CHUNK: 9
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=217
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3856/QĐ-EVNCPC
+Ngày văn bản: 24/06/2026
+Trích yếu: QĐ cử cán bộ tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Hồ Thăng Thu
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1108
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3856/QĐ-EVNCPC - QĐ cử cán bộ tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+TỔNG CÔNG TY Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+QUYẾT ĐỊNH
+
+Về việc cử cán bộ tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+
+TỔNG GIÁM ĐỐC TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG
+
+Căn cứ Quyết định số 90/QĐ-EVN ngày 12/4/2019, Quyết định số 293/QĐ-EVN ngày 20/9/2019, Quyết định số 116/QĐ-HĐTV ngày 05/8/2022, Quyết định số 01/QĐ-HĐTV ngày 02/01/2025, Quyết định số 20/QĐ-HĐTV ngày 15/01/2025 và Quyết định số 126/QĐ-HĐTV ngày 16/05/2025 của Hội đồng thành viên Tập đoàn Điện lực Việt Nam (EVN) về việc ban hành, sửa đổi, bổ sung Điều lệ tổ chức và hoạt động của Tổng công ty Điện lực miền Trung (EVNCPC);
+
+Căn cứ Văn bản số 3697/EVNCPC-TCNS ngày 17/06/2026 của EVNCPC về việc tổ chức đào tạo ứng dụng công nghệ mới vào công tác truyền thông;
+
+Theo đề nghị của Trưởng Ban Tổ chức và Nhân sự EVNCPC.
+
+QUYẾT ĐỊNH :
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=legal_clause | section=Điều 1 Cử các cán bộ có tên trong danh sách đính kèm tham gia khóa đào tạo ứng dụng công nghệ mới… | quality=pass | chars=991
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3856/QĐ-EVNCPC - QĐ cử cán bộ tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Điều 1 Cử các cán bộ có tên trong danh sách đính kèm tham gia khóa đào tạo ứng dụng công nghệ mới…
+Điều 1. Cử các cán bộ có tên trong danh sách đính kèm tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông, cụ thể:
+
+1. Thời gian: 01 ngày (Ngày 03/07/2026 - Thứ Sáu).
+
+2. Hình thức đào tạo: Đào tạo tập trung.
+
+3. Địa điểm: Tại Trường Cao đẳng Điện lực miền Trung - Số 04 Nguyễn Tất Thành - Phường Hội An Tây - Tp. Đà Nẵng.
+
+4. Kinh phí:
+
+a. Chi phí đào tạo, nghỉ:
+
+- Đối với cán bộ của các đơn vị trực thuộc EVNCPC: Do EVNCPC chi trả từ nguồn chi phí SXKD năm 2026.
+
+- Đối với cán bộ của các đơn vị còn lại: Do đơn vị cử cán bộ tham gia đào tạo chi trả (EVNCPC chi trả trước, đơn vị chuyển trả sau).
+
+b. Các chi phí khác: Do đơn vị cử cán bộ tham gia đào tạo chi trả theo quy định.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=legal_clause | section=Điều 2 Các cán bộ có tên tại Điều 1 có trách nhiệm tham gia khóa đào tạo đầy đủ, nghiêm túc, đúng… | quality=pass | chars=428
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3856/QĐ-EVNCPC - QĐ cử cán bộ tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Điều 2 Các cán bộ có tên tại Điều 1 có trách nhiệm tham gia khóa đào tạo đầy đủ, nghiêm túc, đúng…
+Điều 2. Các cán bộ có tên tại Điều 1 có trách nhiệm tham gia khóa đào tạo đầy đủ, nghiêm túc, đúng thời gian và tuân thủ nội quy lớp học.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=legal_clause | section=Điều 3 Chánh Văn phòng, các Trưởng Ban EVNCPC, Tổng Giám đốc/Giám đốc/Hiệu trưởng các đơn vị thàn… | quality=pass | chars=457
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3856/QĐ-EVNCPC - QĐ cử cán bộ tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Điều 3 Chánh Văn phòng, các Trưởng Ban EVNCPC, Tổng Giám đốc/Giám đốc/Hiệu trưởng các đơn vị thàn…
+Điều 3. Chánh Văn phòng, các Trưởng Ban EVNCPC, Tổng Giám đốc/Giám đốc/Hiệu trưởng các đơn vị thành viên và các cán bộ có tên tại Điều 1 căn cứ quyết định thi hành./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=footer_signature | quality=pass | chars=133
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận : KT. TỔNG GIÁM ĐỐC
+
+- Như Điều 3; PHÓ TỔNG GIÁM ĐỐC
+
+- TGĐ EVNCPC (báo cáo);
+
+- VP;
+
+- CEPC;
+
+- Lưu: VT, TCNS.
+Hồ Thăng Thu
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=table | section=Phụ lục: DANH SÁCH HỌC VIÊN THAM GIA | table=Phụ lục: DANH SÁCH HỌC VIÊN THAM GIA | quality=pass | chars=3683
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3856/QĐ-EVNCPC - QĐ cử cán bộ tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Phụ lục: DANH SÁCH HỌC VIÊN THAM GIA
+Phần: 1/2
+| STT | Họ và tên | Năm sinh | Chức danh | Đơn vị Phòng/Ban | Đơn vị Đơn vị |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Hoàng Ngọc Thạch | 1977 | Phó Chánh Văn phòng | Văn phòng | EVNCPC |
+| 2 | Nguyễn Thị Phượng | 1977 | Chuyên viên | Văn phòng | EVNCPC |
+| 3 | Nguyễn Đình Vỹ | 1980 | Chuyên viên | Văn phòng | EVNCPC |
+| 4 | Phan Thị Minh Bảo | 1983 | Cán sự | Văn phòng | EVNCPC |
+| 5 | Trần Thị Đoàn Nhung | 1987 | Chuyên viên | Văn phòng | EVNCPC |
+| 6 | Lê Đặng Phương Nam | 1989 | Chuyên viên | Văn phòng | EVNCPC |
+| 7 | Trần Xuân Thái | 1995 | Chuyên viên | Văn phòng | EVNCPC |
+| 8 | Lê Minh Thành | 1979 | Chuyên viên | Văn phòng | QTPC |
+| 9 | Bùi Thị Lệ Hằng | 1991 | Chuyên viên | Văn phòng | QTPC |
+| 10 | Phan Đức Ninh | 1989 | Cán sự | Văn phòng | QTPC |
+| 11 | Mai Thanh Tuấn | 1986 | Chuyên viên | Phòng An toàn | QTPC |
+| 12 | Trần Phan Khánh Hoài | 1981 | Chuyên viên | Phòng Kinh doanh | QTPC |
+| 13 | Dương Thị Kim Anh | 1989 | Chuyên viên | Phòng Pháp chế | QTPC |
+| 14 | Đặng Thị Diệu Huyền | 1991 | Chuyên viên | Kinh doanh | HPC |
+| 15 | Trần Lê Uyển Nhi | 1991 | Chuyên viên | Kinh doanh | HPC |
+| 16 | Nguyễn Hoàng Anh | 1989 | Chuyên viên | Phòng VTCNTT | HPC |
+| 17 | Nguyễn Vũ Trung | 1987 | Chuyên viên | Phòng Tổ chức nhân sự | HPC |
+| 18 | Nguyễn Thị Hoàng Phượng | 1989 | Chuyên viên | Văn phòng | ĐNPC |
+| 19 | Lê Hà Quỳnh Tiên | 1993 | Tổ phó | Điện lực Hải Châu | ĐNPC |
+| 20 | Trần Hoàng Phương Uyên | 1990 | Chuyên viên | Điện lực Cẩm Lệ | ĐNPC |
+| 21 | Lê Hải | 1983 | Chuyên viên | Điện lực Thanh Khê | ĐNPC |
+| 22 | Phạm Khắc Ngọc Hậu | 1990 | Cán bộ | Điện lực Đại Lộc | ĐNPC |
+| 23 | Ngô Thị Hồng Phụng | 1990 | Tổ phó | Điện lực Hội An | ĐNPC |
+| 24 | Nguyễn Lê Tuân | 1980 | Chuyên viên | Văn phòng | QNPC |
+| 25 | Lâm Kiều Trinh | 1993 | Chuyên viên | Văn phòng | QNPC |
+| 26 | Đinh Công Thái | 1996 | Cán sự | Điện lực Thành phố Quảng Ngãi | QNPC |
+| 27 | Đinh Thảnh Duy | 1984 | Chuyên viên | Điện lực Nghĩa Hành | QNPC |
+| 28 | Đặng Nguyên Đức Mạnh | 1998 | Chuyên viên | Điện lực Trà Bồng | QNPC |
+| 29 | Thái Văn Hải | 1987 | Nhóm trưởng | Điện lực Đức Phổ | QNPC |
+| 30 | Nguyễn Đức Thắng | 1982 | Chuyên viên | Văn phòng | GLPC |
+| 31 | Nguyễn Thị Hồng Báu | 1990 | Nhân viên | Văn phòng | GLPC |
+| 32 | Lê Thị Minh Hảo | 1991 | Cán sự | Văn phòng | GLPC |
+| 33 | Nguyễn Đức Hải | 1991 | Chuyên viên | Kỹ thuật | GLPC |
+| 34 | Nguyễn Đức Tiến | 1990 | Chuyên viên | Phòng VTCNTT | GLPC |
+| 35 | Hoàng Lê Hải | 1970 | Chuyên viên | Phòng Tổ chức nhân sự | GLPC |
+| 36 | Nguyễn Thị Hồng Hoa | 1977 | Chánh Văn phòng | Văn phòng | ĐLPC |
+| 37 | Nguyễn Thị Thiện | 1981 | Phó Chánh Văn phòng | Văn phòng | ĐLPC |
+| 38 | Nguyễn Kim Hoàng | 1985 | Cán sự | Văn phòng | ĐLPC |
+| 39 | Nguyễn Ngô Bảo Ngọc | 1991 | Cán sự | Văn phòng Công đoàn | ĐLPC |
+| 40 | Phạm Phú Thành | 1992 | Tổ trưởng | Điện lực Ea Súp | ĐLPC |
+| 41 | Nguyễn Thị Thanh Tú | 1989 | Chuyên viên | Phòng Kinh doanh | ĐLPC |
+| 42 | Võ Thị Thu Trâm | 1979 | Chuyên viên | Văn phòng | KHoPC |
+| 43 | Lê Thị Hương Trà | 1988 | Chuyên viên | Văn phòng | KHoPC |
+| 44 | Viên Mỹ Dung | 1987 | Cán sự | Điện lực Ninh Phước | KHoPC |
+| 45 | Lê Hoàng Khắc Huy | 1990 | Cán sự | Điện lực Thuận Bắc | KHoPC |
+| 46 | Dương Xuân Thắng | 1974 | Chánh Văn phòng | Văn phòng Công ty | KHPC |
+| 47 | Tôn Thất Anh Huy | 1967 | Tổ trưởng | Văn phòng Công ty | KHPC |
+| 48 | Võ Thị Hồng Minh | 1975 | Chuyên viên | Văn phòng Công ty | KHPC |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=table | section=Phụ lục: DANH SÁCH HỌC VIÊN THAM GIA | table=Phụ lục: DANH SÁCH HỌC VIÊN THAM GIA | quality=pass | chars=2412
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3856/QĐ-EVNCPC - QĐ cử cán bộ tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Phụ lục: DANH SÁCH HỌC VIÊN THAM GIA
+Phần: 2/2
+| STT | Họ và tên | Năm sinh | Chức danh | Đơn vị Phòng/Ban | Đơn vị Đơn vị |
+| --- | --- | --- | --- | --- | --- |
+| 49 | Nguyễn Thị Hồng Tú | 1984 | Nhân viên | Văn phòng Công ty | KHPC |
+| 50 | Nguyễn Bá Dũng | 1982 | Nhân viên | Tổ chức Hành chính | CPSC |
+| 51 | Đặng Trần Đại | 1983 | Chuyên viên | Tổ chức Hành chính | CPSC |
+| 52 | Trương Thiết Lâm | 2000 | Chuyên viên | Tổ chức Hành chính | CPSC |
+| 53 | Phan Thị Khánh Ly | 1996 | Chuyên viên | Phòng Tổng hợp | CPCIT |
+| 54 | Lê Thanh Trường | 1983 | Cán sự | Phòng Tổng hợp | CPCIT |
+| 55 | Hà Thái Văn | 1990 | Chuyên viên | Phòng Phát triển ứng dụng | CPCIT |
+| 56 | Hồ Hy Vinh | 1975 | Trưởng phòng | Phòng Kế hoạch - Vật tư | ETC |
+| 57 | Tống Thị Thanh Duyên | 1988 | Chuyên viên | Văn phòng | ETC |
+| 58 | Nguyễn Thanh Thủy Tiên | 1992 | Chuyên viên | Phòng Kinh doanh | ETC |
+| 59 | Dương Minh Hoàng | 1977 | Trưởng phòng | Tổ chức Hành chính | PEC |
+| 60 | Trần Thị Thảo Uyên | 1974 | Phó Trưởng phòng | Tổ chức Hành chính | PEC |
+| 61 | Trịnh Duy Lâm | 1984 | Chuyên viên | Kế hoạch | PEC |
+| 62 | Hồ Thôi | 1969 | Trưởng phòng | Tổng hợp | CPCNPMU |
+| 63 | Phan Mai Trâm | 1984 | Chuyên viên | Tổng hợp | CPCNPMU |
+| 64 | Đoàn Thị Thoại Trang | 1991 | Chuyên viên | Phòng Quản lý công trình | CPCNPMU |
+| 65 | Lê Nguyễn Ngọc Quyên | 1989 | Tổ trưởng | Phòng CSKH | CPCCC |
+| 66 | Trần Quang Sáng | 1993 | Chuyên viên | Phòng Tổng hợp | CPCCC |
+| 67 | Nguyễn Thị Bảo Hạnh | 1992 | Chuyên viên | Phòng Kỹ thuật | CPCCC |
+| 68 | Nguyễn Văn Lục | 1977 | Phó phòng | Phòng Nghiên cứu và Phát triển | CPCEMEC |
+| 69 | Phan Thị Minh Loan | 1989 | Chuyên viên | Tổng hợp | CPCEMEC |
+| 70 | Dương Quốc Thạch Lam | 1993 | Cán sự | Kinh doanh | CPCEMEC |
+| 71 | Phan Thái Bình | 1975 | Trưởng phòng | Phòng Tổng hợp | CEPC |
+| 72 | Lại Thị Ngọc Trang | 1980 | Giảng viên | Phòng Tổng hợp | CEPC |
+| 73 | Hồ Văn Vinh | 1989 | Chuyên viên | Phòng Tổng hợp | CEPC |
+| 74 | Nguyễn Đức Thảo | 1980 | Chuyên viên | Phòng Kế hoạch - Đầu tư | PC3-INVEST |
+| 75 | Lê Thị Ngọc Ảnh | 1976 | Chuyên viên | Phòng Hành chính - Nhân sự | PC3-INVEST |
+| 76 | Lê Thanh Hoàng | 1995 | Chuyên viên | Phòng Kỹ thuật | PC3-INVEST |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #8
+chunk_type=document_body | section=Phụ lục | artifact=appendix | quality=pass | chars=236
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3856/QĐ-EVNCPC - QĐ cử cán bộ tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục
+Phụ lục: DANH SÁCH HỌC VIÊN THAM GIA

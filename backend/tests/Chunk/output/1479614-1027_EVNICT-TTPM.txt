@@ -1,0 +1,325 @@
+================================================================================
+id_vb        : 1479614
+ky_hieu      : 1027/EVNICT-TTPM
+trich_yeu    : Triển khai hệ thống nâng cấp báo cáo kinh doanh và dịch vụ khách hàng
+noi_ban_hanh : Công ty Viễn thông Điện lực và Công nghệ thông tin
+ngay_vb      : 2026-06-18
+ten_file     : 260615_BC tình hình triển khai DHKD2.pdf
+TỔNG SỐ CHUNK: 13
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=224
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 1027/EVNICT-TTPM
+Ngày văn bản: 18/06/2026
+Trích yếu: Triển khai hệ thống nâng cấp báo cáo kinh doanh và dịch vụ khách hàng
+Nơi ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Người ký: Phạm Ngọc Hiển
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=830
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1027/EVNICT-TTPM - Triển khai hệ thống nâng cấp báo cáo kinh doanh và dịch vụ khách hàng
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Mục: preamble
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM CÔNG TY VIỄN THÔNG ĐIỆN LỰC Độc lập - Tự do - Hạnh phúc VÀ CÔNG NGHỆ THÔNG TIN
+
+Số: /EVNICT-TTPM Hà Nội, ngày 18 tháng 6 năm 2026 Hà Nội, ngày tháng năm 2026 V/v triển khai hệ thống nâng cấp báo cáo kinh doanh và dịch vụ khách hàng
+
+Kính gửi: Tập đoàn Điện lực Việt Nam
+
+Thực hiện chỉ đạo của Tập đoàn Điện lực Việt Nam (EVN) tại văn bản số 2923/EVN-KDMBĐ ngày 25/5/2026 về việc "Hoàn thiện hệ thống nâng cấp báo cáo kinh doanh và dịch vụ khách hàng".
+
+Công ty Viễn thông Điện lực và Công nghệ thông tin (EVNICT) kính báo cáo Tập đoàn kết quả thực hiện như sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=1. Tình hình thực hiện: | quality=pass | chars=1628
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1027/EVNICT-TTPM - Triển khai hệ thống nâng cấp báo cáo kinh doanh và dịch vụ khách hàng
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Mục: 1. Tình hình thực hiện:
+1. Tình hình thực hiện:
+
+- EVNICT đã phối hợp với 05 Tổng công ty Điện lực (05 TCT) tổ chức rà soát, đối chiếu số liệu, đồng thời tiếp thu và hiệu chỉnh theo các ý kiến góp ý đối với 131 biểu mẫu báo cáo trên Hệ thống báo cáo phục vụ công tác kinh doanh và dịch vụ khách hàng tại EVN (DHKD 2.0). Đối với một số yêu cầu còn lại, EVNICT đã trao đổi và thống nhất với các TCT tiếp tục hoàn thiện, cập nhật trong các phiên bản tiếp theo của hệ thống CMIS và DHKD 2.0; các nội dung này không ảnh hưởng đến công tác triển khai. (chi tiết tại Phụ lục 01 và 02).
+
+- Xây dựng bổ sung 18 biểu mẫu báo cáo phát sinh (chi tiết tại Phụ lục 03).
+
+- Về việc đáp ứng mô hình triển khai và kiểm soát số liệu theo yêu cầu nghiệp vụ tại Văn bản số 6483/EVN-KD+VTCNTT ngày 16/11/2022 và Văn bản số 7391/EVN-KD+VTCNTT ngày 19/12/2024 của Tập đoàn, EVNICT đã trao đổi các yêu cầu cụ thể với đầu mối của Ban chuyên môn EVN và đã thực hiện các nội dung sau:
+
+o Bổ sung 02 biểu mẫu kiểm soát số liệu (CB07) để kịp thời kiểm tra, phát hiện và đối chiếu các thay đổi số liệu sau mỗi lần đồng bộ lại trong kỳ báo cáo;
+
+o Triển khai chức năng tự động cảnh báo qua email đối với các báo cáo thuộc diện cảnh báo.
+
+o Tăng cường vận hành đồng bộ số liệu và chủ động phối hợp với các Tổng công ty kiểm soát số liệu đã ký số trên hệ thống CMIS, bảo đảm tính nhất quán của dữ liệu khi đồng bộ lên hệ thống DHKD 2.0.
+
+(chi tiết tại Phụ lục 04)
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=2. Đề xuất kiến nghị: | quality=pass | chars=592
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1027/EVNICT-TTPM - Triển khai hệ thống nâng cấp báo cáo kinh doanh và dịch vụ khách hàng
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Mục: 2. Đề xuất kiến nghị:
+2. Đề xuất kiến nghị:
+
+Căn cứ kết quả đã thực hiện trên hệ thống DHKD 2.0, kính đề nghị Tập đoàn cho phép triển khai chính thức từ kỳ báo cáo tháng 6/2026. Trong quá trình triển khai chính thức, EVNICT tiếp tục phối hợp với các Ban EVN, Tổng công ty Điện lực để đảm bảo số liệu đầy đủ, chính xác, kịp thời.
+
+EVNICT kính báo cáo Tập đoàn xem xét và chỉ đạo.
+
+Trân trọng ./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=footer_signature | quality=pass | chars=175
+────────────────────────────────────────────────────────────────────────────────
+KT. GIÁM ĐỐC
+
+Nơi nhận: PHÓ GIÁM ĐỐC
+
+- Như trên;
+
+- Các TCTĐL (để p/h);
+
+- Ban Giám đốc (để b/c);
+
+- KH, QLĐTXD, TKDV, TTHT, TTANTT (để p/h);
+
+- Lưu: VT, TTPM.
+Phạm Ngọc Hiển
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=document_section | section=PHỤ LỤC 01: VƯỚNG MẮC VÀ KIẾN NGHỊ CỦA CÁC TCT ĐIỆN LỰC | artifact=appendix | quality=pass | chars=514
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1027/EVNICT-TTPM - Triển khai hệ thống nâng cấp báo cáo kinh doanh và dịch vụ khách hàng
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Mục: PHỤ LỤC 01: VƯỚNG MẮC VÀ KIẾN NGHỊ CỦA CÁC TCT ĐIỆN LỰC
+PHỤ LỤC 01:
+
+VƯỚNG MẮC VÀ KIẾN NGHỊ CỦA CÁC TCT ĐIỆN LỰC
+
+- Tổng hợp kết quả tiếp nhận và xử lý vướng mắc, kiến nghị của 4/5 Tổng công ty Điện lực:
+
+- Chi tiết các vướng mắc, kiến nghị của các Tổng công ty Điện lực : (Chi tiết trong Danh sách kèm theo văn bản)
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=table | section=PHỤ LỤC 01 — VƯỚNG MẮC VÀ KIẾN NGHỊ CỦA CÁC TCT ĐIỆN LỰC Tổng hợp kết quả tiếp nhận và xử lý vướng mắc, kiến nghị của 4/5 Tổng công ty Điện lực | table=PHỤ LỤC 01 — VƯỚNG MẮC VÀ KIẾN NGHỊ CỦA CÁC TCT ĐIỆN LỰC Tổng hợp kết quả tiếp nhận và xử lý vướng mắc, kiến nghị của 4/5 Tổng công ty Điện lực | quality=pass | chars=718
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1027/EVNICT-TTPM - Triển khai hệ thống nâng cấp báo cáo kinh doanh và dịch vụ khách hàng
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Bảng: PHỤ LỤC 01 — VƯỚNG MẮC VÀ KIẾN NGHỊ CỦA CÁC TCT ĐIỆN LỰC Tổng hợp kết quả tiếp nhận và xử lý vướng mắc, kiến nghị của 4/5 Tổng công ty Điện lực
+| STT | Tổng công ty | Yêu cầu tiếp nhận | Đã trao đổi, hiệu chỉnh và xử lý | Đang xử lý, theo dõi |
+| --- | --- | --- | --- | --- |
+| 1 | Tổng công ty Điện lực miền Nam | 37 | 33 | 4 |
+| 2 | Tổng công ty Điện lực miền Trung | 77 | 70 | 7 |
+| 3 | Tổng công ty Điện lực TP Hà Nội | 70 | 67 | 3 |
+| 4 | Tổng công ty Điện lực TP Hồ Chí Minh | 10 | 8 | 2 |
+| 194 | 178 | 16 | | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=document_section | section=PHỤ LỤC 02: DANH SÁCH CÁC BÁO CÁO TRÊN HỆ THỐNG DHKD 2.0 | artifact=appendix | quality=pass | chars=508
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1027/EVNICT-TTPM - Triển khai hệ thống nâng cấp báo cáo kinh doanh và dịch vụ khách hàng
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Mục: PHỤ LỤC 02: DANH SÁCH CÁC BÁO CÁO TRÊN HỆ THỐNG DHKD 2.0
+PHỤ LỤC 02:
+
+DANH SÁCH CÁC BÁO CÁO TRÊN HỆ THỐNG DHKD 2.0
+
+PHỤ LỤC 03:
+
+DANH SÁCH CÁC BÁO CÁO PHÁT SINH
+
+Các biểu mẫu báo cáo phát sinh đang được xây dựng và hoàn thiện theo hình thức cuốn chiếu, dự kiến đưa vào triển khai trong tháng 6 và tháng 7/2026.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #8
+chunk_type=table | section=DANH SÁCH CÁC BÁO CÁO TRÊN HỆ THỐNG DHKD 2.0 | table=DANH SÁCH CÁC BÁO CÁO TRÊN HỆ THỐNG DHKD 2.0 | quality=pass | chars=2368
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1027/EVNICT-TTPM - Triển khai hệ thống nâng cấp báo cáo kinh doanh và dịch vụ khách hàng
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Bảng: DANH SÁCH CÁC BÁO CÁO TRÊN HỆ THỐNG DHKD 2.0
+| TT | Mã báo cáo | Tên báo cáo | Số lượng báo cáo | Ghi chú |
+| --- | --- | --- | --- | --- |
+| 71 | | | | |
+| 1 | QT01 | Tổng hợp chỉ tiêu kinh doanh | 2 | Hoàn thành |
+| 2 | QT02 | Tổng hợp điện thương phẩm và giá bán điện | 7 | Hoàn thành |
+| 3 | QT03 | Quản lý hợp đồng và hộ thuê trọ | 2 | Hoàn thành |
+| 4 | QT04 | Tổng hợp tình hình thu tiền điện | 4 | Hoàn thành |
+| 5 | QT05 | Dịch vụ khách hàng | 5 | Hoàn thành |
+| 6 | QT06 | Tổn thất và giao nhận điện năng | 4 | Hoàn thành |
+| 7 | QT07 | Tổng hợp thiết bị đo đếm | 5 | Hoàn thành |
+| 8 | QT08 | Báo cáo điện mặt trời mái nhà | 6 | Hoàn thành |
+| 9 | QT09 | Kiểm tra giám sát mua bán điện | 5 | Hoàn thành |
+| 10 | QT10 | Độ tin cậy cung cấp điện | 2 | Hoàn thành |
+| 11 | QT11 | NCPT, Dự báo phụ tải | 3 | Hoàn thành |
+| 12 | QT12 | Tiết kiệm điện | 4 | Hoàn thành |
+| 13 | QT13 | Tiếp nhận công trình điện | 12 | Hoàn thành |
+| 14 | QT14 | Báo cáo điện nông thôn | 2 | Hoàn thành |
+| 15 | QT15 | Báo cáo nợ khó đòi | 2 | Hoàn thành |
+| 16 | QT16 | Báo cáo quản lý thu hộ | 4 | Hoàn thành |
+| 17 | QT17 | Báo cáo bộ chỉ số đánh giá dịch vụ công 766 | 2 | Hoàn thành |
+| 46 | | | | |
+| 18 | PT01 | Tổng hợp chỉ tiêu công tác kinh doanh | 3 | Hoàn thành |
+| 19 | PT02 | Điện thương phẩm và giá bán điện | 7 | Hoàn thành |
+| 20 | PT03 | Quản lý hợp đồng và hộ thuê trọ | 3 | Hoàn thành |
+| 21 | PT04 | Tổng hợp tình hình thu tiền điện | 2 | Hoàn thành |
+| 22 | PT05 | Dịch vụ khách hàng | 1 | Hoàn thành |
+| 23 | PT06 | Tỷ lệ tổn thất và điện giao nhận. | 3 | Hoàn thành |
+| 24 | PT07 | Tổng hợp thiết bị điện đo đếm | 5 | Hoàn thành |
+| 25 | PT08 | Báo cáo điện mặt trời mái nhà | 1 | Hoàn thành |
+| 26 | PT09 | Kiểm tra giám sát mua bán điện | 3 | Hoàn thành |
+| 27 | PT10 | Độ tin cậy cung cấp điện | 1 | Hoàn thành |
+| 28 | PT11 | NCPT, Dự báo phụ tải | 5 | Hoàn thành |
+| 29 | PT12 | Tiết kiệm điện | 5 | Hoàn thành |
+| 30 | PT13 | Bộ chỉ số đánh giá dịch vụ công 766 | 7 | Hoàn thành |
+| 14 | | | | |
+| 31 | ĐH | Điều hành hàng ngày | 5 | Hoàn thành |
+| 32 | KH | Báo cáo, dashboard khác | 3 | Hoàn thành |
+| 33 | CB | Cảnh báo bất thường | 6 | Hoàn thành |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #9
+chunk_type=table | section=DANH SÁCH CÁC BÁO CÁO PHÁT SINH | table=DANH SÁCH CÁC BÁO CÁO PHÁT SINH | quality=pass | chars=1838
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1027/EVNICT-TTPM - Triển khai hệ thống nâng cấp báo cáo kinh doanh và dịch vụ khách hàng
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Bảng: DANH SÁCH CÁC BÁO CÁO PHÁT SINH
+| TT | Mã báo cáo | Tên báo cáo | Số lượng báo cáo | Ghi chú |
+| --- | --- | --- | --- | --- |
+| 1 | PS02.01 | Tổng hợp khách hàng mua điện có sản lượng bình quân từ 200.000 kwh/tháng trở lên (PS) | 1 | |
+| 2 | PS02.02 | Thống kê chi tiết khách hàng sử dụng điện bình quân từ 200.000 kwh/tháng (PS) | 1 | |
+| 3 | PS02.03 | Danh sách chi tiết số chu kỳ thu thập khách hàng tham gia giá 2 thành phần (PS) | 1 | |
+| 4 | PS02.04 | Danh sách dữ liệu bất thường khách hàng tham giá giá 2 thành phần (PS) | 1 | |
+| 5 | PS02.05 | Báo cáo chi tiết giá trị pmax khách hàng tham gia giá 2 thành phần (PS) | 1 | |
+| 6 | PS08.01 | Tổng hợp phát triển ĐMTMN theo NĐ58 và có đấu nối (PS) | 1 | |
+| 7 | PS08.02 | Tổng hợp phát triển ĐMTMN theo NĐ58 và không đấu nối (PS) | 1 | |
+| 8 | PS11.01 | Báo cáo dự báo phụ tải đầu nguồn theo tuần - biểu đồ (PS) | 1 | |
+| 9 | PS11.02 | Báo cáo dự báo phụ tải đầu nguồn theo tuần (PS) | 1 | |
+| 10 | PS11.03 | Báo cáo dự báo phụ tải đầu nguồn theo tháng (PS) | 1 | |
+| 11 | QT02.01 | Phát sinh Doanh thu theo 5 TPPT của các TCT Điện lực (Theo yêu cầu mời của ban) (PS) | 1 | |
+| 12 | QT04.04 | Chi tiết số thu và số dư các khoản phải thu (cũ) (PS) | 1 | |
+| 13 | QT04.05 | Báo cáo tỉ lệ thu theo phiên ghi chỉ số ngày (PS) | 1 | |
+| 14 | QT04.06 | Báo cáo tỉ lệ thu theo phiên ghi tại CTĐL/TCT (PS) | 1 | |
+| 15 | QT06.05 | Biểu Tổn thất trạm biến áp công cộng (PS) | 1 | |
+| 16 | QT06.06 | Biểu Tổn thất hạ áp (PS) | 1 | |
+| 17 | QT06.07 | Biểu Tổn thất Trung Áp (PS) | 1 | |
+| 18 | QT06.08 | Biểu tổn thất Cao áp (PS) | 1 | |
+| 19 | QT06.09 | Biểu Tổn thất toàn Đơn vị (PS) | 1 | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #10
+chunk_type=document_section | section=PHỤ LỤC 04 KIỂM SOÁT SỐ LIỆU VÀ CẢNH BÁO | artifact=appendix | quality=pass | chars=280
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1027/EVNICT-TTPM - Triển khai hệ thống nâng cấp báo cáo kinh doanh và dịch vụ khách hàng
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Mục: PHỤ LỤC 04 KIỂM SOÁT SỐ LIỆU VÀ CẢNH BÁO
+PHỤ LỤC 04
+
+KIỂM SOÁT SỐ LIỆU VÀ CẢNH BÁO
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #11
+chunk_type=document_section | section=PHỤ LỤC 04 KIỂM SOÁT SỐ LIỆU VÀ CẢNH BÁO > 1. Kiểm soát số liệu | artifact=appendix | quality=pass | chars=1725
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1027/EVNICT-TTPM - Triển khai hệ thống nâng cấp báo cáo kinh doanh và dịch vụ khách hàng
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Mục: PHỤ LỤC 04 KIỂM SOÁT SỐ LIỆU VÀ CẢNH BÁO > 1. Kiểm soát số liệu
+1. Kiểm soát số liệu
+
+Mục tiêu: Theo dõi và kiểm soát toàn bộ thay đổi số liệu phát sinh sau mỗi lần các Tổng công ty ký xác nhận hoặc đồng bộ lại dữ liệu trong kỳ báo cáo. Qua đó xác định chính xác: chỉ tiêu kinh doanh có biến động, đơn vị phát sinh thay đổi, thời điểm thay đổi, giá trị trước - sau và mức chênh lệch, cùng các biểu mẫu báo cáo bị ảnh hưởng khi số liệu được điều chỉnh.
+
+Để đáp ứng yêu cầu trên, EVNICT đã bổ sung 02 biểu mẫu kiểm soát số liệu (mã CB07), gồm:
+
+- Biểu mẫu kiểm soát số liệu theo Chỉ tiêu kinh doanh
+
+- Biểu mẫu kiểm soát số liệu theo Đơn vị
+
+Các biểu mẫu được thiết kế với các chức năng như sau:
+
+- Chỉ hiển thị các chỉ tiêu kinh doanh có phát sinh thay đổi số liệu, giúp người dùng tập trung vào đúng nội dung cần rà soát;
+
+- Chỉ hiển thị các đơn vị có số liệu thay đổi sau lần đồng bộ gần nhất;
+
+- Hiển thị đồng thời số liệu của lần ký xác nhận hiện tại và lần ký xác nhận liền kề trước đó để thuận tiện đối chiếu;
+
+- Hiển thị giá trị chênh lệch và nội dung thay đổi của số liệu giữa hai lần ký xác nhận, đồng thời chỉ ra các biểu mẫu báo cáo bị ảnh hưởng.
+
+Biểu mẫu 1: Kiểm soát số liệu theo Chỉ tiêu kinh doanh
+
+- Xác định được chỉ tiêu kinh doanh nào có thay đổi số liệu
+
+- Đối với từng chỉ tiêu kinh doanh, xác định được các đơn vị phát sinh thay đổi
+
+Biểu mẫu 2: Kiểm soát số liệu theo Đơn vị
+
+- Xác định được đơn vị nào có thay đổi số liệu
+
+- Đối với từng đơn vị, xác định được các chỉ tiêu kinh doanh phát sinh thay đổi.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #12
+chunk_type=document_section | section=PHỤ LỤC 04 KIỂM SOÁT SỐ LIỆU VÀ CẢNH BÁO > 2. Cảnh báo | artifact=appendix | quality=pass | chars=2469
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1027/EVNICT-TTPM - Triển khai hệ thống nâng cấp báo cáo kinh doanh và dịch vụ khách hàng
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Mục: PHỤ LỤC 04 KIỂM SOÁT SỐ LIỆU VÀ CẢNH BÁO > 2. Cảnh báo
+2. Cảnh báo
+
+- Mục tiêu:
+
+o Nhận thông tin tức thời: Nắm bắt ngay lập tức khi các chỉ số chạm hoặc vượt mức quy định.
+
+o Báo cáo đúng trọng tâm: Theo dõi chỉ số trọng tâm và chỉ nhận email cảnh báo khi có biến động bất thường thực sự cần giải quyết.
+
+o Giám sát tự động 24/7: Hệ thống tự theo dõi và gửi cảnh báo qua email, giảm bớt việc phải mở báo cáo kiểm tra thủ công mỗi ngày.
+
+- Để đáp ứng yêu cầu trên, EVNICT đã xây dựng 03 biểu mẫu cảnh báo, giải quyết cụ thể một số nghiệp vụ như sau:
+
+Biểu mẫu CB06.01 theo dõi tổn thất điện năng trạm công cộng theo Tổng công ty
+
+- Theo dõi đặc thù với số lượng trạm có tỷ lệ tổn thất nằm trong ngưỡng <0 hoặc >=10
+
+- Thiết lập cảnh báo tự động gửi email (khi dữ liệu được nạp mới) với chỉ số "Số trạm" (Ví dụ: Cảnh báo Số trạm ≥ 40) đến các Email quan tâm chỉ số
+
+Biểu mẫu CB06.02 theo dõi tổn thất điện năng đơn vị
+
+- Theo dõi chuyên sâu về tỷ lệ tổn thất điện năng từng đơn vị nằm trong ngưỡng bất thường
+
+- Thiết lập cảnh báo tự động gửi email (khi dữ liệu được nạp mới) với chỉ số "Tỷ lệ tổn thất (%)" (Ví dụ: Cảnh báo vượt ngưỡng 3,8%) đến các Email quan tâm chỉ số
+
+Biểu mẫu CB01 tổng hợp các chỉ tiêu
+
+- Thống kê Số liệu tổng của các Tổng công ty về các chỉ số dữ liệu như: Công tơ đến hạn kiểm định, Đối tượng áp dụng hình thức 3 giá, Yêu cầu cấp điện mới...
+
+- Thiết lập cảnh báo tự động gửi email (khi dữ liệu được nạp mới) với các chỉ số Công tơ đến hạn kiểm định, Đối tượng áp dụng hình thức 3 giá, Yêu cầu cấp điện mới...
+
+Mẫu Email cảnh báo
+
+- Email cảnh báo được hệ thống tự động khởi tạo và gửi tới các địa chỉ đã đăng ký quan tâm chỉ số ngay khi dữ liệu được nạp mới và phát hiện chỉ số chạm hoặc vượt ngưỡng quy định. Nội dung email bao gồm:
+
+o Tên chỉ số cảnh báo, giá trị thực tế ghi nhận và ngưỡng quy định bị vi phạm;
+
+o Đơn vị, trạm phát sinh thay đổi và thời điểm nạp dữ liệu tương ứng;
+
+o Đường dẫn liên kết tới biểu mẫu báo cáo tương ứng để người nhận tra cứu, kiểm tra chi tiết và xử lý kịp thời.
+
+- Việc kết hợp các biểu mẫu kiểm soát số liệu với cơ chế cảnh báo tự động qua email giúp phát hiện sớm các biến động bất thường, rút ngắn thời gian rà soát thủ công và nâng cao tính kịp thời, chính xác của số liệu báo cáo trên hệ thống DHKD 2.0.

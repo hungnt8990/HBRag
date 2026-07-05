@@ -1,0 +1,163 @@
+================================================================================
+id_vb        : 1484696
+ky_hieu      : 28-KH/ĐU
+trich_yeu    : Kế hoạch triển khai thực hiện Đề án số 02-ĐA/TU ngày 10/4/2026 của Ban Thường vụ Thành ủy về xây dựng và nhân rộng các mô hình “Dân vận khéo” tiêu biểu trên địa bàn thành phố Đà Nẵng giai đoạn 2026-2030
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-23
+ten_file     : KH THỰC HIỆN ĐA 02 CỦA TU ĐN.pdf
+TỔNG SỐ CHUNK: 10
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=332
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 28-KH/ĐU
+Ngày văn bản: 23/06/2026
+Trích yếu: Kế hoạch triển khai thực hiện Đề án số 02-ĐA/TU ngày 10/4/2026 của Ban Thường vụ Thành ủy về xây dựng và nhân rộng các mô hình “Dân vận khéo” tiêu biểu trên địa bàn thành phố Đà Nẵng giai đoạn 2026-2030
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Nguyễn Bình Nam
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1120
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 28-KH/ĐU - Kế hoạch triển khai thực hiện Đề án số 02-ĐA/TU ngày 10/4/2026 của Ban Thường vụ Thành ủy về xây dựng và nhân rộng các mô hình “Dân vận khéo” tiêu biểu trên địa bàn thành phố Đà Nẵng giai đoạn 2026-2030
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+ĐẢNG BỘ PHƯỜNG HÒA CƯỜNG ĐẢNG CỘNG SẢN VIỆT NAM ĐẢNG ỦY TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG Đà Nẵng, ngày tháng 6 năm 2026
+
+Số: -KH/ĐU
+
+KẾ HOẠCH
+
+Triển khai thực hiện Đề án số 02-ĐA/TU ngày 10/4/2026 của Ban Thường vụ Thành ủy về xây dựng và nhân rộng các mô hình "Dân vận khéo" tiêu
+
+biểu trên địa bàn thành phố Đà Nẵng giai đoạn 2026-2030
+
+-----
+
+Thực hiện Kế hoạch số 122-KH/ĐU ngày 10/6/2026 của Đảng ủy phường Hòa Cường (viết tắt là Kế hoạch 122-KH/ĐU) về triển khai thực hiện Đề án số 02-ĐA/TU ngày 10/4/2026 của Ban Thường vụ Thành ủy về xây dựng và nhân rộng các mô hình "Dân vận khéo" tiêu biểu trên địa bàn thành phố Đà Nẵng giai đoạn 2026-2030 (viết tắt là Đề án số 02-ĐA/TU, kèm theo), Đảng ủy Tổng công ty Điện lực miền Trung xây dựng Kế hoạch triển khai thực hiện Đề án 02-ĐA/TU, cụ thể như sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=I. MỤC ĐÍCH, YÊU CẦU | quality=pass | chars=1372
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 28-KH/ĐU - Kế hoạch triển khai thực hiện Đề án số 02-ĐA/TU ngày 10/4/2026 của Ban Thường vụ Thành ủy về xây dựng và nhân rộng các mô hình “Dân vận khéo” tiêu biểu trên địa bàn thành phố Đà Nẵng giai đoạn 2026-2030
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: I. MỤC ĐÍCH, YÊU CẦU
+I. MỤC ĐÍCH, YÊU CẦU
+
+- Cụ thể hóa và phối hợp, tổ chức triển khai thực hiện các nhiệm vụ, giải pháp của Đề án số 02-ĐA/TU và Kế hoạch 122-KH/ĐU góp phần nâng cao nhận thức, trách nhiệm của các cấp ủy đảng, chuyên môn và các tổ chức chính trị - xã hội đối với phong trào thi đua "Dân vận khéo".
+
+- Tăng cường trách nhiệm lãnh đạo, chỉ đạo tổ chức triển khai thực hiện các nhiệm vụ, giải pháp của Đề án và Kế hoạch nói trên theo chức năng, nhiệm vụ được giao; huy động sự vào cuộc của cả hệ thống chính trị trong thực hiện công tác dân vận và phong trào thi đua "Dân vận khéo".
+
+- Phát động thực hiện phong trào thi đua "Dân vận khéo" trong Tổng công ty gắn với phong trào thi đua yêu nước; xây dựng và nhân rộng các mô hình "Dân vận khéo" đa dạng trên tất cả các lĩnh vực hoạt động, có sức lan tỏa trong cộng đồng và xã hội; đảm bảo mục tiêu đề ra tại Đề án số 02-ĐA/TU và Kế hoạch 122-KH/ĐU, góp phần thực hiện thắng lợi các nhiệm vụ về phát triển kinh tế - xã hội, đảm bảo quốc phòng - an ninh, xây dựng Đảng và hệ thống chính trị Tổng công ty.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=II. NỘI DUNG THỰC HIỆN | quality=pass | chars=350
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 28-KH/ĐU - Kế hoạch triển khai thực hiện Đề án số 02-ĐA/TU ngày 10/4/2026 của Ban Thường vụ Thành ủy về xây dựng và nhân rộng các mô hình “Dân vận khéo” tiêu biểu trên địa bàn thành phố Đà Nẵng giai đoạn 2026-2030
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: II. NỘI DUNG THỰC HIỆN
+II. NỘI DUNG THỰC HIỆN
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_section | section=1. Nhiệm vụ giai đoạn 2026 - 2030 > 1.1. Tổ chức tuyên truyền, quán triệt, xây dựng kế hoạch triển khai thực hiện Đề án số 02-ĐA/TU và Kế hoạch số 122-KH/ĐU, phát động phong trào thi đua "Dân vận khéo" trong Tổng công ty. | quality=pass | chars=1290
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 28-KH/ĐU - Kế hoạch triển khai thực hiện Đề án số 02-ĐA/TU ngày 10/4/2026 của Ban Thường vụ Thành ủy về xây dựng và nhân rộng các mô hình “Dân vận khéo” tiêu biểu trên địa bàn thành phố Đà Nẵng giai đoạn 2026-2030
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 1. Nhiệm vụ giai đoạn 2026 - 2030 > 1.1. Tổ chức tuyên truyền, quán triệt, xây dựng kế hoạch triển khai thực hiện Đề án số 02-ĐA/TU và Kế hoạch số 122-KH/ĐU, phát động phong trào thi đua "Dân vận khéo" trong Tổng công ty.
+1.1. Tổ chức tuyên truyền, quán triệt, xây dựng kế hoạch triển khai thực hiện Đề án số 02-ĐA/TU và Kế hoạch số 122-KH/ĐU, phát động phong trào thi đua "Dân vận khéo" trong Tổng công ty.
+
+1.2. Triển khai các hoạt động tuyên truyền với nhiều hình thức linh hoạt, phù hợp với thực tiễn của cơ quan, đơn vị; đưa nhiệm vụ xây dựng và nhân rộng các mô hình "Dân vận khéo" tiêu biểu vào chương trình công tác hằng năm; chú trọng ứng dụng công nghệ thông tin, các phương thức tuyên truyền nhằm đẩy mạnh và lan tỏa phong trào thi đua "Dân vận khéo" trong Tổng công ty.
+
+1.3. Đưa nội dung thực hiện phong trào thi đua "Dân vận khéo" thành tiêu chí đánh giá, xếp loại chất lượng tổ chức đảng, đảng viên hằng năm; mỗi tổ chức đảng thực hiện ít nhất 01 mô hình "Dân vận khéo".
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=document_section | section=1. Nhiệm vụ giai đoạn 2026 - 2030 > 1.4. Đưa nội dung kiểm tra, giám sát việc triển khai thực hiện Đề án số 02-ĐA/TU của Ban Thường vụ Thành ủy vào Chương trình kiểm tra giám sát hằng năm. | quality=pass | chars=892
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 28-KH/ĐU - Kế hoạch triển khai thực hiện Đề án số 02-ĐA/TU ngày 10/4/2026 của Ban Thường vụ Thành ủy về xây dựng và nhân rộng các mô hình “Dân vận khéo” tiêu biểu trên địa bàn thành phố Đà Nẵng giai đoạn 2026-2030
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 1. Nhiệm vụ giai đoạn 2026 - 2030 > 1.4. Đưa nội dung kiểm tra, giám sát việc triển khai thực hiện Đề án số 02-ĐA/TU của Ban Thường vụ Thành ủy vào Chương trình kiểm tra giám sát hằng năm.
+1.4. Đưa nội dung kiểm tra, giám sát việc triển khai thực hiện Đề án số 02-ĐA/TU của Ban Thường vụ Thành ủy vào Chương trình kiểm tra giám sát hằng năm.
+
+2. Kế hoạch thực hiện nhiệm vụ trọng tâm năm 2026
+
+2.1. Tham gia Hội nghị quán triệt, tuyên truyền, triển khai Đề án số 02-ĐA/TU do Đảng ủy phường Hòa Cường tổ chức, phát động xây dựng và nhân rộng các mô hình "Dân vận khéo" trong Tổng công ty.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=document_section | section=2. Kế hoạch thực hiện nhiệm vụ trọng tâm năm 2026 > 2.2. Triển khai nhân rộng mô hình "Dân vận khéo" trong Đảng bộ Tổng công ty, cụ thể: | quality=pass | chars=1166
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 28-KH/ĐU - Kế hoạch triển khai thực hiện Đề án số 02-ĐA/TU ngày 10/4/2026 của Ban Thường vụ Thành ủy về xây dựng và nhân rộng các mô hình “Dân vận khéo” tiêu biểu trên địa bàn thành phố Đà Nẵng giai đoạn 2026-2030
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 2. Kế hoạch thực hiện nhiệm vụ trọng tâm năm 2026 > 2.2. Triển khai nhân rộng mô hình "Dân vận khéo" trong Đảng bộ Tổng công ty, cụ thể:
+2.2. Triển khai nhân rộng mô hình "Dân vận khéo" trong Đảng bộ Tổng công ty, cụ thể:
+
+- Nhân rộng mô hình "phối hợp địa phương thực hiện các công tác các xã
+
+hội tại địa phương nơi đơn vị đóng quân". Cải thiện đời sống cho người dân tại địa phương có trụ sở của đơn vị đóng quân, tạo sự thiện cảm giữa người dân địa phương và đơn vị. Nâng cao quan hệ song phương giữa các đơn vị và chính quyền tại địa phương nơi đơn vị đóng quân trong mọi công tác.
+
+- Đồng thời, đẩy mạnh công tác thông tin, tuyên truyền, giới thiệu, biểu dương và nhân rộng các mô hình, điển hình "Dân vận khéo" trên Trang thông tin điện tử của Tổng công ty, đơn vị và các phương tiện thông tin phù hợp nhằm lan tỏa những cách làm hay, sáng tạo, hiệu quả.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=document_section | section=2. Kế hoạch thực hiện nhiệm vụ trọng tâm năm 2026 > 2.3. Báo cáo kết quả thực hiện Đề án số 02-ĐA/TU và xét đề nghị khen thưởng, biểu dương các mô hình "Dân vận khéo" năm 2026 khi có yêu cầu của Đảng ủy cấp trên. | quality=pass | chars=1021
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 28-KH/ĐU - Kế hoạch triển khai thực hiện Đề án số 02-ĐA/TU ngày 10/4/2026 của Ban Thường vụ Thành ủy về xây dựng và nhân rộng các mô hình “Dân vận khéo” tiêu biểu trên địa bàn thành phố Đà Nẵng giai đoạn 2026-2030
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 2. Kế hoạch thực hiện nhiệm vụ trọng tâm năm 2026 > 2.3. Báo cáo kết quả thực hiện Đề án số 02-ĐA/TU và xét đề nghị khen thưởng, biểu dương các mô hình "Dân vận khéo" năm 2026 khi có yêu cầu của Đảng ủy cấp trên.
+2.3. Báo cáo kết quả thực hiện Đề án số 02-ĐA/TU và xét đề nghị khen thưởng, biểu dương các mô hình "Dân vận khéo" năm 2026 khi có yêu cầu của Đảng ủy cấp trên.
+
+III. TỔ CHỨC THỰC HIỆN
+
+1. Các tổ chức đảng trực thuộc
+
+Căn cứ các nội dung Kế hoạch này, các tổ chức đảng trực thuộc triển khai thực hiện phù hợp với đặc điểm, tình hình, chức năng, nhiệm vụ của mình và tổ chức tuyên truyền, phát động thực hiện phong trào thi đua "Dân vận khéo" đến cán bộ, đảng viên, hội viên, đoàn viên và người lao động.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #8
+chunk_type=document_section | section=2. Ban Tuyên giáo Đảng ủy | quality=pass | chars=1128
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 28-KH/ĐU - Kế hoạch triển khai thực hiện Đề án số 02-ĐA/TU ngày 10/4/2026 của Ban Thường vụ Thành ủy về xây dựng và nhân rộng các mô hình “Dân vận khéo” tiêu biểu trên địa bàn thành phố Đà Nẵng giai đoạn 2026-2030
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 2. Ban Tuyên giáo Đảng ủy
+2. Ban Tuyên giáo Đảng ủy
+
+- Là cơ quan trực tiếp theo dõi tiến độ, chịu trách nhiệm tổng hợp, báo cáo Đảng ủy Tổng công ty và Đảng ủy phường Hòa Cường về kết quả thực hiện Đề án số 02-ĐA/TU trong Tổng công ty khi có yêu cầu.
+
+- Theo dõi, hướng dẫn, kiểm tra, đánh giá kết quả triển khai thực hiện và nhân rộng các mô hình hay trong Đảng ủy Tổng công ty. Định kỳ hằng năm tổng hợp, lựa chọn các mô hình tiêu biểu, hiệu quả để đề xuất Đảng ủy phường Hòa Cường giới thiệu, tuyên truyền trên các phương tiện truyền thông của phường và thành phố Đà Nẵng.
+
+Trên đây là Kế hoạch triển khai thực hiện Đề án số 02-ĐA/TU về xây dựng và nhân rộng các mô hình "Dân vận khéo" tiêu biểu trên địa bàn thành phố Đà Nẵng giai đoạn 2026 - 2030, Đảng ủy Tổng công ty đề nghị các tổ chức đảng triển khai thực hiện./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #9
+chunk_type=footer_signature | quality=pass | chars=212
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: T/MĐẢNG ỦY
+
+- Đảng ủy P. Hòa Cường (để b/c), PHÓ BÍ THƯ
+
+- Các đ/c UVBCH Đảng bộ TCT,
+
+- Các tổ chức đảng trực thuộc,
+
+- Các tổ chức CT-XH TCT,
+
+- Các Ban TMGV ĐU TCT,
+
+- Lưu: VT, TGĐU.
+
+Nguyễn Bình Nam

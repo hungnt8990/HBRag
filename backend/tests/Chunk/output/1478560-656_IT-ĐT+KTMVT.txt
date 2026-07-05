@@ -1,0 +1,208 @@
+================================================================================
+id_vb        : 1478560
+ky_hieu      : 656/IT-ĐT+KTMVT
+trich_yeu    : V/v đề nghị báo giá thiết bị, bản quyền phần mềm - Gửi Công ty cổ phần Công nghệ và Năng lượng Quang Trung
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-18
+ten_file     : 11 CV-xin bao gia-Saoluu2026 - thoi diem danh gia HSDT - Gui Cty Quang Trung.pdf
+TỔNG SỐ CHUNK: 6
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=243
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 656/IT-ĐT+KTMVT
+Ngày văn bản: 18/06/2026
+Trích yếu: V/v đề nghị báo giá thiết bị, bản quyền phần mềm - Gửi Công ty cổ phần Công nghệ và Năng lượng Quang Trung
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Nguyễn Sơn Bình
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1242
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 656/IT-ĐT+KTMVT - V/v đề nghị báo giá thiết bị, bản quyền phần mềm - Gửi Công ty cổ phần Công nghệ và Năng lượng Quang Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 18 tháng 6 năm 2026
+
+Số: 656/IT-ĐT+KTMVT
+
+V/v đề nghị báo giá thiết bị, bản quyền
+
+phần mềm
+
+Kính gửi: Công ty cổ phần Công nghệ và Năng lượng Quang Trung
+
+Công ty Công nghệ thông tin Điện lực miền Trung (CPCIT) xin gửi lời chào trân trọng đến Quý Công ty.
+
+Hiện Công ty chúng tôi đang có nhu cầu xin báo giá cho các thiết bị, bản quyền phần mềm như phụ lục kèm theo, kính mong Quý công ty hỗ trợ cung cấp báo giá giúp chúng tôi và gửi về địa chỉ: Phòng Quản lý đầu tư - Công ty Công nghệ thông tin Điện lực miền Trung, số 393 Trưng Nữ Vương, Phường Hòa Cường, Thành phố Đà Nẵng và file mềm gửi qua địa chỉ E-mail: qldt.it@cpc.vn trước ngày 25/6/2026 .
+
+Mọi thông tin nếu cần trao đổi xin vui lòng liên hệ Ông: Tôn Thất Thanh Tùng -Chức vụ: Trưởng phòng Kỹ thuật và Mạng viễn thông, số điện thoại: 0969.996.994
+
+Rất mong nhận được sự hỗ trợ của Quý Công ty.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=103
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. GIÁM ĐỐC
+
+- Như trên; PHÓ GIÁM ĐỐC
+
+- PKTMVT (phối hợp);
+
+- Lưu: VT, ĐT.
+
+Nguyễn Sơn Bình
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=Phụ lục ĐỀ NGHỊ BÁO GIÁ | artifact=appendix | quality=pass | chars=1979
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 656/IT-ĐT+KTMVT - V/v đề nghị báo giá thiết bị, bản quyền phần mềm - Gửi Công ty cổ phần Công nghệ và Năng lượng Quang Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: Phụ lục ĐỀ NGHỊ BÁO GIÁ
+Phụ lục
+
+ĐỀ NGHỊ BÁO GIÁ
+
+Đơn vị tính: Đồng
+
+Ký mã
+
+Thành
+
+hiệu; Nhãn Thành
+
+Đơn tiền Thuế
+
+TT Mô tả hàng hoá chi tiết ĐVT SL hiệu; Hãng tiền sau
+
+giá trước VAT
+
+sản xuất; thuế
+
+thuế
+
+Xuất xứ
+
+- Có sẵn tính năng tích hợp MFA log-in vào giao diện quản trị Backup: Có
+
+- Cho phép sao lưu và phục hồi các loại cơ sở dữ liệu dưới đây:
+
+ Microsoft SQL Server: Có  Oracle Database: Có  PostgreSQL: Có  MongoDB: Có
+
+- Phục hồi cấp độ file: Giải pháp backup cung cấp khả năng phục hồi ở cấp độ file/thư mục từ bản sao lưu File bên trong của cả máy chủ ảo hóa và máy chủ vật lý mà không cần khôi phục toàn bộ máy chủ ảo hóa hay vật lý đó.
+
+- Tính tương thích: Có khả năng khôi phục dữ liệu từ các bản sao lưu hiện hữu trên hệ thống Backup VM và File hiện có của chủ đầu tư (2) . Hoặc nhà thầu cung cấp bộ giải pháp bao gồm:
+
+ 01 gói Bản quyền phần mềm Backup VM và File như yêu cầu ở trên;
+
+ Bổ sung thêm 04 gói Bản quyền phần mềm Backup VM và File mới có năng lực tương đương các phần mềm Backup VM và File hiện có (2) ;
+
+ Có đội ngũ kỹ sư, dịch vụ chính hãng lập phương án chi tiết, onsite để thực hiện tích hợp các gói bản quyền mới ở trên vào hệ thống CNTT tại TTDL và di chuyển lượng VM và File đang được Backup trên hệ thống phần mềm Backup hiện có của chủ đầu tư sang phần mềm Backup mới mà không làm gián đoạn, ảnh hưởng đến hoạt động của hệ thống Backup EVNCPC hiện có và các hệ thống, ứng dụng khác của
+
+Ký mã
+
+Thành
+
+hiệu; Nhãn Thành
+
+Đơn tiền Thuế
+
+TT Mô tả hàng hoá chi tiết ĐVT SL hiệu; Hãng tiền sau
+
+giá trước VAT
+
+sản xuất; thuế
+
+thuế
+
+Xuất xứ
+
+EVNCPC. Cung cấp toàn bộ các hệ thống phụ trợ khác đi kèm phục vụ cho quá trình chuyển đổi hệ thống.
+
+- Dịch vụ hỗ trợ kỹ thuật của hãng sản xuất: ≥ 1 năm.
+
+TỔNG CỘNG
+
+s
+
+Ghi chú:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=table | section=Phụ lục — ĐỀ NGHỊ BÁO GIÁ Đơn vị tính: Đồng | table=Phụ lục — ĐỀ NGHỊ BÁO GIÁ Đơn vị tính: Đồng | quality=pass | chars=5413
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 656/IT-ĐT+KTMVT - V/v đề nghị báo giá thiết bị, bản quyền phần mềm - Gửi Công ty cổ phần Công nghệ và Năng lượng Quang Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: Phụ lục — ĐỀ NGHỊ BÁO GIÁ Đơn vị tính: Đồng
+| TT | Mô tả hàng hoá chi tiết | ĐVT | SL | | Ký mã hiệu; Nhãn hiệu; Hãng | | Đơn giá | Thành tiền trước thuế | Thuế VAT | Thành tiền sau thuế |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| sản xuất; Xuất xứ | | | | | | | | | | |
+| 1 | Hệ thống Disk Backup cấu hình 1 - I/OModule: ≥ 2. - Dung lượng Raw Capacity có sẵn: ≥ 384 TB. - Dung lượng Usable Local Capacity (RAID-6) có sẵn: ≥ 288 TB. - Nguồn điện có sẵn: ≥ 02 nguồn dự phòng lẫn nhau. - Tính năng tương thích: Có khả năng kết nối với hệ thống Disk Backup hiện có để mở rộng dung lượng lưu trữ, hệ thống Disk Backup sau khi mở rộng cho phép đồng bộ dữ liệu với hệ thống Disk Backup hiện có của EVNCPC (1) . Hoặc nhà thầu cung cấp bộ giải pháp bao gồm:  01 hệ thống Disk Backup đáp ứng yêu cầu ở trên;  Bổ sung thêm 03 hệ thống Disk Backup mới có năng lực tương đương như 03 hệ thống Disk Backup hiện có (1), đồng thời cho phép đồng bộ dữ liệu giữa các hệ thống Disk Backup này với nhau;  Có đội ngũ kỹ sư, dịch vụ chính hãng lập phương án chi tiết, onsite để thực hiện tích hợp các hệ thống mới ở trên vào hệ thống CNTT tại TTDL và thực hiện chuyểns dữ liệu Backup đang lưu trên các hệ thống Disk Backup hiện có của chủ đầu tư sang các hệ thống mới mà không làm gián đoạn, ảnh hưởng đến hoạt động của hệ thống Backup EVNCPC hiện có và các hệ thống, ứng dụng khác của EVNCPC. Cung cấp toàn bộ các hệ thống phụ trợ khác đi kèm phục vụ cho quá trình chuyển đổi hệ thống. - Dịch vụ bảo hành, hỗ trợ kỹ thuật của hãng sản xuất: ≥ 3 năm. | Hệ thống | 02 | | sản xuất; Xuất xứ | | | | | |
+| 2 | Hệ thống Disk Backup cấu hình 2 - I/OModule: ≥ 2. - Dung lượng Raw Capacity có sẵn: ≥ 192 TB. - Dung lượng Usable Local Capacity (RAID-6) có sẵn: ≥ 144 TB. - Nguồn điện có sẵn: ≥ 02 nguồn dự phòng lẫn nhau. - Tính năng tương thích: Có khả năng kết nối với hệ thống Disk Backup hiện có để mở rộng dung lượng lưu trữ, hệ thống Disk Backup sau khi mở rộng cho phép đồng bộ dữ liệu với hệ thống Disk Backup hiện có của EVNCPC (1) . Hoặc nhà thầu cung cấp bộ giải pháp bao gồm:  01 hệ thống Disk Backup đáp ứng yêu cầu ở trên;  Bổ sung thêm 03 hệ thống Disk Backup mới có năng lực tương đương như 03 hệ thống Disk Backup hiện có (1), đồng thời cho phép đồng bộ dữ liệu giữa các hệ thống Disk Backup này với nhau;  Có đội ngũ kỹ sư, dịch vụ chính hãng lập phương án chi tiết, onsite để thực hiện tích hợp các hệ thống mới ở trên vào hệ thống CNTT tại TTDL và thực hiện chuyển dữ liệu Backup đang lưu trên các hệ thống Disk Backup hiện có của chủ đầu tư sang các hệ thống mới mà không làm gián đoạn, ảnh hưởng đến hoạt động của hệ thống Backup EVNCPC hiện có và các hệ thống, ứng dụng khác của EVNCPC. Cung cấp toàn bộ các hệ thống phụ trợ khác đi kèm phục vụ cho quá trình chuyển đổi hệ thống. - Dịch vụ bảo hành, hỗ trợ kỹ thuật của hãng sản xuất: ≥ 3 năm. | Hệ thống | 01 | | sản xuất; Xuất xứ | | | | | |
+| 3 | Máy chủ Backup - Bộ vi xử lý (CPU) có sẵn: ≥ 2x Intel Xeon (24C, 2.4GHz) hoặc loại khác tương đương hoặc cao hơn. - Số lượng khe gắn bộ nhớ có sẵn: ≥ 32. - Bộ nhớ (RAM):  Có sẵn ≥ 128 GB RAM DDR5;  Hỗ trợ mở rộng ≥ 8 TB RAM. - Số lượng cổng Ethernet có sẵn: ≥ 4 port 10Gbps (SFP+ hoặc loại khác tương đương hoặc cao hơn) kèm transceivers. - Số lượng cổng FC có sẵn: ≥ 2 port FC 32Gbps kèm transceivers. - Số lượng ổ cứng có sẵn:  ≥ 4 x 1.92TB SSD;  ≥ 2x M.2 NVMe SSD 480GB. - Bộ điều khiển ổ cứng có sẵn: Hỗ trợ RAID 0, 1, 5, 6, 10, 50, 60. - Khả năng mở rộng ổ cứng: Hỗ trợ ≥ 10 ổ cứng 2.5" (SAS/SATA). - Khe mở rộng (PCIe) có sẵn: ≥ 3 x PCIe. - Nguồn điện có sẵn: ≥ 02 nguồn dự phòng lẫn nhau. - Cổng quản trị có sẵn:  Tối thiểu 1 cổng Ethernet chuyên dụng để quản trị từ xa;  Có sẵn khả năng Virtual Console (hoặc tương đương như AVR, Remote Console, vKVM) để điều khiển giao diện đồ họa từ xa;  Có sẵn khả năng Virtual Media (hoặc tương đương) để gắn ổ đĩa ảo, cài đặt hệ điều hành từ xa. - Dịch vụ bảo hành, hỗ trợ kỹ thuật của hãng sản xuất: ≥ 3 năm. | Bộ | 03 | | sản xuất; Xuất xứ | | | | | |
+| 4 | Bản quyền phần mềm Backup VM và File - Loại license: Perpetual/Permanent. - Năng lực License File Backup: ≥ 140 VM không giới hạn dung lượng VM cần sao lưu (hoặc ≥100 TB trên ≥ 103 vSphere ESXi Host đang chứa 140 VM cần backup) và ≥ 15 TB File. - Yêu cầu: Thuộc nhóm Leaders theo Magic Quadrant for Backup and Data Protection Platforms của Gartner hoặc thuộc nhóm Leaders theo IDC MarketScape for Worldwide Cyber-Recovery của IDC MarketScape (báo cáo năm gần nhất có đánh giá). - Có sẵn tính năng Backup VM: Các máy chủ Online (cả VM hay từng ổ đĩa của VM) - Có sẵn tính năng Backup copy: Hỗ trợ copy dữ liệu sao lưu để lưu trữ ở nhiều thiết bị khác nhau (Storage Appliances/NAS/CLOUD) - Có sẵn tính năng Built-in data reduction: Có công nghệ chống trùng lắp và nén dữ liệu - Có sẵn tính năng Native Tape support: Hỗ trợ sao lưu ra Tape - Có sẵn tính năng khôi phục hoặc di chuyển máy ảo, lên cloud của Microsoft hoặc Amazon từ dữ liệu backup: Phần mềm có khả năng khôi phục hoặc di chuyển máy ảo, lên cloud của Microsoft hoặc Amazon từ dữ liệu backup - Có sẵn tính năng mã hóa (encryption) dữ liệu backup: Có | Gói | 01 | | sản xuất; Xuất xứ | | | | | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=document_section | section=Phụ lục ĐỀ NGHỊ BÁO GIÁ > 1. Yêu cầu thiết bị, bản quyền phần mềm có đầy đủ chứng từ chứng minh nguồn gốc xuất xứ, chất lượng của hàng hóa, chứng nhận bản quyền phần mềm. | artifact=appendix | quality=pass | chars=1964
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 656/IT-ĐT+KTMVT - V/v đề nghị báo giá thiết bị, bản quyền phần mềm - Gửi Công ty cổ phần Công nghệ và Năng lượng Quang Trung
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: Phụ lục ĐỀ NGHỊ BÁO GIÁ > 1. Yêu cầu thiết bị, bản quyền phần mềm có đầy đủ chứng từ chứng minh nguồn gốc xuất xứ, chất lượng của hàng hóa, chứng nhận bản quyền phần mềm.
+1. Yêu cầu thiết bị, bản quyền phần mềm có đầy đủ chứng từ chứng minh nguồn gốc xuất xứ, chất lượng của hàng hóa, chứng nhận bản quyền phần mềm.
+
+2. Hiệu lực báo giá: ≥ 30 ngày kể từ ngày báo giá.
+
+3. Báo giá đầy đủ các thông tin về: thời điểm báo giá; Thông tin pháp lý của Quý Công ty (chức danh, chữ ký, họ tên người ký báo giá và đóng dấu, đóng dấu giáp lai).
+
+4. Thuế VAT khi chào giá: Do chưa xác định được mức thuế suất thuế giá trị gia tăng (VAT) cụ thể trong giai đoạn thực hiện, đề nghị Nhà cung cấp báo giá với mức thuế suất VAT 10%.
+
+Mô tả hiện trạng hệ thống Disk Backup, phần mềm Backup VM, file của EVNCPC như sau:
+
+(1) Hiện trạng hệ thống Disk Backup hiện có của EVNCPC: Gồm 3 hệ thống. Cấu hình của mỗi hệ thống như sau:
+
+- Số lượng Storage Controller: 3 Dung lượng Raw: 192 TB
+
+- Dung lượng Usable: 144 TB Kết nối: 2 x 16 Gb FC, 2 x 10 Gb SFP+
+
+- Hỗ trợ giao thức: VTL, NAS, Catalyst
+
+(2) Hiện trạng phần mềm Backup VM, file của EVNCPC gồm:
+
+- 01 bản quyền phần mềm Backup VM và Backup File với license hỗ trợ năng lực như sau:
+
++ Hỗ trợ Backup 140 VM.
+
++ Hỗ trợ Backup 15 TB File.
+
++ Loại License: Vĩnh viễn (Perpetual)
+
++ Có tính năng giám sát "Unusual File Activity"
+
+- 02 bản quyền phần mềm Backup file, mỗi bản quyền với license hỗ trợ năng lực như sau:
+
++ Hỗ trợ Backup 15 TB File
+
++ Loại License: Vĩnh viễn (Perpetual)
+
++ Có tính năng giám sát "Unusual File Activity"
+
+- 01 bản quyền phần mềm Backup VM với license hỗ trợ năng lực như sau:
+
++ Hỗ trợ Backup 100 VM.
+
++ Loại License: Vĩnh viễn (Perpetual)
+
++ Có tính năng giám sát "Unusual File Activity"

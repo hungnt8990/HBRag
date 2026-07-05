@@ -1,0 +1,102 @@
+================================================================================
+id_vb        : 1487055
+ky_hieu      : 3871/EVNCPC-VTCNTT
+trich_yeu    : Hỗ trợ cấp đầu số và kết nối điện thoại nội bộ SIP phone
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-25
+ten_file     : 2026- Cong-Van-EVNICT ho tro cap so và ket noi SIP Phone_C.pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=199
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3871/EVNCPC-VTCNTT
+Ngày văn bản: 25/06/2026
+Trích yếu: Hỗ trợ cấp đầu số và kết nối điện thoại nội bộ SIP phone
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Trần Nguyễn Bảo An
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1179
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3871/EVNCPC-VTCNTT - Hỗ trợ cấp đầu số và kết nối điện thoại nội bộ SIP phone
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+Độc lập - Tự do - Hạnh phúc TỔNG CÔNG TY
+
+ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 25 tháng 6 năm 2026
+
+Số: 3871/EVNCPC-VTCNTT V/v hỗ trợ cung cấp và khai báo đầu số điện thoại nội bộ.
+
+Kính gửi: Công ty Viễn thông Điện lực và Công nghệ thông tin.
+
+Tổng công ty Điện lực miền Trung (EVNCPC) trân trọng cảm ơn sự phối hợp, hỗ trợ của Công ty Viễn thông Điện lực và Công nghệ thông tin (EVNICT)
+
+trong thời gian qua.
+
+Thực hiện chỉ đạo của EVN tại văn bản số 108/EVN-VTCNTT ngày 04/01/2025 về việc triển khai kết nối điện thoại cố định để phục vụ thông tin liên lạc cho công tác điều hành, xử lý sự cố lưới điện trong vùng có nguy cơ cao bị ảnh hưởng bởi thiên tai bão lụt, EVNCPC kính đề nghị EVNICT hỗ trợ cung cấp và khai báo đầu số điện thoại nội bộ đến các TBA 110kV theo danh sách như phụ lục kèm theo.
+
+Đầu mối phối hợp phía EVNCPC: Ông Nguyễn Xuân Gia Nguyên, chuyên viên Ban VTCNTT, số điện thoại: 0905 142 442, email: nguyennxg@cpc.vn.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=175
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. TỔNG GIÁM ĐỐC
+
+- Như trên; PHÓ TỔNG GIÁM ĐỐC
+
+- EVN (báo cáo);
+
+- TGĐ EVNCPC (báo cáo);
+
+- CPCIT, HPC;
+
+- Ban PC, AT, KT;
+
+- Lưu: VT, VTCNTT.
+
+Trần Nguyễn Bảo An
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=Phụ lục: Danh sách TBA 110kV dự kiến lắp đặt bổ sung SIP phone | table=Phụ lục: Danh sách TBA 110kV dự kiến lắp đặt bổ sung SIP phone | quality=pass | chars=974
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3871/EVNCPC-VTCNTT - Hỗ trợ cấp đầu số và kết nối điện thoại nội bộ SIP phone
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Phụ lục: Danh sách TBA 110kV dự kiến lắp đặt bổ sung SIP phone
+| STT | Đơn vị | Địa điểm | Ghi chú |
+| --- | --- | --- | --- |
+| 1 | Công ty Điện lực Huế | TBA 110kV KCN Phong Điền | |
+| 2 | Công ty Điện lực Huế | TBA 110kV Phong Điền | |
+| 3 | Công ty Điện lực Huế | TBA 110kV Đồng Lâm | |
+| 4 | Công ty Điện lực Huế | TBA 110kV Văn Xá | |
+| 5 | Công ty Điện lực Huế | TBA 110kV Huế 2 | |
+| 6 | Công ty Điện lực Huế | TBA 110kV Huế 4 | |
+| 7 | Công ty Điện lực Huế | TBA 110kV Phú Bài | |
+| 8 | Công ty Điện lực Huế | TBA 110kV Phú Bài 2 | |
+| 9 | Công ty Điện lực Huế | TBA 110kV La Sơn | |
+| 10 | Công ty Điện lực Huế | TBA 110kV Vinh Thanh | |
+| 11 | Công ty Điện lực Huế | TBA 110kV Cầu Hai | |
+| 12 | Công ty Điện lực Huế | TBA 110kV Chân Mây | |
+| 13 | Công ty Điện lực Huế | TBA 110kV Lăng Cô | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_body | section=Phụ lục | artifact=appendix | quality=pass | chars=239
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3871/EVNCPC-VTCNTT - Hỗ trợ cấp đầu số và kết nối điện thoại nội bộ SIP phone
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục
+Phụ lục: Danh sách TBA 110kV dự kiến lắp đặt bổ sung SIP phone

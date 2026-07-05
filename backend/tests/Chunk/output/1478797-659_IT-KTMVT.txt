@@ -1,0 +1,62 @@
+================================================================================
+id_vb        : 1478797
+ky_hieu      : 659/IT-KTMVT
+trich_yeu    : Báo cáo vướng mắc khi thực hiện công tác đào tạo, cấp chứng chỉ vận hành HTVT
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-18
+ten_file     : Bao cao vuong mac ve cong tac dao tao sat hach chuc danh VHVT.pdf
+TỔNG SỐ CHUNK: 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=211
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 659/IT-KTMVT
+Ngày văn bản: 18/06/2026
+Trích yếu: Báo cáo vướng mắc khi thực hiện công tác đào tạo, cấp chứng chỉ vận hành HTVT
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Nguyễn Sơn Bình
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1581
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 659/IT-KTMVT - Báo cáo vướng mắc khi thực hiện công tác đào tạo, cấp chứng chỉ vận hành HTVT
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM TỔNG CÔNG TY
+
+ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 18 tháng 6 năm 2026
+
+Số: 659/IT-KTMVT V/v báo cáo vướng mắc khi thực hiện công tác đào tạo, cấp chứng chỉ vận hành hệ thống
+
+viễn thông
+
+Kính gửi: Tổng công ty Điện lực miền Trung
+
+Căn cứ Quyết định số 494/QĐ-HĐTV ngày 01/6/2025 của Hội đồng thành viên EVNCPC về việc ban hành Quy chế Quản lý, khai thác Hệ thống thông tin trong Tổng công ty Điện lực miền Trung (QC.46);
+
+Căn cứ Quyết định số 2632/QĐ-EVNCPC ngày 04/5/2026 của EVNCPC về việc ban hành Quy định phân cấp của Tổng Giám đốc EVNCPC cho người đứng đầu các đơn vị trực thuộc EVNCPC.
+
+Trong quá trình thực hiện nhiệm vụ được giao, Công ty CNTT Điện lực miền Trung (CPCIT) kính báo cáo Tổng công ty:
+
+Theo QC.46, công tác tổ chức đào tạo, sát hạch và cấp chứng nhận các chức danh điều hành, vận hành hệ thống viễn thông (HTVT) thuộc thẩm quyền của EVNCPC. Tuy nhiên, theo Quy định phân cấp của Tổng Giám đốc cho người đứng đầu các đơn vị trực thuộc EVNCPC, Tổng giám đốc EVNCPC giao Giám đốc CPCIT thẩm quyền tổ chức đào tạo, sát hạch, trình EVNCPC kết quả sát hạch để EVNCPC xem xét quyết định công nhận chức danh vận hành HTVT. Do đó, CPCIT kính đề nghị Tổng công ty xem xét, hướng dẫn công tác đào tạo sát hạch và cấp chứng nhận các chức danh vận hành HTVT nêu trên.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=100
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT.GIÁM ĐỐC
+
+- Như trên; PHÓ GIÁM ĐỐC
+
+- GĐ (báo cáo);
+
+- Lưu: VT, KTMVT.
+
+Nguyễn Sơn Bình

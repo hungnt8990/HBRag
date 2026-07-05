@@ -1,0 +1,276 @@
+================================================================================
+id_vb        : 1476649
+ky_hieu      : 3684/EVNCPC-KD
+trich_yeu    : V/v rà soát chuẩn bị triển khai thay đổi khung giờ cao điểm, thấp điểm, bình 
+thường của hệ thống điện quốc gia 
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-17
+ten_file     : 2026-6-15 san sang trien khai cai dat khung gio bieu giá.pdf
+TỔNG SỐ CHUNK: 14
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=249
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3684/EVNCPC-KD
+Ngày văn bản: 17/06/2026
+Trích yếu: V/v rà soát chuẩn bị triển khai thay đổi khung giờ cao điểm, thấp điểm, bình 
+thường của hệ thống điện quốc gia 
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Nguyễn Hữu Khánh
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=2754
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3684/EVNCPC-KD - V/v rà soát chuẩn bị triển khai thay đổi khung giờ cao điểm, thấp điểm, bình thường của hệ thống điện quốc gia
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+TỔNG CÔNG TY Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG Số: 3684/EVNCPC-KD Đà Nẵng, ngày 17 tháng 6 năm 2026
+
+V/v rà soát chuẩn bị triển khai thay đổi khung giờ cao điểm, thấp điểm, bình thường của hệ thống điện quốc gia
+
+Kính gửi: Các Công ty Điện lực thành viên
+
+Bộ Công Thương đang khẩn trương sửa đổi Thông tư số 60/2025/TT-BCT ngày 02/12/2025 quy định thực hiện giá bán điện. Quyết định số 963/QĐ-BCT ngày 22/4/2026 của Bộ Công Thương về khung giờ cao điểm, thấp điểm và giờ bình thường của hệ thống điện quốc gia (QĐ 963) đủ điều kiện áp dụng sau khi Thông tư sửa đổi Thông tư số 60/2025/TT-BCT có hiệu lực.
+
+Tiếp theo văn bản số 2615/EVNCPC-KD+VP+VTCNTT ngày 30/4/2026 và 2175/EVNCPC-KD ngày 08/5/2026 về việc chuẩn bị triển khai thay đổi khung giờ cao điểm, thấp điểm, bình thường của hệ thống điện quốc gia, EVNCPC yêu cầu các đơn vị:
+
+1. Rà soát tất cả công tác chuẩn bị về nhân lực, thiết bị, chương trình cài đặt, mật khẩu công tơ... đã được EVNCPC chỉ đạo tại các văn bản nêu trên, đảm bảo tiến hành ngay khi QĐ 963 đủ điều kiện áp dụng.
+
+2. Thống kê nhóm khách hàng (KH) theo mức sản lượng điện tiêu thụ để xây dựng mốc kế hoạch hoàn thành cài đặt công tơ, cụ thể: nhóm KH có sản lượng trung bình 200.000/100.000/50.000/20.000 kWh/tháng tương ứng thời gian hoàn thành cài đặt trong vòng 05/10/20/30 ngày; các nhóm KH còn lại hoàn thành cài đặt trong vòng 45 ngày. Trong đó, các đơn vị lưu ý tối ưu hoá lộ trình di chuyển của các nhóm công tác để nâng cao hiệu quả, phấn đấu rút ngắn thời gian hoàn thành; đồng thời cập nhật tình hình thực hiện hằng ngày tại địa chỉ: https://tienichvp.cpc.vn/thongkecaidatbieugia.
+
+Đối với các KH lớn (trên 200.000 kWh/tháng), các đơn vị ưu tiên thực hiện cài đặt công tơ trong các ngày đầu tiên và áp dụng các phương pháp cài đặt tại chỗ để đảm bảo kiểm soát tốt nhất kết quả cài đặt và làm việc trực tiếp với KH.
+
+3. Đơn vị khai thác tối đa tính năng biểu giá trì hoãn (deferred tariff) để đảm bảo đúng số giờ cao điểm, thấp điểm, bình thường theo quy định mới. Trường hợp công tơ không hỗ trợ tính năng này (đa số ở KHoPC...), đơn vị chủ động xây dựng phương pháp tính sản lượng bù trừ hoặc quy đổi nhằm đảm bảo đúng số giờ cao điểm, thấp điểm, bình thường theo quy định (tham khảo phương pháp tính toán như phụ lục đính kèm ). Trường hợp có bù trừ hoặc quy đổi sản lượng, đơn vị phải thống nhất với KH và ghi nhận vào biên bản làm việc để làm căn cứ điều chỉnh vào kỳ hóa đơn (tham khảo mẫu biên bản làm việc đính kèm)./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=217
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. TỔNG GIÁM ĐỐC
+
+- Như trên; PHÓ TỔNG GIÁM ĐỐC
+
+- TGĐ EVNCPC (báo cáo);
+
+- NĐD phần vốn EVNCPC tại KHPC;
+
+- CPCIT, ETC, CC, EMEC (phối hợp);
+
+- Ban: PC, VTCNTT, VP;
+
+- Lưu: VT, KDKhanhnv.
+
+Nguyễn Hữu Khánh
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=Phụ lục XÁC ĐỊNH ĐIỆN NĂNG BIỂU GIỜ BÌNH THƯỜNG, CAO ĐIỂM, THẤP ĐIỂM KHI CÀI ĐẶT THAY ĐỔI BIỂU GIÁ CÔNG TƠ | artifact=appendix | quality=pass | chars=1430
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3684/EVNCPC-KD - V/v rà soát chuẩn bị triển khai thay đổi khung giờ cao điểm, thấp điểm, bình thường của hệ thống điện quốc gia
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục XÁC ĐỊNH ĐIỆN NĂNG BIỂU GIỜ BÌNH THƯỜNG, CAO ĐIỂM, THẤP ĐIỂM KHI CÀI ĐẶT THAY ĐỔI BIỂU GIÁ CÔNG TƠ
+Phụ lục
+
+XÁC ĐỊNH ĐIỆN NĂNG BIỂU GIỜ BÌNH THƯỜNG, CAO ĐIỂM, THẤP
+
+ĐIỂM KHI CÀI ĐẶT THAY ĐỔI BIỂU GIÁ CÔNG TƠ
+
+Mục đích:
+
+Áp dụng tính toán điều chỉnh sản lượng giờ bình thường, cao điểm, thấp điểm trong ngày cài đặt thay đổi biểu giá theo QĐ 963 để đảm bảo:
+
+- Ngày cài đặt từ thứ 2 đến thứ 7: số giờ cao điểm là 05 giờ, giờ bình thường là 13 giờ, giờ thấp điểm là 06 giờ.
+
+- Ngày cài đặt là CN: giờ bình thường là 18 giờ, giờ thấp điểm là 06 giờ.
+
+Điều kiện:
+
+- Phối hợp KH chốt chỉ số công tơ tại thời điểm trước và sau khi cài đặt.
+
+- Trích xuất chỉ số tại các thời điểm thu thập dữ liệu trên hệ thống đo xa.
+
+- Trường hợp không có chỉ số tại thời điểm mốc chu kỳ tích phân, có thể nội suy từ đồ thị phụ tải từ đầu ngày/ từ đầu tháng (nếu cần) đến thời điểm cài đặt.
+
+Nguyên tắc :
+
+- Tổng điện năng sử dụng trong ngày không thay đổi. Tổng sản lượng điều chỉnh tăng bằng tổng sản lượng điều chỉnh giảm trong ngày
+
+- Số giờ của từng biểu giá trong ngày cài đặt đúng theo quy định mới.
+
+- Tránh tình trạng cùng một ngày nhưng một phần sản lượng tính theo biểu giá cũ, phần còn lại tính theo biểu giá mới.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_section | section=Phụ lục XÁC ĐỊNH ĐIỆN NĂNG BIỂU GIỜ BÌNH THƯỜNG, CAO ĐIỂM, THẤP ĐIỂM KHI CÀI ĐẶT THAY ĐỔI BIỂU GIÁ CÔNG TƠ > I. Ngày cài đặt từ thứ 2 đến thứ 7: > 1.1. Trường hợp 1: Cài đặt từ 00h00 đến 04h00: | artifact=appendix | quality=pass | chars=920
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3684/EVNCPC-KD - V/v rà soát chuẩn bị triển khai thay đổi khung giờ cao điểm, thấp điểm, bình thường của hệ thống điện quốc gia
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục XÁC ĐỊNH ĐIỆN NĂNG BIỂU GIỜ BÌNH THƯỜNG, CAO ĐIỂM, THẤP ĐIỂM KHI CÀI ĐẶT THAY ĐỔI BIỂU GIÁ CÔNG TƠ > I. Ngày cài đặt từ thứ 2 đến thứ 7: > 1.1. Trường hợp 1: Cài đặt từ 00h00 đến 04h00:
+1.1. Trường hợp 1: Cài đặt từ 00h00 đến 04h00:
+
+không ảnh hưởng sản lượng biểu giá kỳ hóa đơn của KH
+
+1.2. Trường hợp 2: Cài đặt từ 04h00 đến 06h00: cài đặt lúc 04h45 (CS04h45)
+
+Điện năng tăng/ giảm được cộng/ trừ tương ứng vào điện năng kỳ hóa đơn.
+
+1.3. Trường hợp 3: Cài đặt từ 06h00 đến 09h30:
+
+1.4. Trường hợp 4: Cài đặt trong khoảng 9h30 ÷ 11h30 trưa : cài đặt lúc 10h20 (CS10h20).
+
+1.5. Trường hợp 5: Cài đặt sau 11h30 trưa đến 17h00:
+
+1.6. Trường hợp 6: Cài đặt từ 17h00 đến 17h30: cài đặt lúc 17h15
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=table | section=1.2. Trường hợp 2: Cài đặt từ 04h00 đến 06h00: cài đặt lúc 04h45 (CS04h45) | table=1.2. Trường hợp 2: Cài đặt từ 04h00 đến 06h00: cài đặt lúc 04h45 (CS04h45) | quality=pass | chars=496
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3684/EVNCPC-KD - V/v rà soát chuẩn bị triển khai thay đổi khung giờ cao điểm, thấp điểm, bình thường của hệ thống điện quốc gia
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: 1.2. Trường hợp 2: Cài đặt từ 04h00 đến 06h00: cài đặt lúc 04h45 (CS04h45)
+| STT | Biểu giá | Điện năng giảm | Điện năng tăng |
+| --- | --- | --- | --- |
+| 1 | Bình thường | - (CS04h45 - CS04h00) x HSN | |
+| 2 | Cao điểm | | |
+| 3 | Thấp điểm | | + (CS04h45 - CS04h00) x HSN |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=table | section=1.3. Trường hợp 3: Cài đặt từ 06h00 đến 09h30 | table=1.3. Trường hợp 3: Cài đặt từ 06h00 đến 09h30 | quality=pass | chars=467
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3684/EVNCPC-KD - V/v rà soát chuẩn bị triển khai thay đổi khung giờ cao điểm, thấp điểm, bình thường của hệ thống điện quốc gia
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: 1.3. Trường hợp 3: Cài đặt từ 06h00 đến 09h30
+| STT | Biểu giá | Điện năng giảm | Điện năng tăng |
+| --- | --- | --- | --- |
+| 1 | Bình thường | - (CS06h00 - CS04h00) x HSN | |
+| 2 | Cao điểm | | |
+| 3 | Thấp điểm | | + (CS06h00 - CS04h00) x HSN |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=table | section=1.4. Trường hợp 4: Cài đặt trong khoảng 9h30 ÷ 11h30 trưa : cài đặt lúc 10h20 (CS10h20). | table=1.4. Trường hợp 4: Cài đặt trong khoảng 9h30 ÷ 11h30 trưa : cài đặt lúc 10h20 (CS10h20). | quality=pass | chars=565
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3684/EVNCPC-KD - V/v rà soát chuẩn bị triển khai thay đổi khung giờ cao điểm, thấp điểm, bình thường của hệ thống điện quốc gia
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: 1.4. Trường hợp 4: Cài đặt trong khoảng 9h30 ÷ 11h30 trưa : cài đặt lúc 10h20 (CS10h20).
+| STT | Biểu giá | Điện năng giảm | Điện năng tăng |
+| --- | --- | --- | --- |
+| 1 | Bình thường | - (CS06h00 - CS04h00) x HSN | + (CS10h20 - CS9h30) x HSN |
+| 2 | Cao điểm | - (CS10h20 - CS9h30) x HSN. | |
+| 3 | Thấp điểm | | + (CS06h00 - CS04h00) x HSN |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #8
+chunk_type=table | section=1.5. Trường hợp 5: Cài đặt sau 11h30 trưa đến 17h00 | table=1.5. Trường hợp 5: Cài đặt sau 11h30 trưa đến 17h00 | quality=pass | chars=527
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3684/EVNCPC-KD - V/v rà soát chuẩn bị triển khai thay đổi khung giờ cao điểm, thấp điểm, bình thường của hệ thống điện quốc gia
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: 1.5. Trường hợp 5: Cài đặt sau 11h30 trưa đến 17h00
+| STT | Biểu giá | Điện năng giảm | Điện năng tăng |
+| --- | --- | --- | --- |
+| 1 | Bình thường | - (CS06h00 - CS04h00) x HSN | + (CS11h30 - CS9h30) x HSN |
+| 2 | Cao điểm | - (CS11h30 - CS9h30) x HSN | |
+| 3 | Thấp điểm | | + (CS06h00 - CS04h00) x HSN |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #9
+chunk_type=document_section | section=Phụ lục XÁC ĐỊNH ĐIỆN NĂNG BIỂU GIỜ BÌNH THƯỜNG, CAO ĐIỂM, THẤP ĐIỂM KHI CÀI ĐẶT THAY ĐỔI BIỂU GIÁ CÔNG TƠ > II. Ngày cài đặt là ngày chủ nhật: > 2.1. Trường hợp 1: Cài đặt từ 00h00 đến 04h00: | artifact=appendix | quality=pass | chars=693
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3684/EVNCPC-KD - V/v rà soát chuẩn bị triển khai thay đổi khung giờ cao điểm, thấp điểm, bình thường của hệ thống điện quốc gia
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục XÁC ĐỊNH ĐIỆN NĂNG BIỂU GIỜ BÌNH THƯỜNG, CAO ĐIỂM, THẤP ĐIỂM KHI CÀI ĐẶT THAY ĐỔI BIỂU GIÁ CÔNG TƠ > II. Ngày cài đặt là ngày chủ nhật: > 2.1. Trường hợp 1: Cài đặt từ 00h00 đến 04h00:
+2.1. Trường hợp 1: Cài đặt từ 00h00 đến 04h00:
+
+không ảnh hưởng sản lượng biểu giá kỳ hóa đơn của KH.
+
+2.2. Trường hợp 2: Cài đặt từ 04h00 đến 06h00: cài đặt lúc 04h45
+
+2.3. Trường hợp 3: Cài đặt từ 06h00 đến 22h00:
+
+2.4. Trường hợp 4: Cài đặt từ 22h00 đến 24h00: cài đặt lúc 22h45
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #10
+chunk_type=table | section=1.6. Trường hợp 6: Cài đặt từ 17h00 đến 17h30: cài đặt lúc 17h15 | table=1.6. Trường hợp 6: Cài đặt từ 17h00 đến 17h30: cài đặt lúc 17h15 | quality=pass | chars=2131
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3684/EVNCPC-KD - V/v rà soát chuẩn bị triển khai thay đổi khung giờ cao điểm, thấp điểm, bình thường của hệ thống điện quốc gia
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: 1.6. Trường hợp 6: Cài đặt từ 17h00 đến 17h30: cài đặt lúc 17h15
+| STT | Biểu giá | Điện năng giảm | Điện năng tăng |
+| --- | --- | --- | --- |
+| 1 | Bình thường | - (CS06h00 - CS04h00) x HSN | + (CS11h30 - CS9h30) x HSN + (CS17h15 - CS 17h00) x HSN |
+| 2 | Cao điểm | - (CS11h30 - CS9h30) x HSN - (CS17h15 - CS17h00) x HSN | |
+| 3 | Thấp điểm | | + (CS06h00 - CS04h00) x HSN |
+| 3 | Thấp điểm | 1.7. Trường hợp 7: Cài đặt từ 17h30 đến 20h00: | cài đặt lúc 18h45 |
+| 1 | Bình thường | - (CS06h00 - CS04h00) x HSN | + (CS11h30 - CS9h30) x HSN + (CS17h30 - CS17h00) x HSN |
+| 2 | Cao điểm | - (CS11h30 - CS9h30) x HSN - (CS17h30 - CS17h00) x HSN | |
+| 3 | Thấp điểm | | + (CS06h00 - CS04h00) x HSN |
+| 3 | Thấp điểm | 1.8. Trường hợp 8: Cài đặt từ 20h00 đến 22h00: | cài đặt lúc 21h15 |
+| 1 | Bình thường | - (CS06h00 - CS04h00) x HSN - (CS21h15 - CS20h00) x HSN | + (CS11h30 - CS9h30) x HSN + (CS17h30 - CS17h00) x HSN |
+| 2 | Cao điểm | - (CS11h30 - CS9h30) x HSN - (CS17h30 - CS17h00) x HSN | + (CS21h15 - CS20h00) x HSN |
+| 3 | Thấp điểm | | + (CS06h00 - CS04h00) x HSN |
+| 3 | Thấp điểm | 1.9. Trường hợp 9: Cài đặt từ 22h00 đến 22h30: | cài đặt lúc 22h15 |
+| 1 | Bình thường | - (CS06h00 - CS04h00) x HSN - (CS22h00 - CS20h00) x HSN | + (CS11h30 - CS9h30) x HSN + (CS17h30 - CS17h00) x HSN |
+| 2 | Cao điểm | - (CS11h30 - CS9h30) x HSN - (CS17h30 - CS17h00) x HSN | + (CS22h15 - CS20h00) x HSN |
+| 3 | Thấp điểm | - (CS22h15 - CS22h00) x HSN | + (CS06h00 - CS04h00) x HSN |
+| 3 | Thấp điểm | 1.10. Trường hợp 10: Cài đặt từ 22h30 đến 24h00: | cài đặt lúc 23h15 |
+| 1 | Bình thường | - (CS06h00 - CS04h00) x HSN - (CS22h00 - CS20h00) x HSN | + (CS11h30 - CS9h30) x HSN + (CS17h30 - CS17h00) x HSN + (CS23h15 - CS22h30) x HSN |
+| 2 | Cao điểm | - (CS11h30 - CS9h30) x HSN - (CS17h30 - CS17h00) x HSN | + (CS22h30 - CS20h00) x HSN |
+| 3 | Thấp điểm | - (CS23h15 - CS22h00) x HSN | + (CS06h00 - CS04h00) x HSN |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #11
+chunk_type=table | section=2.2. Trường hợp 2: Cài đặt từ 04h00 đến 06h00: cài đặt lúc 04h45 | table=2.2. Trường hợp 2: Cài đặt từ 04h00 đến 06h00: cài đặt lúc 04h45 | quality=pass | chars=486
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3684/EVNCPC-KD - V/v rà soát chuẩn bị triển khai thay đổi khung giờ cao điểm, thấp điểm, bình thường của hệ thống điện quốc gia
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: 2.2. Trường hợp 2: Cài đặt từ 04h00 đến 06h00: cài đặt lúc 04h45
+| STT | Biểu giá | Điện năng giảm | Điện năng tăng |
+| --- | --- | --- | --- |
+| 1 | Bình thường | - (CS04h45 - CS04h00) x HSN | |
+| 2 | Cao điểm | | |
+| 3 | Thấp điểm | | + (CS04h45 - CS04h00) x HSN |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #12
+chunk_type=table | section=2.3. Trường hợp 3: Cài đặt từ 06h00 đến 22h00 | table=2.3. Trường hợp 3: Cài đặt từ 06h00 đến 22h00 | quality=pass | chars=467
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3684/EVNCPC-KD - V/v rà soát chuẩn bị triển khai thay đổi khung giờ cao điểm, thấp điểm, bình thường của hệ thống điện quốc gia
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: 2.3. Trường hợp 3: Cài đặt từ 06h00 đến 22h00
+| STT | Biểu giá | Điện năng giảm | Điện năng tăng |
+| --- | --- | --- | --- |
+| 1 | Bình thường | - (CS06h00 - CS04h00) x HSN | |
+| 2 | Cao điểm | | |
+| 3 | Thấp điểm | | + (CS06h00 - CS04h00) x HSN |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #13
+chunk_type=table | section=2.4. Trường hợp 4: Cài đặt từ 22h00 đến 24h00: cài đặt lúc 22h45 | table=2.4. Trường hợp 4: Cài đặt từ 22h00 đến 24h00: cài đặt lúc 22h45 | quality=pass | chars=543
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3684/EVNCPC-KD - V/v rà soát chuẩn bị triển khai thay đổi khung giờ cao điểm, thấp điểm, bình thường của hệ thống điện quốc gia
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: 2.4. Trường hợp 4: Cài đặt từ 22h00 đến 24h00: cài đặt lúc 22h45
+| STT | Biểu giá | Điện năng giảm | Điện năng tăng |
+| --- | --- | --- | --- |
+| 1 | Bình thường | - (CS06h00 - CS04h00) x HSN. | + (CS22h45 - CS22h00) x HSN |
+| 2 | Cao điểm | | |
+| 3 | Thấp điểm | - (CS22h45 - CS22h00) x HSN | + (CS06h00 - CS04h00) x HSN |

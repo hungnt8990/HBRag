@@ -22,6 +22,32 @@ def test_from_source_maps_fields() -> None:
     assert rec.nam == 2025
 
 
+def test_from_source_maps_acl_lists() -> None:
+    """API mới trả ACL thẳng trong _source -> map vào record + has_acl True."""
+    rec = VanbanRecord.from_source(
+        {
+            "id_vb": 1068586,
+            "don_vi_list": [269],
+            "phong_ban_list": [43310],
+            "ca_nhan_list": [117910, 128438],
+        }
+    )
+    assert rec.don_vi_list == [269]
+    assert rec.phong_ban_list == [43310]
+    assert rec.ca_nhan_list == [117910, 128438]
+    assert rec.has_acl is True
+
+
+def test_acl_scalar_and_empty_normalized() -> None:
+    """ES có thể trả scalar hoặc rỗng -> chuẩn hoá list[int] / None; has_acl False khi rỗng."""
+    rec = VanbanRecord.from_source({"id_vb": "1", "don_vi_list": 269, "phong_ban_list": []})
+    assert rec.don_vi_list == [269]  # scalar -> list
+    assert rec.phong_ban_list is None  # [] -> None
+    assert rec.ca_nhan_list is None
+    assert rec.has_acl is True
+    assert VanbanRecord.from_source({"id_vb": "1"}).has_acl is False
+
+
 class _FakeResp:
     def __init__(self, payload):
         self.status_code = 200

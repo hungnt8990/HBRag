@@ -1,0 +1,190 @@
+================================================================================
+id_vb        : 1483210
+ky_hieu      : 3788/TB-EVNCPC
+trich_yeu    : TB rà soát thống nhất quy trình quản lý Công tác và quản lý Phương tiện xe ô tô.
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-22
+ten_file     : ThongBao_RaSoat_GopY_QLCT_PT_Fixed_L02.pdf
+TỔNG SỐ CHUNK: 9
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=215
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3788/TB-EVNCPC
+Ngày văn bản: 22/06/2026
+Trích yếu: TB rà soát thống nhất quy trình quản lý Công tác và quản lý Phương tiện xe ô tô.
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Trần Công Minh
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=903
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3788/TB-EVNCPC - TB rà soát thống nhất quy trình quản lý Công tác và quản lý Phương tiện xe ô tô.
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+Độc lập - Tự do - Hạnh phúc TỔNG CÔNG TY
+
+ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 22 tháng 6 năm 2026
+
+Số: 3788/TB-EVNCPC Số: /TB-EVNCPC.
+THÔNG BÁO
+
+V/v Rà soát thống nhất quy trình quản lý Công tác và quản lý
+
+Phương tiện xe ô tô.
+
+Sau khi đã tập hợp các ý kiến góp ý của các đơn vị về dự thảo quy trình Quản lý Công tác và Phương tiện xe ô tô, Văn phòng TCT đã hiệu chỉnh dự thảo theo ý kiến góp ý của đơn vị. Tuy nhiên chưa hoàn thiện đầy đủ vì còn một số góp ý cần phải trao đổi thống nhất. Do đó TCT tổ chức cuộc họp trực tuyến rà soát thống nhất các ý kiến góp ý của quy trình Quản lý Công tác và Quản lý Phương tiện xe ô tô, cụ thể như sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=I. Hình thức: | quality=pass | chars=1261
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3788/TB-EVNCPC - TB rà soát thống nhất quy trình quản lý Công tác và quản lý Phương tiện xe ô tô.
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: I. Hình thức:
+I. Hình thức:
+
+Hình thức Trực tuyến; Điểm đầu cầu tại TCT và các điểm đầu cầu truyền hình của các đơn vị.
+
+II. Thời gian: Từ ngày 30/06/2026 đến ngày 01/07/2026.
+
+III. Nội dung:
+
+1. Rà soát thống nhất các mục Góp ý của các đơn vị về dự thảo quy trình Quản lý Công tác và Quản lý Phương tiện xe ô tô.
+
+2. Rà soát yêu cầu chức năng nghiệp vụ và hệ thống Biểu mẫu đầu ra của quy trình Quản lý Công tác và Quản lý Phương tiện xe ô tô.
+
+3. Kế hoạch nội dung làm việc theo phụ lục và các tài liệu đính kèm.
+
+IV. Thành phần tham gia
+
+1. Cơ quan TCT:
+
+- Văn phòng; Ban VTCNTT: Đại diện 01 lãnh đạo và 01 chuyên viên phụ trách.
+
+- Đại diện Ban TCKT- (Bộ phận kế toán cơ quan).
+
+2. Các đơn vị thành viên.
+
+- Văn phòng/phòng TH/phòng TCHC: 01 lãnh đạo và 01 cán bộ nghiệp vụ.
+
+V. Phân công thực hiện
+
+1. CPCIT Cử lãnh đạo và cán bộ phòng Phần mềm tham gia để nắm bắt quy trình và nghiệp vụ để chuẩn bị kế hoạch và xây dựng chương trình Quản lý Công tác và Phương tiện xe ô tô theo tiến độ đã đề ra.
+
+- Phối hợp với Văn phòng và các đơn vị chuẩn bị hội nghị truyền hình.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=2. Các đơn vị: Cử cán bộ tham gia đầy đủ theo yêu cầu. | quality=pass | chars=380
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3788/TB-EVNCPC - TB rà soát thống nhất quy trình quản lý Công tác và quản lý Phương tiện xe ô tô.
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 2. Các đơn vị: Cử cán bộ tham gia đầy đủ theo yêu cầu.
+2. Các đơn vị: Cử cán bộ tham gia đầy đủ theo yêu cầu.
+
+TCT thông báo để các đơn vị biết và thực hiện nội dung trên./.
+
+TL.TỔNG GIÁM ĐỐC
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=footer_signature | quality=pass | chars=125
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận : CHÁNH VĂN PHÒNG
+
+- Như trên;
+
+- PTGĐ Trần Nguyễn Bảo An (b/c)
+
+- Ban VTCNTT; TCKT;
+
+- Lưu: VT, VP;
+
+Trần Công Minh
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=document_preamble | section=preamble | artifact=attached_document | quality=pass | chars=674
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3788/TB-EVNCPC - TB rà soát thống nhất quy trình quản lý Công tác và quản lý Phương tiện xe ô tô.
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+KẾ HOẠCH NỘI DUNG LÀM VIỆC (30/06/2026 - 01/07/2026)
+
+P/S :
+
+- Bộ phận đơn vị: Là đại diện cho các phòng: phòng Hành chính; phòng Tổng hợp hoặc phòng Kế hoạch của đơn vị.
+
+- Tài liệu quy trình đã hiệu chỉnh theo các ý kiến góp ý của các đơn vị. Tuy nhiên chưa được hoàn thiện đầy đủ vì còn các ý kiến góp ý cần phải trao đổi thống nhất (Phụ lục 01 & 02 và Dự thảo của 02 quy trình đính kèm).
+
+- Yêu cầu các đơn vị nghiên cứu chuẩn bị trước các nội dung theo tài liệu đính kèm:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=2936
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3788/TB-EVNCPC - TB rà soát thống nhất quy trình quản lý Công tác và quản lý Phương tiện xe ô tô.
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 1
+| Thời gian | Thời gian Ngày thứ 1 (30/06/2026) | Thời gian | Nội dung Rà soát thống nhất các ý kiến góp ý và đề xuất của các đơn vị về dự thảo của 02 Quy trình. | Nội dung | Ghi chú | Ghi chú |
+| --- | --- | --- | --- | --- | --- | --- |
+| | Buổi sáng: Khai mạc và Rà soát thống nhất các góp ý của đơn vị | | | | | |
+| 7h40 - 7h55 | Buổi sáng: Khai mạc và Rà soát thống nhất các góp ý của đơn vị | | - Kiểm tra các điểm cầu Truyền hình - Ổn định tổ chức | | | |
+| 7h55 - 8h00 | Buổi sáng: Khai mạc và Rà soát thống nhất các góp ý của đơn vị | | - Tuyên bố khai mạc | | | |
+| 8h00 - 8h15 | Buổi sáng: Khai mạc và Rà soát thống nhất các góp ý của đơn vị | | - Lãnh đạo Văn phòng-TCT: Phát biểu khai mạc. - Tham dự: + LĐ Văn phòng TCT và Chuyên viên. + LĐ Ban VTCNTT TCT và Chuyên viên. | | CVP Trần Công Minh -EVNCPC (phát biểu) | |
+| 8h15 - 10h00 | Buổi sáng: Khai mạc và Rà soát thống nhất các góp ý của đơn vị | | - Rà soát thống nhất các ý kiến góp ý và đề xuất của các đơn vị về dự thảo của 02 quy trình (Phụ lục 01 đính kèm). | | | |
+| 10h00 - 10h15 | Buổi sáng: Khai mạc và Rà soát thống nhất các góp ý của đơn vị | | Nghỉ giải lao | | | |
+| 10h15 - 11h30 | Buổi sáng: Khai mạc và Rà soát thống nhất các góp ý của đơn vị | | - Rà soát thống nhất các ý kiến góp ý và đề xuất của các đơn vị về dự thảo của 02 quy trình (tiếp tục). - Rà soát thống nhất các biểu mẫu đầu ra của 02 quy trình (Phụ lục 02 đính kèm). | | | |
+| 11h30 - 13h30 | Buổi chiều: Rà soát xây dựng yêu cầu bài toán (Tài liệu Chức năng nghiệp vụ Quản lý công tác và Quản lý sử dụng xe ô tô đính kèm) | | Nghỉ trưa | | | |
+| 13h30 - 15h00 | Buổi chiều: Rà soát xây dựng yêu cầu bài toán (Tài liệu Chức năng nghiệp vụ Quản lý công tác và Quản lý sử dụng xe ô tô đính kèm) | | - I: Yêu cầu chung của chương trình QLCT-PT. - II: Phân hệ Quản lý Công tác. + Mục tiêu Quản lý Công tác. + Chức năng nghiệp vụ Quản lý công tác. + Lượt đồ đăng ký Công tác và cấp giấy đi đường. - III: Phân hệ Quản lý Phương tiện ô tô. + Mục tiêu Quản lý phương tiện. + Chức năng nghiệp vụ Quản lý Phương tiện. + Lượt đồ đăng ký đăng ký sử dụng xe Cơ quan. - IV: Thực thể các phân hệ + Thực thể danh mục: Loại xe; Loại hình hoạt động, loại hình yếu tố và các danh mục khác. + Tập hợp các yêu cầu đề xuất của đơn vị | | | |
+| 15h00 - 15h15 | Buổi chiều: Rà soát xây dựng yêu cầu bài toán (Tài liệu Chức năng nghiệp vụ Quản lý công tác và Quản lý sử dụng xe ô tô đính kèm) | | Nghỉ giải lao | | | |
+| 15h15 - 16h30 | Ngày thứ 2 | | - Thực thể Phân hệ Quản lý công tác: + Đăng ký công tác. + Đăng ký Giấy đi đường. + Thu hồi Giấy đi đường. + v.v.v Rà soát xây dựng yêu cầu bài toán (Tiếp tục) | | | |
+| 15h15 - 16h30 | (01/07/2026) | | Rà soát xây dựng yêu cầu bài toán (Tiếp tục) | | | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=table | section=Bảng DOffice 2 | table=Bảng DOffice 2 | quality=pass | chars=817
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3788/TB-EVNCPC - TB rà soát thống nhất quy trình quản lý Công tác và quản lý Phương tiện xe ô tô.
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 2
+| 8h00 - 10h00 10h00 - 10h15 | | | Buổi sáng: Thực thể Phân hệ Quản lý phương tiện: + Đăng ký xe. + Lập lịch phân xe. + Duyệt lịch phân xe. + .v.v.v Thực thể Phân hệ Quản lý dịch vụ: Bảo dưỡng, kiểm định + Bảo hiểm xe. + Bảo dưỡng xe. + Kiểm định xe. + v.v.v Nghỉ giải lao |
+| --- | --- | --- | --- |
+| 10h15 - 11h15 | - (tiếp tục) + Hoá đơn GTGT các dịch vụ. + Hoá đơn phí thu qua trạm. + Thanh quyết toán các dịch vụ. + v.v.v + Rà soát các Biểu mẫu kí số và không kí số + Tập hợp các yêu cầu đề xuất của đơn vị. | | |
+| 11h15-11h30 | - Lãnh đạo Văn phòng - TCT: Phát biểu Bế mạc. | CVP Trần Công MinhEVNCPC | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #8
+chunk_type=document_section | section=1. Phụ lục 01: Rà soát thống nhất ý kiến góp ý của các đơn vị. | artifact=attached_document | quality=pass | chars=627
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3788/TB-EVNCPC - TB rà soát thống nhất quy trình quản lý Công tác và quản lý Phương tiện xe ô tô.
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 1. Phụ lục 01: Rà soát thống nhất ý kiến góp ý của các đơn vị.
+1. Phụ lục 01: Rà soát thống nhất ý kiến góp ý của các đơn vị.
+
+2. Phụ lục 02: Rà soát thống nhất hệ thống Biểu mẫu.
+
+3. Chức năng nghiệp vụ Quản lý Công tác và Quản lý sử dụng phương tiện xe ô tô của EVNCPC.
+
+4. Quy trình Quản lý Công tác của EVNCPC.
+
+5. Quy trình Quản lý sử dụng Phương tiện của EVNCPC.
+
+6. Hệ thống Biểu mẫu Báo cáo Quản lý Phương tiện ô tô.
+
+- o Oo - - -

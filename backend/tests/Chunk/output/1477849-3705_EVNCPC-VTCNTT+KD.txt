@@ -1,0 +1,86 @@
+================================================================================
+id_vb        : 1477849
+ky_hieu      : 3705/EVNCPC-VTCNTT+KD
+trich_yeu    : Đầu mối tiếp nhận, quản lý tài khoản Technician trên ServiceDesk EVN
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-17
+ten_file     : 20260617-CV-EVNICT-Dau-Moi-Tiep-Nhan-TK-Technician-SDP-XLSC-EVN-CSKH.pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=212
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3705/EVNCPC-VTCNTT+KD
+Ngày văn bản: 17/06/2026
+Trích yếu: Đầu mối tiếp nhận, quản lý tài khoản Technician trên ServiceDesk EVN
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Nguyễn Hữu Khánh
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1104
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3705/EVNCPC-VTCNTT+KD - Đầu mối tiếp nhận, quản lý tài khoản Technician trên ServiceDesk EVN
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+TỔNG CÔNG TY Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 17 tháng 6 năm 2026 Số: /EVNCPC-VTCNTT+KD Đà Nẵng, ngày tháng 6 năm 2026
+
+V/v đầu mối tiếp nhận, quản lý tài khoản Technician trên ServiceDesk EVN
+
+Kính gửi: Công ty CNTT và Viễn thông Điện lực (EVNICT)
+
+EVNCPC nhận được văn bản số 1005/EVNICT-TKDV+TTPM+TTHT của EVNICT về việc gửi đầu mối phối hợp xử lý sự cố ứng dụng EVN CSKH và tiếp nhận tài khoản Technician.
+
+EVNCPC cử đầu mối tiếp nhận, quản lý và sử dụng tài khoản Technician trên hệ thống ServiceDesk EVN đã được EVNICT thông báo tại văn bản số 815/EVNICT-TKDV+TTPM+TTHT ngày 29/5/2026 để tham gia xử lý sự cố ứng dụng EVN CSKH như phụ lục kèm theo.
+
+Trân trọng./.
+
+KT. TỔNG GIÁM ĐỐC Nơi nhận:
+
+Như trên; PHÓ TỔNG GIÁM ĐỐC TGĐ EVNCPC (báo cáo);
+
+PTGĐ Trần Nguyễn Bảo An;
+
+CPCCC (phối hợp);
+
+Các CTĐL thành viên, CPCIT;
+
+Ban PC;
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=38
+────────────────────────────────────────────────────────────────────────────────
+Lưu: VT, KD, VTCNTT.
+
+Nguyễn Hữu Khánh
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=Phụ lục — THÔNG TIN ĐẦU MỐI TIẾP NHẬN TÀI KHOẢN TECHNICIAN CỦA TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG | table=Phụ lục — THÔNG TIN ĐẦU MỐI TIẾP NHẬN TÀI KHOẢN TECHNICIAN CỦA TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG | quality=pass | chars=517
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3705/EVNCPC-VTCNTT+KD - Đầu mối tiếp nhận, quản lý tài khoản Technician trên ServiceDesk EVN
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Phụ lục — THÔNG TIN ĐẦU MỐI TIẾP NHẬN TÀI KHOẢN TECHNICIAN CỦA TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG
+| STT | Họ tên | Số điện thoại | Email | Phạm vi phụ trách | Đơn vị |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Nguyễn Việt An | 0392145410 | annv2@cpc.vn | Tham gia xử lý sự cố ứng dụng EVN CSKH | Trung tâm CSKH Điện lực miền Trung |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_body | section=Phụ lục | artifact=appendix | quality=pass | chars=286
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3705/EVNCPC-VTCNTT+KD - Đầu mối tiếp nhận, quản lý tài khoản Technician trên ServiceDesk EVN
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục
+Phụ lục
+
+THÔNG TIN ĐẦU MỐI TIẾP NHẬN TÀI KHOẢN TECHNICIAN CỦA TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG

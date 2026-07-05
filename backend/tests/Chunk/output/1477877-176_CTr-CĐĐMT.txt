@@ -1,0 +1,267 @@
+================================================================================
+id_vb        : 1477877
+ky_hieu      : 176/CTr-CĐĐMT
+trich_yeu    : CTHĐ thực hiện Nghị quyết số 79-NQ/TW ngày 06/01/2026 của Bộ Chính trị về phát triển kinh tế nhà nước
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-17
+ten_file     : CTHD-NQ-79-CD-CPC-AHa-final.pdf
+TỔNG SỐ CHUNK: 16
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=233
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 176/CTr-CĐĐMT
+Ngày văn bản: 17/06/2026
+Trích yếu: CTHĐ thực hiện Nghị quyết số 79-NQ/TW ngày 06/01/2026 của Bộ Chính trị về phát triển kinh tế nhà nước
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Trần Đình Hà
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1016
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 176/CTr-CĐĐMT - CTHĐ thực hiện Nghị quyết số 79-NQ/TW ngày 06/01/2026 của Bộ Chính trị về phát triển kinh tế nhà nước
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+CÔNG ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM CÔNG ĐOÀN TỔNG CÔNG TY Độc lập- Tự do- Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+Số: 176/CTr-CĐĐMT Đà Nẵng, ngày 17 tháng 6 năm 2026
+
+CHƯƠNG TRÌNH HÀNH ĐỘNG
+
+Thực hiện Nghị quyết số 79-NQ/TW ngày 06/01/2026 của Bộ Chính trị
+
+về phát triển kinh tế nhà nước
+
+Thực hiện Chương trình hành động số 179/CTr-CĐĐVN ngày 13/4/2026 của Công đoàn Điện lực Việt Nam và Kế hoạch số 20-KH/ĐU ngày 17/3/2026 của Đảng ủy Tổng công ty về tổ chức nghiên cứu, quán triệt, tuyên truyền và triển khai thực hiện Nghị quyết số 79-NQ/TW, ngày 06/01/2026 của Bộ Chính trị về phát triển kinh tế nhà nước (gọi tắt là Nghị quyết số 79-NQ/TW), Công đoàn Tổng công ty ban hành Chương trình hành động triển khai thực hiện Nghị quyết số 79-NQ/TW với các nội dung cụ thể như sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=I. MỤC ĐÍCH, YÊU CẦU | quality=pass | chars=1171
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 176/CTr-CĐĐMT - CTHĐ thực hiện Nghị quyết số 79-NQ/TW ngày 06/01/2026 của Bộ Chính trị về phát triển kinh tế nhà nước
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: I. MỤC ĐÍCH, YÊU CẦU
+I. MỤC ĐÍCH, YÊU CẦU
+
+1. Mục đích
+
+Tổ chức tuyên truyền, quán triệt sâu rộng Nghị quyết số 79-NQ/TW tới đoàn viên, người lao động trong toàn Tổng công ty, góp phần nâng cao nhận thức về vị trí, vai trò chủ đạo của kinh tế nhà nước trong nền kinh tế thị trường định hướng xã hội chủ nghĩa và trách nhiệm của doanh nghiệp điện lực trong bảo đảm an ninh năng lượng quốc gia.
+
+Phát huy vai trò của tổ chức Công đoàn trong việc động viên đoàn viên, người lao động tích cực tham gia thực hiện các nhiệm vụ chính trị, nhiệm vụ sản xuất kinh doanh của Tổng công ty; góp phần nâng cao hiệu quả quản trị, sử dụng nguồn lực, đẩy mạnh đổi mới sáng tạo, chuyển đổi số và xây dựng văn hóa doanh nghiệp.
+
+Thông qua các phong trào thi đua và hoạt động công đoàn, khơi dậy tinh thần trách nhiệm, sáng tạo của đội ngũ cán bộ, công nhân viên, người lao động; tạo động lực để EVNCPC phát triển bền vững, đóng góp tích cực vào sự phát triển của kinh tế nhà nước.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=2. Yêu cầu | quality=pass | chars=810
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 176/CTr-CĐĐMT - CTHĐ thực hiện Nghị quyết số 79-NQ/TW ngày 06/01/2026 của Bộ Chính trị về phát triển kinh tế nhà nước
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 2. Yêu cầu
+2. Yêu cầu
+
+Việc triển khai Kế hoạch này phải gắn chặt với nhiệm vụ chính trị của Tổng công ty và các đơn vị, bảo đảm thiết thực, hiệu quả, tránh hình thức.
+
+Các cấp công đoàn cụ thể hóa nội dung Nghị quyết thành các hoạt động, phong trào phù hợp với chức năng, nhiệm vụ của tổ chức Công đoàn; xác định rõ trách nhiệm của từng cấp công đoàn trong tổ chức thực hiện.
+
+Đẩy mạnh đổi mới phương thức hoạt động công đoàn theo hướng thiết thực, hiệu quả; lấy người lao động làm trung tâm, góp phần nâng cao năng suất lao động, hiệu quả sản xuất kinh doanh và năng lực cạnh tranh của Tổng công ty.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_section | section=II. QUAN ĐIỂM CHỈ ĐẠO, CÁC MỤC TIÊU THỰC HIỆN | quality=pass | chars=884
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 176/CTr-CĐĐMT - CTHĐ thực hiện Nghị quyết số 79-NQ/TW ngày 06/01/2026 của Bộ Chính trị về phát triển kinh tế nhà nước
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: II. QUAN ĐIỂM CHỈ ĐẠO, CÁC MỤC TIÊU THỰC HIỆN
+II. QUAN ĐIỂM CHỈ ĐẠO, CÁC MỤC TIÊU THỰC HIỆN
+
+1. Quan điểm chỉ đạo
+
+- Bám sát quan điểm, mục tiêu, nhiệm vụ, giải pháp của Nghị quyết số 79-NQ/TW, Kế hoạch của Đảng ủy TCT; Phát huy vai trò của tổ chức công đoàn với tư cách là thành viên trong hệ thống chính trị của EVN; không chỉ tuyên truyền, vận động mà trực tiếp tham gia, đồng hành trong thực hiện các nhiệm vụ sản xuất kinh doanh, đầu tư, chuyển đổi số, chuyển đổi năng lượng của EVNCPC thông qua người lao động.
+
+- Đảm bảo 3 trục lớn đó là: Quản trị minh bạch, hiệu quả; lấy người lao động làm trung tâm chuyển đổi; tổ chức Công đoàn tham gia thực chất, không hình thức.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=document_section | section=2. Mục tiêu tổng quát | quality=pass | chars=767
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 176/CTr-CĐĐMT - CTHĐ thực hiện Nghị quyết số 79-NQ/TW ngày 06/01/2026 của Bộ Chính trị về phát triển kinh tế nhà nước
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 2. Mục tiêu tổng quát
+2. Mục tiêu tổng quát
+
+Phát huy vai trò của tổ chức Công đoàn trong hệ thống chính trị của EVN và EVNCPC nhằm:
+
+- Góp phần xây dựng EVN và EVNCPC trở thành doanh nghiệp nhà nước giữ vai trò nòng cốt trong bảo đảm an ninh năng lượng quốc gia, vận hành theo cơ chế thị trường, quản trị hiện đại theo các chuẩn mực quản trị hiện đại, tiệm cận thông lệ quốc tế (OECD).
+
+- Xây dựng đội ngũ công nhân, viên chức, lao động ngành điện có trình độ cao, thích ứng chuyển đổi số; nâng cao hiệu quả, vai trò chủ đạo và dẫn dắt của kinh tế nhà nước.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=document_section | section=3. Mục tiêu cụ thể | quality=pass | chars=1282
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 176/CTr-CĐĐMT - CTHĐ thực hiện Nghị quyết số 79-NQ/TW ngày 06/01/2026 của Bộ Chính trị về phát triển kinh tế nhà nước
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 3. Mục tiêu cụ thể
+3. Mục tiêu cụ thể
+
+(1) 100% cán bộ công đoàn, đoàn viên, người lao động được tuyên truyền, quán triệt Nghị quyết;
+
+(2) Phấn đấu duy trì và nâng cao số lượng sáng kiến cải tiến kỹ thuật hằng năm;
+
+trong đó tỷ lệ sáng kiến được áp dụng đạt trên 70%.
+
+(3) 100% công đoàn cơ sở: Tham gia xây dựng quy chế dân chủ, giám sát quản trị doanh nghiệp; Phối hợp tổ chức đối thoại định kỳ với người lao động; đưa nội dung thực hiện Nghị quyết vào tiêu chí đánh giá thi đua, đánh giá hoạt động công đoàn.
+
+(4) Góp phần nâng cao năng suất lao động theo mục tiêu của TCT; giảm tai nạn lao động hằng năm; thúc đẩy chuyển đổi số, xây dựng doanh nghiệp số toàn diện hiện đại theo tiêu chuẩn áp dụng nguyên tắc quản trị của OECD.
+
+(5) 100% công đoàn cơ sở đưa nội dung thực hiện Nghị quyết vào chương trình kiểm tra, giám sát hằng năm.
+
+(6) Phấn đấu 100% cán bộ công đoàn chuyên trách và cán bộ công đoàn cơ sở sử dụng hiệu quả các nền tảng số trong hoạt động công đoàn; tăng cường ứng dụng công nghệ số trong tuyên truyền, quản lý đoàn viên và tổ chức phong trào thi đua.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=document_section | section=III. NHIỆM VỤ VÀ GIẢI PHÁP CHỦ YẾU | quality=pass | chars=1329
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 176/CTr-CĐĐMT - CTHĐ thực hiện Nghị quyết số 79-NQ/TW ngày 06/01/2026 của Bộ Chính trị về phát triển kinh tế nhà nước
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: III. NHIỆM VỤ VÀ GIẢI PHÁP CHỦ YẾU
+III. NHIỆM VỤ VÀ GIẢI PHÁP CHỦ YẾU
+
+1. Tổ chức tuyên truyền, phổ biến Nghị quyết trong đoàn viên và người lao động
+
+Công đoàn Tổng công ty chỉ đạo các công đoàn trực thuộc tổ chức tuyên truyền, phổ biến nội dung Nghị quyết số 79-NQ/TW và các Chương trình/kế hoạch của Đảng ủy các cấp tới toàn thể đoàn viên, người lao động bằng nhiều hình thức phù hợp như hội nghị, sinh hoạt công đoàn, chuyên đề, bản tin nội bộ, cổng thông tin điện tử,...
+
+Nội dung tuyên truyền tập trung làm rõ vai trò của kinh tế nhà nước và doanh nghiệp nhà nước trong bảo đảm an ninh năng lượng, phát triển kinh tế - xã hội, ổn định đời sống nhân dân; đồng thời tăng cường tuyên truyền, định hướng dư luận trong đoàn viên, người lao động; chủ động bảo vệ hình ảnh, uy tín EVN và EVNCPC; đấu tranh với các thông tin sai lệch ảnh hưởng đến hoạt động của ngành điện, làm rõ trách nhiệm của EVNCPC trong quá trình phát triển kinh tế nhà nước theo định hướng của Đảng. Qua đó nâng cao nhận thức chính trị, ý thức trách nhiệm và tinh thần cống hiến của đoàn viên, người lao động đối với sự phát triển của Tổng công ty.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #8
+chunk_type=document_section | section=2. Phát động các phong trào thi đua góp phần nâng cao hiệu quả doanh nghiệp nhà nước | quality=pass | chars=1199
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 176/CTr-CĐĐMT - CTHĐ thực hiện Nghị quyết số 79-NQ/TW ngày 06/01/2026 của Bộ Chính trị về phát triển kinh tế nhà nước
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 2. Phát động các phong trào thi đua góp phần nâng cao hiệu quả doanh nghiệp nhà nước
+2. Phát động các phong trào thi đua góp phần nâng cao hiệu quả doanh nghiệp nhà nước
+
+Công đoàn Tổng công ty phối hợp với chuyên môn tuyên truyền, vận động đoàn viên và người lao động tham gia thực hiện các mục tiêu chuyển dịch năng lượng, sử dụng năng lượng tiết kiệm và hiệu quả, giảm phát thải và phát triển xanh theo định hướng của EVN và EVNCPC. Phát động các phong trào thi đua thiết thực, gắn với nhiệm vụ sản xuất kinh doanh và mục tiêu phát triển bền vững của Tổng công ty như:
+
+Thi đua lao động giỏi, lao động sáng tạo, Phong trào sáng kiến, cải tiến kỹ thuật, hợp lý hóa sản xuất, Thi đua bảo đảm cung cấp điện an toàn, ổn định, liên tục, Phong trào thực hành tiết kiệm, chống lãng phí trong sản xuất và quản lý.
+
+Thông qua các phong trào thi đua, phát hiện, bồi dưỡng và nhân rộng các điển hình tiên tiến; tạo động lực thúc đẩy đổi mới sáng tạo và nâng cao hiệu quả hoạt động của doanh nghiệp.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #9
+chunk_type=document_section | section=3. Phát huy vai trò của Công đoàn trong tham gia quản lý doanh nghiệp | quality=pass | chars=1168
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 176/CTr-CĐĐMT - CTHĐ thực hiện Nghị quyết số 79-NQ/TW ngày 06/01/2026 của Bộ Chính trị về phát triển kinh tế nhà nước
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 3. Phát huy vai trò của Công đoàn trong tham gia quản lý doanh nghiệp
+3. Phát huy vai trò của Công đoàn trong tham gia quản lý doanh nghiệp
+
+Công đoàn các cấp chủ động tham gia với chuyên môn trong việc xây dựng và thực hiện các quy chế, quy định liên quan đến người lao động; bảo đảm hài hòa lợi ích giữa doanh nghiệp và người lao động. Tham gia góp ý, giám sát việc thực hiện các chương trình nâng cao hiệu quả quản trị doanh nghiệp, cải cách hành chính, quản trị rủi ro, công khai minh bạch và thực hành tiết kiệm, chống lãng phí.
+
+Thực hiện tốt quy chế dân chủ ở cơ sở, tổ chức đối thoại định kỳ tại nơi làm việc; kịp thời nắm bắt tâm tư, nguyện vọng của người lao động, góp phần xây dựng quan hệ lao động hài hòa, ổn định và tiến bộ trong doanh nghiệp.
+
+Thông qua các hoạt động giám sát của tổ chức Công đoàn và Ban Thanh tra nhân dân, tham gia giám sát việc quản lý, sử dụng nguồn lực, thực hành tiết kiệm, phòng chống tham nhũng, lãng phí trong đơn vị.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #10
+chunk_type=document_section | section=4. Chăm lo, bảo vệ quyền và lợi ích hợp pháp của người lao động | quality=pass | chars=1016
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 176/CTr-CĐĐMT - CTHĐ thực hiện Nghị quyết số 79-NQ/TW ngày 06/01/2026 của Bộ Chính trị về phát triển kinh tế nhà nước
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 4. Chăm lo, bảo vệ quyền và lợi ích hợp pháp của người lao động
+4. Chăm lo, bảo vệ quyền và lợi ích hợp pháp của người lao động
+
+Công đoàn các cấp tiếp tục đẩy mạnh các hoạt động chăm lo đời sống vật chất, tinh thần cho đoàn viên và người lao động; đặc biệt quan tâm tới người lao động trực tiếp sản xuất, người lao động ở vùng sâu, vùng xa, điều kiện làm việc khó khăn.
+
+Chủ động nắm bắt tâm tư người lao động trong quá trình sắp xếp tổ chức, tinh gọn bộ máy, chuyển đổi số; phối hợp với chuyên môn thực hiện đào tạo lại, nâng cao kỹ năng và bảo đảm quyền lợi của người lao động.
+
+Thực hiện tốt các chế độ, chính sách liên quan đến tiền lương, phúc lợi, an toàn vệ sinh lao động; góp phần tạo môi trường làm việc an toàn, ổn định, giúp người lao động yên tâm công tác và cống hiến lâu dài cho Tổng công ty.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #11
+chunk_type=document_section | section=5. Xây dựng đội ngũ người lao động chất lượng cao | quality=pass | chars=731
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 176/CTr-CĐĐMT - CTHĐ thực hiện Nghị quyết số 79-NQ/TW ngày 06/01/2026 của Bộ Chính trị về phát triển kinh tế nhà nước
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 5. Xây dựng đội ngũ người lao động chất lượng cao
+5. Xây dựng đội ngũ người lao động chất lượng cao
+
+Công đoàn Tổng công ty phối hợp với chuyên môn và các đơn vị chức năng trong việc tổ chức đào tạo, bồi dưỡng nâng cao trình độ chuyên môn, kỹ năng nghề nghiệp cho người lao động; khuyến khích học tập suốt đời và phát triển nguồn nhân lực chất lượng cao.
+
+Đẩy mạnh các hoạt động phát huy sáng kiến, nghiên cứu khoa học, ứng dụng công nghệ mới; góp phần thực hiện mục tiêu chuyển đổi số, chuyển đổi xanh trong Tổng công ty.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #12
+chunk_type=document_section | section=6. Xây dựng văn hóa doanh nghiệp và tác phong công nghiệp | quality=pass | chars=635
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 176/CTr-CĐĐMT - CTHĐ thực hiện Nghị quyết số 79-NQ/TW ngày 06/01/2026 của Bộ Chính trị về phát triển kinh tế nhà nước
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 6. Xây dựng văn hóa doanh nghiệp và tác phong công nghiệp
+6. Xây dựng văn hóa doanh nghiệp và tác phong công nghiệp
+
+Đẩy mạnh các hoạt động xây dựng văn hóa doanh nghiệp EVNCPC; xây dựng môi trường làm việc kỷ cương, chuyên nghiệp, trách nhiệm và minh bạch.
+
+Vận động đoàn viên, người lao động thực hiện tốt kỷ luật lao động, quy trình sản xuất, quy định về an toàn điện; xây dựng hình ảnh người thợ điện trách nhiệm, tận tụy.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #13
+chunk_type=document_section | section=IV. TỔ CHỨC THỰC HIỆN | quality=pass | chars=629
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 176/CTr-CĐĐMT - CTHĐ thực hiện Nghị quyết số 79-NQ/TW ngày 06/01/2026 của Bộ Chính trị về phát triển kinh tế nhà nước
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: IV. TỔ CHỨC THỰC HIỆN
+IV. TỔ CHỨC THỰC HIỆN
+
+1. Công đoàn Tổng công ty
+
+Trên cơ sở Chương trình hành động này, hàng năm Công đoàn Tổng công ty xây dựng kế hoạch cụ thể vào trong Chương trình công tác để có chỉ đạo, hướng dẫn, kiểm tra, đôn đốc việc triển khai thực hiện Chương trình. Giao Thường trực công đoàn chủ trì, phối hợp với các Ban TCT giúp Ban Thường vụ theo dõi, hướng dẫn, kiểm tra việc triển khai thực hiện.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #14
+chunk_type=document_section | section=2. Công đoàn cơ sở trực thuộc | quality=pass | chars=489
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 176/CTr-CĐĐMT - CTHĐ thực hiện Nghị quyết số 79-NQ/TW ngày 06/01/2026 của Bộ Chính trị về phát triển kinh tế nhà nước
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 2. Công đoàn cơ sở trực thuộc
+2. Công đoàn cơ sở trực thuộc
+
+Căn cứ vào Chương trình này tổ chức triển khai thực hiện sát với điều kiện thực tiễn của đơn vị; đảm bảo nghiêm túc, hiệu quả. Báo cáo đánh giá kết hợp với Báo cáo định kỳ về Công đoàn Tổng công ty./.
+
+TM. BAN THƯỜNG VỤ
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #15
+chunk_type=footer_signature | quality=pass | chars=129
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: CHỦ TỊCH
+
+- CĐ ĐLVN (B/cáo);
+
+- ĐU TCT (B/cáo);
+
+- BCH, UBKT CĐTCT;
+
+- CĐCS trực thuộc;
+
+- Lưu: VT, VPCĐ.
+
+Trần Đình Hà

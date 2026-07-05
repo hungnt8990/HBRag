@@ -1,0 +1,140 @@
+================================================================================
+id_vb        : 1483046
+ky_hieu      : 3786/EVNCPC-PC
+trich_yeu    : Phổ biến, rà soát, đánh giá tác động của VBPL ban hành trong tháng 5/2026
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-22
+ten_file     : 2026.VB-Ra-Soat-Danh-Gia-VBPL-Ban-Hanh-Thang-05-2026.pdf
+TỔNG SỐ CHUNK: 7
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=204
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3786/EVNCPC-PC
+Ngày văn bản: 22/06/2026
+Trích yếu: Phổ biến, rà soát, đánh giá tác động của VBPL ban hành trong tháng 5/2026
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Ngô Tấn Cư
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1643
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3786/EVNCPC-PC - Phổ biến, rà soát, đánh giá tác động của VBPL ban hành trong tháng 5/2026
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+TỔNG CÔNG TY Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 22 tháng 6 năm 2026
+
+Số: 3786/EVNCPC-PC Số: /EVNCPC-PC
+
+V/v phổ biến, rà soát, đánh giá tác động của VBPL ban hành trong tháng 5/2026
+
+Kính gửi:
+
+- Các đơn vị thành viên EVNCPC;
+
+- Người đại diện phần vốn của EVNCPC tại các CTCP.
+
+Thực hiện chỉ đạo của EVN tại văn bản số 3452/EVN-PC ngày 16/6/2026 về việc phổ biến, rà soát, đánh giá tác động của VBPL ban hành trong tháng 5/2026, EVNCPC đề nghị các đơn vị thành viên, NĐD phần vốn của EVNCPC tại các CTCP thực hiện nội dung sau:
+
+1. Tổ chức phổ biến, nghiên cứu nội dung Báo cáo rà soát đánh giá tác động của các VBPL ban hành trong tháng 5/2026 đến lĩnh vực hoạt động và QCNB của EVN do đơn vị Tư vấn thực hiện (Báo cáo). Đồng thời, thống kê các VBPL tác động đến lĩnh vực hoạt động cũng như QCNB/TLNB của EVNCPC/đơn vị theo Biểu mẫu 01 (Đính kèm).
+
+Một số VBPL cần lưu ý được ban hành/cập nhật trong tháng 05/2026 như:
+
+- Luật sửa đổi, bổ sung một số điều của Luật Thuế thu nhập cá nhân, Luật Thuế giá trị gia tăng, Luật Thuế thu nhập doanh nghiệp và Luật Thuế tiêu thụ đặc biệt số 09/2026/QH16 của Quốc hội.
+
+- Luật sửa đổi, bổ sung một số điều của Luật Thi đua, khen thưởng số 06/2026/QH16 của Quốc hội.
+
+- Nghị định số 181/2026/NĐ-CP ngày 21/5/2026 của Chính phủ về quản lý người giữ chức danh, chức vụ và người đại diện phần vốn nhà nước tại doanh nghiệp.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=2. Rà soát QCNB/TLNB của EVNCPC/đơn vị để kịp thời đề xuất/thực hiện sửa đổi, bổ sung, bãi bỏ, ban hành lại QCNB/TLNB theo Biểu mẫu 02 (Đính kèm). | quality=pass | chars=601
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3786/EVNCPC-PC - Phổ biến, rà soát, đánh giá tác động của VBPL ban hành trong tháng 5/2026
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 2. Rà soát QCNB/TLNB của EVNCPC/đơn vị để kịp thời đề xuất/thực hiện sửa đổi, bổ sung, bãi bỏ, ban hành lại QCNB/TLNB theo Biểu mẫu 02 (Đính kèm).
+2. Rà soát QCNB/TLNB của EVNCPC/đơn vị để kịp thời đề xuất/thực hiện sửa đổi, bổ sung, bãi bỏ, ban hành lại QCNB/TLNB theo Biểu mẫu 02 (Đính kèm).
+
+Trong thời gian chưa kịp sửa đổi, bổ sung QCNB/TLNB, phải thực hiện theo các quy định tại VBPL này khi các VBPL có hiệu lực.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=3. Góp ý sửa đổi, bổ sung nội dung đánh giá tác động VBPL đến lĩnh vực hoạt động và các QCNB của EVN được nêu trong Báo cáo theo Biểu mẫu 03 (Đính kèm). | quality=pass | chars=1551
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3786/EVNCPC-PC - Phổ biến, rà soát, đánh giá tác động của VBPL ban hành trong tháng 5/2026
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 3. Góp ý sửa đổi, bổ sung nội dung đánh giá tác động VBPL đến lĩnh vực hoạt động và các QCNB của EVN được nêu trong Báo cáo theo Biểu mẫu 03 (Đính kèm).
+3. Góp ý sửa đổi, bổ sung nội dung đánh giá tác động VBPL đến lĩnh vực hoạt động và các QCNB của EVN được nêu trong Báo cáo theo Biểu mẫu 03 (Đính kèm).
+
+Đề nghị các đơn vị thành viên, NĐD phần vốn của EVNCPC tại các CTCP triển khai thực hiện và báo cáo kết quả về EVNCPC trước ngày 03/7/2026 (qua địa chỉ email Ban Pháp chế: phapche@cpc.vn để tổng hợp, báo cáo EVN./.
+TỔNG GIÁM ĐỐC Nơi nhận:
+
+- Như trên;
+
+- HĐTV EVNCPC (b/c);
+
+- Các PTGĐ;
+
+- VP, các Ban EVNCPC (t/h);
+
+- Lưu: VT, PC.
+
+Ngô Tấn Cư
+
+Biểu mẫu 01: Thống kê đánh giá tác động VBPL ban hành tháng 5/2026 đến lĩnh vực hoạt động và QCNB
+
+của EVNCPC/đơn vị
+
+Biểu mẫu 02: Kế hoạch sửa đổi, bổ sung QCNB/TLNB EVNCPC/đơn vị
+
+Biểu mẫu 03: Góp ý về Báo cáo đánh giá tác động VBPL ban hành tháng 5/2026
+
+Ghi chú:
+
+(1), (2): Ghi số thứ tự và tên của lĩnh vực, tương tự như Báo cáo của Tư vấn. Hiện được chia thành 09 lĩnh vực (3): Ghi ý kiến về đánh giá của Tư vấn đối với sự tác động của các VBPL đến từng lĩnh vực.
+
+(4), (5): Ghi cụ thể QCNB, VBPL có tác động đến QCNB của EVN (6): Ý kiến đối với nội dung tác động của VBPL tới QCNB của EVN (7): Các Ban, đơn vị đề xuất nội dung sửa đổi, bổ sung, thay thế hoặc loại bỏ các quy định cụ thể trong các QCNB (nếu có)
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=537
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3786/EVNCPC-PC - Phổ biến, rà soát, đánh giá tác động của VBPL ban hành trong tháng 5/2026
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 1
+Tên VBPL ban hành trong tháng 5/2026 | Tác động đến lĩnh vực hoạt động của EVNCPC/đơn vị - Lĩnh vực tác động | Tác động đến lĩnh vực hoạt động của EVNCPC/đơn vị - Nội dung tác động đến lĩnh vực | Tác động đến QCNB/TLNB của EVNCPC/Đơn vị - Tên QCNB/TLNB | Tác động đến QCNB/TLNB của EVNCPC/Đơn vị - Nội dung tác động tới QCNB/TLNB | Ghi chú
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=table | section=Bảng DOffice 2 | table=Bảng DOffice 2 | quality=pass | chars=1070
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3786/EVNCPC-PC - Phổ biến, rà soát, đánh giá tác động của VBPL ban hành trong tháng 5/2026
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 2
+| TT | Tên QCNB/TLNB | TLVD được nêu trong QCNB/TLNB đã hết hiệu lực thi hành Tên văn bản hết hiệu lực | TLVD được nêu trong QCNB/TLNB đã hết hiệu lực thi hành Tên văn bản thay thế | Phần nội dung trong QCNB/TLNB thay đổi | Biện pháp xử lý sau rà soát | Thời gian hoàn thành | Ghi chú |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | Quy định... | Nghị định số... | Nghị định số... | Chỉ thay đổi tài liệu viện dẫn, các nội dung khác không có thay đổi. | Sửa đổi, bổ sung tài liệu viện dẫn | Tháng ... | |
+| 2 | Quy trình... | Thông tư số ... | Thông tư số... | Thay đổi tài liệu viện dẫn và một phần nội dung QCNB/TLNB, cụ thể: -... - ... | Sửa đổi, bổ sung tài liệu viện dẫn và nội dung QCNB/TLNB | Tháng ... | |
+| 3 | Quy trình... | Thông tư số ... | Thông tư số... | Thay đổi toàn bộ bội dung của Quy trình | Ban hành lại/Bãi bỏ (nêu rõ lý do) | Tháng ... | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=table | section=Bảng DOffice 3 | table=Bảng DOffice 3 | quality=pass | chars=770
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3786/EVNCPC-PC - Phổ biến, rà soát, đánh giá tác động của VBPL ban hành trong tháng 5/2026
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Bảng: Bảng DOffice 3
+Số thứ tự của Lĩnh vực (1) | Tên Lĩnh vực (2) | Ý kiến của các Ban, đơn vị về đánh giá sự tác động VBPL đến lĩnh vực hoạt động (3) | Ý kiến các Ban, đơn vị về đánh giá sự tác động đến các QCNB của EVN - Tên QCNB (4) | Ý kiến các Ban, đơn vị về đánh giá sự tác động đến các QCNB của EVN - VBPL có tác động đến QCNB (5) | Ý kiến các Ban, đơn vị về đánh giá sự tác động đến các QCNB của EVN - Nội dung tác động tới QCNB (6) | Ý kiến các Ban, đơn vị về đánh giá sự tác động đến các QCNB của EVN - Đề xuất nội dung sửa đổi, bổ sung, thay thế hoặc loại bỏ QCNB (7) | Ghi chú (8)

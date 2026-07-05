@@ -1,0 +1,54 @@
+================================================================================
+id_vb        : 1484122
+ky_hieu      : 3596/EVN-PC
+trich_yeu    : Phối hợp tổ chức Hội thảo lấy ý kiến Dự án Luật sửa đổi, bổ sung một số điều của Luật Điện lực
+noi_ban_hanh : Tập đoàn Điện lực Việt Nam
+ngay_vb      : 2026-06-23
+ten_file     : Gui CPC phoi hop to chuc Hoi thao Luat sdbs Luat Dien luc (doi thoi gian).pdf
+TỔNG SỐ CHUNK: 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=223
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3596/EVN-PC
+Ngày văn bản: 23/06/2026
+Trích yếu: Phối hợp tổ chức Hội thảo lấy ý kiến Dự án Luật sửa đổi, bổ sung một số điều của Luật Điện lực
+Nơi ban hành: Tập đoàn Điện lực Việt Nam
+Người ký: Nguyễn Đình Phước
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1373
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3596/EVN-PC - Phối hợp tổ chức Hội thảo lấy ý kiến Dự án Luật sửa đổi, bổ sung một số điều của Luật Điện lực
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+TẬP ĐOÀN CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC VIỆT NAM Độc lập - Tự do - Hạnh phúc
+
+V/v phối hợp tổ chức Hội thảo lấy ý kiến Dự án Luật sửa đổi, bổ sung một số điều của Luật Điện lực
+
+Kính gửi: Tổng công ty Điện lực miền Trung
+
+Để phối hợp với Cục Điện lực tổ chức Hội thảo lấy ý kiến Dự án Luật sửa đổi, bổ sung một số điều của Luật Điện lực khu vực các tỉnh miền Bắc, miền Trung tại TP. Đà Nẵng (Hội thảo), EVN đã có Văn bản số 3521/EVN-PC ngày 18/6/2026 gửi EVNCPC.
+
+Ngày 22/6/2026, Cục Điện lực, Bộ Công Thương có Văn bản số 1680/ĐL-VP (đính kèm), theo đó, thời gian tổ chức Hội thảo sẽ thay đổi từ chiều thứ hai ngày 29/6/2026 sang sáng thứ sáu ngày 26/6/2026, bắt đầu từ lúc 8 giờ 00 phút và cập nhật một số thông tin, công tác phối hợp khác được đề cập trong Văn bản số 1680/ĐL-VP. Các nội dung khác liên quan đến Hội thảo thực hiện theo nội dung Văn bản số 3521/EVN-PC ngày 18/6/2026 của EVN.
+
+EVN yêu cầu EVNCPC triển khai thực hiện. Thông tin đầu mối chi tiết liên hệ: Ông Nguyễn Văn Toán, Chánh Văn phòng Cục Điện lực, điện thoại 0912233260, Email: ToanNGV@moit.gov.vn; Ông Lê Trọng Tài, Phó Trưởng Ban Pháp chế EVN, điện thoại: 0966120368 Email: Tailt@evn.com.vn./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=151
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. TỔNG GIÁM ĐỐC
+
+- Như trên (t/h); PHÓ TỔNG GIÁM ĐỐC
+
+- TGĐ EVN (để b/c);
+
+- Các Ban: KDMBĐ; ĐTXD; TCKT;
+
+- Lưu: VT, PC.
+
+Nguyễn Đình Phước

@@ -1,0 +1,154 @@
+================================================================================
+id_vb        : 1488122
+ky_hieu      : 4488/ĐNPC-VTCNTT
+trich_yeu    : Báo cáo thử nghiệm Công cụ chuyển đổi dữ liệu GIS Hạ thế và Khung cơ sở dữ liệu GIS Hạ thế
+noi_ban_hanh : Công ty Điện lực Đà Nẵng
+ngay_vb      : 2026-06-26
+ten_file     : 20260623_baocaotrienkhai_tooldongbo_gishathe.pdf
+TỔNG SỐ CHUNK: 7
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=221
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 4488/ĐNPC-VTCNTT
+Ngày văn bản: 26/06/2026
+Trích yếu: Báo cáo thử nghiệm Công cụ chuyển đổi dữ liệu GIS Hạ thế và Khung cơ sở dữ liệu GIS Hạ thế
+Nơi ban hành: Công ty Điện lực Đà Nẵng
+Người ký: Nguyễn Đình Tuân
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=895
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 4488/ĐNPC-VTCNTT - Báo cáo thử nghiệm Công cụ chuyển đổi dữ liệu GIS Hạ thế và Khung cơ sở dữ liệu GIS Hạ thế
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Công ty Điện lực Đà Nẵng
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY ĐIỆN LỰC ĐÀ NẴNG Số: 4488/ĐNPC-VTCNTT Đà Nẵng, ngày 26 tháng 6 năm 2026 V/v báo cáo thử nghiệm Công cụ chuyển đổi dữ liệu GIS Hạ thế và Khung cơ sở dữ liệu GIS Hạ thế
+
+Kính gửi:
+
+- Tổng công ty Điện lực miền Trung;
+
+- Công ty CNTT Điện lực miền Trung.
+
+Thực hiện văn bản số 3255/EVNCPC-VTCNTT+KD+KT ngày 31/5/2026 của
+
+Tổng công ty Điện lực miền Trung về việc vận hành thử nghiệm Công cụ chuyển đổi dữ
+
+liệu GIS hạ thế và Khung cơ sở dữ liệu GIS hạ thế, ĐNPC đã thực hiện triển khai thử
+
+nghiệm và kiến nghị một số nội dung như phụ lục đính kèm.
+
+ĐNPC kính báo cáo Tổng công ty được biết.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=110
+────────────────────────────────────────────────────────────────────────────────
+KT.GIÁM ĐỐC Nơi nhận: PHÓ GIÁM ĐỐC - Như trên;
+
+Ban Giám đốc;
+
+- KD, KT;
+
+- Lưu: VT, VTCNTT.
+
+Nguyễn Đình Tuân
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=Phụ lục BÁO CÁO KẾT QUẢ THỬ NGHIỆM VÀ ĐÁNH GIÁ KHẢ NĂNG VẬN HÀNH THỰC TẾ CỦA CÔNG CỤ PHẦN MỀM VÀ KHUNG CSDL HẠ THẾ | artifact=appendix | quality=pass | chars=423
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 4488/ĐNPC-VTCNTT - Báo cáo thử nghiệm Công cụ chuyển đổi dữ liệu GIS Hạ thế và Khung cơ sở dữ liệu GIS Hạ thế
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Công ty Điện lực Đà Nẵng
+Mục: Phụ lục BÁO CÁO KẾT QUẢ THỬ NGHIỆM VÀ ĐÁNH GIÁ KHẢ NĂNG VẬN HÀNH THỰC TẾ CỦA CÔNG CỤ PHẦN MỀM VÀ KHUNG CSDL HẠ THẾ
+Phụ lục
+
+BÁO CÁO KẾT QUẢ THỬ NGHIỆM VÀ ĐÁNH GIÁ KHẢ NĂNG VẬN HÀNH THỰC TẾ CỦA CÔNG CỤ PHẦN MỀM VÀ KHUNG CSDL HẠ THẾ
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_section | section=Phụ lục BÁO CÁO KẾT QUẢ THỬ NGHIỆM VÀ ĐÁNH GIÁ KHẢ NĂNG VẬN HÀNH THỰC TẾ CỦA CÔNG CỤ PHẦN MỀM VÀ KHUNG CSDL HẠ THẾ > 1. Mục đích thử nghiệm | artifact=appendix | quality=pass | chars=927
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 4488/ĐNPC-VTCNTT - Báo cáo thử nghiệm Công cụ chuyển đổi dữ liệu GIS Hạ thế và Khung cơ sở dữ liệu GIS Hạ thế
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Công ty Điện lực Đà Nẵng
+Mục: Phụ lục BÁO CÁO KẾT QUẢ THỬ NGHIỆM VÀ ĐÁNH GIÁ KHẢ NĂNG VẬN HÀNH THỰC TẾ CỦA CÔNG CỤ PHẦN MỀM VÀ KHUNG CSDL HẠ THẾ > 1. Mục đích thử nghiệm
+1. Mục đích thử nghiệm
+
++ Đánh giá tính năng, tính chính xác và độ ổn định của Công cụ chuyển đổi dữ liệu
+
+GIS hạ thế.
+
++ Rà soát Khung dữ liệu GIS Hạ thế
+
+2. Kết quả thử nghiệm
+
+Trong thời gian từ ngày 3/6/2026 đến ngày 20/6/2026, ĐNPC đã thực hiện kiểm tra
+
+toàn bộ các chức năng đồng bộ các luồng xử lý dữ liệu, báo cáo tổng hợp và các tình
+
+huống phát sinh trong quá trình vận hành thực tế.
+
+Kết quả cho thấy hệ thống vận hành ổn định, đáp ứng các yêu cầu nghiệp vụ đã đặt
+
+ra. Trong quá trình thử nghiệm, một số góp ý hiệu chỉnh được ghi nhận và đã được
+
+CPCIT cập nhật, chỉnh sửa như sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=document_section | section=Phụ lục BÁO CÁO KẾT QUẢ THỬ NGHIỆM VÀ ĐÁNH GIÁ KHẢ NĂNG VẬN HÀNH THỰC TẾ CỦA CÔNG CỤ PHẦN MỀM VÀ KHUNG CSDL HẠ THẾ > 3. Kiến nghị | artifact=appendix | quality=pass | chars=1049
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 4488/ĐNPC-VTCNTT - Báo cáo thử nghiệm Công cụ chuyển đổi dữ liệu GIS Hạ thế và Khung cơ sở dữ liệu GIS Hạ thế
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Công ty Điện lực Đà Nẵng
+Mục: Phụ lục BÁO CÁO KẾT QUẢ THỬ NGHIỆM VÀ ĐÁNH GIÁ KHẢ NĂNG VẬN HÀNH THỰC TẾ CỦA CÔNG CỤ PHẦN MỀM VÀ KHUNG CSDL HẠ THẾ > 3. Kiến nghị
+3. Kiến nghị
+
+- Kính đề nghị EVNCPC cập nhật sổ tay " Hướng dẫn kỹ thuật cấu trúc dữ liệu
+
+GIS Lưới điện EVNCPC " phù hợp với dữ liệu phát sinh trong quá trình đồng bộ từ
+
+CMIS, TTHT sang dữ liệu GIS Hạ thế.
+
+o Phần " Cấu trúc dữ liệu GIS lớp tủ phân phối " hiện tại có đặc tính đồ họa
+
+dạng Vùng (Polygon), đúng dữ liệu phải là dạng Điểm (Point).
+
+o Phần " Subtype phân loại của các lớp dữ liệu GIS lưới điện hạ thế ":
+
+LoaiTramBienAp (tham khảo loại trạm từ dữ liệu CMIS).
+
+o Phần " Domain dùng chung cho các lớp dữ liệu GIS và bảng dữ liệu
+
+thuộc tính ": Tên domain: PC_DonViQuanLy cập nhật thành Điện lực thay
+
+cho Đội.
+
+- Cho phép người dùng biết thứ tự đồng bộ trong và ngoài đơn vị khi thực hiện đồng
+
+bộ dữ liệu nguồn.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=1915
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 4488/ĐNPC-VTCNTT - Báo cáo thử nghiệm Công cụ chuyển đổi dữ liệu GIS Hạ thế và Khung cơ sở dữ liệu GIS Hạ thế
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Công ty Điện lực Đà Nẵng
+Bảng: Bảng DOffice 1
+| STT | Nội dung kiểm thử | IT Phản hồi |
+| --- | --- | --- |
+| 1 | Dữ liệu đồng bộ chưa chính xác. Ví dụ dữ liệu Trạm AH23QT02 của Điện lực Tam Kỳ không tồn tại trên TTHT, thông tin trạm có TINHTRANG=0 trong bảng d_tram của CMIS nhưng lại sinh ra dữ liệu trong lớp cột điện. (Một số ví dụ khác: AH23BP14, AH23BW20, AH23BY14, AH23BY15 ....) | Đã cập nhật |
+| 2 | Lớp F01_PPxxxxx_DiemDo_HT có thuộc tính LoaiTramBienAp có subtype với 2 giá trị ( 1-Trạm Công cộng; 2-Trạm chuyên dùng). Tuy nhiên, dữ liệu sau đồng bộ chưa được gán giá trị cho trường thông tin này. | Đã cập nhật |
+| 3 | Khi thực hiện lấy dữ liệu lệch của Lớp đo đếm thì nó không có sự sai khác về trường dữ liệu LoaiTramBienAp. Tuy nhiên, khi thực hiện thao tác "LẤY DỮ LIỆU" thì chương trình hiển thị tất cả các dòng và có highligh sự thay đổi dữ liệu ở cột LoaiTramBienAp. | Đã cập nhật |
+| 4 | Khi thực hiện đồng bộ GIS, khi bấm LẤY DỮ LIỆU của lớp CÔNG TƠ KHÁCH HÀNG có 1047 trang. Khi khi click vào trang 1046 và 1047 thì không có dữ liệu nào hết, và click vào trang 1045 thì có 7 dòng dữ liệu. => Lỗi hiển thị dữ liệu | Đã cập nhật |
+| 5 | Trường dữ liệu DonViQuanLy ở trong các lớp dữ liệu hiện đang để "Đội quản lý điện Hải Châu...." => Tên cập nhật mới hiện nay "Điện lực Hải Châu" Tương tự cho các trường hợp của các Điện lực khác. | Đã cập nhật |
+| 6 | Lớp F03_PPxxxx_ThietBiDoDem_HT có thuộc tính LoaiTBDD có subtype nhưng hiện tại điền giá trị NULL nên gây lỗi khi chạy topology chương trình. | Thực hiện cập nhật khi biên tập GIS |
+| 7 | Lớp F10_PPxxxx_TuPhanPhoi_HT có thuộc tính LoaiTuPP có subtype nhưng hiện tại các giá trị đang để bị NULL nên gây lỗi khi chạy Topology chương trình. | Thực hiện cập nhật khi biên tập GIS |

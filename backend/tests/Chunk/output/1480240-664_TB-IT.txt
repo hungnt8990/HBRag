@@ -1,0 +1,74 @@
+================================================================================
+id_vb        : 1480240
+ky_hieu      : 664/TB-IT
+trich_yeu    : Khởi công gói thầu INTERNET-WAN2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật Internet firewall, WAN firewall và Module mở rộng
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-19
+ten_file     : IT_Thong bao khoi cong goi INTERNET-WAN2026_19-6-2026.pdf
+TỔNG SỐ CHUNK: 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=261
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 664/TB-IT
+Ngày văn bản: 19/06/2026
+Trích yếu: Khởi công gói thầu INTERNET-WAN2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật Internet firewall, WAN firewall và Module mở rộng
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Nguyễn Sơn Bình
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1933
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 664/TB-IT - Khởi công gói thầu INTERNET-WAN2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật Internet firewall, WAN firewall và Module mở rộng
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+TỔNG CÔNG TY CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 19 tháng 6 năm 2026 Số: 664/TB-IT
+
+THÔNG BÁO
+
+Khởi công gói thầu INTERNET-WAN2026-01.HH: Cung cấp, triển khai dịch vụ
+
+kỹ thuật Internet firewall, WAN firewall và Module mở rộng Dự án Đầu tư nâng cao năng lực hệ thống mạng Internet và WAN
+
+tại vị trí dự phòng TTDL năm 2026
+
+Căn cứ Hợp đồng số HD2600135707_2606101534 ngày 19/6/2026 giữa Công ty Công nghệ thông tin Điện lực miền Trung và Công ty cổ phần Power of Passion Technology Solutions để thực hiện gói thầu INTERNET-WAN2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật Internet firewall, WAN firewall và Module mở rộng thuộc dự án Đầu tư nâng cao năng lực hệ thống mạng Internet và WAN tại vị trí dự phòng TTDL năm 2026.
+
+Công ty Công nghệ thông tin Điện lực miền Trung thông báo khởi công gói thầu INTERNET-WAN2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật Internet firewall, WAN firewall và Module mở rộng thuộc dự án Đầu tư nâng cao năng lực hệ thống mạng Internet và WAN tại vị trí dự phòng TTDL năm 2026, với các nội dung như sau:
+
+- Nhà thầu triển khai: Công ty cổ phần Power of Passion Technology Solutions.
+
+- Thời gian cung cấp hàng hóa và thực hiện dịch vụ kỹ thuật triển khai: tối đa là 147 ngày (trong đó thời gian cung cấp hàng hóa tối đa là 112 ngày) kể từ ngày hợp đồng có hiệu lực.
+
+- Ngày khởi công: Ngày 19/6/2026.
+
+- Ngày hoàn thành dự kiến: 13/11/2026.
+
+Kính đề nghị Công ty cổ phần Power of Passion Technology Solutions căn cứ các điều khoản và các phụ lục kèm theo hợp đồng để tổ chức triển khai thực hiện đảm bảo chất lượng, tiến độ của gói thầu.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=248
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. GIÁM ĐỐC
+
+- Công ty cổ phần Power of Passion PHÓ GIÁM ĐỐC Technology Solutions;
+
+- Các nhà thầu: Thiết kế chi tiết, Giám sát công tác triển khai;
+
+- Giám đốc CPCIT (báo cáo);
+
+- Ban QLDA;
+
+- TH, KTMVT;
+
+- Lưu: VT, ĐT.
+
+Nguyễn Sơn Bình

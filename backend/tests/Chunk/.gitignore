@@ -1,0 +1,3 @@
+# Kho vector local (Qdrant on-disk) — tái tạo mỗi lần chạy run_chunk_test.bat, không commit.
+data/
+__pycache__/

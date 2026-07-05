@@ -1,0 +1,113 @@
+================================================================================
+id_vb        : 1479886
+ky_hieu      : 276-CV/ĐU
+trich_yeu    : Thực hiện Quy định số 20-QĐ/TW và Hướng dẫn số 01-HD/TW
+
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-19
+ten_file     : 1. CV  thuc hien quy dinh 20-QĐTW va HD 01.pdf
+TỔNG SỐ CHUNK: 6
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=187
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 276-CV/ĐU
+Ngày văn bản: 19/06/2026
+Trích yếu: Thực hiện Quy định số 20-QĐ/TW và Hướng dẫn số 01-HD/TW
+
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Nguyễn Bình Nam
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=873
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 276-CV/ĐU - Thực hiện Quy định số 20-QĐ/TW và Hướng dẫn số 01-HD/TW
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+ĐẢNG BỘ PHƯỜNG HÒA CƯỜNG ĐẢNG CỘNG SẢN VIỆT NAM ĐẢNG ỦY TỔNG CÔNG TY
+
+Đà Nẵng, ngày 19 tháng 6 năm 2026 ĐIỆN LỰC MIỀN TRUNG
+
+Số 276-CV/ĐU Số:
+
+V/v thực hiện Quy định số 20-QĐ/TW và Hướng dẫn số 01-HD/TW
+
+Kính gửi: Các tổ chức đảng trực thuộc
+
+Thực hiện Công văn số 432-CV/ĐU ngày 12/6/2026 của Đảng ủy Phường Hòa Cường về việc thực hiện Quy định số 20-QĐ/TW ngày 08/4/2026 của Ban Chấp hành Trung ương Đảng về thi hành Điều lệ Đảng (sau đây viết tắt là Quy định 20-QĐ/TW) và Hướng dẫn số 01-HD/TW ngày 19/5/2026 của Ban Bí thư về một số vấn đề cụ thể về thi hành Điều lệ Đảng (sau đây viết tắt là Hướng dẫn 01-HD/TW), Đảng ủy Tổng công ty đề nghị các tổ chức đảng triển khai thực hiện một số nhiệm vụ sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=1. Cấp ủy các tổ chức đảng nghiên cứu, quán triệt đầy đủ và triển khai thực hiện Quy định số 20-QĐ/TW (thay thế Quy định số 294-QĐ/TW ngày 26/5/2026) | quality=pass | chars=1156
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 276-CV/ĐU - Thực hiện Quy định số 20-QĐ/TW và Hướng dẫn số 01-HD/TW
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 1. Cấp ủy các tổ chức đảng nghiên cứu, quán triệt đầy đủ và triển khai thực hiện Quy định số 20-QĐ/TW (thay thế Quy định số 294-QĐ/TW ngày 26/5/2026)
+1. Cấp ủy các tổ chức đảng nghiên cứu, quán triệt đầy đủ và triển khai thực hiện Quy định số 20-QĐ/TW (thay thế Quy định số 294-QĐ/TW ngày 26/5/2026)
+
+và Hướng dẫn số 01-HD/TW (thay thế Hướng dẫn số 06-HD/TW ngày 09/6/2025); trong đó, chú ý những điểm mới, các nội dung thay đổi, bổ sung so với quy định và hướng dẫn trước đây để thực hiện đảm bảo đúng quy định.
+
+Bảng so sánh Quy định số 20-QĐ/TW và Quy định số 294-QĐ/TW của Ban Chấp hành trung ương và Bảng so sánh Hướng dẫn số 01-HD/TW của Ban Bí thư cụ thể như phụ lục 1 và phụ lục 2 kèm theo.
+
+. Để triển khai thực hiện tốt Quy định và Hướng dẫn mới, ngoài việc nghiên cứu các điểm mới, thay đổi so với quy định và hướng dẫn trước đây, đề nghị các cấp ủy các tổ chức đảng cần tập trung lưu ý thêm vào một số điểm thay đổi quan trọng tại Quy định số 20-QĐ/TW và Hướng dẫn số 01-HD/TW, cụ thể:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=1. Cấp ủy các tổ chức đảng nghiên cứu, quán triệt đầy đủ và triển khai thực hiện Quy định số 20-QĐ/TW (thay thế Quy định số 294-QĐ/TW ngày 26/5/2026) > 2.1. Công tác kết nạp đảng viên, quản lý hồ sơ đảng viên | quality=pass | chars=1657
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 276-CV/ĐU - Thực hiện Quy định số 20-QĐ/TW và Hướng dẫn số 01-HD/TW
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 1. Cấp ủy các tổ chức đảng nghiên cứu, quán triệt đầy đủ và triển khai thực hiện Quy định số 20-QĐ/TW (thay thế Quy định số 294-QĐ/TW ngày 26/5/2026) > 2.1. Công tác kết nạp đảng viên, quản lý hồ sơ đảng viên
+2.1. Công tác kết nạp đảng viên, quản lý hồ sơ đảng viên
+
+- Điều chỉnh quy định về trình độ học vấn của người vào Đảng phải Hoàn thành chương trình giáo dục bậc trung học cơ sở trở lên , (tại Điểm 1.2.1 Quy định số 20-QĐ/TW).
+
+- Bổ sung thẩm quyền giới thiệu đoàn viên ưu tú vào Đảng của Ban Thường vụ Đoàn Thanh niên Cộng sản Hồ Chí Minh cấp xã, phường, đặc khu tại Điểm 3.1 Quy định số 20-QĐ/TW).
+
+- Bổ sung quy định không xem xét kết nạp lại đối với người ra khỏi Đảng vì lý do bị kết án hình sự vì hành vi lãng phí, tiêu cực (tại Điểm 3.5.2 Quy định số 20- QĐ/TW).
+
+- Làm rõ thời hạn tổ chức lễ kết nạp đảng viên; theo đó, quy định trong vòng 30 ngày làm việc kể từ ngày cấp ủy có thẩm quyền ban hành quyết định kết nạp (tại Điểm 4.1 Quy định số 20-QĐ/TW).
+
+- Bổ sung nội dung hướng dẫn cách xử lý đối với các trường hợp kết nạp đảng, công nhận đảng viên chính thức không đúng thẩm quyền, không đúng thủ tục theo Điều 4, Điều 5 Điều lệ Đảng. Theo đó, cấp có thẩm quyền phải rà soát xác định nếu là lỗi của tổ chức thì cho tiến hành làm lại các thủ tục theo quy định và xác định ngày vào Đảng của đảng viên là ngày ban hành quyết định kết nạp lần đầu; nếu là lỗi của cá nhân người vào Đảng thì cấp có thẩm quyền hủy bỏ quyết định kết nạp đảng viên (tại Điểm 4.4.2 Quy định số 20-QĐ/TW).
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_section | section=1. Cấp ủy các tổ chức đảng nghiên cứu, quán triệt đầy đủ và triển khai thực hiện Quy định số 20-QĐ/TW (thay thế Quy định số 294-QĐ/TW ngày 26/5/2026) > 2.2. Quy chế làm việc của cấp ủy | quality=pass | chars=1057
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 276-CV/ĐU - Thực hiện Quy định số 20-QĐ/TW và Hướng dẫn số 01-HD/TW
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 1. Cấp ủy các tổ chức đảng nghiên cứu, quán triệt đầy đủ và triển khai thực hiện Quy định số 20-QĐ/TW (thay thế Quy định số 294-QĐ/TW ngày 26/5/2026) > 2.2. Quy chế làm việc của cấp ủy
+2.2. Quy chế làm việc của cấp ủy
+
+Bổ sung Quy định việc xây dựng quy chế làm việc đối với chi bộ, bao gồm cả chi bộ cơ sở và chi bộ trực thuộc đảng bộ cơ sở (tại điểm 9.1.2, Quy định số 20-QĐ/TW).
+
+2.3. Hình thức khen thưởng trong Đảng
+
+Bổ sung nội dung tặng Huy hiệu 35 năm và 95 năm tuổi đảng cho đảng viên đảm bảo tiêu chuẩn điều kiện và quy định thẩm quyền của Ban Bí thư quyết định tặng Huy hiệu Đảng cho đảng viên từ 80 năm tuổi đảng trở lên (Điểm 28.1, 28.2 Quy định số 20-QĐ/TW).
+
+Đề nghị cấp ủy các tổ chức đảng nghiêm túc triển khai thực hiện. Trong quá trình thực hiện, nếu phát sinh vướng mắc, bất cập, các đơn vị kịp thời báo cáo về Đảng ủy Tổng công ty (qua Ban Tổ chức Đảng ủy) để được hướng dẫn./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=footer_signature | quality=pass | chars=170
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: T/MĐẢNG ỦY
+
+- Như trên, PHÓ BÍ THƯ
+
+- Đảng ủy P. Hòa Cường (để b/c),
+
+- Thường trực Đảng ủy TCT (để b/c),
+
+- Các Ban TMGV ĐU,
+
+- Lưu: VT, TCĐU.
+
+Nguyễn Bình Nam

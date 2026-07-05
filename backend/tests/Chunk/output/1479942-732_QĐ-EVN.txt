@@ -1,0 +1,646 @@
+================================================================================
+id_vb        : 1479942
+ky_hieu      : 732/QĐ-EVN
+trich_yeu    : QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+noi_ban_hanh : Tập đoàn Điện lực Việt Nam
+ngay_vb      : 2026-06-19
+ten_file     : QD-EVN ban hanh KH tong the trien khai VHDN giai doan 2026-2030.pdf
+TỔNG SỐ CHUNK: 39
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=241
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 732/QĐ-EVN
+Ngày văn bản: 19/06/2026
+Trích yếu: QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Nơi ban hành: Tập đoàn Điện lực Việt Nam
+Người ký: Nguyễn Anh Tuấn
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=924
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: preamble
+TẬP ĐOÀN CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC VIỆT NAM
+
+Hà Nội, ngày tháng năm 2026 Số: /QĐ-EVN
+
+QUYẾT ĐỊNH
+
+Ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030
+
+TỔNG GIÁM ĐỐC TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM
+
+Căn cứ Nghị định số 26/2018/NĐ-CP ngày 28/02/2018 của Chính phủ về Điều lệ tổ chức và hoạt động của Tập đoàn Điện lực Việt Nam;
+
+Căn cứ Nghị quyết số 165/NQ-HĐTV ngày 16/6/2026 của Hội đồng thành viên Tập đoàn Điện lực Việt Nam về việc Kế hoạch tổng thể triển khai văn hoá doanh nghiệp trong Tập đoàn giai đoạn 2026-2030;
+
+Theo đề nghị của Trưởng Ban Truyền thông và Văn hóa doanh nghiệp.
+
+QUYẾT ĐỊNH:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=legal_clause | section=Điều 1 Ban hành kèm theo Quyết định này Kế hoạch tổng thể triển khai văn hóa doanh nghiệp trong T… | quality=pass | chars=465
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: Điều 1 Ban hành kèm theo Quyết định này Kế hoạch tổng thể triển khai văn hóa doanh nghiệp trong T…
+Điều 1 Ban hành kèm theo Quyết định này Kế hoạch tổng thể triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=legal_clause | section=Điều 2 Quyết định này có hiệu lực kể từ ngày ký ban hành | quality=pass | chars=328
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: Điều 2 Quyết định này có hiệu lực kể từ ngày ký ban hành
+Điều 2 Quyết định này có hiệu lực kể từ ngày ký ban hành.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=legal_clause | section=Điều 3 Chánh Văn phòng, các Trưởng Ban EVN, Giám đốc các đơn vị trực thuộc EVN, Hội đồng thành vi… | quality=pass | chars=596
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: Điều 3 Chánh Văn phòng, các Trưởng Ban EVN, Giám đốc các đơn vị trực thuộc EVN, Hội đồng thành vi…
+Điều 3 Chánh Văn phòng, các Trưởng Ban EVN, Giám đốc các đơn vị trực thuộc EVN, Hội đồng thành viên/Chủ tịch công ty TNHH MTV do EVN nắm giữ 100% vốn điều lệ và Người đại diện phần vốn của EVN tại các công ty cổ phần là công ty con của EVN chịu trách nhiệm thi hành Quyết định này./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=footer_signature | quality=pass | chars=186
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: TỔNG GIÁM ĐỐC
+
+- Như Điều 3;
+
+- HĐTV (để b/c);
+
+- Các PTGĐ;
+
+- Công đoàn ĐLVN;
+
+- KSV EVN;
+
+- Các đơn vị thành viên EVN;
+
+- VP/các Ban EVN;
+
+- Lưu: VT, TTVHDN.
+
+Nguyễn Anh Tuấn
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=document_preamble | section=preamble | artifact=attached_document | quality=pass | chars=427
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: preamble
+CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM TẬP ĐOÀN
+
+ĐIỆN LỰC VIỆT NAM Độc lập - Tự do - Hạnh phúc
+
+KẾ HOẠCH TỔNG THỂ
+
+TRIỂN KHAI VĂN HOÁ DOANH NGHIỆP TRONG TẬP ĐOÀN
+ĐIỆN LỰC QUỐC GIA VIỆT NAM GIAI ĐOẠN 2026-2030
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=document_section | section=I. QUAN ĐIỂM, MỤC TIÊU VÀ ĐỊNH HƯỚNG | artifact=attached_document | quality=pass | chars=3171
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: I. QUAN ĐIỂM, MỤC TIÊU VÀ ĐỊNH HƯỚNG
+I. QUAN ĐIỂM, MỤC TIÊU VÀ ĐỊNH HƯỚNG
+
+1. Quan điểm.
+
+Thực hiện Nghị quyết 80-NQ/TW ngày 7/01/2026 của Bộ Chính trị về phát triển văn hóa Việt Nam, con người là nền tảng của phát triển và phải thực sự trở thành nền tảng vững chắc của đất nước. Văn hóa phải thực sự trở thành nền tảng tinh thần, nguồn lực nội sinh và động lực quan trọng của phát triển bền vững; kinh tế nhà nước phải được củng cố để phát huy vai trò dẫn dắt ở các lĩnh vực then chốt; ngành năng lượng phải phát triển theo hướng hiện đại, thông minh, tin cậy, thích ứng với chuyển dịch năng lượng. Bám sát NQ 80-NQ/TW, ngày 14/4/2026, Đảng bộ EVN đã ban hành Nghị quyết số 11-CTr/DU về chương trình hành động, với các mục tiêu như sau:
+
+- Đẩy mạnh xây dựng và phát triển nền văn hóa Việt Nam tiên tiến, đậm đà bản sắc dân tộc; thống nhất trong đa dạng; mang đặc trưng dân tộc, dân chủ, nhân văn, khoa học, hiện đại. Xây dựng môi trường văn hóa lành mạnh từ gia đình, nơi làm việc và không gian số.
+
+- Xây dựng VHDN EVN trở thành nền tảng vững chắc, nguồn lực nội sinh và động lực phát triển. Xây dựng đội ngũ cán bộ, đảng viên, người lao động có bản lĩnh, trách nhiệm, chuyên nghiệp, đổi mới sáng tạo. Lấy người lao động làm trung tâm, bảo đảm các giá trị văn hóa thấm sâu trong mọi hoạt động; xây dựng môi trường làm việc văn minh, kỷ cương, an toàn, nhân văn, góp phần nâng cao hiệu quả hoạt động và uy tín thương hiệu Tập đoàn Điện lực Việt Nam.
+
+Trên cơ sở mục tiêu chiến lược phát triển EVN giai đoạn 2026-2030, VHDN được xác định là nhiệm vụ trọng tâm và yếu tố then chốt. VHDN phải trở thành "hệ điều hành" xuyên suốt, được tích hợp vào quản trị doanh nghiệp và hoạt động sản xuất kinh doanh, trực tiếp góp phần bảo đảm cung ứng điện an toàn, ổn định; nâng cao độ tin cậy hệ thống; tăng năng suất lao động; thúc đẩy đổi mới sáng tạo; phát triển khoa học công nghệ và nâng cao chất lượng dịch vụ khách hàng.
+
+Thực thi VHDN là quá trình liên tục, cần cơ chế quản trị chuyên nghiệp, xuyên suốt từ Tập đoàn đến các đơn vị, trong đó người đứng đầu giữ vai trò quyết định. Lãnh đạo các cấp, đặc biệt người đứng đầu, phải gương mẫu thực hiện các giá trị văn hóa EVN.
+
+Cụ thể hóa chuẩn mực hành vi, quy trình, cơ chế quản trị và hệ thống số, đảm bảo đo lường, giám sát, cải tiến; chuyển từ phong trào sang dữ liệu, gắn kết quả thực chất.
+
+Đồng thời, khuyến khích đơn vị chủ động phát triển nội dung về bản sắc, mô hình, sáng kiến phù hợp đặc thù và văn hóa vùng miền, bảo đảm thống nhất giá trị văn hóa của EVN nhưng đa dạng cách làm và lan tỏa toàn hệ thống.
+
+Thường xuyên chăm lo, phát huy các giá trị truyền thống quý báu, coi trọng việc khơi dậy niềm tự hào của CBCNV về truyền thống của EVN và ngành Điện Cách mạng Việt Nam.
+
+Trong điều kiện biến đổi khí hậu và yêu cầu chuyển đổi xanh ngày càng gia tăng, EVN cần xây dựng VHDN linh hoạt, nâng cao năng lực thích ứng, phù hợp chủ trương của Đảng và pháp luật về sử dụng năng lượng tiết kiệm, hiệu quả.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #8
+chunk_type=document_section | section=2. Mục tiêu xây dựng văn hoá EVN > 2.1. Mục tiêu tổng quát | artifact=attached_document | quality=pass | chars=783
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 2. Mục tiêu xây dựng văn hoá EVN > 2.1. Mục tiêu tổng quát
+2.1. Mục tiêu tổng quát
+
+Tiếp tục xây dựng VHDN EVN trở thành nền tảng tinh thần và sức mạnh nội sinh, đồng thời là công cụ quản trị hiệu quả, góp phần nâng cao chất lượng vận hành hệ thống điện, an toàn lao động, năng suất lao động, chất lượng dịch vụ khách hàng và hiệu quả phối hợp trong toàn Tập đoàn. Văn hóa giúp EVN vận hành kỷ cương hơn, phục vụ tốt hơn, qua đó phát triển bền vững, hiện đại, minh bạch và củng cố niềm tin với xã hội, giữ vững vai trò trụ cột trong bảo đảm an ninh năng lượng quốc gia.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #9
+chunk_type=document_section | section=2. Mục tiêu xây dựng văn hoá EVN > 2.2. Mục tiêu cụ thể. | artifact=attached_document | quality=pass | chars=3124
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 2. Mục tiêu xây dựng văn hoá EVN > 2.2. Mục tiêu cụ thể.
+2.2. Mục tiêu cụ thể.
+
+a) Xây dựng môi trường làm việc chuyên nghiệp, kỷ cương, minh bạch và nhân văn, đề cao kỷ luật thực thi, tinh thần trách nhiệm, văn hóa phối hợp và trách nhiệm giải trình; nâng cao mức độ gắn kết niềm tin và niềm tự hào của CBCNV; phát triển đội ngũ người lao động giỏi chuyên môn, chuẩn mực trong ứng xử, vững vàng trong thực thi và thích ứng với môi trường làm việc số.
+
+b) Nâng cao hiệu quả hoạt động và chất lượng quản trị thông qua văn hóa, trọng tâm là hình thành và vận hành hiệu quả: văn hóa lãnh đạo nêu gương; văn hóa trách nhiệm - tuân thủ - chất lượng - an toàn; văn hóa phân cấp gắn với giải trình; văn hóa phối hợp trong nội bộ và các đơn vị EVN; văn hóa số và văn hóa đổi mới sáng tạo, xây dựng văn hóa lấy khách hàng làm trung tâm trong hoạt động sản xuất kinh doanh.
+
+c) Đổi mới văn hóa dịch vụ khách hàng là trung tâm, chuyển từ tư duy "cung cấp điện" sang "cung cấp dịch vụ điện và trải nghiệm khách hàng". Lấy trải nghiệm khách hàng, sự hài lòng, mức độ tin cậy và chất lượng tương tác tại mọi điểm chạm làm thước đo quan trọng; triển khai đồng bộ các nội dung về hành trình khách hàng, đo lường trải nghiệm, chuẩn hóa hành vi dịch vụ, số hóa dịch vụ điện và hoàn thiện cơ sở dữ liệu khách hàng theo định hướng của EVN.
+
+d) Xây dựng EVN trở thành tổ chức học tập và đổi mới sáng tạo, trong đó mọi CBCNV chủ động học tập, chia sẻ tri thức, làm chủ công nghệ mới, ứng dụng dữ liệu và AI, đề xuất sáng kiến, cải tiến công việc và thích ứng với phương thức làm việc số;
+
+hình thành văn hóa học tập liên tục, học từ thực tiễn, học từ dữ liệu và học từ lẫn nhau trong toàn hệ thống.
+
+e) Chuyển đổi số không chỉ là thay đổi công nghệ mà là chuyển đổi toàn diện về tổ chức và con người, hình thành văn hóa doanh nghiệp mới. VHDN chính là cách tổ chức vận hành, làm việc và những giá trị tập thể được chia sẻ. Trong bối cảnh số, văn hóa số giúp doanh nghiệp khai thác hiệu quả công nghệ và dữ liệu, thúc đẩy cộng tác, đổi mới sáng tạo và ra quyết định thông minh, từ đó tạo giá trị bền vững cho khách hàng, người lao động và xã hội.
+
+g) Truyền thông và lan tỏa bản sắc văn hóa EVN, xây dựng "ngôi nhà chung EVN" đoàn kết, nghĩa tình, gắn kết đa thế hệ, đồng thời không ngừng nâng cao uy tín thương hiệu EVN với hình ảnh một đối tác tin cậy, chuyên nghiệp, thân thiện, hết lòng vì khách hàng và có trách nhiệm với cộng đồng, xã hội.
+
+h) Không ngừng quan tâm chăm lo xây dựng ngôi nhà chung EVN đoàn kết và nghĩa tình, gắn kết đa thế hệ, sự đồng thuận tập thể luôn thực sự trở thành sức mạnh của EVN trong mọi hoạt động SXKD.
+
+l) Gắn văn hóa với kết quả trong vận hành và phục vụ được phản ánh trực tiếp thông qua mức độ an toàn lao động, độ tin cậy cung cấp điện, chất lượng xử lý sự cố, chất lượng dịch vụ khách hàng, hiệu quả phối hợp nội bộ, tiến độ công việc và mức độ hoàn thành nhiệm vụ của từng đơn vị và cá nhân.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #10
+chunk_type=document_section | section=3. Định hướng xây dựng văn hoá EVN | artifact=attached_document | quality=pass | chars=1499
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 3. Định hướng xây dựng văn hoá EVN
+3. Định hướng xây dựng văn hoá EVN
+
+a) Phát huy vai trò lãnh đạo toàn diện của cấp ủy đảng; trách nhiệm nêu gương của người đứng đầu; sự tham gia tích cực của các tổ chức chính trị - xã hội và toàn thể cán bộ, đảng viên, người lao động.
+
+b) Xây dựng văn hóa lãnh đạo làm gương. Đề cao nêu gương, trách nhiệm và tính nhất quán "nói đi đôi với làm". Hoàn thiện văn hóa quản trị hiệu quả thông qua tinh gọn bộ máy, tối ưu quy trình nâng cao trách nhiệm giải trình và chất lượng phối hợp.
+
+c) Nâng cao chất lượng văn hóa an toàn. Chuyển đổi nhận thức từ "tuân thủ an toàn" sang "văn hóa an toàn tự giác" hướng tới mục tiêu không tai nạn. Đề cao tinh thần trách nhiệm, hình thành nhận thức và thói quen coi an toàn lao động là ưu tiên hàng đầu trong mọi hoạt động.
+
+d) Đổi mới văn hóa dịch vụ khách hàng, lấy khách hàng làm trung tâm, lấy trải nghiệm vượt trội làm then chốt, sự hài lòng và gắn kết của khách hàng làm thước đo quan trọng cho mọi hoạt động của EVN.
+
+e) Nâng cao giá trị văn hóa gắn kết - nghĩa tình, chăm lo đời sống tinh thần. Tổ chức các hoạt động kết nối nội bộ, phát huy tinh thần "ngôi nhà chung"; chú trọng truyền thông nội bộ hiệu quả và truyền thông đối ngoại, xây dựng hình ảnh EVN mạnh về kỹ thuật, giàu bản sắc văn hóa nhân văn.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #11
+chunk_type=document_section | section=g) Phát huy truyền thống và bản sắc văn hóa EVN. Phát huy truyền thống quý báu, khơi dậy niềm tự hào ngành điện cách mạng Việt Nam. | artifact=attached_document | quality=pass | chars=728
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: g) Phát huy truyền thống và bản sắc văn hóa EVN. Phát huy truyền thống quý báu, khơi dậy niềm tự hào ngành điện cách mạng Việt Nam.
+g) Phát huy truyền thống và bản sắc văn hóa EVN. Phát huy truyền thống quý báu, khơi dậy niềm tự hào ngành điện cách mạng Việt Nam.
+
+II. CÁC NHÓM GIẢI PHÁP VỀ VIỆC ĐỔI MỚI THỰC THI VHDN GIAI ĐOẠN 2026-2030
+
+Trên cơ sở các mục tiêu và định hướng xây dựng và thực thi VHDN trong Tập đoàn giai đoạn 2026-2030, EVN đề xuất thực hiện các nhóm giải pháp và các nhiệm vụ trọng tâm như sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #12
+chunk_type=document_section | section=1. Nhóm giải pháp thứ nhất: xây dựng văn hoá lãnh đạo EVN làm mũi nhọn để đổi mới toàn diện, tạo đột phá về công tác VHDN. | artifact=attached_document | quality=pass | chars=1668
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 1. Nhóm giải pháp thứ nhất: xây dựng văn hoá lãnh đạo EVN làm mũi nhọn để đổi mới toàn diện, tạo đột phá về công tác VHDN.
+1. Nhóm giải pháp thứ nhất: xây dựng văn hoá lãnh đạo EVN làm mũi nhọn để đổi mới toàn diện, tạo đột phá về công tác VHDN.
+
+a) Tăng cường vai trò lãnh đạo của cấp ủy, tổ chức đảng và người đứng đầu trong xây dựng, thực thi văn hóa EVN; bảo đảm triển khai đồng bộ, hiệu quả, gắn với trách nhiệm và nêu gương của cán bộ, đảng viên. Tạo đột phá trong xây dựng VHDN thông qua vai trò gương mẫu, tiên phong, chuyên nghiệp của đội ngũ lãnh đạo, quản lý các cấp; chủ động dẫn dắt đổi mới và không ngừng rèn luyện, tu dưỡng để trở thành hình mẫu cho CBCNV trong công việc và lối sống.
+
+b) Triển khai tài liệu "Phong cách lãnh đạo EVN trong giai đoạn mới", đề cao tinh thần nêu gương, trách nhiệm, liêm chính, năng lực đổi mới sáng tạo, làm chủ công nghệ số và hiệu quả dẫn dắt; Phát triển toàn diện đội ngũ lãnh đạo, quản lý các cấp về phẩm chất, năng lực và phong cách lãnh đạo đối, nhằm nâng cao uy tín, hiệu quả VHDN. Đồng thời, đổi mới đào tạo theo hướng hiện đại, tập trung các chuyên đề: lãnh đạo bằng văn hóa, quản trị hiệu suất, lãnh đạo số, đổi mới sáng tạo, quản trị thay đổi, trí tuệ cảm xúc và truyền cảm hứng.
+
+c) Xây dựng văn hóa lãnh đạo tuyến trước; xác lập phong cách quản lý cho đội ngũ cấp Đội/Kíp/Trạm/Phòng giao dịch theo phương châm "sát hiện trường - giỏi chuyên môn - chuẩn mực hành xử - quyết liệt trong thực thi".
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #13
+chunk_type=document_section | section=d) Phát triển lãnh đạo trẻ và cán bộ tiềm năng thông qua lộ trình đào tạo đặc thù, giao nhiệm vụ thử thách, luân chuyển thực tiễn và tham gia các dự án đổi mới sáng tạo, chuyển đổi số. | artifact=attached_document | quality=pass | chars=1752
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: d) Phát triển lãnh đạo trẻ và cán bộ tiềm năng thông qua lộ trình đào tạo đặc thù, giao nhiệm vụ thử thách, luân chuyển thực tiễn và tham gia các dự án đổi mới sáng tạo, chuyển đổi số.
+d) Phát triển lãnh đạo trẻ và cán bộ tiềm năng thông qua lộ trình đào tạo đặc thù, giao nhiệm vụ thử thách, luân chuyển thực tiễn và tham gia các dự án đổi mới sáng tạo, chuyển đổi số.
+
+2. Nhóm giải pháp thứ hai: chuyển đổi nhận thức từ "tuân thủ an toàn" sang "văn hóa an toàn tự giác"
+
+a) Xây dựng văn hóa an toàn bền vững, không chỉ là quy định bắt buộc mà trở thành phản xạ nghề nghiệp, chuẩn mực hành vi và trách nhiệm tự thân của mỗi cá nhân, là cấu phần trung tâm của VHDN, gắn chặt với quản lý kỹ thuật, chất lượng vận hành, quản trị rủi ro và hiệu quả thực thi; hướng tới mục tiêu giảm thiểu tai nạn lao động, ngăn ngừa sự cố do chủ quan, nâng cao độ tin cậy vận hành và chất lượng tại hiện trường.
+
+b) Nâng cao vai trò, trách nhiệm của lãnh đạo đơn vị trong triển khai, thực thi văn hóa an toàn (VHAT). Gắn an toàn với trách nhiệm nêu gương của người đứng đầu, với văn hóa không thỏa hiệp về chất lượng và với yêu cầu xử lý nghiêm, công bằng, minh bạch các vi phạm; lãnh đạo các cấp trực tiếp cam kết, truyền thông và đánh giá định kỳ kết quả thực thi VHAT tại đơn vị mình.
+
+c) Rà soát, hoàn thiện hệ thống quy trình, quy định, hướng dẫn về an toàn, tạo hành lang pháp lý và chế tài đầy đủ, đồng bộ để quản lý công tác an toàn; bảo đảm các quy định khả thi, dễ áp dụng tại hiện trường và được cập nhật kịp thời theo yêu cầu thực tiễn vận hành.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #14
+chunk_type=document_section | section=d) Thực hiện quản lý, đánh giá rủi ro cho từng công việc, từng vị trí làm việc; | artifact=attached_document | quality=pass | chars=1181
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: d) Thực hiện quản lý, đánh giá rủi ro cho từng công việc, từng vị trí làm việc;
+d) Thực hiện quản lý, đánh giá rủi ro cho từng công việc, từng vị trí làm việc;
+
+thống kê đầy đủ các nguy cơ mất an toàn và các trường hợp "suýt xảy ra" (near miss) để phân tích nguyên nhân và phòng ngừa tái diễn. Hướng dẫn, huấn luyện để mỗi người lao động đều thành thục nhận biết mối nguy, đánh giá rủi ro và áp dụng biện pháp kiểm soát trước khi thực hiện công việc. Thiết lập đường dây nóng để người lao động phản ánh kịp thời các nguy cơ mất an toàn đến các cấp quản lý; bảo đảm quyền từ chối, dừng công việc khi không đủ điều kiện an toàn mà không chịu bất kỳ hình thức phân biệt đối xử nào.
+
+e) Nâng cao năng lực dự báo và kiểm soát rủi ro của trưởng ca, đội trưởng, tổ trưởng và đội ngũ quản lý trực tiếp tại hiện trường, đây là lực lượng tuyến đầu quyết định chất lượng thực thi VHAT; trang bị kỹ năng phân tích tình huống, ra quyết định nhanh và xử lý các phát sinh bất thường
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #15
+chunk_type=document_section | section=f) Đổi mới hình thức, nâng cao chất lượng huấn luyện, đào tạo, bồi dưỡng, tuyên truyền và phổ biến về an toàn theo hướng trực quan, tương tác, sát với thực tế công việc. | artifact=attached_document | quality=pass | chars=804
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: f) Đổi mới hình thức, nâng cao chất lượng huấn luyện, đào tạo, bồi dưỡng, tuyên truyền và phổ biến về an toàn theo hướng trực quan, tương tác, sát với thực tế công việc.
+f) Đổi mới hình thức, nâng cao chất lượng huấn luyện, đào tạo, bồi dưỡng, tuyên truyền và phổ biến về an toàn theo hướng trực quan, tương tác, sát với thực tế công việc.
+
+Xây dựng thư viện số "Bài học an toàn EVN" với các định dạng dễ tiếp cận như video mô phỏng, tình huống tương tác, bài học ngắn (micro-learning) theo từng vị trí việc làm;
+
+tích hợp vào hệ thống đào tạo nội bộ và truy cập được trên thiết bị di động.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #16
+chunk_type=document_section | section=g) Đẩy mạnh ứng dụng chuyển đổi số và khoa học công nghệ trong công tác quản lý an toàn: triển khai flycam, camera AI, thiết bị giám sát thông minh, cảnh báo tự động; | artifact=attached_document | quality=pass | chars=734
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: g) Đẩy mạnh ứng dụng chuyển đổi số và khoa học công nghệ trong công tác quản lý an toàn: triển khai flycam, camera AI, thiết bị giám sát thông minh, cảnh báo tự động;
+g) Đẩy mạnh ứng dụng chuyển đổi số và khoa học công nghệ trong công tác quản lý an toàn: triển khai flycam, camera AI, thiết bị giám sát thông minh, cảnh báo tự động;
+
+số hóa các checklist an toàn và tăng cường sử dụng phần mềm chuyên dụng để quản lý cấp phiếu công tác, theo dõi huấn luyện, thống kê sự cố và đánh giá tuân thủ theo thời gian thực hiện.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #17
+chunk_type=document_section | section=3. Nhóm giải pháp thứ ba: tăng cường kỷ luật, kỷ cương và xây dựng môi trường làm việc chuyên nghiệp, cởi mở và thân thiện. | artifact=attached_document | quality=pass | chars=1084
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 3. Nhóm giải pháp thứ ba: tăng cường kỷ luật, kỷ cương và xây dựng môi trường làm việc chuyên nghiệp, cởi mở và thân thiện.
+3. Nhóm giải pháp thứ ba: tăng cường kỷ luật, kỷ cương và xây dựng môi trường làm việc chuyên nghiệp, cởi mở và thân thiện.
+
+a) Kế thừa truyền thống văn hoá tuân thủ của EVN, tăng cường nâng cao nhận thức và rèn luyện ý thức tổ chức kỷ luật, giữ gìn kỷ cương trong lao động; triển khai thực thi đưa các giá trị cốt lõi, các giá trị chuẩn mực đạo đức và hành vi ứng xử đi sâu vào từng lĩnh vực, từng hoạt động SXKD và đến từng người lao động; xây dựng môi trường làm việc chuyên nghiệp, cởi mở và thân thiện, hiệu quả và nhân văn trên nền tảng kỷ luật nghiêm minh, trách nhiệm rõ ràng, phối hợp với tinh thần tôn trọng lẫn nhau. Tạo điều kiện để mỗi cá nhân được phát triển, được lắng nghe, được ghi nhận và cùng đóng góp vào "ngôi nhà chung EVN".
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #18
+chunk_type=document_section | section=b) Rà soát, hoàn thiện các quy định về hội họp, phối hợp liên phòng/ban/đơn vị, văn hóa phản hồi, thời gian xử lý công việc và quy tắc ứng xử trên môi trường số. | artifact=attached_document | quality=pass | chars=1013
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: b) Rà soát, hoàn thiện các quy định về hội họp, phối hợp liên phòng/ban/đơn vị, văn hóa phản hồi, thời gian xử lý công việc và quy tắc ứng xử trên môi trường số.
+b) Rà soát, hoàn thiện các quy định về hội họp, phối hợp liên phòng/ban/đơn vị, văn hóa phản hồi, thời gian xử lý công việc và quy tắc ứng xử trên môi trường số.
+
+c) Tiếp tục quát triệt, hướng dẫn tăng cường tuân thủ kỷ luật, kỷ cương theo các nội dung của Quy tắc ứng xử văn hoá EVN. EVN, các đơn vị kiểm tra, đánh giá hàng năm để liên tục cải thiện chất lượng thực thi Quy tắc ứng xử văn hoá EVN.
+
+d) Các đơn vị đào tạo qua E-learning và trực tuyến để chuẩn hoá các tiêu chuẩn chất lượng công việc, thái độ, hành vi theo chuẩn mực đạo đức nghề nghiệp và chuẩn mực hành vi chung của EVN (theo khối chức năng và đối tượng người lao động)
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #19
+chunk_type=document_section | section=e) Tích hợp VHDN vào toàn bộ vòng đời nhân sự: tuyển dụng, hội nhập, đào tạo, đánh giá hiệu quả công việc, quy hoạch, bổ nhiệm, luân chuyển, khen thưởng và kỷ luật. | artifact=attached_document | quality=pass | chars=1575
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: e) Tích hợp VHDN vào toàn bộ vòng đời nhân sự: tuyển dụng, hội nhập, đào tạo, đánh giá hiệu quả công việc, quy hoạch, bổ nhiệm, luân chuyển, khen thưởng và kỷ luật.
+e) Tích hợp VHDN vào toàn bộ vòng đời nhân sự: tuyển dụng, hội nhập, đào tạo, đánh giá hiệu quả công việc, quy hoạch, bổ nhiệm, luân chuyển, khen thưởng và kỷ luật.
+
+f) Phát triển môi trường làm việc đa thế hệ, tôn trọng khác biệt, phát huy sự kết hợp giữa kinh nghiệm thực tiễn của thế hệ đi trước và tư duy số, tinh thần đổi mới của thế hệ trẻ.
+
+g) Thúc đẩy văn hóa phối hợp "OneEVN", khắc phục tư duy cục bộ, chia cắt, đùn đẩy trách nhiệm; lấy mục tiêu chung và kết quả chung làm chuẩn mực hành xử.
+
+l) Chăm lo đời sống tinh thần, sức khỏe, điều kiện làm việc, môi trường làm việc xanh - an toàn - thân thiện, gắn văn hóa với chất lượng sống nghề nghiệp của người lao động.
+
+4. Nhóm giải pháp thứ tư: đổi mới văn hóa kinh doanh và dịch vụ khách hàng.
+
+a) Phát triển văn hoá kinh doanh của EVN theo hướng tận tâm, chuyên nghiệp và chất lượng làm nền tảng vững chắc cho công tác KD&DVKH trong giai đoạn mới. Thúc đẩy sự chuyển dịch căn bản từ tư duy "cung cấp điện" sang tư duy "cung cấp dịch vụ điện và trải nghiệm khách hàng vượt trội". Xây dựng văn hóa kinh doanh dựa trên năng lực phục vụ chuyên nghiệp, sự nhất quán, minh bạch và tính đáng tin cậy tại mọi điểm chạm trong toàn hệ thống EVN.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #20
+chunk_type=document_section | section=b) Chuẩn hóa Bộ chuẩn mực hành vi trong tiếp xúc và phục vụ khách hàng, áp dụng thống nhất trong toàn Tập đoàn. | artifact=attached_document | quality=pass | chars=832
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: b) Chuẩn hóa Bộ chuẩn mực hành vi trong tiếp xúc và phục vụ khách hàng, áp dụng thống nhất trong toàn Tập đoàn.
+b) Chuẩn hóa Bộ chuẩn mực hành vi trong tiếp xúc và phục vụ khách hàng, áp dụng thống nhất trong toàn Tập đoàn.
+
+c) Số hóa toàn diện hành trình trải nghiệm, nâng cao chất lượng các kênh giao dịch số, tổng đài đa kênh, ứng dụng di động, hệ thống chăm sóc khách hàng và nhận diện thương hiệu dịch vụ EVN.
+
+d) Nâng cao vai trò của lãnh đạo cấp cơ sở trong giám sát chất lượng dịch vụ hiện trường; người đứng đầu phải là hình mẫu về sự lắng nghe, thấu cảm, phản hồi nhanh và giải quyết thỏa đáng các khiếu nại.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #21
+chunk_type=document_section | section=e) Phát triển năng lực phân tích dữ liệu khách hàng, dự báo nhu cầu, cá thể hóa chăm sóc và tư vấn giải pháp sử dụng điện an toàn, tiết kiệm, hiệu quả. | artifact=attached_document | quality=pass | chars=715
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: e) Phát triển năng lực phân tích dữ liệu khách hàng, dự báo nhu cầu, cá thể hóa chăm sóc và tư vấn giải pháp sử dụng điện an toàn, tiết kiệm, hiệu quả.
+e) Phát triển năng lực phân tích dữ liệu khách hàng, dự báo nhu cầu, cá thể hóa chăm sóc và tư vấn giải pháp sử dụng điện an toàn, tiết kiệm, hiệu quả.
+
+f) Gắn chặt văn hóa khách hàng với chất lượng quản trị nội bộ, bởi trải nghiệm khách hàng chỉ thực sự tốt khi quy trình nội bộ thông suốt, phối hợp nhịp nhàng và trách nhiệm được thực thi rõ ràng.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #22
+chunk_type=document_section | section=5. Nhóm giải pháp thứ 5: phát triển văn hóa số và đổi mới sáng tạo. | artifact=attached_document | quality=pass | chars=585
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 5. Nhóm giải pháp thứ 5: phát triển văn hóa số và đổi mới sáng tạo.
+5. Nhóm giải pháp thứ 5: phát triển văn hóa số và đổi mới sáng tạo.
+
+a) Ưu tiên phát triển được một nguồn nhân lực số EVN có văn hoá và trình độ, kỹ năng số ngày càng cao đáp ứng yêu cầu phát triển bao gồm nguồn nhân lực kỹ thuật số, nguồn nhân lực kinh doanh và dịch vụ số đáp ứng yêu cầu chuyển đổi số
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #23
+chunk_type=document_section | section=b) Tạo nên môi trường làm việc số hoá có tính cộng tác, cởi mở, sáng tạo, gắn kết con người EVN thành một tập thể mạnh, giải phóng mạnh mẽ sức làm việc của con người EVN | artifact=attached_document | quality=pass | chars=1646
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: b) Tạo nên môi trường làm việc số hoá có tính cộng tác, cởi mở, sáng tạo, gắn kết con người EVN thành một tập thể mạnh, giải phóng mạnh mẽ sức làm việc của con người EVN
+b) Tạo nên môi trường làm việc số hoá có tính cộng tác, cởi mở, sáng tạo, gắn kết con người EVN thành một tập thể mạnh, giải phóng mạnh mẽ sức làm việc của con người EVN
+
+c) Tạo nên một nền tảng hệ sinh thái số kết nối và cộng tác với khách hàng, đối tác và cộng đồng theo tinh thần đồng kiến tạo
+
+d) Tạo ra các sản phẩm số, dịch vụ số có trải nghiệm giá trị cao
+
+6. Nhóm giải pháp thứ sáu: tăng cường chất lượng và hiệu quả truyền thông về văn hoá EVN; lan tỏa các giá trị văn hoá truyền thống quý báu của EVN, làm nền tảng vững chắc cho sự phát triển bền vững.
+
+a) Triển khai xây dựng một chương trình truyền thông mang tính tổng thể về VHDN (gồm có truyền thông nội bộ với truyền thông ra bên ngoài) gắn liền với công VHDN (gồm có truyền thông nội bộ với truyền thông ra bên ngoài) gắn liền với công tác xây dựng hình ảnh và thương hiệu EVN.
+
+b) Khơi dậy niềm tự hào của mỗi người EVN về các giá trị truyền thống và bản sắc văn hoá của EVN, lan toả mạnh mẽ các giá trị văn hoá truyền thống quý báu đến từng người lao động, khách hàng, đối tác và cộng đồng xã hội thông qua các phương tiện và giải pháp truyền thông chuyên nghiệp, hiện đại và hiệu quả cao; phát huy niềm tự hào về truyền thống và các giá trị văn hóa EVN trong toàn thể CBCNV và người lao động.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #24
+chunk_type=document_section | section=c) Tăng cường công tác truyền thông nội bộ và truyền thông tới cộng đồng về VHDN của EVN, đơn vị với các chương trình, hoạt động phong phú, đa dạng và bài bản. | artifact=attached_document | quality=pass | chars=1479
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: c) Tăng cường công tác truyền thông nội bộ và truyền thông tới cộng đồng về VHDN của EVN, đơn vị với các chương trình, hoạt động phong phú, đa dạng và bài bản.
+c) Tăng cường công tác truyền thông nội bộ và truyền thông tới cộng đồng về VHDN của EVN, đơn vị với các chương trình, hoạt động phong phú, đa dạng và bài bản.
+
+d) Tham gia các hoạt động đền ơn đáp nghĩa, an sinh xã hội, hoạt động cộng đồng, môi trường và chuyển đổi xanh, qua đó gắn truyền thống với trách nhiệm xã hội trong bối cảnh mới.
+
+e) Đổi mới phương thức truyền thông từ "đưa tin hoạt động" sang "kể chuyện con người - chuẩn mực - thay đổi hành vi - giá trị thực thi"; xây dựng nội dung có định hướng rõ ràng, tạo cảm hứng, có tương tác và có đo lường mức độ lan tỏa, qua đó góp phần định hình nhận thức, cổ vũ hành vi đúng và củng cố hình ảnh EVN.
+
+g) Đổi mới phương thức văn hóa truyền thống bằng hệ sinh thái số như phòng truyền thống ảo của EVN và các đơn vị trong Tập đoàn tùy đặc thù và điều kiện từng đơn vị, thư viện số, podcast, phim ngắn, câu chuyện nghề và tư liệu người thật - việc thật, giới thiệu và truyền thông cho CBCNV EVN hiểu biết sâu sắc hơn về truyền thống ngành điện cách mạng Việt Nam, các thành tựu nổi bật và những đóng góp của các thế hệ CBCNV- NLĐ EVN qua các thời kỳ.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #25
+chunk_type=document_section | section=7. Nhóm giải pháp thứ bảy: đổi mới công tác đào tạo về văn hoá doanh nghiệp. | artifact=attached_document | quality=pass | chars=1577
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 7. Nhóm giải pháp thứ bảy: đổi mới công tác đào tạo về văn hoá doanh nghiệp.
+7. Nhóm giải pháp thứ bảy: đổi mới công tác đào tạo về văn hoá doanh nghiệp.
+
+a) Xây dựng khung đào tạo theo lộ trình gắn với chuẩn đầu ra thống nhất (learning outcomes), được kiểm chứng bằng bài kiểm tra và đánh giá tại hiện trường; xác định rõ các hành vi cụ thể, có thể lượng hóa sau đào tạo và đưa vào KPI, kiểm tra định kỳ.
+
+b) Nâng cao chất lượng thực thi văn hoá của người lao động trong từng lĩnh vực, đưa văn hoá EVN thấm sâu vào phong cách làm việc và đưa tinh thần văn hoá mới của EVN ngày càng thấm sâu vào từng lĩnh vực, công việc SXKD.
+
+c) Xây dựng khung đào tạo chuẩn hóa, áp dụng thống nhất trong toàn EVN; phân tầng theo từng lĩnh vực hoạt động (Sản xuất, Phân phối, truyền tải) và nhóm đối tượng (lãnh đạo, cán bộ quản lý, CBCNV, nhân viên mới); đổi mới phương thức tổ chức, tăng cường đào tạo số, đào tạo gắn với hành vi thực tế.
+
+d) Đào tạo để chuyển hóa nhận thức thành hành vi, chuẩn hóa văn hóa theo từng nhóm, từng đối tượng và bảo đảm VHDN được bồi đắp thường xuyên, liên tục, có chiều sâu, cần được tổ chức theo hướng thống nhất trong toàn EVN nhưng linh hoạt theo đặc thù từng lĩnh vực, từng nhóm đối tượng và từng cấp quản lý.
+
+Kèm theo Phụ lục về các nhiệm vụ chi tiết, phân công và tiến độ của EVN và các đơn vị EVN để triển khai 7 nhóm giải pháp nêu trên.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #26
+chunk_type=document_section | section=III. THỰC THI VĂN HÓA DOANH NGHIỆP TRONG CÁC LĨNH VỰC CÔNG TÁC CHÍNH CỦA EVN GIAI ĐOẠN 2026-2030 | artifact=attached_document | quality=pass | chars=2988
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: III. THỰC THI VĂN HÓA DOANH NGHIỆP TRONG CÁC LĨNH VỰC CÔNG TÁC CHÍNH CỦA EVN GIAI ĐOẠN 2026-2030
+III. THỰC THI VĂN HÓA DOANH NGHIỆP TRONG CÁC LĨNH VỰC CÔNG TÁC CHÍNH CỦA EVN GIAI ĐOẠN 2026-2030
+
+1. Lĩnh vực sản xuất vận hành
+
+(i) Văn hóa kỷ cương kỷ luật vận hành, văn hóa an toàn tự giác Trong lĩnh vực sản xuất vận hành hệ thống điện, đặc biệt là: điều độ, vận hành lưới điện, vận hành nguồn, trực ca, thao tác thiết bị... thì kỷ luật là yếu tố sống còn. Văn hóa an toàn tự giác là giá trị cốt lõi của lĩnh vực vận hành.Vì vậy, yêu cầu tuân thủ tuyệt đối:
+
+quy trình vận hành, phiếu thao tác, lệnh điều độ, quy trình an toàn điện.... Không làm
+
+theo kinh nghiệm cảm tính, không chủ quan dù thao tác nhỏ. Mỗi người lao động phải là một hàng rào an toàn, tự kiểm tra, nhắc đồng đội, dám dừng công việc khi có nguy cơ mất an toàn.
+
+(ii) Văn hóa trách nhiệm và tinh thần sẵn sàng thực hiện nhiệm vụ Cán bộ, người lao động công tác trong lĩnh vực sản xuất vận hành của ngành điện lực có trách nhiệm phải trực đêm, trực lễ tết, xử lý sự cố khẩn cấp, làm việc trong thiên tai bão lũ.... Và điều này tạo nên nét văn hóa đặc thù của ngành điện. Vì vậy, các cán
+
+bộ và nhân viên trong lĩnh vực vận hành cần ý thức rõ tinh thần phục vụ, tính hy sinh, và trách nhiệm cộng đồng với yêu cầu sẵn sàng nhận nhiệm vụ mọi thời điểm, phản ứng nhanh với sự cố, không né tránh trách nhiệm và kiên trì và chịu áp lực cao; đặc biệt trong mùa nắng nóng, bão lũ, và trong các tình huống khẩn cấp.
+
+(iii) Văn hóa phối hợp trong công tác Công tác vận hành của ngành Điện lực không thể làm việc đơn lẻ, một thao tác vận hành có thể liên quan nhiều bộ phận: điều độ, trạm, đường dây, nhà máy điện, ... Do vậy yêu cầu công việc cần phối hợp chính xác, kịp thời, thông tin rõ ràng, trung thực, không mơ hồ và chấp hành nghiệm mệnh lệnh điều độ. Văn hóa phối hợp cũng nhằm đạt được các mục tiêu đồng bộ.
+
+(iv) Văn hóa học tập và nâng cao tay nghề liên tục Hệ thống điện ngày càng hiện đại, điển hình như lưới điện thông minh, lưới điện thông minh, tự động hóa trạm, tự động hóa điều khiển nhà máy điện ... Do đó, mỗi cán bộ người lao động luôn ý thức không ngừng học tập và nâng cao tay nghề, nghiệp vụ để thành thạo sử dụng công nghệ mới, cập nhật quy trình thường xuyên, rèn luyện kỹ năng xử lý tình huống.
+
+(v) Văn hóa ý thức tiết kiệm và tối ưu hiệu quả vận hành Sản xuất, vận hành nguồn và lưới điện gắn trực tiếp với các yếu tố: chi phí nhiên liệu, tổn thất điện năng, hiệu suất thiết bị, tối ưu nguồn và lưới. Do vậy, yêu cầu luôn được đặt ra là: giảm suất hao nhiên liệu, giảm tổn thất điện năng, vận hành tối ưu hệ thống, tiết kiệm vật tư - nhiên liệu, kéo dài tuổi thọ thiết bị. Các cán bộ lãnh đạo quản lý trong lĩnh vực vận hành cần luôn tư duy quản trị hiệu quả, trách nhiệm, chống lãng phí.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #27
+chunk_type=document_section | section=III. THỰC THI VĂN HÓA DOANH NGHIỆP TRONG CÁC LĨNH VỰC CÔNG TÁC CHÍNH CỦA EVN GIAI ĐOẠN 2026-2030 | artifact=attached_document | quality=pass | chars=974
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: III. THỰC THI VĂN HÓA DOANH NGHIỆP TRONG CÁC LĨNH VỰC CÔNG TÁC CHÍNH CỦA EVN GIAI ĐOẠN 2026-2030
+n và lưới. Do vậy, yêu cầu luôn được đặt ra là: giảm suất hao nhiên liệu, giảm tổn thất điện năng, vận hành tối ưu hệ thống, tiết kiệm vật tư - nhiên liệu, kéo dài tuổi thọ thiết bị. Các cán bộ lãnh đạo quản lý trong lĩnh vực vận hành cần luôn tư duy quản trị hiệu quả, trách nhiệm, chống lãng phí.
+
+(vi) Văn hóa đổi mới và chuyển đổi số trong vận hành điện lực Bối cảnh ứng dụng KHCN, CĐS mạnh mẽ như hiện nay đã dẫn tới những thay đổi tư duy quản trị truyền thống, ra quyết định dựa trên dữ liệu cũng như minh bạch hóa số liệu và chi phí bằng công nghệ, điển hình là: trung tâm điều khiển xa, trạm không người trực, AI cảnh báo sự cố, số hóa dữ liệu vận hành...
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #28
+chunk_type=document_section | section=III. THỰC THI VĂN HÓA DOANH NGHIỆP TRONG CÁC LĨNH VỰC CÔNG TÁC CHÍNH CỦA EVN GIAI ĐOẠN 2026-2030 | artifact=attached_document | quality=pass | chars=610
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: III. THỰC THI VĂN HÓA DOANH NGHIỆP TRONG CÁC LĨNH VỰC CÔNG TÁC CHÍNH CỦA EVN GIAI ĐOẠN 2026-2030
+i cảnh ứng dụng KHCN, CĐS mạnh mẽ như hiện nay đã dẫn tới những thay đổi tư duy quản trị truyền thống, ra quyết định dựa trên dữ liệu cũng như minh bạch hóa số liệu và chi phí bằng công nghệ, điển hình là: trung tâm điều khiển xa, trạm không người trực, AI cảnh báo sự cố, số hóa dữ liệu vận hành...
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #29
+chunk_type=document_section | section=III. THỰC THI VĂN HÓA DOANH NGHIỆP TRONG CÁC LĨNH VỰC CÔNG TÁC CHÍNH CỦA EVN GIAI ĐOẠN 2026-2030 | artifact=attached_document | quality=pass | chars=515
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: III. THỰC THI VĂN HÓA DOANH NGHIỆP TRONG CÁC LĨNH VỰC CÔNG TÁC CHÍNH CỦA EVN GIAI ĐOẠN 2026-2030
+Do vậy, cán bộ công tác trong lĩnh vực vận hành cần có những đổi mới về tư duy, tự thích ứng, học hỏi để đáp ứng yêu cầu làm việc trên nền tảng số, quản trị dữ liệu vận hành và tư duy theo hướng hiện đại.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #30
+chunk_type=document_section | section=2. Lĩnh vực Kinh doanh và dịch vụ khách hàng về điện | artifact=attached_document | quality=pass | chars=2920
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 2. Lĩnh vực Kinh doanh và dịch vụ khách hàng về điện
+2. Lĩnh vực Kinh doanh và dịch vụ khách hàng về điện
+
+(i) Văn hóa lấy khách hàng làm trung tâm Đây là yêu cầu cốt lõi nhất của lĩnh vực kinh doanh điện năng hiện đại, chuyển đổi tư duy từ cung ứng điện sang cung cấp dịch vụ điện, đồng hành cùng khách hàng sử dụng điện an toàn và hiệu quả, coi sự hài lòng của khách hàng là thước đo chất lượng cung cấp dịch vụ.
+
+Mỗi cán bộ, nhân viên trong lĩnh vực kinh doanh DVKH cần nhận thức ngành điện nói chung và EVN nói riêng không chỉ bán điện mà còn cung cấp dịch vụ, chăm sóc trải nghiệm và từ đó cũng xây dựng niềm tin của cộng đồng xã hội. Văn hóa phục vụ được hình thành qua các hành động cụ thể như: hướng dẫn tận tình, giải thích dễ hiểu, không gây phiền hà, không cửa quyền, chủ động hỗ trợ khách hàng.
+
+(ii) Văn hóa minh bạch và công bằng trong kinh doanh điện năng Điện là mặt hàng thiết yếu, liên quan trực tiếp đến đời sống của tất cả các thành phần xã hội, người dân. Do đó công tác kinh doanh, DVKH ngành điện, các giá trị văn hóa cần xây dựng là chính trực, minh bạch, công bằng và trách nhiệm giải trình.
+
+Một số hoạt động chính trong lĩnh vực kinh doanh, DVKH cần chú trọng: về ghi chỉ số - hóa đơn tiền điện cần công khai, chính xác, dễ kiểm tra; trong giải quyết dịch vụ điện cần đảm bảo đúng quy trình, đúng thời hạn, không nhũng nhiễu; trong giao tiếp khách hàng cần khách quan, minh bạch, không né tránh trách nhiệm.
+
+(iii) Văn hóa chuyên nghiệp trong giao tiếp và phục vụ Lĩnh vực kinh doanh và dịch vụ khách hàng là nơi tiếp xúc trực tiếp với người dân, từ các thành phần khác nhau trong xã hội. Do đó thái độ và phong cách phục vụ rất quan trọng. Yêu cầu trong giao tiếp cần lịch sự, tôn trọng, bình tĩnh, chuẩn mực; trong xử lý công việc cần khẩn trương, chính xác, không đùn đẩy, không để khách hàng đi lại nhiều lần; trong xử lý phản ánh cần biết lắng nghe, biết xin lỗi khi cần và giải quyết trên tinh thần xây dựng và cầu thị, không để khách hàng có cảm giác bị áp đặt hay đối đầu.
+
+(iv) Văn hóa trách nhiệm xã hội và phụng sự cộng đồng Bên cạnh việc cung cấp các dịch vụ điện thì các hoạt động trong lĩnh vực kinh doanh và DVKH cũng thường xuyên gắn kết với người dân và xã hội, do đó các cán bộ, nhân viên trong lĩnh vực này cũng cần thể hiện văn hóa trách nhiệm xã hội với tinh thần phục vụ cộng đồng và sẵn sàng đồng hành với kinh tế xã hội của địa phương.
+
+Các hoạt động thiết thực như duy trì cấp điện ổn định, nỗ lực khắc phục sự cố nhanh, hỗ trợ khách hàng vùng khó khăn, tuyên truyền sử dụng điện an toàn - tiết kiệm đều mang lại ý nghĩa tốt đẹp về văn hóa trách nhiệm xã hội và phụng sự cộng đồng, duy trì và nâng cao niềm tin xã hội vào 1 doanh nghiệp nhà nước như EVN.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #31
+chunk_type=document_section | section=2. Lĩnh vực Kinh doanh và dịch vụ khách hàng về điện | artifact=attached_document | quality=pass | chars=1510
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 2. Lĩnh vực Kinh doanh và dịch vụ khách hàng về điện
+thực như duy trì cấp điện ổn định, nỗ lực khắc phục sự cố nhanh, hỗ trợ khách hàng vùng khó khăn, tuyên truyền sử dụng điện an toàn - tiết kiệm đều mang lại ý nghĩa tốt đẹp về văn hóa trách nhiệm xã hội và phụng sự cộng đồng, duy trì và nâng cao niềm tin xã hội vào 1 doanh nghiệp nhà nước như EVN.
+
+(v) Văn hóa chuyển đổi số và hiện đại hóa dịch vụ Trong những năm gần đây, EVN và các đơn vị điện lực đã có nhiều đổi mới trong cung cấp dịch vụ điện theo hướng chuyển đổi số, cung cấp vụ điện trực tuyến ... Do đó yêu cầu về mặt văn hóa với CBNV cũng phải thích ứng với ứng dụng công nghệ để đáp ứng yêu cầu làm việc trên nền tảng số, quản trị dữ liệu khách hàng, tương tác đa kênh...
+
+(vi) Văn hóa phối hợp nội bộ để phục vụ khách hàng tốt hơn Công tác vận hành của lĩnh vực kinh doanh và DVKH không thể làm việc đơn lẻ, một thao tác vận hành có thể liên quan nhiều bộ phận: kinh doanh, kỹ thuật, vận hành, đầu tư, viễn thông, CNTT, thu ngân, ...Do vậy yêu cầu công việc cần phối hợp chính xác, kịp thời, thông tin rõ ràng, phối hợp xử lý nhanh, chia sẻ thông tin đồng bộ nhằm hướng tới mục tiêu phục vụ chung. Khi phối hợp không tốt, cuối cùng vẫn là khách hàng sẽ chịu ảnh hưởng, từ đó cũng ảnh hưởng đến uy tín và hình ảnh thương hiệu EVN.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #32
+chunk_type=document_section | section=2. Lĩnh vực Kinh doanh và dịch vụ khách hàng về điện | artifact=attached_document | quality=pass | chars=985
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 2. Lĩnh vực Kinh doanh và dịch vụ khách hàng về điện
+..Do vậy yêu cầu công việc cần phối hợp chính xác, kịp thời, thông tin rõ ràng, phối hợp xử lý nhanh, chia sẻ thông tin đồng bộ nhằm hướng tới mục tiêu phục vụ chung. Khi phối hợp không tốt, cuối cùng vẫn là khách hàng sẽ chịu ảnh hưởng, từ đó cũng ảnh hưởng đến uy tín và hình ảnh thương hiệu EVN.
+
+(vii) Văn hóa thích ứng trước áp lực xã hội và truyền thông Điện năng là hàng hóa thiết yếu của tất cả các thành phần xã hội, do đó thông tin về lĩnh vực điện là rất nhạy cảm: nhất là các vấn đề hóa đơn tiền điện, mất điện, sự cố, giá điện, tài chính doanh nghiệp điện ... Và ở đây, khối kinh doanh và CSKH thường là tuyến đầu chịu áp lực dư luận do tiếp xúc trực tiếp nhiều nhất với người dân và khách hàng dùng điện.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #33
+chunk_type=document_section | section=2. Lĩnh vực Kinh doanh và dịch vụ khách hàng về điện | artifact=attached_document | quality=pass | chars=915
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 2. Lĩnh vực Kinh doanh và dịch vụ khách hàng về điện
+ã hội, do đó thông tin về lĩnh vực điện là rất nhạy cảm: nhất là các vấn đề hóa đơn tiền điện, mất điện, sự cố, giá điện, tài chính doanh nghiệp điện ... Và ở đây, khối kinh doanh và CSKH thường là tuyến đầu chịu áp lực dư luận do tiếp xúc trực tiếp nhiều nhất với người dân và khách hàng dùng điện. Do đó, mỗi CBNV lĩnh vực này cần chú ý về văn hóa thích ứng trước áp lực xã hội và truyền thông với các yêu cầu: Giao tiếp khéo léo, bình tĩnh xử lý khủng hoảng, truyền thông rõ ràng, thống nhất nội dung; không tranh cãi với khách hàng, không né tránh phản hồi tiêu cực với tinh thần chung là "Lắng nghe để cải thiện dịch vụ ngày càng tốt hơn nữa".
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #34
+chunk_type=document_section | section=3. Lĩnh vực Đầu tư xây dựng | artifact=attached_document | quality=pass | chars=2696
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 3. Lĩnh vực Đầu tư xây dựng
+3. Lĩnh vực Đầu tư xây dựng
+
+Việc thực thi văn hóa doanh nghiệp ngành điện trong lĩnh vực đầu tư xây dựng cần quán triệt và thực hiện nghiêm các vấn đề:
+
+(i) Văn hóa kỷ cương, chấp hành pháp luật và quy định về đầu tư xây dựng Tuân thủ chấp hành các văn bản quy định pháp luật cũng như các quy định nội bộ về công tác đầu tư xây dựng; không làm tắt quy trình dù áp lực tiến độ cao. Hồ sơ pháp lý đầy đủ, minh bạch, sắp xếp khoa học, truy xuất được. Kỷ luật bám sát yêu cầu tiến độ nhưng không đánh đổi chất lượng.
+
+(ii) Văn hóa trách nhiệm và tinh thần phụng sự cộng đồng Công tác đầu tư các công trình điện không chỉ "xây công trình" mà còn đang thực hiện các nhiệm vụ với cộng đồng xã hội: phục vụ phát triển kinh tế xã hội, góp phần bảo đảm an ninh năng lượng quốc gia. Do đó, mỗi cán bộ, người lao động cần ý thức tinh thần trách nhiệm, ý thức phụng sự, tư duy vì lợi ích lâu dài của cộng đồng.
+
+(iii) Văn hóa minh bạch và liêm chính trong quản lý đầu tư Đầu tư xây dựng luôn tiềm ẩn nguy cơ phát sinh tiêu cực, lợi ích nhóm, thất thoát, xung đột lợi ích. Do đó, các yêu cầu Chính trực, Công tâm, Minh bạch, Trách nhiệm giải trình luôn cần được ý thức với từng cán bộ khi thực hiện nhiệm vụ được giao.
+
+(iv) Văn hóa an toàn lao động trong thi công các công trình điện Đối với các công việc đặc thù của ngành Điện thì An toàn lao động là ưu tiên hàng đầu, không đánh đổi an toàn lấy tiến độ. Mỗi cá nhân phải có ý thức trách nhiệm tự giác trong việc tự bảo vệ mình, bảo vệ đồng nghiệp và bảo vệ cộng đồng.
+
+(v) Văn hóa phối hợp trong công tác Một dự án điện thường liên quan đến nhiều khía cạnh: kỹ thuật, đất đai, môi trường, quan hệ địa phương, giải phóng mặt bằng, tài chính, pháp lý... nên nếu thiếu văn hóa phối hợp sẽ rất dễ ách tắc, không đạt hiệu quả. Vì vậy, văn hóa phối hợp ở đây cần được cụ thể hóa bằng các hành động cụ thể như: tôn trọng lẫn nhau giữa các bộ phận, chia sẻ thông tin kịp thời, không đùn đẩy trách nhiệm, giải quyết công việc trên tinh thần đồng hành cùng thắng.
+
+(vi) Văn hóa đổi mới sáng tạo và chuyển đổi số trong đầu tư xây dựng Bối cảnh ứng dụng KHCN, CĐS mạnh mẽ như hiện nay đã dẫn tới những thay đổi tư duy quản trị truyền thống, ra quyết định dựa trên dữ liệu cũng như minh bạch hóa tiến độ và chi phí bằng công nghệ. Các cán bộ thực hiện nhiệm vụ ĐTXD cũng không thể đứng ngoài xu thế đó và trên khía cạnh VHDN cần xây dựng văn hóa học hỏi liên tục, chấp nhận đổi mới, dám cải tiến và mạnh dạn quản trị hiện đại.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #35
+chunk_type=document_section | section=4. Lĩnh vực quản trị doanh nghiệp | artifact=attached_document | quality=pass | chars=2661
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 4. Lĩnh vực quản trị doanh nghiệp
+4. Lĩnh vực quản trị doanh nghiệp
+
+(i) Văn hóa kỷ cương và tuân thủ trong quản trị doanh nghiệp EVN là doanh nghiệp nhà nước được Đảng, Chính phủ giao thực hiện các nhiệm vụ trên cơ sở quản lý tài sản lớn, hạ tầng thiết yếu, vốn nhà nước và liên quan trực tiếp tới an ninh năng lượng quốc gia. Do đó, xây dựng văn hóa kỷ cương và tuân thủ trong quản trị doanh nghiệp, chấp hành tuân thủ quy định pháp luật của Nhà nước và các quy định nội bộ của EVN.
+
+(ii) Văn hóa minh bạch và liêm chính trong quản trị Với tính ảnh hưởng sâu rộng của một DNNN như EVN đến các hoạt động toàn xã hội thì yêu cầu minh bạch và liêm chính trong quản trị đối với EVN là không thể tránh khỏi. Do đó, xây dựng văn minh bạch và liêm chính trong quản trị luôn cần được quán triệt và nghiêm túc thực hiện, nhất là các vấn đề: quản trị tài chính, công tác tổ chức-nhân sự,...
+
+(iii) Văn hóa trách nhiệm và nêu gương của đội ngũ lãnh đạo Trong mọi doanh nghiệp thì vai trò của người đứng đầu luôn rất quan trọng và có sức ảnh hưởng rất lớn đến hoạt động của doanh nghiệp, và hạt nhân trong đó chính là văn hóa doanh nghiệp. Văn hóa doanh nghiệp phụ thuộc mạnh vào: tư duy lãnh đạo, phong cách điều hành, tinh thần nêu gương nên khi nói về VHDN người ta hay nói đến câu "văn hóa doanh nghiệp là văn hóa của người đứng đầu doanh nghiệp".
+
+Vì vậy, phong cách lãnh đạo dám nghĩ, dám làm, dám chịu trách nhiệm, gương mẫu trong hành vi và đạo đức nghề nghiệp, điều hành công việc khoa học, công tâm ...
+
+sẽ luôn là động lực tích cực cho các đồng nghiệp và CBNV, người lao động trong doanh nghiệp đó. Công tác lãnh đạo không đơn thuần là mệnh lệnh đơn thuần mà còn là động lực, truyền cảm hứng cho toàn thể CBNV và người lao động.
+
+(iv) Văn hóa quản trị hiệu quả Ngành điện là một xâu chuỗi hệ sinh thái liên kết giữa các khâu: phát điện, truyền tải, phân phối, đầu tư, kinh doanh, nhân sự, tài chính... nên nếu quản trị cục bộ sẽ ảnh hưởng toàn chuỗi vận hành. Như vậy ở đây văn hóa quản trị lần lưu ý các đặc tính phối hợp, hợp tác và liên kết vì mục tiêu tổng thể chung.
+
+Xu thế quản trị doanh nghiệp hiện tại đang chuyển đổi mạnh từ "quản lý hành chính" sang "quản trị hiệu quả" với yêu cầu Quản trị bằng KPI và dữ liệu, năng suất lao động, tối ưu nguồn lực và kiểm soát chi phí hiệu quả. Như vậy, dưới góc độ VHDN cần hình thành tư duy theo các hành vi cụ thể: làm việc có mục tiêu, đo lường hiệu quả, chống hình thức, chống tiêu cực lãng phí.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #36
+chunk_type=document_section | section=4. Lĩnh vực quản trị doanh nghiệp | artifact=attached_document | quality=pass | chars=1545
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 4. Lĩnh vực quản trị doanh nghiệp
+chính" sang "quản trị hiệu quả" với yêu cầu Quản trị bằng KPI và dữ liệu, năng suất lao động, tối ưu nguồn lực và kiểm soát chi phí hiệu quả. Như vậy, dưới góc độ VHDN cần hình thành tư duy theo các hành vi cụ thể: làm việc có mục tiêu, đo lường hiệu quả, chống hình thức, chống tiêu cực lãng phí.
+
+(v) Văn hóa đổi mới sáng tạo và phát triển bền vững Bối cảnh ứng dụng KHCN, CĐS mạnh mẽ như hiện nay đã dẫn tới những thay đổi tư duy quản trị truyền thống, ra quyết định dựa trên dữ liệu cũng như minh bạch hóa số liệu và chi phí bằng công nghệ, điển hình là: Điều hành trên nền tảng số, quản trị dữ liệu tập trung, số hóa quy trình... Do vậy, công tác quản trị doanh nghiệp cũng cần có những đổi mới về tư duy, tự thích ứng, học hỏi để đáp ứng yêu cầu làm việc trên nền tảng số, quản trị dữ liệu vận hành và tư duy theo hướng hiện đại.
+
+Với đặc thù ngành điện có lực lượng lao động đông, kỹ thuật cao và gắn bó lâu dài nên xây dựng văn hóa học tập không ngừng cũng hết sức quan trọng. Công tác đào tạo phát triển nguồn nhân lực cần được duy trì thực hiện liên tục, tạo điều kiện để từng người lao động trong vị trí công tác của mình được cập nhật những kiến thức mới và kinh nghiệm thực tiễn. Bên cạnh đó, cũng xây dựng văn hóa chia sẻ, hợp tác với đồng nghiệp nhằm đạt hiệu quả chung của tổ chức.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #37
+chunk_type=document_section | section=4. Lĩnh vực quản trị doanh nghiệp | artifact=attached_document | quality=pass | chars=866
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 4. Lĩnh vực quản trị doanh nghiệp
+ạo phát triển nguồn nhân lực cần được duy trì thực hiện liên tục, tạo điều kiện để từng người lao động trong vị trí công tác của mình được cập nhật những kiến thức mới và kinh nghiệm thực tiễn. Bên cạnh đó, cũng xây dựng văn hóa chia sẻ, hợp tác với đồng nghiệp nhằm đạt hiệu quả chung của tổ chức.
+
+Do điện năng là mặt hàng tiêu dùng thiết yêu nên các hoạt động điện lực cũng thường xuyên gắn kết với người dân và xã hội, do đó các giá trị chung của cộng đồng về bảo đảm an sinh xã hội, phát triển xanh, bảo vệ môi trường cũng mang ý nghĩa quan trọng, thể hiện trách nhiệm xã hội với cộng đồng và phát triển bền vững.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #38
+chunk_type=document_section | section=IV. TỔ CHỨC THỰC HIỆN | artifact=attached_document | quality=pass | chars=1128
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 732/QĐ-EVN - QĐ ban hành Kế hoạch triển khai văn hóa doanh nghiệp trong Tập đoàn Điện lực Quốc gia Việt Nam giai đoạn 2026-2030.
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: IV. TỔ CHỨC THỰC HIỆN
+IV. TỔ CHỨC THỰC HIỆN
+
+1. Hàng năm, EVN ban hành kế hoạch thực thi VHDN với các nhiệm vụ và tiến độ cụ thể, điều chỉnh phù hợp thực tế thực hiện trong năm.
+
+2. Các Tổng công ty/công ty là công ty TNHH MTV do EVN nắm giữ 100% vốn điều lệ, Người đại diện phần vốn của EVN tại các công ty cổ phần là công ty con, các đơn vị trực thuộc EVN, các Ban chuyên môn của EVN căn cứ các nhiệm vụ được giao theo Kế hoạch tổng thể, các nhiệm vụ về thực thi VHDN cụ thể theo kế hoạch EVN giao hàng năm và kết hợp các nhiệm vụ VHDN của các đơn vị, các Ban để xây dựng kế hoạch chi tiết và triển khai thực hiện, đảm bảo tiến độ và chất lượng.
+
+3. Ban TTVHDN EVN theo dõi, hướng dẫn, đôn đốc tình hình thực hiện các công việc, nhiệm vụ trong Kế hoạch tổng thể; định kỳ hàng năm tổng hợp kết quả thực hiện của các đơn vị, các Ban để Tổng giám đốc EVN báo cáo Hội đồng thành viên EVN (trước ngày 25/12 hàng năm).

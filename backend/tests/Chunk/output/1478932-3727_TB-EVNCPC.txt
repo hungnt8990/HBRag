@@ -1,0 +1,199 @@
+================================================================================
+id_vb        : 1478932
+ky_hieu      : 3727/TB-EVNCPC
+trich_yeu    : Thông báo kết luận của TGĐ Ngô Tấn Cư tại Hội nghị đầu tư xây dựng - quản lý đấu thầu EVNCPC năm 2026
+
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-18
+ten_file     : HN DTXD 2026.pdf
+TỔNG SỐ CHUNK: 9
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=235
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3727/TB-EVNCPC
+Ngày văn bản: 18/06/2026
+Trích yếu: Thông báo kết luận của TGĐ Ngô Tấn Cư tại Hội nghị đầu tư xây dựng - quản lý đấu thầu EVNCPC năm 2026
+
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Tán Quốc Bảo
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=3096
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3727/TB-EVNCPC - Thông báo kết luận của TGĐ Ngô Tấn Cư tại Hội nghị đầu tư xây dựng - quản lý đấu thầu EVNCPC năm 2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+TỔNG CÔNG TY Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 18 tháng 6 năm 2026
+
+Số: 3727/TB-EVNCPC
+
+THÔNG BÁO
+
+Kết luận của TGĐ Ngô Tấn Cư tại hội nghị đầu tư xây dựng -
+
+quản lý đấu thầu EVNCPC năm 2026
+
+Ngày 12/6/2026, tại Cơ quan Tổng công ty, TGĐ Ngô Tấn Cư và PTGĐ Lê Hữu Danh đồng chủ trì hội nghị đầu tư xây dựng - quản lý đấu thầu EVNCPC năm 2026 theo hình thức trực tiếp và trực tuyến. Thành phần tham dự như phụ lục đính kèm. Sau khi nghe ý kiến của các thành viên tham dự họp, ý kiến phát biểu chỉ đạo của Ông Nguyễn Thanh - Chủ tịch HĐTV, TGĐ kết luận:
+
+1. Qua báo cáo của Ban ĐT, Ban QLĐT tại hội nghị về kết quả thực hiện công tác ĐTXD năm 2025 và các tháng đầu năm 2026, TGĐ ghi nhận và đánh giá cao nỗ lực của các Ban, các đơn vị, bộ phận làm công tác ĐTXD, QLĐT để giải quyết các vướng mắc về thủ tục đầu tư, đẩy nhanh tiến độ lựa chọn nhà thầu, tháo gỡ khó khăn trong công tác BTGPMB, đặc biệt là các dự án lưới điện 110kV như TBA 110kV Sân bay Cam Ranh và đấu nối, TBA 110kV Gia Nghĩa và đấu nối, Đấu nối 110kV sau TBA 220kV Cam Ranh, Đấu nối 110kV sau TBA 220kV Chư Sê; các đường dây 110kV Đồng Hới-Lệ Thủy, Nâng cao khả năng mang tải ĐZ Phù Mỹ - Mỹ Thành và Phù Cát - An Nhơn... góp phần cải thiện các chỉ số ĐTCCCĐ, giảm tổn thất, giúp TCT hoàn thành các chỉ tiêu kinh tế - kỹ thuật EVN giao.
+
+Về công tác đấu thầu, thông qua các đợt kiểm tra, các hội nghị chuyên đề, công tác tập huấn nâng cao nghiệp vụ do Ban QLĐT tổ chức thường xuyên đã giúp nâng cao hiệu quả về đấu thầu, giảm được thời gian lựa chọn nhà thầu qua từng năm, giảm dần các thiếu sót nghiệp vụ và đảm bảo tuân thủ các quy định hiện hành của pháp luật về công tác đấu thầu.
+
+Hội nghị cũng đã nêu ra một số tồn tại trong công tác ĐTXD, QLĐT thời gian qua như: (i) tỷ lệ và tiến độ giải ngân, quyết toán chưa đạt kỳ vọng do thủ tục thỏa thuận tuyến, giao đất và đền bù còn kéo dài; (ii) công tác khảo sát, thiết kế chưa kỹ lưỡng, dẫn đến phát sinh khối lượng tại một số gói thầu, làm ảnh hưởng đến tiến độ dự án; (iii) sự quyết liệt ở một số đơn vị chưa cao, phương pháp điều hành chưa khoa học, trách nhiệm cá nhân của một số cán bộ được phân công chưa thể hiện hết sức; (iv) Chỉ tiêu hiệu quả về đấu thầu giữa các đơn vị vẫn còn chênh lệch ... Do đó, yêu cầu lãnh đạo các đơn vị rà soát các nội dung còn tồn tại được báo cáo tại hội nghị, phổ biến đến các bộ phận có liên quan để sớm khắc phục, nâng cao hiệu quả công tác ĐTXD, QLĐT.
+
+2. Về công tác ĐTXD, với các vướng mắc liên quan đến thủ tục chấp thuận nhà đầu tư sau khi bãi bỏ thủ tục chủ trương đầu tư chưa được giải quyết và thống nhất giữa các địa phương; tình hình khó khăn trong việc thu xếp vốn vay, hạn mức vay của các ngân hàng thương mại; biến động giá nguyên vật liệu, giá VTTB hiện nay, để hoàn thành các chỉ tiêu ĐTXD năm 2026, TGĐ yêu cầu:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1023
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3727/TB-EVNCPC - Thông báo kết luận của TGĐ Ngô Tấn Cư tại Hội nghị đầu tư xây dựng - quản lý đấu thầu EVNCPC năm 2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+đầu tư sau khi bãi bỏ thủ tục chủ trương đầu tư chưa được giải quyết và thống nhất giữa các địa phương; tình hình khó khăn trong việc thu xếp vốn vay, hạn mức vay của các ngân hàng thương mại; biến động giá nguyên vật liệu, giá VTTB hiện nay, để hoàn thành các chỉ tiêu ĐTXD năm 2026, TGĐ yêu cầu:
+
+2.1. Ban KH, ĐT, các đơn vị rà soát, bố trí vốn theo thứ tự ưu tiên để chống quá tải lưới điện 110kV, các TBA công cộng để đảm bảo nhiệm vụ cung ứng điện của EVNCPC trong bối cảnh phụ tải tăng cao qua từng năm.
+
+2.2. NPMU, Ban ĐT, KHPC, KHoPC phối hợp tiếp tục giải quyết các thủ tục còn lại của công tác BTGPMB, đôn đốc nhà thầu đẩy nhanh tiến độ thi công đối với dự án TBA 110kV Sân bay Cam Ranh và đấu nối, phấn đấu hoàn thành dự án đưa vào sử dụng trong quý 3/2026 và quyết toán trước ngày 30/11/2026.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_preamble | section=preamble | quality=pass | chars=983
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3727/TB-EVNCPC - Thông báo kết luận của TGĐ Ngô Tấn Cư tại Hội nghị đầu tư xây dựng - quản lý đấu thầu EVNCPC năm 2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+ăm.
+
+2.2. NPMU, Ban ĐT, KHPC, KHoPC phối hợp tiếp tục giải quyết các thủ tục còn lại của công tác BTGPMB, đôn đốc nhà thầu đẩy nhanh tiến độ thi công đối với dự án TBA 110kV Sân bay Cam Ranh và đấu nối, phấn đấu hoàn thành dự án đưa vào sử dụng trong quý 3/2026 và quyết toán trước ngày 30/11/2026.
+
+2.3. Công tác khảo sát, thiết kế cần phải được thực hiện cẩn trọng để hạn chế tối đa việc phải điều chỉnh làm ảnh hưởng đến tiến độ thi công; thông số kỹ thuật phải rõ ràng, chuẩn xác, đảm bảo đúng các quy định hiện hành, tuyệt đối tránh tình huống làm hạn chế cạnh tranh khi lập HSMT. Công tác giám sát lắp đặt thiết bị phải được đảm bảo, công tác vận hành phải đúng yêu cầu của NSX, không để xảy ra hư hỏng do chủ quan hay lắp đặt sai thiết kế/hướng dẫn của NSX.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_section | section=2.4. Các đơn vị xây dựng kịch bản tổ chức thi công, phối hợp với các đơn vị điều độ để chủ động triển khai trong điều kiện thời tiết không thuận lợi, đặc biệt trong mùa mưa bão. | quality=pass | chars=3252
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3727/TB-EVNCPC - Thông báo kết luận của TGĐ Ngô Tấn Cư tại Hội nghị đầu tư xây dựng - quản lý đấu thầu EVNCPC năm 2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 2.4. Các đơn vị xây dựng kịch bản tổ chức thi công, phối hợp với các đơn vị điều độ để chủ động triển khai trong điều kiện thời tiết không thuận lợi, đặc biệt trong mùa mưa bão.
+2.4. Các đơn vị xây dựng kịch bản tổ chức thi công, phối hợp với các đơn vị điều độ để chủ động triển khai trong điều kiện thời tiết không thuận lợi, đặc biệt trong mùa mưa bão.
+
+2.5. Các đơn vị thường xuyên rà soát tính tuân thủ về bản quyền các phần mềm thường sử dụng trong ĐTXD (Autocad, MS Project, BIM...), các module tự phát triển (nếu có) để kịp thời cảnh báo, đảm bảo tuân thủ tuyệt đối các quy định về bản quyền. Ban VTCNTT tiếp tục theo dõi, rà soát.
+
+2.6. Các CTĐL chủ động triển khai các công trình đấu nối, xây dựng lưới điện trung thế để khai thác tối đa hiệu quả của các TBA 110kV, đảm bảo đưa vào sử dụng đồng bộ; bám sát, tăng cường phối hợp chặt chẽ với UBND và các Sở, ban, ngành để tháo gỡ các vướng mắc về thủ tục BTGPMB, chủ động đi trước một bước trong việc tiếp cận, vận động người dân vùng dự án để tạo sự đồng thuận, giảm thiểu tối đa tranh chấp kéo dài làm chậm tiến độ thi công.
+
+2.7. GĐ các đơn vị đã ký được hợp đồng vay vốn phải trực tiếp làm việc với các ngân hàng để phục vụ giải ngân, việc phụ thuộc vào nguồn vốn TCT sẽ làm chậm tiến độ dự án nếu các khoản vay theo kế hoạch không triển khai được.
+
+Ban TCKT phối hợp, hỗ trợ các đơn vị làm việc với các ngân hàng để tháo gỡ vướng mắc về vốn vay.
+
+2.8. Ban ĐT, QLĐT, các đơn vị, bộ phận làm công tác ĐTXD thường xuyên theo dõi, cập nhật kiến thức, áp dụng số hóa, tìm hiểu và sử dụng tốt các công cụ AI để nâng cao hiệu quả và tốc độ xử lý công việc. Ban VTCNTT, CPCIT hỗ trợ các Ban, các đơn vị.
+
+2.9. Giá trị đầu tư, tỷ lệ giải ngân hàng năm cho các CTĐL hiện là rất lớn, cùng với công tác phân cấp của TCT cho các đơn vị trong lĩnh vực ĐTXD, yêu cầu các Ban ĐT, KH, TCKT, PC phải có giải pháp quản trị, tăng cường kiểm tra, giám sát, kiểm soát và phòng ngừa rủi ro trong lĩnh vực phụ trách, đảm bảo an toàn về pháp lý cho TCT và các đơn vị.
+
+2.10. Ban ĐT chủ trì, phối hợp các Ban chức năng báo cáo tổng hợp tình hình thực hiện công tác ĐTXD và các vướng mắc phát sinh đối với các dự án lưới điện 110kV theo chỉ tiêu KC/ĐĐ EVN giao và các dự án trọng điểm 2026 theo nghị quyết Đảng ủy/HĐTV, đề xuất các giải pháp tháo gỡ trình TGĐ báo cáo HĐTV/ĐU trước 30/6/2026 để kịp thời có chỉ đạo nhằm phấn đấu hoàn thành toàn diện kế hoạch ĐTXD năm 2026.
+
+3. Về công tác đấu thầu: Ban QLĐT tiếp tục phát huy kết quả đã đạt được trong năm 2025, thường xuyên theo dõi, cập nhật các thay đổi trong công tác đấu thầu để phổ biến, tập huấn cho các đơn vị, hạn chế tình trạng sai sót do không cập nhật quy định kịp thời. Trong công tác tổ chức LCNT, yêu cầu các đơn vị, bộ phận lập HSMT, thành viên TCG, TTĐ tuyệt đối tuân thủ pháp luật về đấu thầu, các QCQLNB của EVN, EVNCPC; phải trung thực, trách nhiệm, công bằng, không tiêu cực.
+
+PTGĐ Lê Hữu Danh giúp chỉ đạo các nội dung nêu.
+
+Thừa lệnh TGĐ, Văn phòng TCT thông báo để các đ/c PTGĐ, các đơn vị thành viên và các Ban biết, thực hiện./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=footer_signature | quality=pass | chars=217
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: TL. TỔNG GIÁM ĐỐC
+
+- Đảng ủy TCT (b/cáo); KT. CHÁNH VĂN PHÒNG
+
+- HĐTV (b/cáo); PHÓ CHÁNH VĂN PHÒNG
+
+- Ban TGĐ (b/cáo);
+
+- CĐ TCT;
+
+- KSVCT;
+
+- Các đơn vị thành viên;
+
+- Các Ban;
+
+- Lưu: VT, VP.
+
+Tán Quốc Bảo
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=document_section | section=Phụ lục THÀNH PHẦN THAM DỰ HỘI NGHỊ ĐẦU TƯ XÂY DỰNG - QUẢN LÝ ĐẤU THẦU EVNCPC NĂM 2026 | artifact=appendix | quality=pass | chars=385
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3727/TB-EVNCPC - Thông báo kết luận của TGĐ Ngô Tấn Cư tại Hội nghị đầu tư xây dựng - quản lý đấu thầu EVNCPC năm 2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục THÀNH PHẦN THAM DỰ HỘI NGHỊ ĐẦU TƯ XÂY DỰNG - QUẢN LÝ ĐẤU THẦU EVNCPC NĂM 2026
+Phụ lục
+
+THÀNH PHẦN THAM DỰ HỘI NGHỊ ĐẦU TƯ XÂY DỰNG -
+
+QUẢN LÝ ĐẤU THẦU EVNCPC NĂM 2026
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=document_section | section=Phụ lục THÀNH PHẦN THAM DỰ HỘI NGHỊ ĐẦU TƯ XÂY DỰNG - QUẢN LÝ ĐẤU THẦU EVNCPC NĂM 2026 > I. Điểm cầu cơ quan EVNCPC: | artifact=appendix | quality=pass | chars=812
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3727/TB-EVNCPC - Thông báo kết luận của TGĐ Ngô Tấn Cư tại Hội nghị đầu tư xây dựng - quản lý đấu thầu EVNCPC năm 2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục THÀNH PHẦN THAM DỰ HỘI NGHỊ ĐẦU TƯ XÂY DỰNG - QUẢN LÝ ĐẤU THẦU EVNCPC NĂM 2026 > I. Điểm cầu cơ quan EVNCPC:
+I. Điểm cầu cơ quan EVNCPC:
+
+- Ông Nguyễn Thanh - CT HĐTV.
+
+- Ông Ngô Tấn Cư - TV HĐTV kiêm Tổng giám đốc.
+
+- Ông Trình Trung Phương - TV HĐTV.
+
+- Bà Lê Thị Phương Cẩm - TV HĐTV.
+
+- Ông Lê Hoàng Anh Dũng - TV HĐTV.
+
+- Ông Hồ Thăng Thu - PTGĐ.
+
+- Ông Lê Hữu Danh - PTGĐ.
+
+- Ông Nguyễn Hữu Khánh - PTGĐ.
+
+- Ông Trần Văn Gia - PTGĐ.
+
+- Ông Trần Nguyễn Bảo An - PTGĐ.
+
+- PBT Đảng ủy EVNCPC.
+
+- CT Công đoàn EVNCPC.
+
+- KSVCT EVN tại EVNCPC.
+
+- Lãnh đạo các Ban EVNCPC.
+
+- Bí thư ĐTN EVNCPC.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #8
+chunk_type=document_section | section=Phụ lục THÀNH PHẦN THAM DỰ HỘI NGHỊ ĐẦU TƯ XÂY DỰNG - QUẢN LÝ ĐẤU THẦU EVNCPC NĂM 2026 > II. Điểm cầu các đơn vị thành viên: Tổng Giám đốc/Giám đốc/Hiệu trưởng, TP, PTP các Phòng/Ban, Lãnh đạo các đơn vị cấp 4 và các thành phần có liên quan. | artifact=appendix | quality=pass | chars=604
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3727/TB-EVNCPC - Thông báo kết luận của TGĐ Ngô Tấn Cư tại Hội nghị đầu tư xây dựng - quản lý đấu thầu EVNCPC năm 2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục THÀNH PHẦN THAM DỰ HỘI NGHỊ ĐẦU TƯ XÂY DỰNG - QUẢN LÝ ĐẤU THẦU EVNCPC NĂM 2026 > II. Điểm cầu các đơn vị thành viên: Tổng Giám đốc/Giám đốc/Hiệu trưởng, TP, PTP các Phòng/Ban, Lãnh đạo các đơn vị cấp 4 và các thành phần có liên quan.
+II. Điểm cầu các đơn vị thành viên: Tổng Giám đốc/Giám đốc/Hiệu trưởng, TP, PTP các Phòng/Ban, Lãnh đạo các đơn vị cấp 4 và các thành phần có liên quan.

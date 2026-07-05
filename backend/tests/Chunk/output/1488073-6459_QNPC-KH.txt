@@ -1,0 +1,103 @@
+================================================================================
+id_vb        : 1488073
+ky_hieu      : 6459/QNPC-KH
+trich_yeu    : Cung cấp thông tin về kết quả thực hiện các hợp đồng xây lắp, mua sắm hàng hóa và các hợp đồng EPC, EC, PC với EVNCPC và các đơn vị thành viên EVNCPC
+noi_ban_hanh : Công ty Điện lực Quảng Ngãi
+ngay_vb      : 2026-06-26
+ten_file     : 1. Lay y kien PC Ket qua nha thau 2026 TCG2. (DS kem theo P).pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=281
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 6459/QNPC-KH
+Ngày văn bản: 26/06/2026
+Trích yếu: Cung cấp thông tin về kết quả thực hiện các hợp đồng xây lắp, mua sắm hàng hóa và các hợp đồng EPC, EC, PC với EVNCPC và các đơn vị thành viên EVNCPC
+Nơi ban hành: Công ty Điện lực Quảng Ngãi
+Người ký: Trương Nhật Thuyên
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=2104
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 6459/QNPC-KH - Cung cấp thông tin về kết quả thực hiện các hợp đồng xây lắp, mua sắm hàng hóa và các hợp đồng EPC, EC, PC với EVNCPC và các đơn vị thành viên EVNCPC
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Công ty Điện lực Quảng Ngãi
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc
+
+CÔNG TY
+
+ĐIỆN LỰC QUẢNG NGÃI
+
+Số: 6459/QNPC-KH Quảng Ngãi, ngày 26 tháng 6 năm 2026 V/v cung cấp thông tin về kết quả thực hiện các hợp đồng xây lắp, mua sắm hàng hóa và các hợp đồng EPC, EC, PC với EVNCPC và các đơn vị thành viên
+
+EVNCPC
+
+Kính gửi:
+
+- Tổng công ty Điện lực miền Trung;
+
+- Các đơn vị thành viên EVNCPC.
+
+Công ty Điện lực Quảng Ngãi (QNPC) đang tiến hành đánh giá E-HSDT của các
+
+Nhà tham dự gói thầu thuộc công trình sửa chữa lớn năm 2026.
+
+Theo E-HSMT được phê duyệt, có nội dung yêu cầu đánh giá kết quả thực hiện
+
+hợp đồng trước đó của nhà thầu đối với các hợp đồng thực hiện theo Nghị định 63/2014/NĐ-CP ngày 26/6/2014 là: "Trong vòng 36 tháng tính đến tháng có thời điểm đóng thầu, nhà thầu có từ 03 hợp đồng trở lên bị EVNCPC hoặc các đơn vị thành viên EVNCPC thông báo bằng văn bản không đạt tiến độ hoặc chất lượng công việc/hàng hóa không đảm bảo (kèm biên bản làm việc với nhà thầu hoặc báo cáo của tư vấn giám sát)" thì sẽ được đánh giá là không đáp ứng về Uy tín của Nhà thầu.
+
+Để có cơ sở đánh giá E-HSDT của các Nhà thầu (có danh sách kèm theo), QNPC
+
+kính đề nghị EVNCPC và các đơn vị thành viên EVNCPC hỗ trợ cung cấp nội dung sau:
+
+các văn bản thông báo Nhà thầu không đạt tiến độ hoặc chất lượng hàng hóa không đảm bảo kể từ tháng 6/2023 trở về sau (kèm biên bản làm việc với Nhà thầu hoặc báo cáo của tư vấn giám sát).
+
+QNPC kính mong nhận được thông tin phản hồi bằng văn bản từ EVNCPC và
+
+các đơn vị thành viên EVNCPC trước ngày 29/6/2026. Sau thời gian này, trường hợp QNPC chưa nhận được phản hồi thì được hiểu là các quý đơn vị không có các văn bản thông báo Nhà thầu không đạt tiến độ hoặc chất lượng hàng hóa không đảm bảo như nội dung nêu trên.
+
+Rất mong sự quan tâm phối hợp của các đơn vị thành viên.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=107
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. GIÁM ĐỐC
+
+- Như trên; PHÓ GIÁM ĐỐC
+
+- Ông Quân - PGĐ Cty;
+
+- Lưu: VT, KH.
+
+Trương Nhật Thuyên
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=DANH SÁCH CÁC NHÀ THẦU THAM SỰ GÓI THẦU THUỘC CÔNG | table=DANH SÁCH CÁC NHÀ THẦU THAM SỰ GÓI THẦU THUỘC CÔNG | quality=pass | chars=491
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 6459/QNPC-KH - Cung cấp thông tin về kết quả thực hiện các hợp đồng xây lắp, mua sắm hàng hóa và các hợp đồng EPC, EC, PC với EVNCPC và các đơn vị thành viên EVNCPC
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Công ty Điện lực Quảng Ngãi
+Bảng: DANH SÁCH CÁC NHÀ THẦU THAM SỰ GÓI THẦU THUỘC CÔNG
+| Stt | Tên nhà thầu tham gia | Ghi chú |
+| --- | --- | --- |
+| 1 | Công ty TNHH MTV Quảng cáo và Dịch vụ Tiến Thịnh | |
+| 2 | Công ty TNHH MTV Xây dựng Vận tải và Thương mại Quang Thi | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_body | section=Văn bản đính kèm | artifact=attached_document | quality=pass | chars=338
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 6459/QNPC-KH - Cung cấp thông tin về kết quả thực hiện các hợp đồng xây lắp, mua sắm hàng hóa và các hợp đồng EPC, EC, PC với EVNCPC và các đơn vị thành viên EVNCPC
+Ngày ban hành: 26/06/2026
+Cơ quan ban hành: Công ty Điện lực Quảng Ngãi
+Mục: Văn bản đính kèm
+DANH SÁCH CÁC NHÀ THẦU THAM SỰ GÓI THẦU THUỘC CÔNG
+
+TRÌNH SCL NĂM 2026

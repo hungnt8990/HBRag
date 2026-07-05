@@ -12,7 +12,24 @@ _SOURCE = [
     "id_vb", "ky_hieu", "trich_yeu", "noi_ban_hanh", "nguoi_ky",
     "ten_file", "duong_dan", "tom_tat", "noi_dung", "ngay_vb", "ngay_tao",
     "ngay_capnhat", "nam", "thang", "id_dv_ban_hanh", "type_ocr",
+    # ACL THẬT: API doffice_vanban mới trả 3 list quyền THẲNG trong _source (trước đây
+    # phải join index riêng doffice_vanban_quyen). Lấy về để đọc ACL từ chính record.
+    "don_vi_list", "phong_ban_list", "ca_nhan_list",
 ]
+
+
+def _as_int_list(value: Any) -> list[int] | None:
+    """Chuẩn hoá field ACL về list[int] (ES trả scalar hoặc list). None nếu rỗng."""
+    if value in (None, "", [], {}):
+        return None
+    items = value if isinstance(value, (list, tuple)) else [value]
+    out: list[int] = []
+    for item in items:
+        try:
+            out.append(int(str(item).strip()))
+        except (TypeError, ValueError):
+            continue
+    return out or None
 
 
 @dataclass
@@ -28,9 +45,19 @@ class VanbanRecord:
     ngay_vb: str | None = None
     ngay_capnhat: str | None = None
     nam: int | None = None
+    # ACL THẬT lấy thẳng từ doffice_vanban (API mới). None/[] = record chưa gán quyền
+    # -> caller fallback sang index quyền riêng (doffice_vanban_quyen).
+    don_vi_list: list[int] | None = None
+    phong_ban_list: list[int] | None = None
+    ca_nhan_list: list[int] | None = None
     # _source thô đầy đủ (gồm duong_dan/type_ocr/ngay_tao/id_dv_ban_hanh/thang) để
     # ingest 3-DB dựng đúng object metadata/docmeta.
     raw: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def has_acl(self) -> bool:
+        """True nếu record có ÍT NHẤT 1 list quyền (đơn vị/phòng ban/nhân viên) khác rỗng."""
+        return bool(self.don_vi_list or self.phong_ban_list or self.ca_nhan_list)
 
     @property
     def embed_text(self) -> str:
@@ -58,6 +85,9 @@ class VanbanRecord:
             ngay_vb=src.get("ngay_vb"),
             ngay_capnhat=src.get("ngay_capnhat"),
             nam=src.get("nam") if isinstance(src.get("nam"), int) else None,
+            don_vi_list=_as_int_list(src.get("don_vi_list")),
+            phong_ban_list=_as_int_list(src.get("phong_ban_list")),
+            ca_nhan_list=_as_int_list(src.get("ca_nhan_list")),
             raw=dict(src),
         )
 

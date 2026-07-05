@@ -1,0 +1,81 @@
+================================================================================
+id_vb        : 1479029
+ky_hieu      : 5255/GLPC-ĐĐ
+trich_yeu    : V/v Cập nhật, chuẩn hóa toàn bộ dữ liệu lưới điện trên DMS theo đúng cấu trúc dữ liệu của giải pháp kết nối SCADA-OMS ABB
+noi_ban_hanh : Công ty Điện lực Gia Lai
+ngay_vb      : 2026-06-18
+ten_file     : Bao cao OMS-DMS_Gui CPC 06_2026.pdf
+TỔNG SỐ CHUNK: 4
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=247
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 5255/GLPC-ĐĐ
+Ngày văn bản: 18/06/2026
+Trích yếu: V/v Cập nhật, chuẩn hóa toàn bộ dữ liệu lưới điện trên DMS theo đúng cấu trúc dữ liệu của giải pháp kết nối SCADA-OMS ABB
+Nơi ban hành: Công ty Điện lực Gia Lai
+Người ký: Lê Quang Trường
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1139
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 5255/GLPC-ĐĐ - V/v Cập nhật, chuẩn hóa toàn bộ dữ liệu lưới điện trên DMS theo đúng cấu trúc dữ liệu của giải pháp kết nối SCADA-OMS ABB
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty Điện lực Gia Lai
+Mục: preamble
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY ĐIỆN LỰC GIA LAI
+
+Số: 5255/GLPC-ĐĐ Gia Lai, ngày 18 tháng 6 năm 2026 V/v cập nhật, chuẩn hóa toàn bộ dữ liệu lưới điện trên DMS theo đúng cấu trúc dữ liệu của giải pháp kết nối SCADA-OMS ABB
+
+Kính gửi: Tổng Công ty Điện lực miền Trung
+
+Thực hiện theo chỉ đạo của EVNCPC tại văn bản số 3138/EVNCPC-KT+VTCNTT ngày 26/05/2026 về việc "khẩn trương triển khai giải pháp kết nối SCADA-OMS".
+
+Hiện tại, hầu hết các thiết bị phân đoạn (có/không kết nối SCADA), số lượng FCO trạm biến áp phụ tải ... đã được GLPC cập nhật vào chương trình DMS theo đúng cấu trúc hướng dẫn của Tổng Công ty tại văn bản số 1126/EVNCPC-KT+KD+VTCNTT ngày 20/02/2025. Từ tháng 06/2025, toàn bộ dữ liệu DMS đã được cập nhật và gửi thường xuyên qua ứng dụng SYNSQL OT cho Tổng Công ty bao gồm 07 table trong đó có 04 table dữ liệu, cụ thể:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=1. Table MV_FUSE: 13.298 rows các thiết bị đóng cắt là cầu chì trạm và phân đoạn. | quality=pass | chars=1470
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 5255/GLPC-ĐĐ - V/v Cập nhật, chuẩn hóa toàn bộ dữ liệu lưới điện trên DMS theo đúng cấu trúc dữ liệu của giải pháp kết nối SCADA-OMS ABB
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty Điện lực Gia Lai
+Mục: 1. Table MV_FUSE: 13.298 rows các thiết bị đóng cắt là cầu chì trạm và phân đoạn.
+1. Table MV_FUSE: 13.298 rows các thiết bị đóng cắt là cầu chì trạm và phân đoạn.
+
+2. Table CIRCUIT_BREAKER: 699 rows bao gồm toàn bộ các thiết bị là máy cắt đầu nguồn và các Recloser phân đoạn.
+
+3. Table DISCONNECTOR: 1.381 rows là các thiết bị DCL và LBS trên lưới.
+
+4. Table SwitchingComponent: 11.118 rows là số liệu tổng hợp tất cả các thiết bị phân đoạn và máy cắt đầu nguồn các trạm 110kV trên địa bàn Tây Gia Lai.
+
+Để đối chiếu, kiểm tra tính đầy đủ và chính xác của dữ liệu DMS theo bộ tiêu chí kiểm tra do CPCIT ban hành, GLPC có một số kiến nghị như sau:
+
+- Từ dữ liệu của DMS đã được gửi thường xuyên về cho CPCIT qua App SYNSQL OT, đề nghị có bảng phân tích đánh giá về độ chính xác dữ liệu của 2 chương DMS và OMS.
+
+- Phân quyền người dùng trên OMS để GLPC có thể thống kê về số lượng thiết bị, tính chính xác của dữ liệu trên lưới điện giữa 02 chương trình nêu trên.
+
+- CPCIT cần cử người phối hợp với GLPC để thực hiện kịch bản thử nghiệm kết nối và các nội dung khác theo đúng tinh thần chỉ đạo của EVNCPC tại văn bản số 1126/EVNCPC- KT+KD+VTCNTT ngày 20/02/2025.
+
+GLPC kính báo cáo Tổng Công ty để chỉ đạo thực hiện các bước tiếp theo./.
+
+Trân trọng!
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=footer_signature | quality=pass | chars=136
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT.GIÁM ĐỐC
+
+- Như trên; PHÓ GIÁM ĐỐC
+
+- CPCIT (để phối hợp)
+
+- KT, VTCNTT (để phối hợp);
+
+- Lưu: VT, ĐĐ NDK.
+
+Lê Quang Trường

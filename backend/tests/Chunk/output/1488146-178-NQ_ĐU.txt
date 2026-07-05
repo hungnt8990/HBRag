@@ -1,0 +1,88 @@
+================================================================================
+id_vb        : 1488146
+ky_hieu      : 178-NQ/ĐU
+trich_yeu    : Nghị quyết Kết quả rà soát, bổ sung quy hoạch cán bộ nhiệm kỳ 2025 - 2030 và xây dựng mới quy hoạch cán bộ, nhiệm kỳ 2030-2035
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-22
+ten_file     : 178 NQ ĐU_1.PDF
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=254
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 178-NQ/ĐU
+Ngày văn bản: 22/06/2026
+Trích yếu: Nghị quyết Kết quả rà soát, bổ sung quy hoạch cán bộ nhiệm kỳ 2025 - 2030 và xây dựng mới quy hoạch cán bộ, nhiệm kỳ 2030-2035
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Nguyễn Thanh
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1351
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 178-NQ/ĐU - Nghị quyết Kết quả rà soát, bổ sung quy hoạch cán bộ nhiệm kỳ 2025 - 2030 và xây dựng mới quy hoạch cán bộ, nhiệm kỳ 2030-2035
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+Số 178-NQ/ĐU
+NGHỊ QUYẾT
+
+Kết quả rà soát, bổ sung quy hoạch cán bộ, nhiệm kỳ 2025-2030
+và xây dựng mới quy hoạch cán bộ, nhiệm kỳ 2030-2035
+
+---
+
+- Căn cứ Điều lệ Đảng Cộng sản Việt Nam và các quy định, hướng dẫn thi hành Điều lệ Đảng;
+
+- Căn cứ Quy định số 48-QĐ/TW, ngày 20/12/2021 của Ban Bí thư về chức năng, nhiệm vụ của Đảng bộ, chi bộ cơ sở trong doanh nghiệp nhà nước;
+
+- Căn cứ Quyết định số 550-QĐ/ĐU ngày 30/01/2026 của Đảng ủy Phường Hòa Cường về việc thành lập lại Đảng bộ cơ sở Tổng công ty Điện lực miền Trung và chỉ định tham gia Ban Chấp hành Đảng bộ, Ban Thường vụ Đảng ủy, Bí thư, Phó Bí thư Đảng ủy nhiệm kỳ 2025-2030;
+
+- Căn cứ Quy chế làm việc của Ban Chấp hành Đảng bộ Tổng công ty Điện lực miền Trung khóa XV, nhiệm kỳ 2025-2030;
+
+- Căn cứ kết quả ý kiến của các đồng chí Ủy viên Ban Chấp hành Đảng bộ Tổng công ty sau khi xem xét Tờ trình của các tổ chức đảng trực thuộc về việc rà soát, bổ sung quy hoạch nhiệm kỳ 2025 - 2030 và xây dựng mới quy hoạch nhiệm kỳ 2030 - 2035 đối với cấp ủy và UBKT Đảng ủy các tổ chức Đảng trực thuộc Đảng bộ Tổng công ty,
+BAN CHẤP HÀNH ĐẢNG BỘ
+QUYẾT NGHỊ
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=legal_clause | section=Điều 1 Thống nhất danh sách rà soát, bổ sung quy hoạch nhiệm kỳ 2025 - 2030 và xây dựng mới quy h… | quality=pass | chars=541
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 178-NQ/ĐU - Nghị quyết Kết quả rà soát, bổ sung quy hoạch cán bộ nhiệm kỳ 2025 - 2030 và xây dựng mới quy hoạch cán bộ, nhiệm kỳ 2030-2035
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Điều 1 Thống nhất danh sách rà soát, bổ sung quy hoạch nhiệm kỳ 2025 - 2030 và xây dựng mới quy h…
+Điều 1: Thống nhất danh sách rà soát, bổ sung quy hoạch nhiệm kỳ 2025 - 2030 và xây dựng mới quy hoạch nhiệm kỳ 2030 - 2035 đối với cấp ủy và UBKT Đảng ủy các tổ chức Đảng trực thuộc; cụ thể như phụ lục kèm theo.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=legal_clause | section=Điều 2 Giao Ban Tổ chức Đảng ủy tham mưu cho Đảng ủy Tổng công ty | quality=pass | chars=1032
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 178-NQ/ĐU - Nghị quyết Kết quả rà soát, bổ sung quy hoạch cán bộ nhiệm kỳ 2025 - 2030 và xây dựng mới quy hoạch cán bộ, nhiệm kỳ 2030-2035
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Điều 2 Giao Ban Tổ chức Đảng ủy tham mưu cho Đảng ủy Tổng công ty
+Điều 2: Giao Ban Tổ chức Đảng ủy tham mưu cho Đảng ủy Tổng công ty:
+
+1. Hoàn thiện các thủ tục và báo cáo Ban Thường vụ Đảng ủy Phường Hòa Cường ban hành Kết luận tiêu chuẩn chính trị đối với cán bộ có tên trong danh sách bổ sung quy hoạch cấp ủy, UBKT nhiệm kỳ 2025-2030 và cán bộ được quy hoạch cấp ủy, UBKT nhiệm kỳ 2030-2035.
+
+2. Ban hành Quyết định phê duyệt quy hoạch cấp ủy và UBKT các Đảng ủy trực thuộc.
+
+3. Sau khi có quyết định phê duyệt quy hoạch của Đảng ủy Tổng công ty, cấp ủy các tổ chức Đảng trực thuộc có trách nhiệm định kỳ rà soát, bổ sung quy hoạch cán bộ theo đúng quy định; xây dựng và phối hợp với các cơ quan liên quan thực hiện kế hoạch đào tạo, bồi dưỡng, luân chuyển đối với cán bộ trong danh sách quy hoạch.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=footer_signature | quality=pass | chars=83
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận:
+
+- Các TCĐ trực thuộc,
+
+- Lưu: VT, TCĐU.
+
+T/MĐẢNG УY
+BÍ THƯ
+
+Nguyễn Thanh

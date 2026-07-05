@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    await _ensure_api_log_table_on_startup()
     await _load_ingestion_profiles_on_startup()
     await _load_rag_runtime_config_on_startup()
     await _validate_vector_store_on_startup()
@@ -56,6 +57,24 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             await get_neo4j_client().close()
         except Exception:
             logger.exception("Failed to close Neo4j driver on shutdown.")
+
+async def _ensure_api_log_table_on_startup() -> None:
+    """Tạo bảng ``api_request_logs`` nếu CHƯA có (idempotent, checkfirst) — CHỈ đúng bảng này.
+
+    Cố ý KHÔNG dùng ``alembic upgrade`` (DB chia sẻ có revision không nằm trên branch hiện tại
+    -> upgrade mù dễ hỏng). ``create(checkfirst=True)`` chỉ tạo khi thiếu, không đụng bảng khác.
+    Migration 0016 vẫn có (cho môi trường quản bằng alembic) và có guard "bảng đã tồn tại -> bỏ qua".
+    """
+    from app.db.session import engine
+    from app.models.api_request_log import ApiRequestLog
+
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(ApiRequestLog.__table__.create, checkfirst=True)
+        logger.info("Bảng api_request_logs sẵn sàng (checkfirst).")
+    except Exception:
+        logger.exception("Không tạo được bảng api_request_logs khi startup — API vẫn chạy, log sẽ bị bỏ.")
+
 
 async def _load_ingestion_profiles_on_startup() -> None:
     try:

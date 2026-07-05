@@ -1,0 +1,77 @@
+================================================================================
+id_vb        : 1478645
+ky_hieu      : 2813/KHPC-VTCNTT+KD
+trich_yeu    : Báo cáo kết quả thực hiện đảm bảo ATTT các chương trình tự phát triển có kết nối CSDL CMIS
+noi_ban_hanh : Công ty Cổ phần Điện lực Khánh Hòa
+ngay_vb      : 2026-06-18
+ten_file     : VB-Dam-bao-ATTT-pm-tu-phat-trien-CSDL-CMIS.pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=239
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 2813/KHPC-VTCNTT+KD
+Ngày văn bản: 18/06/2026
+Trích yếu: Báo cáo kết quả thực hiện đảm bảo ATTT các chương trình tự phát triển có kết nối CSDL CMIS
+Nơi ban hành: Công ty Cổ phần Điện lực Khánh Hòa
+Người ký: Nguyễn Đặng Thanh Lợi
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=810
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 2813/KHPC-VTCNTT+KD - Báo cáo kết quả thực hiện đảm bảo ATTT các chương trình tự phát triển có kết nối CSDL CMIS
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty Cổ phần Điện lực Khánh Hòa
+Mục: preamble
+CÔNG TY CỔ PHẦN CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC KHÁNH HÒA Độc lập - Tự do - Hạnh phúc Số: 2813/KHPC-VTCNTT+KD Khánh Hòa, ngày 18 tháng 6 năm 2026
+
+V/v báo cáo kết quả thực hiện đảm bảo ATTT các chương trình tự phát triển có
+
+kết nối CSDL CMIS
+
+Kính gửi: Công ty Công nghệ thông tin Điện lực miền Trung
+
+Thực hiện công văn số 614/IT-VH+KTMVT+ATTT ngày 11/6/2026 của Công ty Công nghệ thông tin Điện lực miền Trung (CPCIT) về việc đảm bảo an toàn thông tin đối với các chương trình tự phát triển có kết nối cơ sở dữ liệu CMIS, Công ty Cổ phần Điện lực Khánh Hòa (KHPC) báo cáo như sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=1. Đối với các yêu cầu về quản lý tài khoản và truy cập CSDL CMIS | quality=pass | chars=531
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 2813/KHPC-VTCNTT+KD - Báo cáo kết quả thực hiện đảm bảo ATTT các chương trình tự phát triển có kết nối CSDL CMIS
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty Cổ phần Điện lực Khánh Hòa
+Mục: 1. Đối với các yêu cầu về quản lý tài khoản và truy cập CSDL CMIS
+1. Đối với các yêu cầu về quản lý tài khoản và truy cập CSDL CMIS
+
+KHPC đã hoàn thành việc rà soát tài khoản CMIS, thực hiện chuyển đổi hình thức truy cập theo hướng dẫn của CPCIT và cung cấp đầy đủ thông tin phục vụ công tác cấp quyền truy cập theo quy định.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=2. Đối với chương trình tự phát triển có kết nối CSDL CMIS | quality=pass | chars=755
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 2813/KHPC-VTCNTT+KD - Báo cáo kết quả thực hiện đảm bảo ATTT các chương trình tự phát triển có kết nối CSDL CMIS
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty Cổ phần Điện lực Khánh Hòa
+Mục: 2. Đối với chương trình tự phát triển có kết nối CSDL CMIS
+2. Đối với chương trình tự phát triển có kết nối CSDL CMIS
+
+Qua kết quả đánh giá ATTT của CPCIT, phần mềm "Hỗ trợ KD&DVKH" còn 01 (một) tồn tại cần khắc phục. KHPC đã xây dựng phương án khắc phục và đang triển khai thực hiện theo kế hoạch nhằm khắc phục tồn tại nêu trên (phương án tại Tờ trình số 142/VTCNTT ngày 21/5/2026 đính kèm).
+
+Kính đề nghị CPCIT tiếp tục phối hợp, hỗ trợ KHPC trong quá trình triển khai, đánh giá ATTT đối với hệ thống sau khi hoàn thành chuyển đổi.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=footer_signature | quality=pass | chars=105
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. TỔNG GIÁM ĐỐC
+
+- Như trên; PHÓ TỔNG GIÁM ĐỐC
+
+- Lưu: VT, VTCNTT, KD.
+
+Nguyễn Đặng Thanh Lợi

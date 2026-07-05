@@ -8,7 +8,7 @@ from sqlalchemy import Integer, String, cast, delete, func, literal_column, or_,
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.chunk_ids import deterministic_chunk_id
+from app.core.chunk_ids import new_chunk_id
 from app.models.chunk import Chunk
 from app.models.document import Document, DocumentFile
 from app.models.document_log import DocumentPipelineLog
@@ -292,25 +292,34 @@ class DocumentRepository:
         chunks: Sequence[ChunkCreate],
     ) -> list[Chunk]:
         document = await self.get_document(document_id)
-        chunk_models = [
-            Chunk(
-                id=deterministic_chunk_id(document_id, chunk.chunk_index),
-                document_id=document_id,
-                chunk_index=chunk.chunk_index,
-                content=chunk.content,
-                token_count=chunk.token_count,
-                chunk_metadata={
-                    **chunk.metadata,
-                    "access": access_payload_for_chunk(
-                        document=document,
-                        chunk_metadata=chunk.metadata,
-                    ) if document is not None else normalize_access_payload(
-                        dict(chunk.metadata.get("access") or {})
-                    ),
-                },
+        chunk_models = []
+        for chunk in chunks:
+            # chunk_id = UUID v7 (time-ordered). Sinh MỘT LẦN ở đây (nguồn PG) rồi ghi lại vào
+            # metadata['chunk_uuid'] để nhánh ES (đọc từ chunk_records, KHÔNG qua PG) dùng CÙNG id
+            # -> chunk_id khớp PG/ES/Qdrant cho join retrieval (uuid7 không tất định nên phải truyền).
+            chunk_uuid = new_chunk_id()
+            try:
+                chunk.metadata["chunk_uuid"] = str(chunk_uuid)
+            except Exception:  # metadata bất biến (hiếm) -> ES fallback deterministic
+                pass
+            chunk_models.append(
+                Chunk(
+                    id=chunk_uuid,
+                    document_id=document_id,
+                    chunk_index=chunk.chunk_index,
+                    content=chunk.content,
+                    token_count=chunk.token_count,
+                    chunk_metadata={
+                        **chunk.metadata,
+                        "access": access_payload_for_chunk(
+                            document=document,
+                            chunk_metadata=chunk.metadata,
+                        ) if document is not None else normalize_access_payload(
+                            dict(chunk.metadata.get("access") or {})
+                        ),
+                    },
+                )
             )
-            for chunk in chunks
-        ]
         self._session.add_all(chunk_models)
         await self._session.flush()
 

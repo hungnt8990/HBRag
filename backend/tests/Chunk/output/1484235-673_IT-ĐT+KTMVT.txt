@@ -1,0 +1,95 @@
+================================================================================
+id_vb        : 1484235
+ky_hieu      : 673/IT-ĐT+KTMVT
+trich_yeu    : V/v mời đối chiếu tài liệu E-HSDT gói thầu SAOLUU2026-01.HH
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-23
+ten_file     : 14 CV mời đối chiếu hồ sơ tài liệu SAOLUU2026 - Cty Cong nghe mien Nam.pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=196
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 673/IT-ĐT+KTMVT
+Ngày văn bản: 23/06/2026
+Trích yếu: V/v mời đối chiếu tài liệu E-HSDT gói thầu SAOLUU2026-01.HH
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Nguyễn Sơn Bình
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1609
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 673/IT-ĐT+KTMVT - V/v mời đối chiếu tài liệu E-HSDT gói thầu SAOLUU2026-01.HH
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 23 tháng 6 năm 2026
+
+Số: 673/IT-ĐT+KTMVT V/v mời đối chiếu tài liệu E-HSDT gói thầu
+
+SAOLUU2026-01.HH
+
+Kính gửi: Công ty TNHH Phát triển Công nghệ miền Nam
+
+Căn cứ kết quả mở thầu qua mạng gói thầu SAOLUU2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật hệ thống Disk Backup, máy chủ Backup, bản quyền phần mềm Backup VM và File thuộc dự án Đầu tư nâng cao năng lực hệ thống sao lưu dữ liệu năm 2026 và Báo cáo đánh giá E-HSDT gói thầu nêu trên của Tổ chuyên gia ngày 23/6/2026.
+
+Công ty Công nghệ thông tin Điện lực miền Trung (CPCIT) xin thông báo Quý Công ty là Nhà thầu được xếp hạng thứ Nhất.
+
+Để có cơ sở xem xét, phê duyệt trúng thầu và ký kết hợp đồng gói thầu nêu trên, CPCIT kính mời Nhà thầu tham gia đối chiếu tài liệu theo quy định của E-HSMT gói thầu nêu trên với những thông tin mà Nhà thầu đã kê khai trong E-HSDT. Kế hoạch cụ thể như sau:
+
+- Thời gian: 14h00 ngày 25/6/2026 (Thứ năm).
+
+- Địa điểm: Công ty Công nghệ thông tin Điện lực miền Trung, số 393 Trưng Nữ Vương, Phường Hòa Cường, Thành phố Đà Nẵng.
+
+Đề nghị quý Nhà thầu chuẩn bị đầy đủ các hồ sơ tài liệu như yêu cầu tại Phụ lục đính kèm.
+
+Lưu ý: Đại diện nhà thầu được cử đối chiếu tài liệu phải có giấy giới thiệu của nhà thầu hoặc giấy ủy quyền của người đại diện theo pháp luật của nhà thầu.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=114
+────────────────────────────────────────────────────────────────────────────────
+KT. GIÁM ĐỐC Nơi nhận:
+
+- Như trên; PHÓ GIÁM ĐỐC
+
+- TCG;
+
+- KTMVT, TH (Phối hợp);
+
+- Lưu: VT, ĐT.
+
+Nguyễn Sơn Bình
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=Phụ lục — DANH MỤC HỒ SƠ TÀI LIỆU | table=Phụ lục — DANH MỤC HỒ SƠ TÀI LIỆU | quality=pass | chars=652
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 673/IT-ĐT+KTMVT - V/v mời đối chiếu tài liệu E-HSDT gói thầu SAOLUU2026-01.HH
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: Phụ lục — DANH MỤC HỒ SƠ TÀI LIỆU
+| TT | Danh mục hồ sơ | Ghi chú |
+| --- | --- | --- |
+| 1 | Giấy phép kinh doanh, các giấy tờ cấp phép hoạt động hợp lệ | Bản sao y công chứng |
+| 2 | Bảo lãnh dự thầu | Bản gốc |
+| 3 | Các tài liệu chứng minh tính hợp lệ, năng lực và kinh nghiệm của nhà thầu theo quy định của E-HSMT | Bản sao y công chứng |
+| 4 | Các tài liệu cam kết của nhà thầu, tài liệu kỹ thuật và các hồ sơ tài liệu khác liên quan theo quy định E-HSMT | Bản gốc/Bản sao y |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_body | section=Phụ lục | artifact=appendix | quality=pass | chars=209
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 673/IT-ĐT+KTMVT - V/v mời đối chiếu tài liệu E-HSDT gói thầu SAOLUU2026-01.HH
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: Phụ lục
+Phụ lục
+
+DANH MỤC HỒ SƠ TÀI LIỆU

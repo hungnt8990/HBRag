@@ -1,0 +1,58 @@
+================================================================================
+id_vb        : 1478523
+ky_hieu      : 3724/EVNCPC-TCNS
+trich_yeu    : Giải quyết lao động nghỉ trước tuổi theo Quy định đãi ngộ 
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-18
+ten_file     : Vb gui QNPC_NTT.pdf
+TỔNG SỐ CHUNK: 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=191
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3724/EVNCPC-TCNS
+Ngày văn bản: 18/06/2026
+Trích yếu: Giải quyết lao động nghỉ trước tuổi theo Quy định đãi ngộ 
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Ngô Tấn Cư
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1365
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3724/EVNCPC-TCNS - Giải quyết lao động nghỉ trước tuổi theo Quy định đãi ngộ
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM TỔNG CÔNG TY Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 18 tháng 6 năm 2026
+
+Số: /EVNCPC-TCNS V/v giải quyết lao động nghỉ trước tuổi
+
+theo Quy định đãi ngộ
+
+Kính gửi: Công ty Điện lực Quảng Ngãi
+
+EVNCPC nhận được văn bản số 6008/QNPC-TCNS ngày 14/6/2026 của Công ty Điện lực Quảng Ngãi về việc giải quyết chế độ cho người lao động xin nghỉ trước tuổi theo Quy định đãi ngộ của EVNCPC - Năm 2026 (lần 4);
+
+Qua xem xét, EVNCPC có ý kiến như sau:
+
+Ngày 16/4/2026, EVNCPC đã ban hành văn bản số 2268/EVNCPC-TCNS về việc điều chỉnh thời hạn gửi hồ sơ giải quyết chế độ đãi ngộ cho người lao động nghỉ trước tuổi. Theo đó, EVNCPC yêu cầu các đơn vị hoàn thiện hồ sơ và gửi về EVNCPC trước ngày 01/5/2026 để xem xét, phê duyệt.
+
+Hiện nay, EVNCPC đã phân bổ chỉ tiêu tuyển dụng thay thế lao động nghỉ trước tuổi cho các đơn vị để kịp thời tổ chức tuyển dụng và hoàn thành trong năm
+
+2026. Vì vậy, đối với hồ sơ đề nghị giải quyết chế độ đãi ngộ gửi về EVNCPC sau ngày 01/5/2026, EVNCPC sẽ không xem xét giải quyết trong năm 2026. Các hồ sơ này sẽ được xem xét, giải quyết trong năm 2027 nếu Quy định đãi ngộ vẫn còn hiệu lực./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=95
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: TỔNG GIÁM ĐỐC Như trên;
+
+Các đơn vị thành viên (để biết);
+
+Lưu: VT, TCNS.
+
+Ngô Tấn Cư

@@ -1,0 +1,82 @@
+================================================================================
+id_vb        : 1481407
+ky_hieu      : 665/IT-TH
+trich_yeu    : Đăng ký học viên tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-19
+ten_file     : Đăng ký đào tạo-Truyenthong.pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=217
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 665/IT-TH
+Ngày văn bản: 19/06/2026
+Trích yếu: Đăng ký học viên tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Trần Khắc Tuấn
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=895
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 665/IT-TH - Đăng ký học viên tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+TỔNG CÔNG TY CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+Số: 665/IT-TH Đà Nẵng, ngày 19 tháng 6 năm 2026 V/v đăng ký học viên tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+
+Kính gửi: Tổng công ty Điện lực miền Trung
+
+Thực hiện Văn bản số 3697/EVNCPC-TCNS ngày 17/6/2026 của Tổng công ty Điện lực miền Trung về việc tổ chức đào tạo ứng dụng công nghệ mới vào công tác truyền thông.
+
+Công ty Công nghệ thông tin Điện lực miền Trung (CPCIT) đăng ký học viên tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông như Phụ lục kèm theo.
+
+CPCIT kính báo cáo Tổng công ty.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=78
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: GIÁM ĐỐC
+
+- Như trên;
+
+- Phòng PTUD;
+
+- Lưu: VT, TH.
+
+Trần Khắc Tuấn
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=DANH SÁCH ĐĂNG KÝ THAM GIA KHÓA ĐÀO TẠO | table=DANH SÁCH ĐĂNG KÝ THAM GIA KHÓA ĐÀO TẠO | quality=pass | chars=582
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 665/IT-TH - Đăng ký học viên tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: DANH SÁCH ĐĂNG KÝ THAM GIA KHÓA ĐÀO TẠO
+| TT | Họ và tên | Năm sinh | Chức danh | Đơn vị Phòng/Ban | Đơn vị Đơn vị | Ghi chú |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | Phan Thị Khánh Ly | 1996 | Chuyên viên | Phòng Tổng hợp | CPCIT | |
+| 2 | Lê Thanh Trường | 1983 | Cán sự | Phòng Tổng hợp | CPCIT | |
+| 3 | Hà Thái Văn | 1990 | Chuyên viên | Phòng Phát triển ứng dụng | CPCIT | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_body | section=Phụ lục | artifact=appendix | quality=pass | chars=297
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 665/IT-TH - Đăng ký học viên tham gia khóa đào tạo ứng dụng công nghệ mới vào công tác truyền thông
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: Phụ lục
+Phụ lục
+
+DANH SÁCH ĐĂNG KÝ THAM GIA KHÓA ĐÀO TẠO
+
+ỨNG DỤNG CÔNG NGHỆ MỚI VÀO CÔNG TÁC TRUYỀN THÔNG

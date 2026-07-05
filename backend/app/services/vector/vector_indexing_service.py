@@ -312,8 +312,10 @@ class VectorIndexingService:
     ) -> Any:
         parameters = inspect.signature(self._vector_store.build_point).parameters
         if "point_id" in parameters:
+            # point_id = chunk_id (uuid7 = chunks.id) để "id" Qdrant TRÙNG chunk_id, sắp theo thời
+            # gian tạo. Fallback stable_point_id (hash nội dung) cho chunk không có database_chunk_id.
             return self._vector_store.build_point(
-                point_id=stable_point_id(chunk),
+                point_id=chunk.database_chunk_id or stable_point_id(chunk),
                 vector=dense_vector,
                 sparse_vector=sparse_vector,
                 payload=payload,

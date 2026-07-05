@@ -1,0 +1,56 @@
+================================================================================
+id_vb        : 1488056
+ky_hieu      : 677/IT-VH
+trich_yeu    : V/v rà soát và báo cáo lại danh sách tài khoản truy cập CSDL, API khai thác dữ liệu.
+
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-25
+ten_file     : Bao cao hoan thanh van ban 3666 EVNCPC-VTCNTT  .pdf
+TỔNG SỐ CHUNK: 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=216
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 677/IT-VH
+Ngày văn bản: 25/06/2026
+Trích yếu: V/v rà soát và báo cáo lại danh sách tài khoản truy cập CSDL, API khai thác dữ liệu.
+
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Nguyễn Sơn Bình
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=998
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 677/IT-VH - V/v rà soát và báo cáo lại danh sách tài khoản truy cập CSDL, API khai thác dữ liệu.
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 25 tháng 6 năm 2026 Số: 677/IT-VH V/v rà soát và báo cáo lại danh sách tài khoản truy cập CSDL, API khai thác dữ liệu.
+
+Kính gửi: Tổng công ty Điện lực miền Trung (EVNCPC)
+
+Thực hiện chỉ đạo của EVNCPC tại văn bản số 3666/EVNCPC-VTCNTT ngày 16/06/2025 về việc rà soát và báo cáo lại danh sách tài khoản truy cập CSDL, API khai thác dữ liệu.
+
+Công ty Công nghệ thông tin Điện lực miền Trung (CPCIT) báo cáo kết quả thực hiện như sau:
+
+- Hoàn thành rà soát, cập nhật danh sách các tài khoản truy cập trực tiếp đến CSDL các PMDC, danh sách API/WS chia sẻ, khai thác dữ liệu (theo phụ lục đính kèm)
+
+CPCIT kính báo cáo Tổng công ty biết và chỉ đạo thực hiện./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=104
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. GIÁM ĐỐC
+
+- Như trên; PHÓ GIÁM ĐỐC
+
+- Giám đốc (báo cáo);
+
+- Lưu: VT, VH.
+
+Nguyễn Sơn Bình

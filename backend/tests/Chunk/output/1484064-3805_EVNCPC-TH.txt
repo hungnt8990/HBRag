@@ -1,0 +1,83 @@
+================================================================================
+id_vb        : 1484064
+ky_hieu      : 3805/EVNCPC-TH
+trich_yeu    : V/v triển khai công tác QLRR theo quy trình mới
+
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-23
+ten_file     : VB-Trien-Khai-QLRR-Q-Hc.pdf
+TỔNG SỐ CHUNK: 4
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=186
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3805/EVNCPC-TH
+Ngày văn bản: 23/06/2026
+Trích yếu: V/v triển khai công tác QLRR theo quy trình mới
+
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Lê Thị Phương Cẩm
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1000
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3805/EVNCPC-TH - V/v triển khai công tác QLRR theo quy trình mới
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+TỔNG CÔNG TY Độc lập - Tự do - Hạnh phúc
+
+_____________________________________________ ĐIỆN LỰC MIỀN TRUNG
+
+________________________________
+
+Số: 3805/EVNCPC-TH Đà Nẵng, ngày 23 tháng 6 năm 2026 V/v triển khai công tác QLRR theo quy trình mới
+
+Kính gửi:
+
+- Các đơn vị trực thuộc;
+
+- Văn phòng và các Ban Tổng công ty;
+
+- Người đại diện phần vốn của EVNCPC tại CTC, CTLK.
+
+Ngày 16/6/2026, EVNCPC đã ban hành Quy trình QLRR trong EVNCPC kèm theo Quyết định số 349/NQ-HĐTV (QĐ349) thay thế cho Quyết định số 249/QĐ-HĐTV ngày 16/4/2024.
+
+Để triển khai hiệu quả công tác QLRR theo quy trình mới, Tổng công ty đề nghị các Đơn vị trực thuộc, Văn phòng và các Ban Tổng công ty, Người đại diện phần vốn của EVNCPC tại các công ty con, công ty liên kết triển khai các nội dung sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=1. Tổ chức phổ biến, quán triệt các nội dung về công tác QLRR theo quy trình mới được ban hành tại QĐ349 nêu trên; | quality=pass | chars=1705
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3805/EVNCPC-TH - V/v triển khai công tác QLRR theo quy trình mới
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 1. Tổ chức phổ biến, quán triệt các nội dung về công tác QLRR theo quy trình mới được ban hành tại QĐ349 nêu trên;
+1. Tổ chức phổ biến, quán triệt các nội dung về công tác QLRR theo quy trình mới được ban hành tại QĐ349 nêu trên;
+
+2. Thực hiện việc rà soát, cập nhật lại các quy trình, nghiệp vụ và lưu đồ công việc thuộc phạm vi quản lý; trên cơ sở đó cập nhật lại việc nhận diện các rủi ro cấp quy trình (RRQT), xác định nguyên nhân, mức độ ảnh hưởng và thiết lập chốt kiểm soát phù hợp. Trong năm 2026 cần hoàn thành việc cập nhật và hoàn thiện hồ sơ RRQT và biện pháp kiểm soát đối với các quy trình, nghiệp vụ đã phát sinh sự kiện rủi ro (đặc biệt là các rủi ro đã được ghi nhận qua các cuộc kiểm tra, giám sát của cơ quan có thẩm quyền, EVN, EVNCPC và các đoàn kiểm tra nội bộ).
+
+3. Thường xuyên theo dõi, ghi nhận và phân tích các sự kiện rủi ro phát sinh để đánh giá tính hiệu quả của các chốt kiểm soát và bổ sung các biện pháp ứng phó, phòng ngừa, khắc phục kịp thời.
+
+4. Trên cơ sở kết quả rà soát các RRQT, mỗi Đơn vị trực thuộc, Văn phòng và các Ban Tổng công ty đề xuất ít nhất 04 RRTY dựa trên 4 nhóm (chiến lược, tài chính, tuân thủ, hoạt động) gửi về EVNCPC trước ngày 30/8/2026 để xây dựng danh mục RRTY của EVNCPC.
+
+5. Nghiêm túc thực hiện chế độ báo cáo công tác QLRR định kỳ 06 tháng và hằng năm theo quy định tại QĐ349; đồng thời cập nhật đầy đủ hồ sơ RRQT và các thông tin liên quan trên trang web https://qtrr.cpc.vn/ của Tổng công ty./.
+
+THÀNH VIÊN Nơi nhận: HỘI ĐỒNG THÀNH VIÊN EVNCPC Như trên;
+
+HĐTV, TGĐ, KSVCT;
+
+Ban TGĐ;
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=footer_signature | quality=pass | chars=31
+────────────────────────────────────────────────────────────────────────────────
+Lưu: VT, TH.
+
+Lê Thị Phương Cẩm

@@ -184,12 +184,13 @@ def test_vector_index_endpoint_stores_one_chunk_per_qdrant_point() -> None:
     assert response.json()["indexed_chunk_count"] == 1
     assert vector_store.deleted_documents == [str(DOCUMENT_ID)]
     point = vector_store.upserted_points[0]
-    assert point.id != str(CHUNK_ID)  # stable UUID5 point id is separate from DB chunk id
+    assert point.id == str(CHUNK_ID)  # point id = chunk_id (uuid7) — thống nhất 1 định danh
     assert len(point.vector["dense"]) == 384
-    assert point.vector["sparse"] is not None
+    # Sparse TẮT mặc định (ES = BM25 lexical, Qdrant = dense-only) -> point không có sparse.
+    assert point.vector["sparse"] is None
     assert point.payload["chunk_id"] == str(CHUNK_ID)
     assert point.payload["semantic_chunk_id"] == "chunk_002"
-    assert point.payload["text"].startswith("1.1. GIS 110kV")
+    assert point.payload["chunk_text"].startswith("1.1. GIS 110kV")
     assert point.payload["unit"] == "CPCIT"
     assert point.payload["pages"] == [1]
     assert point.payload["source_type"] == "doffice_elasticsearch"
@@ -245,7 +246,7 @@ def test_vector_index_uses_enriched_content_for_embedding_payload_keeps_original
     assert "LLM enrichment" in provider.embedded_texts[0]
     assert "Tóm tắt: Chunk nói về hiệu chỉnh PMISToGIS" in provider.embedded_texts[0]
     point = vector_store.upserted_points[0]
-    assert point.payload["text"] == chunk.content
+    assert point.payload["chunk_text"] == chunk.content
     assert point.payload["enriched"] is True
     assert point.payload["enrichment_summary"] == "Chunk nói về hiệu chỉnh PMISToGIS."
     assert point.payload["enrichment_keywords"] == ["PMISToGIS", "GIS"]
@@ -337,7 +338,7 @@ def test_vector_index_can_disable_enriched_content_for_embedding() -> None:
     assert "LLM enrichment" not in provider.embedded_texts[0]
     assert "enriched-only" not in provider.embedded_texts[0]
     point = vector_store.upserted_points[0]
-    assert point.payload["text"] == chunk.content
+    assert point.payload["chunk_text"] == chunk.content
     assert point.payload["enriched"] is True
     assert point.payload["enrichment_keywords"] == ["enriched-only"]
 
@@ -373,7 +374,7 @@ def test_vector_index_filters_administrative_footer() -> None:
     assert response.status_code == 200
     assert response.json()["indexed_chunk_count"] == 1
     assert len(vector_store.upserted_points) == 1
-    assert "Nơi nhận" not in vector_store.upserted_points[0].payload["text"]
+    assert "Nơi nhận" not in vector_store.upserted_points[0].payload["chunk_text"]
 
 
 def test_vector_index_is_idempotent_for_same_chunk_content() -> None:
@@ -457,7 +458,8 @@ def test_vector_search_endpoint_returns_text_source_metadata() -> None:
     assert result["content_preview"].startswith("This is a long chunk")
     assert result["metadata"]["page_start"] == 1
     assert len(vector_store.searches[0]["query_vector"]) == 384
-    assert vector_store.searches[0]["sparse_query"] is not None
+    # Sparse TẮT mặc định -> query Qdrant dense-only (lexical do ES BM25 đảm nhiệm).
+    assert vector_store.searches[0]["sparse_query"] is None
 
 
 def test_hashing_sparse_embedding_preserves_technical_identifiers() -> None:

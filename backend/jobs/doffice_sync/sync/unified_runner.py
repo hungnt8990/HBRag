@@ -19,6 +19,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass, field
+from types import SimpleNamespace
 from typing import Any
 
 from app.db.session import AsyncSessionLocal
@@ -101,6 +102,20 @@ def _acl_lists(quyen: Any) -> dict[str, Any]:
         "phong_ban_list": getattr(quyen, "phong_ban_list", None),
         "ca_nhan_list": getattr(quyen, "ca_nhan_list", None),
     }
+
+
+def _quyen_from_record(rec: VanbanRecord) -> Any | None:
+    """Dựng đối tượng ACL từ chính record ``doffice_vanban`` (API mới trả ACL thẳng trong
+    ``_source``). Trả None nếu record chưa gán quyền -> caller fallback sang index quyền riêng
+    ``doffice_vanban_quyen``. Có cùng 3 thuộc tính như ``QuyenRecord`` nên ``_has_acl``/
+    ``_acl_lists`` dùng lại được không cần sửa."""
+    if not getattr(rec, "has_acl", False):
+        return None
+    return SimpleNamespace(
+        don_vi_list=rec.don_vi_list,
+        phong_ban_list=rec.phong_ban_list,
+        ca_nhan_list=rec.ca_nhan_list,
+    )
 
 
 class UnifiedJobRunner:
@@ -516,9 +531,13 @@ class UnifiedJobRunner:
         ``_retry_pending_acl``)."""
         if not records:
             return
-        quyen_map = await self._quyen.get_batch([r.id_vb for r in records])
+        # API mới trả ACL THẲNG trong doffice_vanban -> đọc từ record trước. Chỉ fetch index
+        # quyền riêng (doffice_vanban_quyen) cho các VB CHƯA có ACL trong record (fallback /
+        # tương thích ngược). Nếu tất cả record đã có ACL -> KHÔNG gọi quyen (tiết kiệm 1 query).
+        need_quyen = [r.id_vb for r in records if not getattr(r, "has_acl", False)]
+        quyen_map = await self._quyen.get_batch(need_quyen) if need_quyen else {}
         for rec in records:
-            quyen = quyen_map.get(rec.id_vb)
+            quyen = _quyen_from_record(rec) or quyen_map.get(rec.id_vb)
             if self._has_acl(quyen):
                 self._pending_acl_ids.discard(rec.id_vb)  # nếu trước đó pending, giờ đã có ACL
                 await q_pg.put((rec, quyen))

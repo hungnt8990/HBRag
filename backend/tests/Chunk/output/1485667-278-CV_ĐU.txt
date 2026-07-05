@@ -1,0 +1,107 @@
+================================================================================
+id_vb        : 1485667
+ky_hieu      : 278-CV/ĐU
+trich_yeu    : Về việc quán triệt các Chuyên đề của Đảng ủy EVN
+
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-24
+ten_file     : Công văn quán triệt và triển khai Sinh hoạt chuyên đề T6.pdf
+TỔNG SỐ CHUNK: 6
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=177
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 278-CV/ĐU
+Ngày văn bản: 24/06/2026
+Trích yếu: Về việc quán triệt các Chuyên đề của Đảng ủy EVN
+
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Nguyễn Thanh
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=574
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 278-CV/ĐU - Về việc quán triệt các Chuyên đề của Đảng ủy EVN
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+ĐẢNG BỘ PHƯỜNG HÒA CƯỜNG ĐẢNG CỘNG SẢN VIỆT NAM ĐẢNG ỦY TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG Đà Nẵng, ngày tháng 6 năm 2026
+
+Số: CV/ĐU V/v quán triệt và triển khai các Chuyên đề của Đảng ủy EVN
+
+Kính gửi: Các tổ chức đảng trực thuộc
+
+Nhằm kịp thời quán triệt và tổ chức triển khai thực hiện có hiệu quả các Chuyên đề của Đảng ủy EVN trong tháng 6 và tháng 7 năm 2026, Đảng ủy Tổng công ty Điện lực miền Trung đề nghị:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=1. Cấp ủy các tổ chức đảng trực thuộc | quality=pass | chars=928
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 278-CV/ĐU - Về việc quán triệt các Chuyên đề của Đảng ủy EVN
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 1. Cấp ủy các tổ chức đảng trực thuộc
+1. Cấp ủy các tổ chức đảng trực thuộc
+
+Tổ chức phổ biến, quán triệt, tuyên truyền sâu rộng nội dung các Chuyên đề trong tháng 6, tháng 7/2026 và triển khai thực hiện các Chuyên đề bằng hình thức phù hợp, bao gồm các Chuyên đề sau:
+
+(i) Chuyên đề 7: Đảm bảo việc làm, đời sống, thu nhập của người lao động; đặc biệt là người lao động các ban quản lý dự án, khối dịch vụ, trường học;
+
+(ii) Chuyên đề 11: Phát triển, ứng dụng mạnh mẽ khoa học công nghệ, đổi mới sáng tạo và chuyển đổi số toàn diện theo hướng chuyển dịch chuyển đổi xanh, bền vững;
+
+(iii) Chuyên đề 12: Đảm bảo các chỉ tiêu kinh tế, kỹ thuật, độ tin cậy cung cấp điện, chỉ số tiếp cận điện năng nằm trong tốp 3 các nước ASEAN.
+
+(Nội dung 03 Chuyên đề đính kèm theo Công văn).
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=2. Đội ngũ tuyên truyền viên cơ sở của Đảng ủy Tổng công ty | quality=pass | chars=571
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 278-CV/ĐU - Về việc quán triệt các Chuyên đề của Đảng ủy EVN
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 2. Đội ngũ tuyên truyền viên cơ sở của Đảng ủy Tổng công ty
+2. Đội ngũ tuyên truyền viên cơ sở của Đảng ủy Tổng công ty
+
+Phát huy vai trò đội ngũ tuyên truyền viên cơ sở của Đảng ủy Tổng công ty, tổ chức tuyên truyền bằng các hình thức phù hợp, thiết thực như: sinh hoạt chi bộ, sinh hoạt chuyên đề, tuyên truyền miệng; đồng thời tăng cường tuyên truyền trên trang thông tin điện tử, website, bản tin nội bộ của đơn vị.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_section | section=3. Văn phòng Tổng công ty | quality=pass | chars=440
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 278-CV/ĐU - Về việc quán triệt các Chuyên đề của Đảng ủy EVN
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 3. Văn phòng Tổng công ty
+3. Văn phòng Tổng công ty
+
+Đăng tải lên trang thông tin điện tử Tổng công ty các Chuyên đề nêu trên để tuyên truyền sâu rộng trong toàn Tổng công ty Điện lực miền Trung.
+
+Đảng ủy Tổng công ty đề nghị các tổ chức đảng trực thuộc nghiêm túc triển khai thực hiện./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=footer_signature | quality=pass | chars=276
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: T/MĐẢNG ỦY
+
+- Như trên, BÍ THƯ
+
+- Đảng ủy P. Hòa Cường (để b/c),
+
+- Các đ/c UVBCH Đảng bộ TCT,
+
+- Cấp ủy các đơn vị thành viên EVNCPC,
+
+- Các tổ chức CT-XH TCT,
+
+- Các Ban TMGV của ĐU TCT,
+
+- Đội ngũ TTVCS của ĐU TCT,
+
+- Văn phòng TCT,
+
+Nguyễn Thanh - Lưu: VT, TGĐU.

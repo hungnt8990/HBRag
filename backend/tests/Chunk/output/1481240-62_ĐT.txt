@@ -1,0 +1,93 @@
+================================================================================
+id_vb        : 1481240
+ky_hieu      : 62/ĐT
+trich_yeu    : V/v đề nghị thẩm định pháp lý Dự thảo hợp đồng gói thầu 06.PTV: Cung cấp dịch vụ bản đồ nền
+noi_ban_hanh : ĐT
+ngay_vb      : 2026-06-19
+ten_file     : 34. PHONG DT DE-NGHI-THAM-DINH-DU-THAO-HOP-DONG-Bandonen 2026.pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=189
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 62/ĐT
+Ngày văn bản: 19/06/2026
+Trích yếu: V/v đề nghị thẩm định pháp lý Dự thảo hợp đồng gói thầu 06.PTV: Cung cấp dịch vụ bản đồ nền
+Nơi ban hành: ĐT
+Người ký: Nguyễn Hữu Giang
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1008
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 62/ĐT - V/v đề nghị thẩm định pháp lý Dự thảo hợp đồng gói thầu 06.PTV: Cung cấp dịch vụ bản đồ nền
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: ĐT
+CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM CÔNG TY CÔNG NGHỆ THÔNG TIN
+
+ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc PHÒNG QUẢN LÝ ĐẦU TƯ
+
+Đà Nẵng, ngày 19 tháng 6 năm 2026 Số: 62/ĐT V/v đề nghị thẩm định pháp lý Dự thảo hợp đồng gói thầu 06.PTV: Cung cấp dịch
+
+vụ bản đồ nền
+
+Kính gửi: Phòng Tổng hợp
+
+Căn cứ Quy định thẩm định về mặt pháp lý Dự thảo hợp đồng trong Tổng công ty Điện lực miền Trung (EVNCPC) ban hành kèm theo Quyết định số 4870/QĐ-EVNCPC ngày 14/7/2023;
+
+Phòng Quản lý đầu tư kính gửi đến phòng Tổng hợp Dự thảo hợp đồng Gói thầu số 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình Cung cấp dịch vụ bản đồ nền.
+
+Đề nghị phòng Tổng hợp thẩm định về mặt pháp lý Dự thảo hợp đồng trên và gửi ý kiến thẩm định về phòng Quản lý đầu tư trước ngày 22/6/2026.
+
+Tài liệu đính kèm văn bản này như Phụ lục kèm theo.
+
+Trân trọng./.
+
+TRƯỞNG PHÒNG
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=52
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận:
+
+- Như trên;
+
+- Lưu: ĐT.
+
+Nguyễn Hữu Giang
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=Phụ lục — HỒ SƠ ĐỀ NGHỊ THẨM ĐỊNH DỰ THẢO HỢP ĐỒNG THÔNG QUA ĐẤU THẦU Gói thầu số 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình Cung cấp dịch vụ bản đồ nền | table=Phụ lục — HỒ SƠ ĐỀ NGHỊ THẨM ĐỊNH DỰ THẢO HỢP ĐỒNG THÔNG QUA ĐẤU THẦU Gói thầu số 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình Cung cấp dịch vụ bản đồ nền | quality=pass | chars=1573
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 62/ĐT - V/v đề nghị thẩm định pháp lý Dự thảo hợp đồng gói thầu 06.PTV: Cung cấp dịch vụ bản đồ nền
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: ĐT
+Bảng: Phụ lục — HỒ SƠ ĐỀ NGHỊ THẨM ĐỊNH DỰ THẢO HỢP ĐỒNG THÔNG QUA ĐẤU THẦU Gói thầu số 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình Cung cấp dịch vụ bản đồ nền
+| Stt | TÀI LIỆU YÊU CẦU | TÀI LIỆU THUỘC GÓI THẦU |
+| --- | --- | --- |
+| 1. | Văn bản đề nghị thẩm định dự thảo hợp đ ồng được lập theo biểu EVNCPC-PC/QĐ.84*B.01 | VB đề nghị của phòng ĐT (như trên) |
+| 2. | Bản sao Giấy chứng nhận đăng ký d oanh nghiệp hoặc tài liệu khác về tư cách chủ thể của đối tác | 1. Bản sao Giấy chứng nhận đăng ký doanh nghiệp của Phòng Đăng ký kinh doanh thuộc Phòng đăng ký kinh doanh thuộc Sở Tài chính Thành phố Hồ Chí Minh cấp: - Mã số doanh nghiệp: 315295332; Đăng ký lần đầu ngày 27/9/2018; đăng ký thay đổi lần thứ 2 ngày 17/9/2025. - Tên công ty: công ty TNHH Giải pháp Công nghệ Trường Thịnh Phát. - Người đại diện theo pháp luật của công ty: Vũ Thị Thu Trang. |
+| 3. | Dự thảo hợp đồng | File kèm theo |
+| 4. | Quyết định phê duyệt dự toán chi phí và kế hoạch lựa chọn nhà thầu | Quyết định số 413/QĐ-IT ngày 25/4/2026 của CPCIT |
+| 5. | Quyết định phê duyệt kết quả lựa chọn nhà thầu | Quyết định số 660/QĐ-IT ngày 18/06/2026 của CPCIT |
+| 6. | Biên bản thương thảo hợp đồng | Không có |
+| 7. | Bảng tổng hợp, tiếp thu, giải trình các ý kiến góp ý và văn bản góp ý của các bộ phận, đơn vị, cá nhân có liên quan (nếu có) | Không có |
+| 8. | Các tài liệu khác có liên quan kèm theo (nếu thấy cần thiết). | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_body | section=Phụ lục | artifact=appendix | quality=pass | chars=333
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 62/ĐT - V/v đề nghị thẩm định pháp lý Dự thảo hợp đồng gói thầu 06.PTV: Cung cấp dịch vụ bản đồ nền
+Ngày ban hành: 19/06/2026
+Cơ quan ban hành: ĐT
+Mục: Phụ lục
+Phụ lục
+
+HỒ SƠ ĐỀ NGHỊ THẨM ĐỊNH
+
+DỰ THẢO HỢP ĐỒNG THÔNG QUA ĐẤU THẦU Gói thầu số 06.PTV: Cung cấp dịch vụ bản đồ nền thuộc Chương trình Cung cấp dịch vụ bản đồ nền

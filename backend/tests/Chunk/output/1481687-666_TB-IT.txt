@@ -1,0 +1,72 @@
+================================================================================
+id_vb        : 1481687
+ky_hieu      : 666/TB-IT
+trich_yeu    : Khởi công gói thầu FIREWALL110.2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật thiết bị tường lửa cho các TBA 110kV và NMTĐ tại các Đơn vị thành viên 
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-20
+ten_file     : Thong bao khoi cong goi thau Firewall-OT.pdf
+TỔNG SỐ CHUNK: 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=283
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 666/TB-IT
+Ngày văn bản: 20/06/2026
+Trích yếu: Khởi công gói thầu FIREWALL110.2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật thiết bị tường lửa cho các TBA 110kV và NMTĐ tại các Đơn vị thành viên 
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Nguyễn Sơn Bình
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1642
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 666/TB-IT - Khởi công gói thầu FIREWALL110.2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật thiết bị tường lửa cho các TBA 110kV và NMTĐ tại các Đơn vị thành viên
+Ngày ban hành: 20/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+TỔNG CÔNG TY CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 20 tháng 6 năm 2026 Số: 666/TB-IT
+
+THÔNG BÁO
+
+Khởi công gói thầu FIREWALL110.2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật thiết bị tường lửa cho các TBA 110kV
+
+và NMTĐ tại các Đơn vị thành viên
+
+Dự án Đầu tư thiết bị tường lửa cho các TBA 110kV và NMTĐ
+
+tại các Đơn vị thành viên
+
+Căn cứ Hợp đồng số HD2600138397_2606121609 ký ngày 19/6/2026 giữa Công ty Công nghệ thông tin Điện lực miền Trung - Tổng công ty Điện lực miền Trung và Công ty TNHH Startech Solutions Việt Nam để thực hiện gói thầu FIREWALL110.2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật thiết bị tường lửa cho các TBA 110kV và NMTĐ tại các Đơn vị thành viên thuộc dự án Đầu tư thiết bị tường lửa cho các TBA 110kV và NMTĐ tại các Đơn vị thành viên;
+
+Công ty Công nghệ thông tin Điện lực miền Trung thông báo khởi công gói thầu thuộc dự án nêu trên với các nội dung như sau:
+
+- Thời gian giao hàng và thực hiện dịch vụ kỹ thuật: không quá 18 tuần kể từ ngày Hợp đồng có hiệu lực.
+
+- Ngày khởi công: Ngày 19/6/2026.
+
+- Ngày hoàn thành dự kiến: Ngày 23/10/2026.
+
+Kính đề nghị Công ty TNHH Startech Solutions Việt Nam căn cứ các điều khoản và các phụ lục kèm theo Hợp đồng để tổ chức triển khai thực hiện đảm bảo chất lượng, tiến độ của gói thầu.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=168
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. GIÁM ĐỐC
+
+- Công ty TNHH Startech Solutions PHÓ GIÁM ĐỐC Việt Nam;
+
+- Giám đốc CPCIT (báo cáo);
+
+- Ban QLDA;
+
+- TH, ATTT;
+
+- Lưu: VT, ĐT.
+
+Nguyễn Sơn Bình

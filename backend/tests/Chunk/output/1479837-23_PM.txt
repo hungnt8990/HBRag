@@ -1,0 +1,83 @@
+================================================================================
+id_vb        : 1479837
+ky_hieu      : 23/PM
+trich_yeu    : GIẤY ĐỀ NGHỊ CẤP VẬT TƯ, SẢN PHẨM
+noi_ban_hanh : PM
+ngay_vb      : 2026-06-18
+ten_file     : Giay-De-Nghi-Cap-Vat-Tu-pPM-2026-AI.pdf
+TỔNG SỐ CHUNK: 4
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=130
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 23/PM
+Ngày văn bản: 18/06/2026
+Trích yếu: GIẤY ĐỀ NGHỊ CẤP VẬT TƯ, SẢN PHẨM
+Nơi ban hành: PM
+Người ký: Nguyễn Sơn Bình
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=740
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 23/PM - GIẤY ĐỀ NGHỊ CẤP VẬT TƯ, SẢN PHẨM
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: PM
+CÔNG TY CÔNG NGHỆ THÔNG TIN CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc PHÒNG PHẦN MỀM
+
+Đà Nẵng, ngày 18 tháng 6 năm 2026
+
+Số: 23/PM
+
+GIẤY ĐỀ NGHỊ CẤP VẬT TƯ, SẢN PHẨM
+
+Kính gửi: Phó Giám đốc Công ty CNTT Điện lực miền Trung
+
+- Bộ phận đề nghị: Phòng Phần mềm.
+
+- Căn cứ yêu cầu: Phục vụ công tác SXKD của Công ty.
+
+- Kính đề nghị Phó Giám đốc Công ty duyệt cho bộ phận chúng tôi loại vật tư/sản phẩm như sau:
+
+Tổng chi phí dự kiến: 29.407.455 đồng (Bằng chữ: Hai mươi chín triệu, bốn trăm linh bảy nghìn, bốn trăm năm mươi lăm đồng).
+
+Phòng Phần mềm kính trình Phó Giám đốc Công ty xem xét phê duyệt./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=1020
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 23/PM - GIẤY ĐỀ NGHỊ CẤP VẬT TƯ, SẢN PHẨM
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: PM
+Bảng: Bảng DOffice 1
+| TT | T | Tên vật tư/sản phẩm | t | Đơn vị tính | Số lượng | Cấu hình dự kiến | Đơn giá dự kiến (đã bao gồm VAT (đồng) | Mục đích sử dụng |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | Dịch vụ AI hỗ trợ lập trình | Gói | 01 | Hỗ trợ kết nối 03 tháng đến các dịch vụ hỗ trợ lập trình cho 05 tài khoản. (05 tài khoản Claude TEAM STANDARD sử dụng trong 03 tháng hoặc tương đương) | 16.337.475 | Trang bị cho phòng Phần mềm phục vụ: - Hỗ trợ lập trình giao diện website - Hỗ trợ xây dựng DevOps K8s - Hỗ trợ BA phân tích yêu cầu, giảm sai lệch nghiệp vụ | | |
+| 2 | Dịch vụ AI hỗ trợ nghiên cứu | Gói | 01 | Hỗ trợ kết nối 03 tháng đến các dịch vụ hỗ trợ nghiên cứu công nghệ cho 01 tài khoản (01 tài khoản Claude MAX 5x sử dụng trong 03 tháng hoặc tương đương) | 13.069.980 | Trang bị cho phòng Phần mềm phục vụ: - Hỗ trợ nghiên cứu công nghệ RAG - Hỗ trợ nghiên cứu công nghệ OCR | | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=footer_signature | quality=pass | chars=224
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: PHÒNG PHẦN MỀM
+
+- QLĐT, TH;
+
+- GĐ (báo cáo);
+
+- Lưu: VT, PM.
+
+Vương Thông
+
+PHÒNG QUẢN LÝ ĐẦU TƯ PHÒNG TỔNG HỢP
+
+Nguyễn Hữu Giang Nguyễn Vĩnh Phương
+
+Ý kiến phê duyệt của PGĐ Nguyễn Sơn Bình
+
+Đồng ý
+
+Nguyễn Sơn Bình

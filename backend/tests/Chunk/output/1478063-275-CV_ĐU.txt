@@ -1,0 +1,64 @@
+================================================================================
+id_vb        : 1478063
+ky_hieu      : 275-CV/ĐU
+trich_yeu    : Quán triệt, tuyên truyền và triển khai Chỉ thị số 18-CT/TU ngày 03/6/2026 của BTV Thành ủy
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-17
+ten_file     : CV TUYÊN TRUYỀN CT 18 CỦA TUDDN.pdf
+TỔNG SỐ CHUNK: 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=221
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 275-CV/ĐU
+Ngày văn bản: 17/06/2026
+Trích yếu: Quán triệt, tuyên truyền và triển khai Chỉ thị số 18-CT/TU ngày 03/6/2026 của BTV Thành ủy
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Nguyễn Bình Nam
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=2443
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 275-CV/ĐU - Quán triệt, tuyên truyền và triển khai Chỉ thị số 18-CT/TU ngày 03/6/2026 của BTV Thành ủy
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+ĐẢNG BỘ PHƯỜNG HÒA CƯỜNG ĐẢNG CỘNG SẢN VIỆT NAM ĐẢNG ỦY TỔNG CÔNG TY Đà Nẵng, ngày 17 tháng 6 năm 2026 Đà Nẵng, ngày tháng 6 năm 2026 ĐIỆN LỰC MIỀN TRUNG
+
+Số: -CV/ĐU
+
+V/v quán triệt, tuyên truyền và triển khai Chỉ thị số 18-CT/TU ngày 03/6/2026
+
+của BTV Thành ủy
+
+Kính gửi: - Các tổ chức đảng trực thuộc,
+
+- Các tổ chức chính trị - xã hội Tổng công ty.
+
+Thực hiện Công văn số 425-CV/ĐU ngày 15/6/2026 của Đảng ủy phường Hòa Cường về việc triển khai Chỉ thị số 18-CT/TU ngày 03/6/2026 của Ban Thường vụ Thành ủy Đà Nẵng về "tăng cường lãnh đạo, chỉ đạo đẩy mạnh công tác giải phóng mặt bằng các dự án trên địa bàn thành phố" (sau đây viết tắt là Chỉ thị số 18-CT/TU, đính kèm), Đảng ủy Tổng công ty đề nghị các tổ chức đảng trực thuộc thực hiện một số nội dung sau:
+
+- Tổ chức quán triệt, tuyên truyền và triển khai thực hiện Chỉ thị số 18-CT/TU bằng hình thức phù hợp, hiệu quả, gắn với thực hiện Nghị quyết 121-NQ/ĐU ngày 12/02/2026 của Đảng ủy EVNCPC . Qua đó, nâng cao nhận thức của cấp ủy, tổ chức đảng, cán bộ, đảng viên, đoàn viên, hội viên và người lao động về vai trò của công tác giải phóng mặt bằng. Công tác giải phóng mặt bằng phải đi trước một bước, bảo đảm hài hòa lợi ích của Nhà nước, người dân và nhà đầu tư; lấy sự đồng thuận của Nhân dân làm nền tảng. Các đơn vị cần làm tốt hơn nữa công tác dân vận, tích cực vận động người dân kịp thời bàn giao mặt bằng theo đúng kế hoạch tiến độ, đồng thời triển khai phương án bồi thường theo quy định. Qua đó, góp phần hoàn thành mục tiêu nhiệm vụ kế hoạch của công tác ĐTXD EVNCPC năm 2026 theo nghị quyết 121-NQ/ĐU nói trên của Đảng ủy EVNCPC, góp phần làm động lực thúc đẩy phát triển kinh tế - xã hội của địa phương, hướng đến thực hiện tốt mục tiêu tăng trưởng "2 con số" và Nghị quyết Đại hội lần thứ IĐảng bộ thành phố Đà Nẵng, Nghị quyết Đại hội lần thứ IĐảng bộ phường Hòa Cường nhiệm kỳ 2025-2030.
+
+- Tuyên truyền cho cán bộ, đảng viên, đoàn viên, hội viên và người lao động phát huy vai trò giám sát và phản biện xã hội, tích cực tham gia giám sát, phản ánh, cung cấp thông tin, tố giác các hành vi vi phạm, tiêu cực trong công tác giải phóng mặt bằng để cơ quan chức năng kiểm tra, xử lý theo quy định.
+
+Đảng ủy Tổng công ty đề nghị các tổ chức đảng trực thuộc triển khai thực hiện./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=273
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: T/MĐẢNG ỦY
+
+- Như trên; PHÓ BÍ THƯ
+
+- ĐU P. Hòa Cường (b/c),
+
+- Các đ/c UVBTV ĐU TCT,
+
+- Lưu: VT, TGĐU.
+
+Nguyễn Bình Nam
+
+Nghị quyết số 121-NQ/ĐU ngày 12/02/2026 về kết quả thực hiện năm 2025, mục tiêu và giải pháp để hoàn thành kế hoạch ĐTXD năm 2026 của EVNCPC.

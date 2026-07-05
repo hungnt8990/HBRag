@@ -1,0 +1,93 @@
+================================================================================
+id_vb        : 1483958
+ky_hieu      : 3585/EVN-KHCNCĐS
+trich_yeu    : Diễn tập ứng cứu xử lý sự cố VTDR cấp Tập đoàn năm 2026
+noi_ban_hanh : Tập đoàn Điện lực Việt Nam
+ngay_vb      : 2026-06-23
+ten_file     : CV trien khai dien tap VTDR cap Tap doan 2026 (D).pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=183
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3585/EVN-KHCNCĐS
+Ngày văn bản: 23/06/2026
+Trích yếu: Diễn tập ứng cứu xử lý sự cố VTDR cấp Tập đoàn năm 2026
+Nơi ban hành: Tập đoàn Điện lực Việt Nam
+Người ký: Ngô Sơn Hải
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=816
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3585/EVN-KHCNCĐS - Diễn tập ứng cứu xử lý sự cố VTDR cấp Tập đoàn năm 2026
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: preamble
+TẬP ĐOÀN CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC VIỆT NAM Độc lập - Tự do - Hạnh phúc
+
+Hà Nội, ngày 23 tháng 6 năm 2026 Hà Nội, ngày tháng năm 2026 Số: /EVN-KHCNCĐS V/v diễn tập ứng cứu xử lý sự cố VTDR cấp Tập đoàn năm 2026
+
+Kính gửi:
+
+- Các Tổng công ty Điện lực;
+
+- Tổng công ty Truyền tải điện Quốc gia;
+
+- Công ty Viễn thông Điện lực và Công nghệ thông tin.
+
+Sau khi xem xét văn bản số 1033/EVNICT-TTHT ngày 19/6/2026 của Công ty Viễn thông Điện lực và Công nghệ thông tin (EVNICT) về việc "Phương án diễn tập xử lý sự cố hệ thống viễn thông dùng riêng cấp EVN" (VB 1033) (văn bản đính kèm), Tập đoàn yêu cầu các đơn vị thực hiện như sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=1. Cơ bản thống nhất với đề xuất phương án diễn tập ứng cứu xử lý sự cố (UCSC) hệ thống viễn thông dùng riêng (VTDR) do EVNICT trình tại VB 1033. | quality=pass | chars=1224
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3585/EVN-KHCNCĐS - Diễn tập ứng cứu xử lý sự cố VTDR cấp Tập đoàn năm 2026
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 1. Cơ bản thống nhất với đề xuất phương án diễn tập ứng cứu xử lý sự cố (UCSC) hệ thống viễn thông dùng riêng (VTDR) do EVNICT trình tại VB 1033.
+1. Cơ bản thống nhất với đề xuất phương án diễn tập ứng cứu xử lý sự cố (UCSC) hệ thống viễn thông dùng riêng (VTDR) do EVNICT trình tại VB 1033.
+
+2. Thành lập Ban tổ chức chương trình diễn tập gồm ban KHCNCĐS EVN, EVNICT, EVNNPC để điều phối kịch bản, đảm bảo tính thực chiến của chương trình, đồng thời đánh giá tính sẵn sàng trong tình huống UCSC của đơn vị.
+
+3. Giao nhiệm vụ bổ sung: EVNNPC chủ trì, phối hợp với Điều hành toàn quốc và các đơn vị liên quan: (1) xây dựng phương án diễn tập UCSC có nhiều tình huống với nhiều đơn vị tham gia đối với các kênh Scada/Hotline điển hình của Tổng công ty/Công ty Điện lực ; (2) bố trí địa điểm diễn tập và họp tổng kết/đánh giá sau diễn tập.
+
+4. EVNICT, EVNNPC đề xuất chi tiết quy trình UCSC và cách thức đánh giá mức độ hoàn thành/đáp ứng quy trình của các đơn vị tham gia diễn tập; xin ý kiến đánh giá góp ý kịch bản từ các đơn vị phối hợp diễn tập EVNNPT, NSMO/NSO.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=5. Thành phần quan sát: | quality=pass | chars=993
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3585/EVN-KHCNCĐS - Diễn tập ứng cứu xử lý sự cố VTDR cấp Tập đoàn năm 2026
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 5. Thành phần quan sát:
+5. Thành phần quan sát:
+
+- Mời NSMO/CSO/SSO tham gia quan sát chương trình diễn tập.
+
+- Các đơn vị quan sát trực thuộc EVN (PTCx, EVNCPC, EVNHANOI, EVNSPC, EVNHCMC) cử cán bộ tham dự chương trình, mỗi đơn vị không quá 05 người.
+
+6. Các đơn vị gửi đăng ký danh sách tham dự, ý kiến góp ý cho kịch bản diễn tập cho đầu mối EVNICT chậm nhất ngày 05/7/2026. EVNICT và EVNNPC hoàn thiện phương án diễn tập, quy trình UCSC chi tiết, tiêu chí đánh giá diễn tập và
+
+Các tình huống UCSC của EVNNPC phải khác với tình huống mà EVNICT đã trình tại VB1033 các nội dung liên quan khác phục vụ toàn bộ chương trình diễn tập, báo cáo Tập đoàn trước ngày 10/7/2026.
+
+Yêu cầu các đơn vị khẩn trương thực hiện, đảm bảo an toàn, tiết kiệm, hiệu quả, tổ chức diễn tập tập trung tại địa điểm do EVNNPC bố trí trong quý III/2026./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=footer_signature | quality=pass | chars=130
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. TỔNG GIÁM ĐỐC
+
+- Như trên; PHÓ TỔNG GIÁM ĐỐC
+
+- TGĐ (để b/c);
+
+- PTGĐ Phạm Lê Phú;
+
+- Lưu: VT, KHCNCĐS.
+
+Ngô Sơn Hải

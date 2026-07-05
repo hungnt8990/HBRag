@@ -1,0 +1,87 @@
+================================================================================
+id_vb        : 1485216
+ky_hieu      : 177/GM-EVNICT
+trich_yeu    : Giấy mời họp trao đổi về khảo sát phục vụ dự án “Nâng cấp hệ thống chữ ký số chuyên dùng của EVN”
+noi_ban_hanh : Công ty Viễn thông Điện lực và Công nghệ thông tin
+ngay_vb      : 2026-06-24
+ten_file     : Giay moi họp.pdf
+TỔNG SỐ CHUNK: 4
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=249
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 177/GM-EVNICT
+Ngày văn bản: 24/06/2026
+Trích yếu: Giấy mời họp trao đổi về khảo sát phục vụ dự án “Nâng cấp hệ thống chữ ký số chuyên dùng của EVN”
+Nơi ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Người ký: Phạm Ngọc Hiển
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1235
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 177/GM-EVNICT - Giấy mời họp trao đổi về khảo sát phục vụ dự án “Nâng cấp hệ thống chữ ký số chuyên dùng của EVN”
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+Độc lập - Tự do - Hạnh phúc CÔNG TY VIỄN THÔNG ĐIỆN LỰC
+
+VÀ CÔNG NGHỆ THÔNG TIN
+
+Số: /GM-EVNICT Hà Nội, ngày tháng 6 năm 2026
+
+GIẤY MỜI
+
+Kính gửi:
+
+Tập đoàn Điện lực Việt Nam;
+
+Tổng công ty Truyền tải điện quốc gia;
+
+Các Tổng công ty Điện lực EVNHCM, EVNCPC, EVNNPC, EVNSPC;
+
+Các Tổng công ty Phát điện 1, 2, 3;
+
+Các đơn vị hạch toán phụ thuộc EVN.
+
+Trên cơ sở văn bản số 970/EVNICT-TTPM ngày 11/6/2026 của EVNICT về việc khảo sát phục vụ dự án "Nâng cấp hệ thống chữ ký số chuyên dùng của EVN".
+
+EVNICT đã nhận được ý kiến phản hồi của các đơn vị qua văn bản. Nhằm làm rõ và trao đổi thêm các nội dung Đơn vị cung cấp, EVNICT trân trọng kính mời Tập đoàn và Quý đơn vị cử đầu mối tham dự buổi họp trực tuyến theo thông tin sau:
+
+Đầu mối liên hệ EVNICT: Bà Nguyễn Thị Hải Hà - Phòng NVKT - TTPTPM;
+
+SĐT: 0966181666, Email: hanth.evnit@evn.com.vn.
+
+EVNICT trân trọng kính mời Tập đoàn, Quý đơn vị cử nhân sự tham dự theo thời gian nêu trên.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=700
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 177/GM-EVNICT - Giấy mời họp trao đổi về khảo sát phục vụ dự án “Nâng cấp hệ thống chữ ký số chuyên dùng của EVN”
+Ngày ban hành: 24/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Bảng: Bảng DOffice 1
+| STT | Đơn vị | Thời gian | Hình thức |
+| --- | --- | --- | --- |
+| 1 | EVNNPT, EVNHCM, EVNCPC, EVNNPC, EVNSPC, EVNGENCO1, 2, 3 | 09h - 11h 02/7/2026 | Trực tuyến qua phần mềm Zoom: Link họp Zoom: https://us06web.zoom.us/j/5998995899 Passcode: ICT.TTPM |
+| 2 | Cơ quan Tập đoàn Điện lực Việt Nam và các đơn vị hạch toán phụ thuộc EVN | 14h - 16h 02/7/2026 | Trực tuyến qua phần mềm Zoom: Link họp Zoom: https://us06web.zoom.us/j/5998995899 Passcode: ICT.TTPM |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=footer_signature | quality=pass | chars=141
+────────────────────────────────────────────────────────────────────────────────
+KT. GIÁM ĐỐC Nơi nhận: PHÓ GIÁM ĐỐC - Như trên;
+
+- BGĐ (để b/c);
+
+- KH, QLĐTXD, Ban QLDA - EVNICT (để p/h);
+
+- Lưu: VT, TTPM.
+
+Phạm Ngọc Hiển

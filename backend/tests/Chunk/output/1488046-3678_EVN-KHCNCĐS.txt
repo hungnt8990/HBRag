@@ -1,0 +1,104 @@
+================================================================================
+id_vb        : 1488046
+ky_hieu      : 3678/EVN-KHCNCĐS
+trich_yeu    : Xin ý kiến tham số bảo trì các phần mềm dùng chung năm 2026
+noi_ban_hanh : Tập đoàn Điện lực Việt Nam
+ngay_vb      : 2026-06-25
+ten_file     : Lay_Y_Kien_ năm 2026_20260625.pdf
+TỔNG SỐ CHUNK: 6
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=187
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3678/EVN-KHCNCĐS
+Ngày văn bản: 25/06/2026
+Trích yếu: Xin ý kiến tham số bảo trì các phần mềm dùng chung năm 2026
+Nơi ban hành: Tập đoàn Điện lực Việt Nam
+Người ký: Ngô Sơn Hải
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1032
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3678/EVN-KHCNCĐS - Xin ý kiến tham số bảo trì các phần mềm dùng chung năm 2026
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: preamble
+TẬP ĐOÀN CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC VIỆT NAM Độc lập - Tự do - Hạnh phúc
+
+Số: 3678/EVN-KHCNCĐS Hà Nội, ngày 25 tháng 6 năm 2026 Hà Nội, ngày tháng 6 năm 2026 Số: /EVN-KHCNCĐS V.v xin ý kiến tham số bảo trì các phần mềm dùng chung năm 2026
+
+Kính gửi: - Tổng công ty Truyền tải điện Quốc gia;
+
+- Các Tổng công ty Điện lực;
+
+- Tổng công ty Phát điện 1, 2, 3;
+
+- Công ty TNHH MTV Nhiệt điện Thủ Đức.
+
+Thực hiện Quyết định số 35/QĐ-EVN ngày 25/02/2019 của Hội đồng thành viên Tập đoàn Điện lực Việt Nam (Tập đoàn) về việc ban hành Bộ định mức dự toán bảo trì phần mềm trong Tập đoàn Điện lực Quốc gia Việt Nam; Căn cứ Danh mục phần mềm dùng chung và tham số đầu vào của từng phần mềm kèm theo Tờ trình số 176/TTr-EVNICT ngày 18/6/2026 của EVNICT (file phụ lục đính kèm), Tập đoàn yêu cầu các Ban liên quan và các đơn vị thực hiện các nhiệm vụ sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=1. Giao các đơn vị | quality=pass | chars=433
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3678/EVN-KHCNCĐS - Xin ý kiến tham số bảo trì các phần mềm dùng chung năm 2026
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 1. Giao các đơn vị
+1. Giao các đơn vị
+
+- Đánh giá việc công tác bảo trì, hỗ trợ của EVNICT đối với từng phần mềm dùng chung (PMDC) trong năm 2025.
+
+- Cho ý kiến về Danh mục PMDC và tham số đầu vào của từng phần mềm dùng chung áp dụng cho công tác BTPM năm 2026, cụ thể:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=2. Giao các Ban KDMBĐ, TCKT, TCNS, KTAT và VP Tập đoàn xác nhận số lượng quy trình nghiệp vụ và báo cáo theo thông số đầu vào năm 2026 như trên. | quality=pass | chars=667
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3678/EVN-KHCNCĐS - Xin ý kiến tham số bảo trì các phần mềm dùng chung năm 2026
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Mục: 2. Giao các Ban KDMBĐ, TCKT, TCNS, KTAT và VP Tập đoàn xác nhận số lượng quy trình nghiệp vụ và báo cáo theo thông số đầu vào năm 2026 như trên.
+2. Giao các Ban KDMBĐ, TCKT, TCNS, KTAT và VP Tập đoàn xác nhận số lượng quy trình nghiệp vụ và báo cáo theo thông số đầu vào năm 2026 như trên.
+
+Chi tiết liên hệ Đ/c Lê Quốc Anh - Chuyên viên Ban KHCNCĐS qua thư điện tử: anhlq@evn.com.vn hoặc điện thoại: 0904.936.957
+
+Yêu cầu các Ban/Đơn vị khẩn trương thực hiện và báo cáo Tập đoàn trước ngày 10/7/2025./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=1024
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3678/EVN-KHCNCĐS - Xin ý kiến tham số bảo trì các phần mềm dùng chung năm 2026
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Tập đoàn Điện lực Việt Nam
+Bảng: Bảng DOffice 1
+| TT | Danh mục phần mềm | Tham số đầu vào năm 2026 Số quy trình nghiệp vụ | Tham số đầu vào năm 2026 Số form | Tham số đầu vào năm 2026 Số báo cáo | Tham số đầu vào năm 2026 Số người dùng |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Hệ thống thông tin quản lý khách hàng dùng điện (CMIS) | 204 | 303 | 263 | 2.535 |
+| 2 | Hệ thống kho dữ liệu đo đếm | 14 | 149 | 28 | 110 |
+| 3 | Hệ thống quản lý đầu tư xây dựng (IMIS) | 47 | 295 | 98 | 932 |
+| 4 | Hệ thống thông tin quản lý tài chính - vật tư (ERP) | 262 | 884 | 641 | 1.434 |
+| 5 | Hệ thống thông tin quản lý nhân sự (HRMS) | 64 | 90 | 70 | 636 |
+| 6 | Hệ thống quản lý kỹ thuật lưới điện (PMIS lưới) | 95 | 320 | 116 | 1.821 |
+| 7 | Hệ thống quản lý kỹ thuật nguồn điện (PMIS nguồn) | 60 | 425 | 62 | 716 |
+| 8 | Hệ thống thông tin văn phòng số (Digital Office) | 26 | 404 | 29 | 8.334 |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=footer_signature | quality=pass | chars=148
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT.TỔNG GIÁM ĐỐC
+
+- Như trên; PHÓ TỔNG GIÁM ĐỐC
+
+- TGĐ (để b/c);
+
+- Các Ban KDMBĐ, TCKT, TCNS, KTAT, VP;
+
+- Lưu: VT, KHCNCĐS.
+
+Ngô Sơn Hải

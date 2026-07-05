@@ -1,0 +1,165 @@
+================================================================================
+id_vb        : 1478933
+ky_hieu      : 3728/TB-EVNCPC
+trich_yeu    : Thông báo kết luận của TGĐ Ngô Tấn Cư tại hội nghị giao ban EVNCPC tháng 6/2026
+
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-18
+ten_file     : 12.6.26 Hoi nghi giao ban thang 6.pdf
+TỔNG SỐ CHUNK: 7
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=213
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3728/TB-EVNCPC
+Ngày văn bản: 18/06/2026
+Trích yếu: Thông báo kết luận của TGĐ Ngô Tấn Cư tại hội nghị giao ban EVNCPC tháng 6/2026
+
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Tán Quốc Bảo
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=3017
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3728/TB-EVNCPC - Thông báo kết luận của TGĐ Ngô Tấn Cư tại hội nghị giao ban EVNCPC tháng 6/2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+TỔNG CÔNG TY Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 18 tháng 6 năm 2026
+
+Số: 3728/TB-EVNCPC
+
+THÔNG BÁO
+
+Kết luận của TGĐ Ngô Tấn Cư tại hội nghị giao ban EVNCPC tháng 06/2026
+
+Ngày 12/6/2026, tại Cơ quan Tổng công ty, TGĐ Ngô Tấn Cư chủ trì hội nghị giao ban EVNCPC tháng 06/2026 theo hình thức trực tiếp và trực tuyến.
+
+Thành phần tham dự như phụ lục đính kèm. Sau khi nghe ý kiến của các thành viên tham dự họp, ý kiến phát biểu chỉ đạo của Ông Nguyễn Thanh - Chủ tịch HĐTV, TGĐ kết luận:
+
+Qua báo cáo của Ban KH, nhìn chung công tác SXKD của EVNCPC trong 5 tháng đầu năm 2026 đã đạt được kết quả tốt, bám sát các chỉ tiêu EVN giao.
+
+Tuy nhiên, trước tình hình diễn biến thời tiết phức tạp, nắng nóng gay gắt kéo dài ở khu vực duyên hải và giông sét ở khu vực miền núi, phía Tây các tỉnh miền Trung gây ra sự cố lưới điện 110kV, lưới điện trung áp, mất điện TBA công cộng tăng cao hơn so với cùng kỳ, TGĐ yêu cầu các đơn vị tập trung cho công tác QLVH, SXKD và chăm sóc khách hàng trong thời gian đến, cụ thể:
+
+1. Công tác QLVH, QLKT: (i) tiếp tục rà soát, kịp thời điều động/thay thế VTTB để chống quá tải các TBA công cộng, đặc biệt tại các khu vực có mật độ dân cư cao, nhu cầu công suất tăng đột biến trong mùa nắng nóng gây quá tải cục bộ; (ii) thực hiện quyết liệt hơn các chế tài thưởng/phạt để giảm sự cố một cách thực chất, triệt để; (iii) thường xuyên kiểm tra, nhắc nhở, kịp thời ngăn chặn các vụ vi phạm hành lang tuyến để phòng ngừa tai nạn điện trong dân.
+
+2. Công tác KD&DVKH: (i) CPCCC bố trí trực ca hợp lý, xử lý kịp thời các phản ánh, vướng mắc liên quan đến tình hình cấp điện; (ii) Khi có sự cố, các CTĐL phối hợp CPCCC để đảm bảo thống nhất về nguyên nhân sự cố, thời gian khôi phục, tránh thông tin sai lệch làm khách hàng bức xúc; (iii) Rà soát hóa đơn tiền điện tăng cao để kịp thời cảnh báo đến khách hàng; (iv) Thường xuyên rà soát, nắm bắt kế hoạch sản xuất của các khách hàng có sản lượng lớn để phối hợp thực hiện chương trình dịch chuyển phụ tải.
+
+3. Ban TCNS tổng hợp tình hình hoạt động của các đơn vị sau sắp xếp, tinh gọn bộ máy, sáp nhập (sau 01/7/2025) nhằm đánh giá hiệu quả hoạt động và xử lý các vướng mắc, khó khăn (nếu có), tham mưu TGĐ báo cáo Đảng ủy, HĐTV trước ngày 15/7/2026.
+
+4. Các Bộ, ngành hiện đang từng bước rà soát để cắt giảm các thủ tục hành chính, giao Ban PC chủ trì, các Ban phối hợp rà soát các QCQLNB theo hướng đơn giản hóa các thủ tục/quy trình, tham mưu lãnh đạo TCT xem xét điều chỉnh các bước thực hiện không thực sự cần thiết khi áp dụng trong thực tế.
+
+5. Liên quan đến các khoản thanh toán, chi phí cho các hoạt động thường xuyên phục vụ các hoạt động SXKD, yêu cầu cơ quan TCT, các đơn vị thường xuyên rà soát các nhà cung cấp dịch vụ, đảm bảo sử dụng hóa đơn hợp lý, hợp lệ.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_body | quality=pass | chars=1802
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3728/TB-EVNCPC - Thông báo kết luận của TGĐ Ngô Tấn Cư tại hội nghị giao ban EVNCPC tháng 6/2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+nh các bước thực hiện không thực sự cần thiết khi áp dụng trong thực tế.
+
+5. Liên quan đến các khoản thanh toán, chi phí cho các hoạt động thường xuyên phục vụ các hoạt động SXKD, yêu cầu cơ quan TCT, các đơn vị thường xuyên rà soát các nhà cung cấp dịch vụ, đảm bảo sử dụng hóa đơn hợp lý, hợp lệ.
+
+6. Thời gian qua, tại một số đơn vị việc chấp hành kỷ luật lao động còn chưa nghiêm, làm ảnh hưởng đến hình ảnh của EVNCPC nói chung, của đơn vị nói riêng. Yêu cầu người đứng đầu các đơn vị tổ chức chấn chỉnh kỷ cương, kỷ luật, quán triệt đến NLĐ tinh thần chấp hành nội quy lao động, quy trình nội bộ trong các hoạt động SXKD hàng ngày; đặc biệt phải nghiêm túc, cẩn trọng, cầu thị trong các công việc liên quan đến tiếp xúc, xử lý sự cố liên quan đến khách hàng.
+
+7. Trong tình hình chi phí nguyên vật liệu biến động cao, việc tiết kiệm chi phí là vấn đề rất quan trọng, yêu cầu các Ban, các đơn vị thực hiện triệt để tối ưu hóa chi phí, giảm các cuộc họp, hội nghị không cần thiết; tinh gọn thành phần đi công tác để giảm chi phí ăn ở, đi lại.
+
+8. Về công tác tuyển dụng, trong bối cảnh yêu cầu chỉ tiêu năng suất lao động và độ tuổi lao động bình quân của EVNCPC ngày càng cao, yêu cầu các đơn vị nghiêm túc trong công tác tuyển dụng, thực hiện đúng các hướng dẫn của TCT để đảm bảo tuyển dụng được lực lượng lao động trực tiếp có đủ sức khỏe, đủ năng lực để đạt mục tiêu giảm dần tỷ lệ lực lượng lao động gián tiếp trong thời gian đến.
+
+Các PTGĐ giúp chỉ đạo các nội dung nêu trên theo lĩnh vực phụ trách.
+
+Thừa lệnh TGĐ, Văn phòng TCT thông báo để các đ/c PTGĐ, các đơn vị thành viên và các Ban biết, thực hiện./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=footer_signature | quality=pass | chars=217
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: TL. TỔNG GIÁM ĐỐC
+
+- Đảng ủy TCT (b/cáo); KT. CHÁNH VĂN PHÒNG
+
+- HĐTV (b/cáo); PHÓ CHÁNH VĂN PHÒNG
+
+- Ban TGĐ (b/cáo);
+
+- CĐ TCT;
+
+- KSVCT;
+
+- Các đơn vị thành viên;
+
+- Các Ban;
+
+- Lưu: VT, VP.
+
+Tán Quốc Bảo
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_section | section=Phụ lục THÀNH PHẦN THAM DỰ HỘI NGHỊ GIAO BAN EVNCPC THÁNG 06/2026 | artifact=appendix | quality=pass | chars=320
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3728/TB-EVNCPC - Thông báo kết luận của TGĐ Ngô Tấn Cư tại hội nghị giao ban EVNCPC tháng 6/2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục THÀNH PHẦN THAM DỰ HỘI NGHỊ GIAO BAN EVNCPC THÁNG 06/2026
+Phụ lục
+
+THÀNH PHẦN THAM DỰ HỘI NGHỊ GIAO BAN EVNCPC THÁNG 06/2026
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=document_section | section=Phụ lục THÀNH PHẦN THAM DỰ HỘI NGHỊ GIAO BAN EVNCPC THÁNG 06/2026 > I. Điểm cầu cơ quan EVNCPC: | artifact=appendix | quality=pass | chars=769
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3728/TB-EVNCPC - Thông báo kết luận của TGĐ Ngô Tấn Cư tại hội nghị giao ban EVNCPC tháng 6/2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục THÀNH PHẦN THAM DỰ HỘI NGHỊ GIAO BAN EVNCPC THÁNG 06/2026 > I. Điểm cầu cơ quan EVNCPC:
+I. Điểm cầu cơ quan EVNCPC:
+
+- Ông Nguyễn Thanh - CT HĐTV.
+
+- Ông Ngô Tấn Cư - TV HĐTV kiêm Tổng giám đốc.
+
+- Ông Trình Trung Phương - TV HĐTV.
+
+- Bà Lê Thị Phương Cẩm - TV HĐTV.
+
+- Ông Lê Hoàng Anh Dũng - TV HĐTV.
+
+- Ông Hồ Thăng Thu - PTGĐ.
+
+- Ông Lê Hữu Danh - PTGĐ.
+
+- Ông Nguyễn Hữu Khánh - PTGĐ.
+
+- Ông Trần Văn Gia - PTGĐ.
+
+- Ông Trần Nguyễn Bảo An - PTGĐ.
+
+- PBT Đảng ủy EVNCPC.
+
+- CT Công đoàn EVNCPC.
+
+- KSVCT EVN tại EVNCPC.
+
+- Lãnh đạo các Ban EVNCPC.
+
+- Bí thư ĐTN EVNCPC.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=document_section | section=Phụ lục THÀNH PHẦN THAM DỰ HỘI NGHỊ GIAO BAN EVNCPC THÁNG 06/2026 > II. Điểm cầu các đơn vị thành viên: Tổng Giám đốc/Giám đốc/Hiệu trưởng, TP, PTP các Phòng/Ban, Lãnh đạo các đơn vị cấp 4 và các thành phần có liên quan. | artifact=appendix | quality=pass | chars=561
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3728/TB-EVNCPC - Thông báo kết luận của TGĐ Ngô Tấn Cư tại hội nghị giao ban EVNCPC tháng 6/2026
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: Phụ lục THÀNH PHẦN THAM DỰ HỘI NGHỊ GIAO BAN EVNCPC THÁNG 06/2026 > II. Điểm cầu các đơn vị thành viên: Tổng Giám đốc/Giám đốc/Hiệu trưởng, TP, PTP các Phòng/Ban, Lãnh đạo các đơn vị cấp 4 và các thành phần có liên quan.
+II. Điểm cầu các đơn vị thành viên: Tổng Giám đốc/Giám đốc/Hiệu trưởng, TP, PTP các Phòng/Ban, Lãnh đạo các đơn vị cấp 4 và các thành phần có liên quan.

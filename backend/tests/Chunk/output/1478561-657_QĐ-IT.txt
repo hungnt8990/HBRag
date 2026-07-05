@@ -1,0 +1,362 @@
+================================================================================
+id_vb        : 1478561
+ky_hieu      : 657/QĐ-IT
+trich_yeu    : QUYẾT ĐỊNH
+Về việc phê duyệt quyết toán dự án hoàn thành
+Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-18
+ten_file     : Quyet-Dinh-PDQT-DA-modul 2025.pdf
+TỔNG SỐ CHUNK: 18
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=281
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 657/QĐ-IT
+Ngày văn bản: 18/06/2026
+Trích yếu: QUYẾT ĐỊNH
+Về việc phê duyệt quyết toán dự án hoàn thành
+Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Trần Khắc Tuấn
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=2458
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 657/QĐ-IT - QUYẾT ĐỊNH Về việc phê duyệt quyết toán dự án hoàn thành Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: preamble
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+QUYẾT ĐỊNH
+
+Về việc phê duyệt quyết toán dự án hoàn thành
+
+Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương
+
+trình giao nhận đầu nguồn.
+
+GIÁM ĐỐC
+
+CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+Căn cứ Quyết định số 633/QĐ-HĐTV ngày 10/11/2022 của Hội đồng thành viên Tổng công ty Điện lực miền Trung (HĐTV EVNCPC) về việc ban hành Quy chế Tổ chức và hoạt động của Công ty Công nghệ thông tin Điện lực miền Trung (CPCIT);
+
+Căn cứ Nghị định số 254/2025/NĐ-CP ngày 26/9/2025 của Chính phủ quy định về quản lý, thanh toán, quyết toán dự án sử dụng vốn đầu tư công;
+
+Căn cứ Thông tư số 91/2025/TT-BTC ngày 26/9/2025 của Bộ Tài chính quy định về hệ thống mẫu biểu sử dụng trong công tác quyết toán;
+
+Căn cứ Quyết định số 2632/QĐ-EVNCPC ngày 04/5/2026 của EVNCPC về việc ban hành Quy định phân cấp của Tổng giám đốc EVNCPC cho người đứng đầu các đơn vị trực thuộc EVNCPC;
+
+Căn cứ Quyết định số 386/QĐ-HĐTV ngày 24/6/2024 của HĐTV EVNCPC về việc giao quản lý dự án Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn;
+
+Căn cứ Quyết định số 2264/QĐ-EVNCPC ngày 16/4/2026 của EVNCPC về việc giao kế hoạch ĐTXD năm 2026 - CPCIT;
+
+Căn cứ Quyết định số 302/QĐ-IT ngày 25/3/2025 của CPCIT về việc phê duyệt Báo cáo kinh tế - kỹ thuật dự án Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn;
+
+Căn cứ Báo cáo kiểm toán số 065/2026/AAC-BCKiT ngày 11/02/2026 do Công ty TNHH Kiểm toán và Kế toán AAC về việc kiểm toán Báo cáo quyết toán hoàn thành dự án Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn;
+
+Căn cứ Tờ trình số 03/TTr-BQLDA ngày 11/02/2026 của Ban QLDA về việc đề nghị thẩm tra, phê duyệt quyết toán hoàn thành dự án Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn;
+
+Căn cứ Biên bản thẩm tra quyết toán XBCB hoàn thành dự án Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn ngày 10/6/2026 của CPCIT;
+
+Theo đề nghị của Trưởng phòng Tổng hợp.
+
+QUYẾT ĐỊNH:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=table | section=Bảng DOffice 1 | table=Bảng DOffice 1 | quality=pass | chars=321
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 657/QĐ-IT - QUYẾT ĐỊNH Về việc phê duyệt quyết toán dự án hoàn thành Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: Bảng DOffice 1
+Số: 657/QĐ-IT | Đà Nẵng, | ngày 18 tháng 6 năm 2026
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=legal_clause | section=Điều 1 Phê duyệt quyết toán vốn đầu tư hoàn thành | quality=pass | chars=880
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 657/QĐ-IT - QUYẾT ĐỊNH Về việc phê duyệt quyết toán dự án hoàn thành Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: Điều 1 Phê duyệt quyết toán vốn đầu tư hoàn thành
+Điều 1. Phê duyệt quyết toán vốn đầu tư hoàn thành:
+
+- Tên dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+
+- Địa điểm đầu tư: Tổng công ty Điện lực miền Trung, 78A Duy Tân - Thành phố Đà Nẵng;
+
+- Chủ đầu tư: Công ty Công nghệ thông tin Điện lực miền Trung - Tổng công ty Điện lực miền Trung;
+
+- Hình thức quản lý dự án: Chủ đầu tư trực tiếp quản lý dự án thông qua Ban quản lý dự án (thuộc CPCIT);
+
+- Thời gian bắt đầu thực hiện dự án: 08/4/2025;
+
+Thời gian hoàn thành nghiệm thu bàn giao toàn bộ sản phẩm của dự án:
+
+24/10/2025.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=legal_clause | section=Điều 2 Kết quả đầu tư XDCB hoàn thành | quality=pass | chars=1011
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 657/QĐ-IT - QUYẾT ĐỊNH Về việc phê duyệt quyết toán dự án hoàn thành Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: Điều 2 Kết quả đầu tư XDCB hoàn thành
+Điều 2. Kết quả đầu tư XDCB hoàn thành:
+
+1. Chi phí đầu tư:
+
+ĐVT: Đồng
+
+Chi phí đầu tư quyết toán sau thuế (bằng chữ): Bốn trăm mười triệu, bốn trăm bốn mươi chín nghìn, một trăm tám mươi hai đồng chẵn.
+
+Trong đó: Giá trị trước thuế: 409.857.949 đồng.
+
+Thuế GTGT: 591.233 đồng.
+
+(Chi tiết chi phí đầu tư quyết toán: như Phụ lục Ikèm theo).
+
+2. Nguồn vốn đầu tư:
+
+ĐVT: Đồng
+
+3. Giá trị tài sản hình thành sau đầu tư:
+
+ĐVT: Đồng
+
+(Chi tiết tài sản hình thành sau đầu tư: như Phụ lục II kèm theo).
+
+4. Chi phí đầu tư được phép không tính vào giá trị tài sản:
+
+4.1. Chi phí thiệt hại do các nguyên nhân bất khả kháng: không có.
+
+4.2. Chi phí không tạo nên tài sản: không có.
+
+5. Vật tư thiết bị tồn đọng (nếu có): không có.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=table | section=1. Chi phí đầu tư | table=1. Chi phí đầu tư | quality=pass | chars=719
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 657/QĐ-IT - QUYẾT ĐỊNH Về việc phê duyệt quyết toán dự án hoàn thành Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: 1. Chi phí đầu tư
+| TT | Nội dung | Dự toán được duyệt | Giá trị quyết toán được phê duyệt |
+| --- | --- | --- | --- |
+| 1 | Chi phí Xây dựng | | |
+| 2 | Chi phí Thiết bị | 636.150.327 | 378.992.933 |
+| 3 | Chi phí QLDA | 11.800.589 | |
+| 4 | Chi phí Tư vấn | 52.061.524 | 27.937.743 |
+| 5 | Chi phí khác | 6.125.790 | 2.927.273 |
+| 6 | Chi phí dự phòng | 35.306.911 | |
+| 7 | Thuế GTGT | 3.529.930 | 591.233 |
+| Tổng cộng | Thuế GTGT | 744.975.071 | 410.449.182 |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=table | section=2. Nguồn vốn đầu tư | table=2. Nguồn vốn đầu tư | quality=pass | chars=904
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 657/QĐ-IT - QUYẾT ĐỊNH Về việc phê duyệt quyết toán dự án hoàn thành Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: 2. Nguồn vốn đầu tư
+| TT | Tên nguồn vốn | Theo quyết định đầu tư | Thực hiện đến ngày phê duyệt báo cáo quyết toán Giá trị phê duyệt quyết toán | Thực hiện đến ngày phê duyệt báo cáo quyết toán Số vốn đã giải ngân | Số vốn còn được giải ngân so với giá trị quyết toán được phê duyệt | Số vốn phải thu hồi so với giá trị QT được duyệt |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 2 | 3 | 4 | 5 | 6=4-5 | 7=5-4 |
+| | Tổng số | 744.975.071 | 410.449.182 | 405.910.988 | 4.538.194 | |
+| 1 | Vốn KHCB | 741.445.141 | 409.857.949 | 405.533.789 | 4.324.160 | |
+| 2 | Vốn vay | | | | | |
+| 3 | Thuế GTGT | 3.529.930 | 591.233 | 377.199 | 214.034 | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=table | section=3. Giá trị tài sản hình thành sau đầu tư | table=3. Giá trị tài sản hình thành sau đầu tư | quality=pass | chars=643
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 657/QĐ-IT - QUYẾT ĐỊNH Về việc phê duyệt quyết toán dự án hoàn thành Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: 3. Giá trị tài sản hình thành sau đầu tư
+| TT | Nội dung Tổng số | Thuộc chủ đầu tư quản lý | Giao đơn vị khác quản lý 409.857.949 |
+| --- | --- | --- | --- |
+| I | Tài sản dài hạn (tài sản cố định) | | 409.857.949 |
+| 1 | Nâng cấp cho Phân hệ kiểm soát sản lượng thanh toán của các NMTĐ <30MW (IPP) hiện có (Mã số TSCĐ 9.50000000.0000413). | | 409.857.949 |
+| II | Tài sản ngắn hạn | | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #8
+chunk_type=legal_clause | section=Điều 3 Trách nhiệm của chủ đầu tư và các đơn vị liên quan | quality=pass | chars=775
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 657/QĐ-IT - QUYẾT ĐỊNH Về việc phê duyệt quyết toán dự án hoàn thành Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: Điều 3 Trách nhiệm của chủ đầu tư và các đơn vị liên quan
+Điều 3. Trách nhiệm của chủ đầu tư và các đơn vị liên quan:
+
+1. Công ty Công nghệ thông tin Điện lực miền Trung: được phép tất toán chi phí và nguồn vốn đầu tư của công trình:
+
+ĐVT: Đồng
+
+2. Công nợ dự án, VTTB tồn đọng tính đến ngày lập báo cáo quyết toán dự án:
+
+ĐVT: Đồng
+
+(Chi tiết các khoản công nợ: như Phụ lục III kèm theo).
+
+3. Đơn vị tiếp nhận tài sản: Được phép ghi tăng tài sản với giá trị như sau:
+
+ĐVT: Đồng
+
+4. Các nghiệp vụ khác (nếu có): Không có.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #9
+chunk_type=table | section=1. Công ty Công nghệ thông tin Điện lực miền Trung: được phép tất toán chi phí và nguồn vốn đầu tư của công trình | table=1. Công ty Công nghệ thông tin Điện lực miền Trung: được phép tất toán chi phí và nguồn vốn đầu tư của công trình | quality=pass | chars=576
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 657/QĐ-IT - QUYẾT ĐỊNH Về việc phê duyệt quyết toán dự án hoàn thành Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: 1. Công ty Công nghệ thông tin Điện lực miền Trung: được phép tất toán chi phí và nguồn vốn đầu tư của công trình
+| TT | Nguồn vốn Tổng cộng | Số tiền 410.449.182 | Ghi chú |
+| --- | --- | --- | --- |
+| 1 | Vốn KHCB Tổng công ty | 409.857.949 | |
+| 2 | Vốn vay thương mại | | |
+| 3 | Thuế GTGT được khấu trừ | 591.233 | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #10
+chunk_type=table | section=2. Công nợ dự án, VTTB tồn đọng tính đến ngày lập báo cáo quyết toán dự án | table=2. Công nợ dự án, VTTB tồn đọng tính đến ngày lập báo cáo quyết toán dự án | quality=pass | chars=508
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 657/QĐ-IT - QUYẾT ĐỊNH Về việc phê duyệt quyết toán dự án hoàn thành Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: 2. Công nợ dự án, VTTB tồn đọng tính đến ngày lập báo cáo quyết toán dự án
+| TT | Nội dung | Số tiền | Ghi chú |
+| --- | --- | --- | --- |
+| 1 | Nợ phải trả | 4.538.194 | |
+| 2 | Nợ phải thu | 4.538.194 | |
+| 3 | Vật tư, thiết bị tồn kho | 4.538.194 | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #11
+chunk_type=legal_clause | section=Điều 4 Trách nhiệm thi hành: Trưởng Ban QLDA và Trưởng các phòng liên quan Công ty căn cứ quyết đ… | quality=pass | chars=466
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 657/QĐ-IT - QUYẾT ĐỊNH Về việc phê duyệt quyết toán dự án hoàn thành Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: Điều 4 Trách nhiệm thi hành: Trưởng Ban QLDA và Trưởng các phòng liên quan Công ty căn cứ quyết đ…
+Điều 4. Trách nhiệm thi hành: Trưởng Ban QLDA và Trưởng các phòng liên quan Công ty căn cứ quyết định thi hành./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #12
+chunk_type=table | section=3. Đơn vị tiếp nhận tài sản: Được phép ghi tăng tài sản với giá trị như sau | table=3. Đơn vị tiếp nhận tài sản: Được phép ghi tăng tài sản với giá trị như sau | quality=pass | chars=509
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 657/QĐ-IT - QUYẾT ĐỊNH Về việc phê duyệt quyết toán dự án hoàn thành Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: 3. Đơn vị tiếp nhận tài sản: Được phép ghi tăng tài sản với giá trị như sau
+| Tên đơn vị tiếp nhận tài sản | Tài sản dài hạn/cố định | Tài sản ngắn hạn |
+| --- | --- | --- |
+| Tổng số | 409.857.949 | |
+| Tổng công ty Điện lực miền Trung | 409.857.949 | |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #13
+chunk_type=footer_signature | quality=pass | chars=98
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: GIÁM ĐỐC
+
+- Như Điều 4 ;
+
+- EVNCPC (b/cáo);
+
+- Ban QLDA;
+
+- Lưu: VT, TH.
+
+Trần Khắc Tuấn
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #14
+chunk_type=table | section=Phụ lục IBẢNG TỔNG HỢP VỐN ĐẦU TƯ THỰC HIỆN — ĐVT: Đồng | table=Phụ lục IBẢNG TỔNG HỢP VỐN ĐẦU TƯ THỰC HIỆN — ĐVT: Đồng | quality=pass | chars=2030
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 657/QĐ-IT - QUYẾT ĐỊNH Về việc phê duyệt quyết toán dự án hoàn thành Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: Phụ lục IBẢNG TỔNG HỢP VỐN ĐẦU TƯ THỰC HIỆN — ĐVT: Đồng
+| TT | Khoản mục chi phí TỔNG CỘNG XÂY DỰN GTHIẾT BỊ QUẢN LÝ DỰ ÁN TƯ VẤN | Giá trị Dự toán (theo QĐ số 302/QĐ IT ngày 25/3/2025) Trước thuế | Giá trị Dự toán (theo QĐ số 302/QĐ IT ngày 25/3/2025) Thuế GTGT | Giá trị Dự toán (theo QĐ số 302/QĐ IT ngày 25/3/2025) Sau thuế | Giá trị Quyết toán Trước thuế | Giá trị Quyết toán Thuế GTGT | Giá trị Quyết toán Sau thuế | Giá trị chênh lệch Trước thuế | Giá trị chênh lệch Thuế GTGT | Giá trị chênh lệch Sau thuế |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | Lập dự án đầu tư | 22.974.610 | | 22.974.610 | 22.974.610 | | 22.974.610 | | | |
+| 2 | Khảo sát | 4.963.133 | 397.051 | 5.360.184 | 4.963.133 | 397.051 | 5.360.184 | | | |
+| 3 | Thẩm tra tính hiệu quả và tính khả thi của dự án đầu tư | 2.000.000 | | 2.000.000 | | | | -2.000.000 | | -2.000.000 |
+| 4 | Thẩm tra thiết kế thi công | 2.000.000 | | 2.000.000 | | | | -2.000.000 | | -2.000.000 |
+| 5 | Thẩm tra dự toán | 2.000.000 | | 2.000.000 | | | | -2.000.000 | | -2.000.000 |
+| 6 | Lập hồ sơ mời thầu, đánh giá hồ sơ dự thầu | 5.000.000 | | 5.000.000 | | | | -5.000.000 | | -5.000.000 |
+| 7 | Giám sát thi công xây dựng và lắp đặt thiết bị | 13.123.781 | 1.312.378 | 14.436.159 | | | | -13.123.781 | -1.312.378 | -14.436.159 |
+| V | CHI PHÍ KHÁC | 6.125.790 | 472.350 | 6.598.140 | 2.927.273 | 194.182 | 3.121.455 | -3.198.517 | -278.168 | -3.476.685 |
+| 1 | Thẩm tra, phê duyệt quyết toán | 1.402.289 | | 1.402.289 | 500.000 | | 500.000 | -902.289 | | -902.289 |
+| 2 | Kiểm toán | 4.723.501 | 472.350 | 5.195.851 | 2.427.273 | 194.182 | 2.621.455 | -2.296.228 | -278.168 | -2.574.396 |
+| VI | DỰ PHÒNG | 35.306.911 | 168.092 | 35.475.003 | | | | -35.306.911 | -168.092 | -35.475.003 |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #15
+chunk_type=table | section=Phụ lục II — TÀI SẢN DÀI HẠN (CỐ ĐỊNH) MỚI TĂNG ĐVT: Đồng | table=Phụ lục II — TÀI SẢN DÀI HẠN (CỐ ĐỊNH) MỚI TĂNG ĐVT: Đồng | quality=pass | chars=885
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 657/QĐ-IT - QUYẾT ĐỊNH Về việc phê duyệt quyết toán dự án hoàn thành Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: Phụ lục II — TÀI SẢN DÀI HẠN (CỐ ĐỊNH) MỚI TĂNG ĐVT: Đồng
+| TT | Tên và ký hiệu tài sản; quy mô, công suất (riêng đối với thiết bị ghi rõ thêm chủng loại, xuất xứ, năm sản xuất Tổng số | Đơn vị tính | Số lượng | Giá đơn vị | Giá trị tăng thêm | Ngày đưa tài sản vào sử dụng | Loại vốn đầu tư hình thành tài sản | Đơn vị tiếp nhận sử dụng |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | Nâng cấp cho Phân hệ kiểm soát sản lượng thanh toán của các NMTĐ <30MW (IPP) hiện có (Mã số TSCĐ 9.50000000.0000413). | Phần mềm | 1 | 409.857.949 | 409.857.949 | 24/10/2025 | Khấu hao cơ bản | Tổng công ty Điện lực miền Trung |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #16
+chunk_type=table | section=Phụ lục III — TÌNH HÌNH THANH TOÁN VÀ CÁC KHOẢN CÔNG NỢ ĐVT: Đồng | table=Phụ lục III — TÌNH HÌNH THANH TOÁN VÀ CÁC KHOẢN CÔNG NỢ ĐVT: Đồng | quality=pass | chars=1608
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 657/QĐ-IT - QUYẾT ĐỊNH Về việc phê duyệt quyết toán dự án hoàn thành Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Bảng: Phụ lục III — TÌNH HÌNH THANH TOÁN VÀ CÁC KHOẢN CÔNG NỢ ĐVT: Đồng
+| TT Tên cá nhân, đơn vị thực hiện | TT Tên cá nhân, đơn vị thực hiện | TT Tên cá nhân, đơn vị thực hiện | Nội dung công việc, hợp đồng thực hiện | Giá trị đề nghị quyết toán | Vốn đã giải ngân Trước thuế (Vốn | Vốn đã giải ngân Thuế | Vốn đã giải ngân Cộng | Công nợ đến ngày khoá sổ lập báo cáo quyết toán Ghi chú Phải trả Phải thu |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| | | KHCB) | | | | | | |
+| Tổng cộng | Tổng cộng | Tổng cộng | 410.449.182 | 405.533.789 | 377.199 | 405.910.988 | 4.538.194 | |
+| 1 Công ty CNTT Điện lực miền Trung | 1 Công ty CNTT Điện lực miền Trung | 1 Công ty CNTT Điện lực miền Trung | Xây dựng modul ký số h khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn | 378.992.933 | 377.199 | 378.992.933 | 4.538.194 | 378.992.933 |
+| 1 Công ty CNTT Điện lực miền Trung | 1 Công ty CNTT Điện lực miền Trung | 1 Công ty CNTT Điện lực miền Trung | | | 377.199 | 378.992.933 | Thẩm tra phê duyệt quyết t toán | 378.992.933 |
+| 2 | Công ty TNHH Giải pháp và công nghệ Địa Dư | a | Khảo sát, lập BCKTKT | 28.334.794 | 26.540.856 | 377.199 | 26.918.055 | 1.416.739 |
+| 3 Công ty TNHH Kiểm toán và Kế toán AAC | Công ty TNHH Giải pháp và công nghệ Địa Dư | a | Kiểm toán dự án | 2.621.455 | 26.540.856 | 377.199 | 26.918.055 | 2.621.455 |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #17
+chunk_type=document_body | section=Phụ lục | artifact=appendix | quality=pass | chars=442
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 657/QĐ-IT - QUYẾT ĐỊNH Về việc phê duyệt quyết toán dự án hoàn thành Dự án: Xây dựng modul ký số khép kín và quản lý đo đếm trên chương trình giao nhận đầu nguồn.
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: Phụ lục
+Phụ lục IBẢNG TỔNG HỢP VỐN ĐẦU TƯ THỰC HIỆN
+
+ĐVT: Đồng
+
+Phụ lục II
+
+TÀI SẢN DÀI HẠN (CỐ ĐỊNH) MỚI TĂNG
+
+ĐVT: Đồng
+
+Phụ lục III
+
+TÌNH HÌNH THANH TOÁN VÀ CÁC KHOẢN CÔNG NỢ
+
+ĐVT: Đồng

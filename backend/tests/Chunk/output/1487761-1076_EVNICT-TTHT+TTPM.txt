@@ -1,0 +1,129 @@
+================================================================================
+id_vb        : 1487761
+ky_hieu      : 1076/EVNICT-TTHT+TTPM
+trich_yeu    : Thông báo kế hoạch cập nhật bản vá các hệ thống CNTT của EVN (Tháng 7/2026)
+noi_ban_hanh : Công ty Viễn thông Điện lực và Công nghệ thông tin
+ngay_vb      : 2026-06-25
+ten_file     : 20260624_Cong van thong bao cap nhat ban va he thong T7-2026.pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=234
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 1076/EVNICT-TTHT+TTPM
+Ngày văn bản: 25/06/2026
+Trích yếu: Thông báo kế hoạch cập nhật bản vá các hệ thống CNTT của EVN (Tháng 7/2026)
+Nơi ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Người ký: Vũ Thanh Tùng
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1245
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1076/EVNICT-TTHT+TTPM - Thông báo kế hoạch cập nhật bản vá các hệ thống CNTT của EVN (Tháng 7/2026)
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Mục: preamble
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM CÔNG TY VIỄN THÔNG ĐIỆN LỰC Độc lập Tự do Hạnh phúc VÀ CÔNG NGHỆ THÔNG TIN
+
+Hà Nội, ngày tháng 07 năm 2026 Số: 1076/EVNICT-TTHT+TTPM Số: / TB-EVNICT V/v thông báo kế hoạch cập nhật bản vá các
+
+hệ thống CNTT của EVN
+
+Kính gửi:
+
+- Tập đoàn Điện lực Việt Nam;
+
+- Công ty Vận hành hệ thống điện và thị trường điện Quốc Gia;
+
+- Tổng công ty Truyền tải điện quốc gia;
+
+- Các Tổng công ty Điện lực;
+
+- Các Tổng công ty Phát điện 1,2,3;
+
+- Các đơn vị hạch toán phụ thuộc EVN.
+
+Căn cứ Quyết định số 717/QĐ-EVN của Tập đoàn Điện lực Việt Nam ngày 31/05/2025 về việc ban hành Quy định Đảm bảo An ninh mạng và An toàn thông tin trong Tập đoàn Điện lực Việt Nam;
+
+Căn cứ vào hiện trạng các bản vá cần cập nhật đảm bảo an toàn, an ninh thông tin của các dịch vụ dùng chung của EVN.
+
+Công ty Viễn thông Điện lực và Công nghệ thông tin (EVNICT) kính thông báo Tập đoàn và các đơn vị về kế hoạch cập nhật bản vá cho các dịch vụ dùng chung của EVN trong tháng 07/2026 cụ thể như sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=A. Phạm vi thực hiện: | quality=pass | chars=486
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1076/EVNICT-TTHT+TTPM - Thông báo kế hoạch cập nhật bản vá các hệ thống CNTT của EVN (Tháng 7/2026)
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Mục: A. Phạm vi thực hiện:
+A. Phạm vi thực hiện:
+
+1. Hệ thống thông tin văn phòng số (Digital-Office):
+
+- Phần mềm D-Office.
+
+- Module/Phần mềm OCR, ECM tích hợp với phần mềm D-Office tại EVN.
+
+- Module/Dịch vụ tìm kiếm trong Doffice.
+
+- Module/Phần mềm Trục liên thông văn bản EVN.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=2. Hệ thống Quản lý nguồn nhân lực HRMS3.0. | quality=pass | chars=941
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 1076/EVNICT-TTHT+TTPM - Thông báo kế hoạch cập nhật bản vá các hệ thống CNTT của EVN (Tháng 7/2026)
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Công ty Viễn thông Điện lực và Công nghệ thông tin
+Mục: 2. Hệ thống Quản lý nguồn nhân lực HRMS3.0.
+2. Hệ thống Quản lý nguồn nhân lực HRMS3.0.
+
+3. Hệ thống Ứng dụng phục vụ người lao động trong Tập đoàn Điện lực Việt Nam (SmartEVN).
+
+B. Thời gian thực hiện:
+
+ Từ 17h ngày 18/07/2026 đến 12h ngày 19/07/2026;
+
+ Từ 17h ngày 25/07/2026 đến 12h ngày 26/07/2026.
+
+(Trong khoảng thời gian thực hiện cập nhật, các dịch vụ nêu trên có thể bị gián đoạn)
+
+- Mọi vấn đề cần hỗ trợ xin vui lòng liên hệ đầu mối EVNICT:
+
+ Ông Vũ Tiến Dũng - Trung tâm Phát triển Phần mềm - EVNICT
+
+(SĐT: 0963778668)
+
+ Ông Ngô Minh Tùng - Trung tâm Hạ tầng Viễn thông và CNTT - EVNICT
+
+(SĐT: 0966469889)
+
+EVNICT kính thông báo tới Tập đoàn và quý đơn vị để nắm được kế hoạch và công việc
+
+thực hiện.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=footer_signature | quality=pass | chars=157
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. GIÁM ĐỐC
+
+- Như trên;
+
+PHÓ GIÁM ĐỐC
+
+- Giám đốc (để b/c);
+
+- PGĐ Hiển;
+
+- TTANTT, KT, KH, TKDV (để p/h);
+
+- Lưu: VT, TTPM, TTHT.
+
+Vũ Thanh Tùng

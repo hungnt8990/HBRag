@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 import httpx
 
 from app.core.config import settings
+from app.services.retrieval.retrieval_shared import es_client_kwargs
 
 if TYPE_CHECKING:
     from app.services.security.security_acl_payload import AclSubject
@@ -175,7 +176,7 @@ class DofficeBm25DocumentStore:
         # nếu không cache sẽ là 1 round-trip ES thừa/văn bản, rất chậm khi ES tải nặng).
         if self._index_ready:
             return
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.head(f"{self.url}/{self.index_name}")
             if resp.status_code == 200:
                 self._index_ready = True
@@ -190,7 +191,7 @@ class DofficeBm25DocumentStore:
 
     async def delete_index(self) -> None:
         self._index_ready = False
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.delete(f"{self.url}/{self.index_name}")
         if resp.status_code not in (200, 404):
             raise RuntimeError(
@@ -229,7 +230,7 @@ class DofficeBm25DocumentStore:
         record["acl_deny"] = acl_deny
         if acl_ver:
             record["acl_ver"] = acl_ver
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.put(
                 f"{self.url}/{self.index_name}/_doc/{id_vb}",
                 content=json.dumps(record, ensure_ascii=False).encode("utf-8"),
@@ -255,7 +256,7 @@ class DofficeBm25DocumentStore:
         }
         if acl_ver:
             doc["acl_ver"] = acl_ver
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.post(
                 f"{self.url}/{self.index_name}/_update/{id_vb}",
                 content=json.dumps({"doc": doc}, ensure_ascii=False).encode("utf-8"),
@@ -270,7 +271,7 @@ class DofficeBm25DocumentStore:
             )
 
     async def delete_by_id_vb(self, id_vb: str) -> None:
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.delete(f"{self.url}/{self.index_name}/_doc/{id_vb}")
         if resp.status_code not in (200, 404):
             raise RuntimeError(
@@ -285,7 +286,7 @@ class DofficeBm25DocumentStore:
             "_source": ["id_vb"],
             "query": {"terms": {"id_vb": [str(v) for v in id_vb_list]}},
         }
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.post(f"{self.url}/{self.index_name}/_search", json=body)
         if resp.status_code == 404:
             return set()
@@ -325,7 +326,7 @@ class DofficeBm25DocumentStore:
             "_source": ["document_id", "id_vb", "ky_hieu", "trich_yeu", "tom_tat", "ngay_vb", "nam"],
             "query": {"bool": {"should": should, "minimum_should_match": 1, "filter": filters}},
         }
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.post(f"{self.url}/{self.index_name}/_search", json=body)
         if resp.status_code == 404:
             return []
@@ -404,7 +405,7 @@ class DofficeChunkBm25Store:
     async def ensure_index(self) -> None:
         if self._index_ready:
             return
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.head(f"{self.url}/{self.index_name}")
             if resp.status_code == 200:
                 self._index_ready = True
@@ -419,7 +420,7 @@ class DofficeChunkBm25Store:
 
     async def delete_index(self) -> None:
         self._index_ready = False
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.delete(f"{self.url}/{self.index_name}")
         if resp.status_code not in (200, 404):
             raise RuntimeError(
@@ -430,7 +431,7 @@ class DofficeChunkBm25Store:
         """Xoá MỌI chunk của 1 văn bản (idempotent trước khi ghi lại)."""
         await self.ensure_index()
         body = {"query": {"term": {"id_vb": str(id_vb)}}}
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.post(
                 f"{self.url}/{self.index_name}/_delete_by_query?conflicts=proceed",
                 content=json.dumps(body, ensure_ascii=False).encode("utf-8"),
@@ -456,7 +457,7 @@ class DofficeChunkBm25Store:
         if not lines:
             return
         body = "\n".join(lines) + "\n"
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.post(
                 f"{self.url}/_bulk",
                 content=body.encode("utf-8"),
@@ -481,10 +482,15 @@ class DofficeChunkBm25Store:
         top_n: int = 50,
         acl_subject: AclSubject | None = None,
         ensure: bool = True,
+        document_ids: set[str] | None = None,
         years: list[int] | None = None,
         months: list[int] | None = None,
     ) -> list[dict[str, Any]]:
-        """BM25 cấp chunk + lọc ACL cứng. Trả [{document_id,id_vb,chunk_id,chunk_text,_score,...}]."""
+        """BM25 cấp chunk + lọc ACL cứng. Trả [{document_id,id_vb,chunk_id,chunk_text,_score,...}].
+
+        ``document_ids``: giới hạn trong danh sách văn bản (``document_id``) — dùng cho chat trên
+        nhóm văn bản; ``None`` = không giới hạn (chỉ ACL).
+        """
         if ensure:
             await self.ensure_index()
         filters: list[dict[str, Any]] = []
@@ -494,6 +500,8 @@ class DofficeChunkBm25Store:
             clause = build_es_acl_filter_flat(acl_subject)
             if clause is not None:
                 filters.append(clause)
+        if document_ids:
+            filters.append({"terms": {"document_id": [str(d) for d in document_ids]}})
         if years:
             filters.append({"terms": {"nam": [int(y) for y in years]}})
         if months:

@@ -1,0 +1,231 @@
+================================================================================
+id_vb        : 1483200
+ky_hieu      : 27-KH/ĐU
+trich_yeu    : Kế hoạch triển khai 04 thủ tục hành chính của Đảng trên môi trường điện tử tại Đảng bộ Tổng công ty Điện lực miền Trung 
+
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-22
+ten_file     : CPC - 2026 - Ke hoach trien khai thu tuc HC tren moi truong dien tu.pdf
+TỔNG SỐ CHUNK: 13
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=251
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 27-KH/ĐU
+Ngày văn bản: 22/06/2026
+Trích yếu: Kế hoạch triển khai 04 thủ tục hành chính của Đảng trên môi trường điện tử tại Đảng bộ Tổng công ty Điện lực miền Trung 
+
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Nguyễn Bình Nam
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=806
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 27-KH/ĐU - Kế hoạch triển khai 04 thủ tục hành chính của Đảng trên môi trường điện tử tại Đảng bộ Tổng công ty Điện lực miền Trung
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: preamble
+ĐẢNG BỘ PHƯỜNG HÒA CƯỜNG ĐẢNG CỘNG SẢN VIỆT NAM ĐẢNG ỦY TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày tháng năm 2026 Số 27-KH/ĐU Số: -KH/ĐU
+
+KẾ HOẠCH
+
+triển khai 04 thủ tục hành chính của Đảng trên môi trường điện tử
+
+tại Đảng bộ Tổng công ty Điện lực miền Trung
+
+-----
+
+Thực hiện Kế hoạch số 125-KH/ĐU ngày 17/6/2026 của Đảng ủy Phường Hòa Cường về triển khai thực hiện 04 thủ tục hành chính của Đảng trên môi trường điện tử tại Đảng bộ Phường Hòa Cường; Đảng ủy Tổng công ty Điện lực miền Trung ban hành Kế hoạch triển khai 04 thủ tục hành chính của Đảng, cụ thể như sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=I. MỤC ĐÍCH, YÊU CẦU | quality=pass | chars=924
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 27-KH/ĐU - Kế hoạch triển khai 04 thủ tục hành chính của Đảng trên môi trường điện tử tại Đảng bộ Tổng công ty Điện lực miền Trung
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: I. MỤC ĐÍCH, YÊU CẦU
+I. MỤC ĐÍCH, YÊU CẦU
+
+1. Tổ chức tuyên truyền, quán triệt và triển khai thực hiện nghiêm túc, hiệu quả 04 thủ tục hành chính (TTHC) của Đảng trên môi trường điện tử theo Kế hoạch của Đảng ủy Phường Hòa Cường, bao gồm: (1) Chuyển sinh hoạt đảng chính thức; (2) Chuyển sinh hoạt đảng tạm thời; (3) Thu, nộp đảng phí; (4) Lấy ý kiến nhận xét của chi ủy, chi bộ nơi cư trú đối với đảng viên đang công tác.
+
+2. Quá trình triển khai 04 TTHC của Đảng trên môi trường điện tử phải được thực hiện đồng bộ, đúng tiến độ, đúng đối tượng và phải bảo đảm tính liên tục trong công tác nghiệp vụ; tuân thủ nghiêm Quy định số 338-QĐ/TW và các quy định về bảo vệ bí mật nhà nước, an toàn thông tin.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=3. Người đứng đầu cấp ủy, cơ quan, đơn vị, trực tiếp lãnh đạo, chỉ đạo và chịu trách nhiệm nếu để xảy ra chậm trễ, gây ảnh hưởng đến tiến độ chung. | quality=pass | chars=712
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 27-KH/ĐU - Kế hoạch triển khai 04 thủ tục hành chính của Đảng trên môi trường điện tử tại Đảng bộ Tổng công ty Điện lực miền Trung
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 3. Người đứng đầu cấp ủy, cơ quan, đơn vị, trực tiếp lãnh đạo, chỉ đạo và chịu trách nhiệm nếu để xảy ra chậm trễ, gây ảnh hưởng đến tiến độ chung.
+3. Người đứng đầu cấp ủy, cơ quan, đơn vị, trực tiếp lãnh đạo, chỉ đạo và chịu trách nhiệm nếu để xảy ra chậm trễ, gây ảnh hưởng đến tiến độ chung.
+
+4. Thực hiện nghiêm túc chế độ thông tin, báo cáo, đánh giá định kỳ, đột xuất; kịp thời phối hợp, đề xuất tháo gỡ vướng mắc, cập nhật, hoàn thiện quy trình, phần mềm trong quá trình triển khai.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_section | section=II. NỘI DUNG VÀ THỜI GIAN THỰC HIỆN | quality=pass | chars=2380
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 27-KH/ĐU - Kế hoạch triển khai 04 thủ tục hành chính của Đảng trên môi trường điện tử tại Đảng bộ Tổng công ty Điện lực miền Trung
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: II. NỘI DUNG VÀ THỜI GIAN THỰC HIỆN
+II. NỘI DUNG VÀ THỜI GIAN THỰC HIỆN
+
+1. Rà soát, cập nhật, chuẩn hóa thông tin trên Cơ sở dữ liệu đảng viên 4.0, tập huấn và hỗ trợ triển khai thực hiện Tổ chức rà soát, chuẩn hóa thông tin tổ chức đảng, đảng viên thuộc phạm vi quản lý; phân loại chính xác loại hình tổ chức đảng (chi bộ cơ sở, đảng bộ cơ sở, đảng bộ bộ phận, chi bộ trực thuộc,...); cập nhật đầy đủ, chính xác, đồng bộ thông tin về họ tên, ngày sinh, đơn vị công tác, nơi cư trú, chức vụ, cấp ủy quản lý và các dữ liệu cần thiết khác phục vụ việc tạo lập, sử dụng tài khoản và xử lý thủ tục hành chính của Đảng trên môi trường điện tử; đối soát dữ liệu đảng viên trên Cơ sở dữ liệu đảng viên 4.0; bảo đảm dữ liệu "đúng, đủ, sạch, sống, thống nhất, dùng chung", đồng bộ với hệ thống thực hiện thủ tục hành chính của Đảng.
+
+- Đơn vị chủ trì, chỉ đạo: Ban Tổ chức Đảng ủy, Ban Tuyên giáo Đảng ủy, thực hiện theo chức năng, nhiệm vụ được giao.
+
+- Đơn vị phối hợp, thực hiện: Văn phòng Đảng ủy, các chi bộ trực thuộc Đảng bộ Tổng công ty, chi bộ trực thuộc các đảng bộ.
+
+- Thời gian hoàn thành: Thường xuyên.
+
+2. Rà soát, phân quyền tài khoản và bảo đảm các điều kiện kỹ thuật phục vụ triển khai thủ tục hành chính của Đảng trên môi trường điện tử Rà soát, phân quyền tài khoản quản trị cho các tổ chức đảng trực thuộc, tài khoản cán bộ xử lý thủ tục hành chính trên môi trường điện tử; thực hiện khai báo tài khoản ngân hàng trên hệ thống theo quy định. Đồng thời rà soát, bảo đảm hạ tầng kỹ thuật, đường truyền, thiết bị, chữ ký số chuyên dùng công vụ và thực hiện cài đặt cấu hình phần mềm, công cụ cần thiết để phục vụ việc tiếp nhận, giải quyết thủ tục hành chính của Đảng trên môi trường điện tử.
+
+- Đơn vị chủ trì, chỉ đạo: Văn phòng Đảng ủy.
+
+- Đơn vị phối hợp, thực hiện: Ban Tổ chức Đảng ủy, Ban Tuyên giáo Đảng ủy, Ban VTCNTT EVNCPC, Công ty Công nghệ thông tin Điện lực miền Trung và các cơ quan, đơn vị có liên quan.
+
+- Thời gian hoàn thành: Thường xuyên.
+
+(Lưu ý: các tài khoản ngân hàng phải được cấu hình bằng tài khoản được ngân hàng đăng ký cho tổ chức đảng, không sử dụng tài khoản cá nhân hoặc tài khoản của kho bạc để thực hiện cấu hình).
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=document_section | section=3. Tập huấn, hướng dẫn sử dụng | quality=pass | chars=818
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 27-KH/ĐU - Kế hoạch triển khai 04 thủ tục hành chính của Đảng trên môi trường điện tử tại Đảng bộ Tổng công ty Điện lực miền Trung
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 3. Tập huấn, hướng dẫn sử dụng
+3. Tập huấn, hướng dẫn sử dụng
+
+Tham gia và tổ chức các lớp tập huấn trực tuyến, trực tiếp để hướng dẫn triển khai 04 TTHC của Đảng trên môi trường điện tử cho các cán bộ phụ trách các thủ tục hành chính của các chi bộ.
+
+- Đơn vị chủ trì, chỉ đạo: Văn phòng Đảng ủy, Ban Tổ chức Đảng ủy, Ban Tuyên giáo Đảng ủy, thực hiện theo chức năng, nhiệm vụ được giao.
+
+- Đơn vị phối hợp, thực hiện: Các chi bộ trực thuộc Đảng bộ Tổng công ty, chi bộ trực thuộc các đảng bộ.
+
+- Thời gian hoàn thành: Theo Kế hoạch tập huấn của Đảng ủy Phường Hòa Cường và Đảng ủy Tổng công ty.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #6
+chunk_type=document_section | section=III. LỘ TRÌNH THỰC HIỆN | quality=pass | chars=580
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 27-KH/ĐU - Kế hoạch triển khai 04 thủ tục hành chính của Đảng trên môi trường điện tử tại Đảng bộ Tổng công ty Điện lực miền Trung
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: III. LỘ TRÌNH THỰC HIỆN
+III. LỘ TRÌNH THỰC HIỆN
+
+1. Giai đoạn chuẩn bị
+
+Từ nay đến ngày 30/6/2026, tập trung thực hiện các nhiệm vụ quán triệt, tuyên truyền, rà soát, chuẩn hóa dữ liệu đảng viên, dữ liệu tổ chức đảng; cập nhật tài khoản quản trị, tài khoản cán bộ xử lý; rà soát tài khoản ngân hàng, chữ ký số, hạ tầng kỹ thuật và các điều kiện đảm bảo khác.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #7
+chunk_type=document_section | section=2. Giai đoạn triển khai chính thức | quality=pass | chars=763
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 27-KH/ĐU - Kế hoạch triển khai 04 thủ tục hành chính của Đảng trên môi trường điện tử tại Đảng bộ Tổng công ty Điện lực miền Trung
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 2. Giai đoạn triển khai chính thức
+2. Giai đoạn triển khai chính thức
+
+Từ ngày 01/7/2026 đến ngày 30/11/2026, tổ chức triển khai thực hiện chính thức 04 TTHC của Đảng trên môi trường điện tử trong toàn Đảng bộ Phường, Đảng bộ Tổng công ty; tập trung đôn đốc hỗ trợ các đơn vị gặp khó khăn; theo dõi đánh giá tiến độ, chất lượng thực hiện; kịp thời xử lý hoặc đề xuất xử lý các vấn đề phát sinh trong quá trình triển khai thực hiện.
+
+Từ tháng 12/2026, 04 TTHC được triển khai hoàn toàn trên môi trường điện tử trong toàn Đảng bộ Tổng công ty.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #8
+chunk_type=document_section | section=IV. TỔ CHỨC THỰC HIỆN | quality=pass | chars=1141
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 27-KH/ĐU - Kế hoạch triển khai 04 thủ tục hành chính của Đảng trên môi trường điện tử tại Đảng bộ Tổng công ty Điện lực miền Trung
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: IV. TỔ CHỨC THỰC HIỆN
+IV. TỔ CHỨC THỰC HIỆN
+
+1. Văn phòng Đảng ủy
+
+- Chủ trì, phối hợp với các đơn vị liên quan tổ chức triển khai kế hoạch số 125-KH/ĐU ngày 17/6/2026 của Đảng ủy Phường Hòa Cường. Phối hợp với Ban Tổ chức Đảng ủy, Ban Tuyên giáo Đảng ủy tổ chức tập huấn, hướng dẫn triển khai, thực hiện 04 TTHC của Đảng trên môi trường điện tử đảm bảo đồng bộ, hiệu quả.
+
+- Hướng dẫn, kiểm tra, đôn đốc việc thực hiện của cấp ủy, tổ chức đảng trực thuộc. Tham mưu chuẩn bị đầy đủ các điều kiện về hạ tầng kỹ thuật, bảo đảm an toàn thông tin và các điều kiện cần thiết khác phục vụ triển khai 04 TTHC đúng tiến độ, chất lượng theo Kế hoạch.
+
+- Theo dõi, đôn đốc việc triển khai thực hiện; định kỳ, đột xuất tổng hợp, báo cáo kết quả triển khai cho Đảng ủy Phường Hòa Cường theo yêu cầu.
+
+- Phối hợp với Ban Tổ chức Đảng ủy, Ban Tuyên giáo Đảng ủy và các cơ quan, đơn vị, tổng kết, báo cáo kết quả triển khai thực hiện.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #9
+chunk_type=document_section | section=2. Ban Tổ chức Đảng ủy, Ban Tuyên giáo Đảng ủy | quality=pass | chars=1003
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 27-KH/ĐU - Kế hoạch triển khai 04 thủ tục hành chính của Đảng trên môi trường điện tử tại Đảng bộ Tổng công ty Điện lực miền Trung
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 2. Ban Tổ chức Đảng ủy, Ban Tuyên giáo Đảng ủy
+2. Ban Tổ chức Đảng ủy, Ban Tuyên giáo Đảng ủy
+
+- Chủ trì, hướng dẫn cho các cấp ủy về nghiệp vụ tổ chức đảng, đảng viên để thực hiện TTHC của Đảng trên môi trường điện tử theo đúng quy định.
+
+- Chủ trì, hướng dẫn, đôn đốc và kiểm tra việc quản lý, cập nhật, chuẩn hoá dữ liệu đảng viên trong toàn Đảng bộ; bảo đảm dữ liệu đảng viên "đúng, đủ, sạch, sống, thống nhất, dùng chung" và đồng bộ trên các hệ thống thông tin dùng chung.
+
+- Định kỳ rà soát, đánh giá chất lượng dữ liệu đảng viên; chỉ đạo việc làm sạch, cập nhật, hoàn thiện dữ liệu nhằm đáp ứng yêu cầu chuyển đổi số và cải cách TTHC của Đảng.
+
+- Phối hợp với Văn phòng Đảng ủy trong việc hướng dẫn, hỗ trợ sử dụng, kiểm tra và báo cáo đánh giá kết quả triển khai thực hiện.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #10
+chunk_type=document_section | section=3. Các cấp ủy, tổ chức đảng trực thuộc Đảng bộ Tổng công ty | quality=pass | chars=1306
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 27-KH/ĐU - Kế hoạch triển khai 04 thủ tục hành chính của Đảng trên môi trường điện tử tại Đảng bộ Tổng công ty Điện lực miền Trung
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 3. Các cấp ủy, tổ chức đảng trực thuộc Đảng bộ Tổng công ty
+3. Các cấp ủy, tổ chức đảng trực thuộc Đảng bộ Tổng công ty
+
+- Tổ chức quán triệt, tuyên truyền và triển khai thực hiện nghiêm túc Quy định số 338-QĐ/TW; lồng ghép nội dung thực hiện 04 TTHC của Đảng trên môi trường điện tử trong sinh hoạt cấp ủy, chi bộ. Đăng ký thông tin tài khoản ngân hàng đảm bảo theo quy định.
+
+- Tham gia tập huấn đầy đủ, đúng thành phần khi Đảng ủy Tổng công ty tổ chức Hội nghị tập huấn; đồng thời hướng dẫn, hỗ trợ đảng viên, nhất là đảng viên cao tuổi hoặc hạn chế về công nghệ thông tin, thực hiện các TTHC của Đảng trên môi trường điện tử. Chủ động rà soát, đôn đốc, bảo đảm 100% đảng viên đủ điều kiện tham gia sử dụng hệ thống; chỉ đạo đảng viên cài đặt, đăng ký và sử dụng tài khoản định danh điện tử VNeID mức độ 2 theo quy định.
+
+- Chi ủy, bí thư chi bộ chịu trách nhiệm kiểm tra, phê duyệt hồ sơ thuộc thẩm quyền; thường xuyên theo dõi, đánh giá tình hình thực hiện, thực hiện chế độ báo cáo cáo định kỳ, đột xuất và kịp thời phản ánh những khó khăn, vướng mắc trong quá trình triển khai.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #11
+chunk_type=document_section | section=4. Chế độ thông tin báo cáo | quality=pass | chars=592
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 27-KH/ĐU - Kế hoạch triển khai 04 thủ tục hành chính của Đảng trên môi trường điện tử tại Đảng bộ Tổng công ty Điện lực miền Trung
+Ngày ban hành: 22/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+Mục: 4. Chế độ thông tin báo cáo
+4. Chế độ thông tin báo cáo
+
+Báo cáo kết quả thực hiện hồ sơ trên cổng giải quyết thủ tục hành chính của Đảng vào ngày 20 hàng tháng, bắt đầu tháng 7/2026 . (Mẫu 2-BCTTHC).
+
+Trong quá trình triển khai thực hiện, nếu có khó khăn, vướng mắc, các đơn vị kịp thời phản ánh về Đảng ủy Tổng công ty (qua Ban Tổ chức Đảng ủy)
+
+để theo dõi, hỗ trợ./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #12
+chunk_type=footer_signature | quality=pass | chars=172
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: T/MĐẢNG ỦY
+
+- Đảng ủy P. Hòa Cường (báo cáo), PHÓ BÍ THƯ
+
+- Ban TMGV ĐU,
+
+- Các cấp ủy trực thuộc,
+
+- Ban VTCNTT EVNCPC, CPCIT,
+
+- Lưu: VT, TCĐU.
+
+Nguyễn Bình Nam

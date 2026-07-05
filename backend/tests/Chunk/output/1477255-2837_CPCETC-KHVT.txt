@@ -1,0 +1,85 @@
+================================================================================
+id_vb        : 1477255
+ky_hieu      : 2837/CPCETC-KHVT
+trich_yeu    : V/v kết quả thực hiện các hợp đồng xây lắp với EVNCPC và các đơn vị thành viên thuộc EVNCPC, gói thầu 26GT-12: Cung cấp vật liệu và thi công xây dựng công trình
+noi_ban_hanh : Công ty TNHH MTV Thí nghiệm điện miền Trung
+ngay_vb      : 2026-06-17
+ten_file     : 1. Kết quả thực hiện hợp đồng với CPC.pdf
+TỔNG SỐ CHUNK: 5
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=305
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 2837/CPCETC-KHVT
+Ngày văn bản: 17/06/2026
+Trích yếu: V/v kết quả thực hiện các hợp đồng xây lắp với EVNCPC và các đơn vị thành viên thuộc EVNCPC, gói thầu 26GT-12: Cung cấp vật liệu và thi công xây dựng công trình
+Nơi ban hành: Công ty TNHH MTV Thí nghiệm điện miền Trung
+Người ký: Lê Văn Ngân
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=2235
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 2837/CPCETC-KHVT - V/v kết quả thực hiện các hợp đồng xây lắp với EVNCPC và các đơn vị thành viên thuộc EVNCPC, gói thầu 26GT-12: Cung cấp vật liệu và thi công xây dựng công trình
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Công ty TNHH MTV Thí nghiệm điện miền Trung
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY TNHH MTV THÍ NGHIỆM ĐIỆN MIỀN TRUNG
+
+Số: 2837/CPCETC-KHVT Đà Nẵng, ngày 17 tháng 6 năm 2026 V/v kết quả thực hiện các hợp đồng xây lắp với EVNCPC và các đơn vị thành viên thuộc EVNCPC.
+
+Kính gửi:
+
+- Tổng công ty Điện lực miền Trung (EVNCPC);
+
+- Các đơn vị thành viên EVNCPC.
+
+Tổ chuyên gia đấu thầu thuộc Công ty TNHH MTV Thí nghiệm điện miền Trung (ETC) đang tiến hành đánh giá E-HSDT của các Nhà thầu tham dự gói thầu 26GT-12: Cung cấp vật liệu và thi công xây dựng công trình thuộc Dự án: Lam che nắng và vách trang trí nhà B.
+
+Theo E-HSMT được ETC phê duyệt, có nội dung yêu cầu đánh giá kết quả thực hiện hợp đồng trước đó của nhà thầu đối với các hợp đồng thực hiện theo Nghị định 63/2014/NĐ-CP ngày 26/6/2014 là: "Trong vòng 36 tháng tính đến tháng có thời điểm đóng thầu, nhà thầu có từ 03 hợp đồng trở lên bị EVNCPC hoặc/và các đơn vị thành viên EVNCPC thông báo bằng văn bản không đạt tiến độ hoặc chất lượng hàng hóa không đảm bảo (kèm biên bản làm việc với nhà thầu hoặc báo cáo của tư vấn giám sát)" thì sẽ được đánh giá là không đáp ứng về Uy tín của Nhà thầu.
+
+Hiện nay, Tổ chuyên gia đang đánh giá E-HSDT của các Nhà thầu như danh sách kèm theo. Để có cơ sở đánh giá, ETC kính đề nghị EVNCPC và các đơn vị thành viên thuộc EVNCPC hỗ trợ cung cấp nội dung sau: các văn bản thông báo Nhà thầu không đạt tiến độ hoặc chất lượng hàng hóa không đảm bảo kể từ tháng 6/2023 về sau (kèm biên bản làm việc với Nhà thầu hoặc báo cáo của tư vấn giám sát) .
+
+ETC kính mong nhận được thông tin phản hồi từ các đơn vị thành viên thuộc EVNCPC trước 13h30 ngày 19/6/2026. Sau thời gian này, trường hợp ETC chưa nhận được phản hồi thì được hiểu là các quý đơn vị không có các văn bản thông báo Nhà thầu không đạt tiến độ hoặc chất lượng hàng hóa không đảm bảo như nội dung nêu trên.
+
+Rất mong sự quan tâm phối hợp của các đơn vị thành viên.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=91
+────────────────────────────────────────────────────────────────────────────────
+KT. GIÁM ĐỐC Nơi nhận:
+
+- Như trên; PHÓ GIÁM ĐỐC
+
+- Tổ ĐTXD;
+
+- Lưu: VT, KHVT.
+
+Lê Văn Ngân
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=table | section=Phụ lục: Danh sách nhà thầu cần cung cấp văn bản thông báo không đạt tiến độ hoặc chất lượng hàng hóa không đảm bảo kể từ tháng 6/2023 về sau (kèm biên bản làm việc với Nhà thầu hoặc báo cáo của tư vấn giám sát) | table=Phụ lục: Danh sách nhà thầu cần cung cấp văn bản thông báo không đạt tiến độ hoặc chất lượng hàng hóa không đảm bảo kể từ tháng 6/2023 về sau (kèm biên bản làm việc với Nhà thầu hoặc báo cáo của tư vấn giám sát) | quality=pass | chars=628
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 2837/CPCETC-KHVT - V/v kết quả thực hiện các hợp đồng xây lắp với EVNCPC và các đơn vị thành viên thuộc EVNCPC, gói thầu 26GT-12: Cung cấp vật liệu và thi công xây dựng công trình
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Công ty TNHH MTV Thí nghiệm điện miền Trung
+Bảng: Phụ lục: Danh sách nhà thầu cần cung cấp văn bản thông báo không đạt tiến độ hoặc chất lượng hàng hóa không đảm bảo kể từ tháng 6/2023 về sau (kèm biên bản làm việc với Nhà thầu hoặc báo cáo của tư vấn giám sát)
+| STT | Tên nhà thầu |
+| --- | --- |
+| 1. | Công ty TNHH Thương mại dịch vụ Nam Tùng Lâm |
+| 2. | Công ty cổ phần Xây dựng Anh Tiến |
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_body | section=Phụ lục | artifact=appendix | quality=pass | chars=501
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 2837/CPCETC-KHVT - V/v kết quả thực hiện các hợp đồng xây lắp với EVNCPC và các đơn vị thành viên thuộc EVNCPC, gói thầu 26GT-12: Cung cấp vật liệu và thi công xây dựng công trình
+Ngày ban hành: 17/06/2026
+Cơ quan ban hành: Công ty TNHH MTV Thí nghiệm điện miền Trung
+Mục: Phụ lục
+Phụ lục: Danh sách nhà thầu cần cung cấp văn bản thông báo không đạt tiến độ hoặc chất lượng hàng hóa không đảm bảo kể từ tháng 6/2023 về sau (kèm biên bản làm việc với Nhà thầu hoặc báo cáo của tư vấn giám sát)

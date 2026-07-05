@@ -1,0 +1,121 @@
+================================================================================
+id_vb        : 1479791
+ky_hieu      : 662/IT-ĐT+KTMVT
+trich_yeu    : V/v cung cấp thông tin để triển khai thực hiện hợp đồng gói thầu CORE2026-01.HH
+noi_ban_hanh : Công ty CNTT Điện lực miền Trung
+ngay_vb      : 2026-06-18
+ten_file     : IT_Cung cap thong tin thuc hien hop dong goi thau CORE2026.pdf
+TỔNG SỐ CHUNK: 6
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=215
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 662/IT-ĐT+KTMVT
+Ngày văn bản: 18/06/2026
+Trích yếu: V/v cung cấp thông tin để triển khai thực hiện hợp đồng gói thầu CORE2026-01.HH
+Nơi ban hành: Công ty CNTT Điện lực miền Trung
+Người ký: Trần Khắc Tuấn
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=1088
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 662/IT-ĐT+KTMVT - V/v cung cấp thông tin để triển khai thực hiện hợp đồng gói thầu CORE2026-01.HH
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: preamble
+TỔNG CÔNG TY CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM ĐIỆN LỰC MIỀN TRUNG Độc lập - Tự do - Hạnh phúc CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG
+
+Đà Nẵng, ngày 18 tháng 6 năm 2026 Số: 662/IT-ĐT+KTMVT
+
+V/v cung cấp thông tin để triển khai thực hiện hợp đồng gói thầu CORE2026-01.HH
+
+Kính gửi: Tập đoàn Công nghiệp - Viễn thông Quân đội
+
+Căn cứ Hợp đồng số HD2600122666_2605281449 ngày 05/6/2026 giữa Công ty Công nghệ thông tin Điện lực miền Trung và Tập đoàn Công nghiệp - Viễn thông Quân đội để thực hiện gói thầu CORE2026-01.HH: Cung cấp, triển khai dịch vụ kỹ thuật Hệ thống Core Firewall thuộc dự án Đầu tư nâng cao năng lực hệ thống mạng Core tại vị trí dự phòng TTDL năm 2026.
+
+Phúc đáp công văn số 15989/CNVTQĐ-DNG ngày 16/6/2026 của Tập đoàn Công nghiệp - Viễn thông Quân đội về việc cung cấp thông tin End-User để triển khai thực hiện hợp đồng, CPCIT cung cấp các thông tin như sau:
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=1. Thông tin Enduser: | quality=pass | chars=458
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 662/IT-ĐT+KTMVT - V/v cung cấp thông tin để triển khai thực hiện hợp đồng gói thầu CORE2026-01.HH
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: 1. Thông tin Enduser:
+1. Thông tin Enduser:
+
+- Tên tiếng Việt: CÔNG TY CÔNG NGHỆ THÔNG TIN ĐIỆN LỰC MIỀN TRUNG - TỔNG CÔNG TY ĐIỆN LỰC MIỀN TRUNG.
+
+- Tên giao dịch tiếng Anh: INFORMATION TECHNOLOGY COMPANY OF CENTRAL POWER CORPORATION.
+
+- Tên giao dịch viết tắt: CPCIT.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=document_section | section=2. Địa chỉ trụ sở chính : 393 Trưng Nữ Vương - Phường Hòa Cường - Thành phố Đà Nẵng. | quality=pass | chars=848
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 662/IT-ĐT+KTMVT - V/v cung cấp thông tin để triển khai thực hiện hợp đồng gói thầu CORE2026-01.HH
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: 2. Địa chỉ trụ sở chính : 393 Trưng Nữ Vương - Phường Hòa Cường - Thành phố Đà Nẵng.
+2. Địa chỉ trụ sở chính : 393 Trưng Nữ Vương - Phường Hòa Cường - Thành phố Đà Nẵng.
+
+3. Thông tin tài khoản email để gửi thông tin license : ktmvt.it@cpc.vn
+
+4. Thông tin tài khoản Portal:
+
+Về tổ chức:
+
+- Tên Công ty: Công ty Công nghệ thông tin Điện lực miền Trung - Tổng công ty Điện lực miền Trung.
+
+- Địa chỉ: 393 Trưng Nữ Vương - Phường Hòa Cường - Thành phố Đà Nẵng.
+
+- Số điện thoại Công ty: 0236 2220803.
+
+Về cá nhân:
+
+- Họ và tên: Tôn Thất Thanh Tùng.
+
+- Chức vụ: Trưởng phòng Kỹ thuật và Mạng viễn thông.
+
+- Số điện thoại: 0969 996 994.
+
+- Email: ktmvt.it@cpc.vn.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #4
+chunk_type=document_section | section=5. Thông tin tên người đại diện tiếp nhận thông tin license: | quality=pass | chars=446
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 662/IT-ĐT+KTMVT - V/v cung cấp thông tin để triển khai thực hiện hợp đồng gói thầu CORE2026-01.HH
+Ngày ban hành: 18/06/2026
+Cơ quan ban hành: Công ty CNTT Điện lực miền Trung
+Mục: 5. Thông tin tên người đại diện tiếp nhận thông tin license:
+5. Thông tin tên người đại diện tiếp nhận thông tin license:
+
+- Họ và tên: Tôn Thất Thanh Tùng.
+
+- Chức vụ: Trưởng phòng Kỹ thuật và Mạng viễn thông.
+
+- Số điện thoại: 0969 996 994.
+
+Trân trọng./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #5
+chunk_type=footer_signature | quality=pass | chars=89
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: GIÁM ĐỐC
+
+- Như trên;
+
+- PGĐ Công ty;
+
+- KTMVT;
+
+- Lưu: VT, ĐT.
+
+Trần Khắc Tuấn

@@ -12,6 +12,7 @@ from uuid import UUID
 import httpx
 
 from app.core.config import settings
+from app.services.retrieval.retrieval_shared import es_client_kwargs
 from app.schemas.documents import KeywordSearchResponse, KeywordSearchResult
 from app.services.security.security_access_control import AccessFilter
 from app.services.retrieval.retrieval_keyword_search import KeywordSearchService
@@ -144,7 +145,7 @@ class ElasticsearchKeywordStore:
         if not self.url or not self.index_name:
             raise ElasticsearchKeywordError("Elasticsearch URL/index is not configured.")
 
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             response = await client.head(f"{self.url}/{self.index_name}")
             if response.status_code == 404:
                 create_response = await client.put(
@@ -175,7 +176,7 @@ class ElasticsearchKeywordStore:
         await self.ensure_index()
         texts = embedding_texts or [None] * len(chunks)
         indexed = 0
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             for batch_start in range(0, len(chunks), max(1, self.batch_size)):
                 batch_chunks = chunks[batch_start : batch_start + self.batch_size]
                 batch_texts = texts[batch_start : batch_start + self.batch_size]
@@ -231,7 +232,7 @@ class ElasticsearchKeywordStore:
         if tenant_id is not None:
             filters.append({"term": {"tenant_id": str(tenant_id)}})
         query = {"query": {"bool": {"filter": filters}}}
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             response = await client.post(
                 f"{self.url}/{self.index_name}/_delete_by_query",
                 json=query,
@@ -263,7 +264,7 @@ class ElasticsearchKeywordStore:
             "query": {"bool": {"filter": filters}},
             "script": {"source": script_source, "params": dict(acl_payload), "lang": "painless"},
         }
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             # Refresh trước để các chunk vừa bulk-index hiển thị cho update_by_query.
             await client.post(f"{self.url}/{self.index_name}/_refresh")
             response = await client.post(
@@ -430,7 +431,7 @@ class ElasticsearchKeywordSearchService:
             payload = self._build_query(
                 query=query, top_k=top_k, document_ids=document_ids, acl_subject=acl_subject
             )
-            async with httpx.AsyncClient(timeout=self._store.timeout_seconds) as client:
+            async with httpx.AsyncClient(**es_client_kwargs(self._store.timeout_seconds)) as client:
                 response = await client.post(
                     f"{self._store.url}/{self._store.index_name}/_search",
                     json=payload,

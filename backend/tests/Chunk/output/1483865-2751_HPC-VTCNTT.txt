@@ -1,0 +1,95 @@
+================================================================================
+id_vb        : 1483865
+ky_hieu      : 2751/HPC-VTCNTT
+trich_yeu    : Cấp phát hạ tầng kỹ thuật kết nối các điện thoại nội bộ đến các TBA 110kV
+noi_ban_hanh : Công ty Điện lực Huế
+ngay_vb      : 2026-06-23
+ten_file     : 26.06.HPC thiet lap kenh truyen SIP PHONE tai cac TBA110kV.pdf
+TỔNG SỐ CHUNK: 4
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=194
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 2751/HPC-VTCNTT
+Ngày văn bản: 23/06/2026
+Trích yếu: Cấp phát hạ tầng kỹ thuật kết nối các điện thoại nội bộ đến các TBA 110kV
+Nơi ban hành: Công ty Điện lực Huế
+Người ký: Lê Đức Dũng
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_preamble | section=preamble | quality=pass | chars=644
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 2751/HPC-VTCNTT - Cấp phát hạ tầng kỹ thuật kết nối các điện thoại nội bộ đến các TBA 110kV
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Công ty Điện lực Huế
+Mục: preamble
+TỔNG CÔNG TY CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+CÔNG TY ĐIỆN LỰC HUẾ
+
+Thành phố Huế, ngày 23 tháng 6 năm 2026 Huế, ngày
+
+Số: 2751/HPC-VTCNTT V/v cấp phát hạ tầng kỹ thuật kết nối các điện thoại nội bộ đến các TBA 110kV
+
+Kính gửi: Tổng công ty Điện lực miền Trung
+
+Trong năm 2025, Công ty Điện lực Huế đã trang bị 03 điện thoại SIP Phone nội
+
+bộ theo yêu cầu của EVNCPC tại TTĐK, TBA 110kV Điền Lộc và TBA 110kV Huế
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=document_section | section=3. Qua vận hành, các thiết bị đã phát huy hiệu quả trong kết nối thông tin giữa các | quality=pass | chars=1146
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 2751/HPC-VTCNTT - Cấp phát hạ tầng kỹ thuật kết nối các điện thoại nội bộ đến các TBA 110kV
+Ngày ban hành: 23/06/2026
+Cơ quan ban hành: Công ty Điện lực Huế
+Mục: 3. Qua vận hành, các thiết bị đã phát huy hiệu quả trong kết nối thông tin giữa các
+3. Qua vận hành, các thiết bị đã phát huy hiệu quả trong kết nối thông tin giữa các
+
+TBA 110kV và TTĐK, đặc biệt trong thời gian mưa bão, hỗ trợ kịp thời công tác
+
+điều hành và xử lý sự cố.
+
+Căn cứ kiến nghị của Đoàn kiểm tra công tác PCTT&TKCN EVNCPC năm
+
+2026 về việc tiếp tục trang bị các điện thoại SIP Phone nhằm bảo đảm thông tin liên
+
+lạc phục vụ công tác vận hành tại các TBA 110kV còn lại.
+
+Nhằm bảo đảm thông tin liên lạc trong công tác quản lý vận hành, đặc biệt đối
+
+với các TBA 110kV vận hành theo chế độ không người trực, Công ty Điện lực Huế
+
+kính đề nghị EVNCPC xem xét, hỗ trợ cấp phát hạ tầng kỹ thuật để kết nối điện
+
+thoại nội bộ tại các TBA 110kV còn lại, gồm tài nguyên kênh truyền dẫn và đầu số
+
+điện thoại nội bộ để Công ty Điện lực Huế triển khai đấu nối, đưa vào sử dụng.
+
+Công ty Điện lực Huế kính báo cáo Tổng công ty xem xét, hỗ trợ.
+
+Trân trọng./.
+
+KT. GIÁ MĐÔC
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #3
+chunk_type=footer_signature | quality=pass | chars=100
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: PHÓ GIÁM ĐỐC
+
+- Như trên;
+
+- CPCIT;
+
+- KT, ĐĐ;
+
+- Lưu: VT, VTCNTTANHTTTLưu:VT
+
+Lê Đức Dũng

@@ -1,0 +1,66 @@
+================================================================================
+id_vb        : 1487321
+ky_hieu      : 3874/EVNCPC-VTCNTT
+trich_yeu    :  Cập nhật phiên bản DO, SmartEVN Ver 2.4.0 và các dịch vụ dùng chung
+noi_ban_hanh : Tổng công ty Điện lực miền Trung
+ngay_vb      : 2026-06-25
+ten_file     : 20262624-capnhat-smartEVN.pdf
+TỔNG SỐ CHUNK: 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #0
+chunk_type=document_header | quality=pass | chars=211
+────────────────────────────────────────────────────────────────────────────────
+Số/ký hiệu: 3874/EVNCPC-VTCNTT
+Ngày văn bản: 25/06/2026
+Trích yếu:  Cập nhật phiên bản DO, SmartEVN Ver 2.4.0 và các dịch vụ dùng chung
+Nơi ban hành: Tổng công ty Điện lực miền Trung
+Người ký: Trần Nguyễn Bảo An
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #1
+chunk_type=document_body | quality=pass | chars=1146
+────────────────────────────────────────────────────────────────────────────────
+Văn bản: 3874/EVNCPC-VTCNTT - Cập nhật phiên bản DO, SmartEVN Ver 2.4.0 và các dịch vụ dùng chung
+Ngày ban hành: 25/06/2026
+Cơ quan ban hành: Tổng công ty Điện lực miền Trung
+TẬP ĐOÀN ĐIỆN LỰC VIỆT NAM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+
+TỔNG CÔNG TY Độc lập - Tự do - Hạnh phúc ĐIỆN LỰC MIỀN TRUNG
+
+Số: 3874/EVNCPC-VTCNTT Đà Nẵng, ngày 25 tháng 6 năm 2026 V/v Cập nhật phiên bản DO, SmartEVN Ver 2.4.0 và các dịch vụ dùng chung
+
+Kính gửi: Các đơn vị thành viên
+
+EVNCPC nhận được văn bản số 975/EVNICT-TTPM ngày 12/6/2026 của EVNICT về việc cập nhật phiên bản Digital Office, SmartEVN Ver 2.4.0 và các dịch vụ dùng chung (đính kèm).
+
+EVNCPC thông báo đến các đơn vị:
+
+- CPCIT: i) phối hợp EVNICT để nhật phiên bản mới; ii) hỗ trợ kịp thời người dùng trong quá trình sử dụng đảm bảo không ảnh hưởng đến nghiệp vụ hàng ngày; iii) có kế hoạch dừng DO để chuyển sang SmartEVN.
+
+- Các đơn vị: Phổ biến và hỗ trợ người dùng chuyển sử dụng từ DO sang SmartEVN. Hoàn thành trước 30/9/2026.
+
+(Hướng dẫn cài đặt và sử dụng SmartEVN tại các file kèm theo)
+
+Các đơn vị căn cứ thực hiện, kịp thời báo cáo vướng mắc (nếu có) về EVNCPC để xem xét, giải quyết./.
+
+────────────────────────────────────────────────────────────────────────────────
+### CHUNK #2
+chunk_type=footer_signature | quality=pass | chars=166
+────────────────────────────────────────────────────────────────────────────────
+Nơi nhận: KT. TỔNG GIÁM ĐỐC
+
+- Như trên; PHÓ TỔNG GIÁM ĐỐC
+
+- HĐTV (b/cáo);
+
+- TGĐ (b/cáo);
+
+- Các PTGĐ;
+
+- VP và các Ban TCT;
+
+- Lưu: VT, VTCNTT.
+
+Trần Nguyễn Bảo An

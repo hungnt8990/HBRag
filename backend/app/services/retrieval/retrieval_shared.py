@@ -26,6 +26,24 @@ _ES_CLIENTS: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, httpx.AsyncCl
 )
 
 
+def es_client_kwargs(timeout_seconds: float = _ES_CLIENT_TIMEOUT_S) -> dict[str, Any]:
+    """kwargs (timeout/auth/verify) cho httpx client gọi ES hệ thống.
+
+    Cluster ES mới (10.72.121.232) bật security: basic auth + cert self-signed. Đọc từ
+    settings ``elasticsearch_username/password/verify_ssl``; không đặt username -> giữ
+    hành vi cũ (không auth) cho ES http nội bộ/test.
+    """
+    from app.core.config import settings
+
+    kwargs: dict[str, Any] = {
+        "timeout": timeout_seconds,
+        "verify": settings.elasticsearch_verify_ssl,
+    }
+    if settings.elasticsearch_username:
+        kwargs["auth"] = (settings.elasticsearch_username, settings.elasticsearch_password or "")
+    return kwargs
+
+
 def get_es_http_client() -> httpx.AsyncClient:
     """Client HTTP (keep-alive) dùng chung cho các call ES trong event loop hiện tại."""
     loop = asyncio.get_running_loop()
@@ -33,7 +51,7 @@ def get_es_http_client() -> httpx.AsyncClient:
     # Test có thể patch httpx.AsyncClient bằng fake không có ``is_closed`` -> getattr.
     if client is None or getattr(client, "is_closed", False):
         client = httpx.AsyncClient(
-            timeout=_ES_CLIENT_TIMEOUT_S,
+            **es_client_kwargs(),
             limits=httpx.Limits(max_connections=50, max_keepalive_connections=20),
         )
         _ES_CLIENTS[loop] = client

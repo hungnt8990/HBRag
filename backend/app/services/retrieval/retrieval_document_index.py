@@ -18,6 +18,7 @@ from uuid import UUID
 import httpx
 
 from app.core.config import settings
+from app.services.retrieval.retrieval_shared import es_client_kwargs
 
 if TYPE_CHECKING:
     from app.services.security.security_acl_payload import AclSubject
@@ -143,7 +144,7 @@ class DocumentIndexStore:
         }
 
     async def ensure_index(self) -> None:
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.head(f"{self.url}/{self.index_name}")
             if resp.status_code == 200:
                 return
@@ -178,7 +179,7 @@ class DocumentIndexStore:
             lines.append(json.dumps({"index": {"_index": self.index_name, "_id": doc["document_id"]}}))
             lines.append(json.dumps(doc, ensure_ascii=False))
         body = "\n".join(lines) + "\n"
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.post(
                 f"{self.url}/_bulk",
                 content=body.encode("utf-8"),
@@ -216,7 +217,7 @@ class DocumentIndexStore:
             },
             ensure_ascii=False,
         )
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.post(
                 f"{self.url}/{self.index_name}/_update/{document_id}",
                 content=body.encode("utf-8"),
@@ -284,7 +285,7 @@ class DocumentIndexStore:
         if embedding is not None:
             record["embedding"] = embedding
 
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.put(
                 f"{self.url}/{self.index_name}/_doc/{document_id}",
                 content=json.dumps(record, ensure_ascii=False).encode("utf-8"),
@@ -303,7 +304,7 @@ class DocumentIndexStore:
         (404) -> coi như đã xóa 0 record.
         """
         body = {"query": {"term": {"id_vb": str(id_vb)}}}
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.post(
                 f"{self.url}/{self.index_name}/_delete_by_query",
                 json=body,
@@ -326,7 +327,7 @@ class DocumentIndexStore:
             "_source": ["id_vb"],
             "query": {"terms": {"id_vb": [str(v) for v in id_vb_list]}},
         }
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.post(f"{self.url}/{self.index_name}/_search", json=body)
             if resp.status_code == 404:
                 return set()
@@ -345,7 +346,7 @@ class DocumentIndexStore:
         import json
 
         body = json.dumps({"doc": {"embedding": embedding}})
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.post(
                 f"{self.url}/{self.index_name}/_update/{document_id}",
                 content=body.encode("utf-8"),
@@ -423,7 +424,7 @@ class DocumentIndexStore:
             query_vector=query_vector,
             source_fields=["document_id"],
         )
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.post(f"{self.url}/{self.index_name}/_search", json=body)
             if resp.status_code == 404:
                 return []
@@ -460,7 +461,7 @@ class DocumentIndexStore:
                 "nam",
             ],
         )
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+        async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.post(f"{self.url}/{self.index_name}/_search", json=body)
             if resp.status_code == 404:
                 return []
