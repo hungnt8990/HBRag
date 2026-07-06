@@ -13,6 +13,8 @@ class OpenAICompatibleLLM:
         api_key: str | None,
         model: str,
         client: ExternalLLMClient | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -21,6 +23,8 @@ class OpenAICompatibleLLM:
             base_url=self._base_url,
             api_key=self._api_key,
             model=self._model,
+            temperature=temperature,
+            top_p=top_p,
         )
 
     async def generate(

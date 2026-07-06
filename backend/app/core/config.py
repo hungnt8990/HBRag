@@ -264,6 +264,10 @@ class Settings(BaseSettings):
     llm_base_url: str | None = None
     llm_api_key: str | None = None
     llm_model: str | None = None
+    # Sinh text xác định để tránh "language leakage" (model trượt sang token ngôn ngữ khác
+    # giữa tiếng Việt, vd. "neće"). None = không gửi tham số (dùng default của gateway).
+    llm_temperature: float | None = 0.0
+    llm_top_p: float | None = None
 
     chunk_enrichment_enabled: bool = False
     chunk_enrichment_mode: str = "selective"

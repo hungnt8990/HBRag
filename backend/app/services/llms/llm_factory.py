@@ -48,6 +48,8 @@ def build_llm_provider(
             base_url=_required(base_url or settings.llm_base_url, "LLM_BASE_URL"),
             api_key=settings.llm_api_key,
             model=_required(model or settings.llm_model, "LLM_MODEL"),
+            temperature=settings.llm_temperature,
+            top_p=settings.llm_top_p,
         )
 
     raise ValueError(f"Unsupported LLM provider: {effective_provider}")

@@ -17,11 +17,24 @@ class ExternalLLMClient:
         api_key: str | None,
         model: str,
         timeout_seconds: float = 60.0,
+        temperature: float | None = None,
+        top_p: float | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
         self.timeout_seconds = timeout_seconds
+        self.temperature = temperature
+        self.top_p = top_p
+
+    def _sampling_params(self) -> dict[str, float]:
+        """Tham số sampling gửi kèm chat completion (bỏ qua khi None -> dùng default gateway)."""
+        params: dict[str, float] = {}
+        if self.temperature is not None:
+            params["temperature"] = self.temperature
+        if self.top_p is not None:
+            params["top_p"] = self.top_p
+        return params
 
     async def chat(
         self,
@@ -38,6 +51,7 @@ class ExternalLLMClient:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
+                **self._sampling_params(),
             },
         )
         return self._extract_chat_content(response)
@@ -56,6 +70,7 @@ class ExternalLLMClient:
                 {"role": "user", "content": user_prompt},
             ],
             "stream": True,
+            **self._sampling_params(),
         }
         async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
             async with client.stream(
