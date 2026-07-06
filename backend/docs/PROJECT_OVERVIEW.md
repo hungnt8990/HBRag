@@ -156,6 +156,18 @@
 > (delete_by_id_vb trước bulk). Verify E2E trên ES live: ensure_index + bulk + search BM25 + ACL fields + 1 doc thật
 > 3 chunk khớp. 183 test pass. (run_qdrant KHÔNG index ES — chỉ embed Qdrant.)
 >
+> 🧩 **2026-07-06 — Fix `footer_signature` nuốt đính kèm (tín hiệu 3: heading markdown)**: doc `647063`
+> (`6395/QĐ-EVNCPC` — QĐ ban hành Nội quy lao động) tạo 1 chunk `footer_signature` **77.692 ký tự** nuốt trọn "NỘI
+> QUY LAO ĐỘNG" đính kèm -> vượt 12.000 token của `Qwen3-Embedding-8B` -> `ContextWindowExceededError` (400) khi
+> embed. `_attached_document_start` (`ingestion_doffice_content_normalizer.py`) trượt vì đính kèm mở đầu bằng heading
+> `# NỘI QUY LAO ĐỘNG` (không có quốc hiệu) và dòng "Lưu:" bị OCR sai thành "Luru:" (2 tín hiệu cũ đều hụt). **Thêm
+> tín hiệu 3**: `_ATTACHED_HEADING_PATTERN` bắt heading markdown tiêu đề tài liệu (NỘI QUY/QUY CHẾ/QUY ĐỊNH/QUY
+> TRÌNH/ĐỀ CƯƠNG/KẾ HOẠCH/...) trong vùng footer (footer thật không có heading markdown). Kết quả doc 647063:
+> 6 chunk -> **71 chunk, max 2.796 ký tự, 0 chunk >12k**. Test hồi quy `test_doffice_footer_splits_attached_document_by_heading`
+> (27 test ingestion pass). ⚠️ **Cần re-chunk + re-embed** doc dạng này (`run_kho_chunk --full-scan`/`--id-full` rồi
+> `run_kho_qdrant`). Còn tồn: doc `739160` (`02-TB/TBNS`) 1 chunk `table` **122.129 ký tự** (bảng OCR lặp không
+> collapse) — bug KHÁC, chưa fix.
+>
 > Cập nhật gần nhất: 2026-07-04 (c) — **Fix `footer_signature` nuốt VĂN BẢN ĐÍNH KÈM sau khối chữ ký**
 > (PHẢI re-chunk + re-embed dữ liệu cũ; kiểm chứng trên 102 văn bản thật `tests/Chunk/data.txt`). Triệu chứng: nhiều
 > VB OCR gộp cả file đính kèm (Kế hoạch/Quy định/Đề cương/Tờ trình...) vào `noi_dung` NGAY SAU "Nơi nhận"/chữ ký ->

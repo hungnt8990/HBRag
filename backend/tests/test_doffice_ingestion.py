@@ -21,7 +21,9 @@ from app.services.ingestion.ingestion_doffice_content_normalizer import (
     NormalizedDofficeDocument,
     NormalizedTable,
     apply_spacing_fixes,
+    extract_attached_document_text,
     normalize_doffice_source,
+    split_footer_signature,
 )
 from app.services.ingestion.ingestion_doffice_ingestion_service import DofficeIngestionService, DofficeIngestOptions
 from app.services.retrieval.retrieval_hybrid_search import IDENTIFIER_EXACT_BOOST, identifier_exact_match_boost
@@ -508,6 +510,34 @@ def test_doffice_normalizer_parses_tables_metadata_and_footer() -> None:
     assert dashboard.metadata["platform"] == "Website Quan tri noi dung (CMS)"
     assert dashboard.metadata["change_content"] == ["Y 1", "Y 2", "Y 3", "Y 4"]
     assert any(element.element_type == "footer_signature" for element in normalized.elements)
+
+def test_doffice_footer_splits_attached_document_by_heading() -> None:
+    """VB đính kèm mở đầu bằng heading markdown (không có quốc hiệu) + dòng "Lưu:" bị OCR
+    sai ("Luru:") -> footer KHÔNG được nuốt cả đính kèm; đính kèm tách ra làm nội dung."""
+    attached_body = "\n".join(
+        f"Điều {i}. Quy định chi tiết nội dung số {i} của nội quy lao động EVNCPC." for i in range(1, 40)
+    )
+    text = (
+        "QUYẾT ĐỊNH ban hành Nội quy lao động.\n\n"
+        "Điều 1. Ban hành kèm theo Quyết định này Nội quy lao động.\n\n"
+        "Nơi nhận:\n\n- Như điều 3;\n\n- EVN;\n\n- Luru: VT, TCNS.\n\n"
+        "TỔNG GIÁM ĐỐC\n\nNgô Tấn Cú\n"
+        "# NỘI QUY LAO ĐỘNG\n## Chương I NHỮNG QUY ĐỊNH CHUNG\n\n" + attached_body
+    )
+
+    body, footer = split_footer_signature(text)
+    assert footer is not None
+    # Footer chỉ còn khối "Nơi nhận" + chữ ký, KHÔNG kèm nội quy đính kèm.
+    assert "NỘI QUY LAO ĐỘNG" not in footer
+    assert "Điều 39" not in footer
+    assert "Ngô Tấn Cú" in footer
+    assert len(footer) < 1000
+
+    attached, span = extract_attached_document_text(text)
+    assert span is not None
+    assert "NỘI QUY LAO ĐỘNG" in attached
+    assert "Điều 39" in attached
+
 
 def test_doffice_chunk_builder_keeps_table_rows_structured() -> None:
     normalized = normalize_doffice_source(_sample_doffice_source_with_table())

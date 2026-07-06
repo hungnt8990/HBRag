@@ -53,6 +53,18 @@ _SIGNATURE_PREFIX_PATTERN = re.compile(r"(?i)^\s*(KT|TL|TM|TUQ|Q)\s*\.")
 # Phần sau khối chữ ký phải đủ dài mới coi là văn bản đính kèm (tránh cắt nhầm vài dòng
 # liên hệ/ghi chú cuối trang thành "văn bản").
 _ATTACHED_DOC_MIN_CHARS = 300
+# Từ khoá TIÊU ĐỀ tài liệu đính kèm (heading markdown mở đầu VB đính kèm sau khối chữ ký).
+_ATTACHED_DOC_TITLE_KEYWORDS = (
+    "NỘI QUY", "QUY CHẾ", "QUY ĐỊNH", "QUY TRÌNH", "QUYẾT ĐỊNH", "ĐỀ CƯƠNG",
+    "ĐỀ ÁN", "KẾ HOẠCH", "PHƯƠNG ÁN", "HƯỚNG DẪN", "ĐIỀU LỆ", "THỂ LỆ",
+    "CHƯƠNG TRÌNH", "DANH MỤC", "BIỂU MẪU", "TIÊU CHUẨN", "ĐỊNH MỨC", "THỎA ƯỚC",
+)
+# Heading markdown "# NỘI QUY LAO ĐỘNG"... mở đầu VĂN BẢN ĐÍNH KÈM. Footer thật (Nơi
+# nhận/chữ ký) KHÔNG bao giờ có heading markdown -> gặp heading tiêu đề tài liệu trong
+# vùng footer = ranh giới bắt đầu đính kèm (bù cho khi quốc hiệu vắng & "Lưu:" bị OCR sai).
+_ATTACHED_HEADING_PATTERN = re.compile(
+    r"(?im)^\s{0,3}#{1,6}\s*(?:" + "|".join(_ATTACHED_DOC_TITLE_KEYWORDS) + r")\b"
+)
 # Dòng MỤC LỤC dạng "Điều 1. Phạm vi ......... 3" (chấm leader >=4 + số trang tùy chọn):
 # trùng lặp tiêu đề với nội dung thật phía sau -> nhiễu retrieval, lọc khỏi prose.
 _TOC_LINE_PATTERN = re.compile(r"(?m)^[^\n]*?[.…]{4,}[ \t.…]*\d{0,4}\s*$")
@@ -1723,6 +1735,11 @@ def _attached_document_start(text: str, *, search_start: int, search_end: int) -
     quoc_hieu = QUOC_HIEU_PATTERN.search(region)
     if quoc_hieu:
         candidates.append(search_start + quoc_hieu.start())
+    # Tín hiệu 3: đính kèm mở đầu bằng heading markdown tiêu đề tài liệu (vd "# NỘI QUY
+    # LAO ĐỘNG") — dùng khi không có quốc hiệu và/hoặc dòng "Lưu:" bị OCR sai (vd "Luru:").
+    heading = _ATTACHED_HEADING_PATTERN.search(region)
+    if heading:
+        candidates.append(search_start + heading.start())
     offset = search_start
     seen_luu = False
     signature_budget = 4  # tối đa vài dòng chức danh/tên sau "Lưu:"
