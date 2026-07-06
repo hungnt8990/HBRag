@@ -3,6 +3,17 @@
 > Tài liệu này mô tả tổng thể backend để người mới (hoặc Claude ở phiên sau) đọc là
 > hiểu dự án có gì. **Mỗi khi hoàn thành một thay đổi đáng kể, phải cập nhật file này.**
 >
+> 🗄️ **2026-07-06 — CHUYỂN PostgreSQL sang kho dùng chung**: DB PostgreSQL chuyển từ
+> `10.72.113.21/hbrag` (user `hbrag`) sang **`10.72.117.227:5432` / DB `kho_ai_dung_chung`** (user
+> `admin_kho_ai`, PostgreSQL 17.10). Đã **migrate 1:1 toàn bộ 31 bảng** (pg_dump -Fc | pg_restore -j4 qua
+> Docker postgres:17) — verify khớp 100% row counts (chunks 607.841, documents 77.588, dm_nhan_vien 11.485...),
+> 138/138 index, extensions `pgcrypto`+`plpgsql`, sequences, `alembic_version=0014_typed_idea_blocks`. Chỉ đổi
+> `DATABASE_URL` + `POSTGRES_*` trong `.env` (và `.env_live`, `alembic.ini`) là đủ cho TOÀN BỘ (app API + alembic
+> + mọi job doffice_sync đều đi qua `settings.async_database_url` -> `app.db.session`; KHÔNG có connection PG
+> hardcode nào khác). ⚠️ Mật khẩu `Evncpc@2026!` có `@` và `!` -> trong `DATABASE_URL` phải URL-encode:
+> `@`->`%40`, `!`->`%21` (`Evncpc%402026%21`); SQLAlchemy tự decode lại. Các store khác (ES 10.72.121.232,
+> Qdrant 10.72.117.69) KHÔNG đổi. `.env.example` giữ `localhost` (template).
+>
 > 🏗️ **2026-07-05 (rev3) — run_kho_chunk: trạng thái từ ES + dashboard + dừng an toàn + loop; tách quản Qdrant**:
 > (1) Bỏ HẲN checkpoint PostgreSQL — đã/chưa chunk suy TỪ ES (`KhoAiEsClient.existing_chunk_id_full`: `id_full` đã
 > có chunk chưa). Job quét nguồn, CHỈ chunk văn bản CHƯA có chunk. (2) Hiển thị MỘT bảng in-place (`cs.Spinner`):
