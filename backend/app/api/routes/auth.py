@@ -13,7 +13,6 @@ from app.db.session import get_db_session
 from app.models.document import Document
 from app.models.user import Role, User
 from app.repositories.auth import AuthRepository
-from app.services.ad_auth import authenticate_ad, lookup_nhan_vien
 from app.repositories.documents import DocumentRepository
 from app.schemas.auth import (
     AccessCatalogResponse,
@@ -23,6 +22,7 @@ from app.schemas.auth import (
     TokenResponse,
     UserResponse,
 )
+from app.services.ad_auth import authenticate_ad, lookup_nhan_vien
 from app.services.security.security_permissions import can_assign_upload_organization, can_view_document
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])

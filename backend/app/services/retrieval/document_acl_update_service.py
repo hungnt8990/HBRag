@@ -14,7 +14,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -87,7 +87,7 @@ def _access_block(
     """Block ``access`` lưu vào document_metadata (giống job sync)."""
     return {
         "quyen_checksum": checksum,
-        "quyen_ngay_capnhat": datetime.now(timezone.utc).isoformat(),
+        "quyen_ngay_capnhat": datetime.now(UTC).isoformat(),
         "raw_assignment": {
             "don_vi_list": list(don_vi_list),
             "phong_ban_list": list(phong_ban_list),

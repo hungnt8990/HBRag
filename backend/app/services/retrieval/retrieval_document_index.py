@@ -368,7 +368,7 @@ class DocumentIndexStore:
         query: str,
         *,
         top_n: int,
-        acl_subject: "AclSubject | None",
+        acl_subject: AclSubject | None,
         query_vector: list[float] | None,
         source_fields: list[str],
     ) -> dict[str, Any]:
@@ -412,7 +412,7 @@ class DocumentIndexStore:
         query: str,
         *,
         top_n: int = 50,
-        acl_subject: "AclSubject | None" = None,
+        acl_subject: AclSubject | None = None,
         query_vector: list[float] | None = None,
     ) -> list[str]:
         """Trả về list document_id phù hợp nhất (đã lọc ACL)."""
@@ -438,7 +438,7 @@ class DocumentIndexStore:
         query: str,
         *,
         top_n: int = 20,
-        acl_subject: "AclSubject | None" = None,
+        acl_subject: AclSubject | None = None,
         query_vector: list[float] | None = None,
     ) -> list[dict[str, Any]]:
         """Như :meth:`search_documents` nhưng trả full metadata + ``_score`` mỗi hit.
@@ -510,9 +510,9 @@ class TwoStageHybridSearchService:
         self,
         *,
         query: str,
-        acl_subject: "AclSubject | None",
-        document_ids: "set[UUID] | None",
-    ) -> "set[UUID] | None":
+        acl_subject: AclSubject | None,
+        document_ids: set[UUID] | None,
+    ) -> set[UUID] | None:
         """Tính scope Stage 1. Trả ``None`` nghĩa là KHÔNG giới hạn (full search:
         do tắt two-stage hoặc fallback). Ngược lại trả tập document_id để giới hạn.
         """
@@ -552,8 +552,8 @@ class TwoStageHybridSearchService:
         *,
         query: str,
         top_k: int,
-        acl_subject: "AclSubject | None" = None,
-        document_ids: "set[UUID] | None" = None,
+        acl_subject: AclSubject | None = None,
+        document_ids: set[UUID] | None = None,
         **kwargs: Any,
     ) -> Any:
         stage_ids = await self._resolve_stage_ids(
@@ -573,8 +573,8 @@ class TwoStageHybridSearchService:
         *,
         query: str,
         top_k: int,
-        acl_subject: "AclSubject | None" = None,
-        document_ids: "set[UUID] | None" = None,
+        acl_subject: AclSubject | None = None,
+        document_ids: set[UUID] | None = None,
         **kwargs: Any,
     ) -> Any:
         stage_ids = await self._resolve_stage_ids(

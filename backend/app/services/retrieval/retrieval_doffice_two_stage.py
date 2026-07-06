@@ -52,7 +52,7 @@ class DofficeStage1Resolver:
         query: str,
         *,
         top_n: int = 50,
-        acl_subject: "AclSubject | None" = None,
+        acl_subject: AclSubject | None = None,
         query_vector: list[float] | None = None,  # bỏ qua: docmeta tự embed query
     ) -> list[str]:
         scores: dict[str, float] = {}
@@ -94,8 +94,8 @@ def build_doffice_two_stage_search(
     """Dựng service retrieval 2 tầng DOffice (drop-in cho RerankingService)."""
     from app.core.config import settings
     from app.services.embeddings.embedding_sparse_factory import get_sparse_embedding_provider
-    from app.services.retrieval.retrieval_doffice_bm25 import DofficeBm25DocumentStore
     from app.services.retrieval.retrieval_document_index import TwoStageHybridSearchService
+    from app.services.retrieval.retrieval_doffice_bm25 import DofficeBm25DocumentStore
     from app.services.retrieval.retrieval_hybrid_search import HybridSearchService
     from app.services.vector.vector_indexing_service import VectorIndexingService
     from app.services.vector.vector_store import (

@@ -11,7 +11,8 @@ from app.services.ingestion.ingestion_doffice_content_normalizer import normaliz
 def stat(name, chunks_text):
     sizes = [len(t) for t in chunks_text if t and t.strip()]
     if not sizes:
-        print(f"{name:28} | 0 chunk"); return
+        print(f"{name:28} | 0 chunk")
+        return
     tot = sum(sizes)
     print(f"{name:28} | {len(sizes):4} chunk | tong {tot:7}c | min {min(sizes):4} max {max(sizes):4} avg {tot//len(sizes):4}")
 
@@ -58,7 +59,9 @@ async def main():
                     continue
                 res = fn(md)
                 texts = [r if isinstance(r, str) else getattr(r, "text", getattr(r, "content", str(r))) for r in res]
-                stat(f"markdown-chunker.{ctor}", texts); done = True; break
+                stat(f"markdown-chunker.{ctor}", texts)
+                done = True
+                break
             if done:
                 break
         if not done:

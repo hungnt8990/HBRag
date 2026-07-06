@@ -22,22 +22,22 @@ from app.repositories.rag_runtime_config import RagRuntimeConfigRepository
 from app.schemas.documents import GraphIndexRequest
 from app.services.chunkers.chunker_chunk_enrichment_service import ChunkEnrichmentService
 from app.services.chunkers.chunker_chunking_service import ChunkingService
+from app.services.document_sources import DofficeElasticsearchSource
 from app.services.documents.document_parser_service import DocumentParserService
 from app.services.documents.document_profiles import profile_config, resolve_profile_with_evidence
 from app.services.documents.document_service import DocumentService
-from app.services.document_sources import DofficeElasticsearchSource
-from app.services.ingestion.ingestion_doffice_ingestion_service import DofficeIngestionService, DofficeIngestOptions
-from app.services.retrieval.retrieval_elasticsearch_keyword_search import get_elasticsearch_keyword_store
+from app.services.documents.document_storage import get_storage_client
 from app.services.embeddings.embedding_sparse_factory import get_sparse_embedding_provider
 from app.services.graph import GraphIndexingService, GraphMergeService, get_neo4j_client
 from app.services.graph.extractors.extractor_factory import build_graph_extractor
+from app.services.ingestion.ingestion_doffice_ingestion_service import DofficeIngestionService, DofficeIngestOptions
 from app.services.ingestion.ingestion_profiles import load_profile_configs
 from app.services.knowledge.knowledge_artifact_compiler import KnowledgeArtifactCompiler, KnowledgeArtifactCompilerConfig
 from app.services.knowledge.knowledge_artifact_indexing_service import KnowledgeArtifactIndexingService
 from app.services.llm_gateway import build_llm_gateway_or_error, get_llm_gateway
-from app.services.retrieval.retrieval_document_index import DocumentIndexStore
 from app.services.rag.rag_runtime_config import RagRuntimeConfigValues, load_rag_runtime_config
-from app.services.documents.document_storage import get_storage_client
+from app.services.retrieval.retrieval_document_index import DocumentIndexStore
+from app.services.retrieval.retrieval_elasticsearch_keyword_search import get_elasticsearch_keyword_store
 from app.services.vector.vector_indexing_service import VectorIndexingService
 from app.services.vector.vector_store import get_artifact_vector_store, get_vector_store
 

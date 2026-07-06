@@ -7,7 +7,6 @@ from types import SimpleNamespace
 
 from app.services.retrieval import document_semantic_search as sem
 
-
 # --------------------------- metadata filter ---------------------------
 
 

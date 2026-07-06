@@ -63,7 +63,7 @@ def acl_deny_keys_from_acl(acl: CompressedAcl) -> list[str]:
     return sorted(keys)
 
 
-def acl_subject_to_deny_keys(subject: "AclSubject") -> list[str]:
+def acl_subject_to_deny_keys(subject: AclSubject) -> list[str]:
     """Khóa DENY của NGƯỜI truy vấn để so với ``acl_deny`` của chunk (nv + pb)."""
     keys = [f"nv_{subject.id_nv}"]
     if subject.id_pb is not None:
@@ -94,7 +94,7 @@ class AclSubject:
     is_super_admin: bool = False
 
     @classmethod
-    async def from_session(cls, session, id_nv: int, *, is_super_admin: bool = False) -> "AclSubject | None":
+    async def from_session(cls, session, id_nv: int, *, is_super_admin: bool = False) -> AclSubject | None:
         from sqlalchemy import select
 
         from app.models.danh_muc import NhanVien
@@ -109,7 +109,7 @@ class AclSubject:
         return cls(id_nv=id_nv, id_dv=row[0], id_pb=row[1], is_super_admin=is_super_admin)
 
     @classmethod
-    async def from_app_user(cls, session, user, *, super_admin_roles: set[str] | None = None) -> "AclSubject | None":
+    async def from_app_user(cls, session, user, *, super_admin_roles: set[str] | None = None) -> AclSubject | None:
         """Dựng từ User ứng dụng qua liên kết ``User.id_nv`` -> danh mục nhân viên.
 
         Trả None nếu user chưa gắn ``id_nv`` (không map được -> bên gọi quyết định

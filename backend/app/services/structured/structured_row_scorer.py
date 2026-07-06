@@ -3,8 +3,8 @@
 import json
 import re
 
-from app.services.structured.structured_schemas import StructuredEvidence, StructuredRow
 from app.services.chunkers.chunker_table_relationships import normalize_metadata_value
+from app.services.structured.structured_schemas import StructuredEvidence, StructuredRow
 
 ADMINISTRATIVE_FIELDS = {
     "article_number",

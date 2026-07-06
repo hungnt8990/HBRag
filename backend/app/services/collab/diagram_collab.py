@@ -43,14 +43,14 @@ class _FastAPIChannel:
     def path(self) -> str:
         return self._path
 
-    def __aiter__(self) -> "_FastAPIChannel":
+    def __aiter__(self) -> _FastAPIChannel:
         return self
 
     async def __anext__(self) -> bytes:
         try:
             return await self.recv()
         except Exception:  # WebSocketDisconnect / đóng kết nối -> kết thúc vòng lặp serve.
-            raise StopAsyncIteration
+            raise StopAsyncIteration from None
 
     async def send(self, message: bytes) -> None:
         async with self._send_lock:

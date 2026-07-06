@@ -12,6 +12,7 @@ import anyio
 from app.core.config import settings
 from app.repositories.documents import DocumentRepository
 from app.schemas.documents import DocumentParseResponse
+from app.services.documents.document_storage import StorageClient
 from app.services.parsers import (
     DoclingParser,
     DocumentParser,
@@ -22,7 +23,6 @@ from app.services.parsers import (
     UnstructuredParser,
     parsed_element_to_dict,
 )
-from app.services.documents.document_storage import StorageClient
 
 logger = logging.getLogger(__name__)
 

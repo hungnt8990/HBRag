@@ -4,7 +4,7 @@ import inspect
 import json
 import logging
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from app.core.config import settings
@@ -14,8 +14,6 @@ from app.schemas.documents import (
     VectorSearchResponse,
     VectorSearchResult,
 )
-from app.services.security.security_access_control import AccessFilter
-from app.services.retrieval.retrieval_elasticsearch_keyword_search import ElasticsearchKeywordStore
 from app.services.embeddings.embedding_sparse import SparseEmbeddingProvider
 from app.services.llm_gateway import LLMGateway
 from app.services.rag.rag_chunk import (
@@ -27,7 +25,12 @@ from app.services.rag.rag_chunk import (
     should_index_chunk,
     stable_point_id,
 )
+from app.services.retrieval.retrieval_elasticsearch_keyword_search import ElasticsearchKeywordStore
+from app.services.security.security_access_control import AccessFilter
 from app.services.vector.vector_store import QdrantVectorStore
+
+if TYPE_CHECKING:
+    from app.services.security.security_acl_payload import AclSubject
 
 CONTENT_PREVIEW_LIMIT = 300
 logger = logging.getLogger(__name__)
@@ -257,7 +260,7 @@ class VectorIndexingService:
         chunk_type: str | None = None,
         table_name: str | None = None,
         access_filter: AccessFilter | None = None,
-        acl_subject: "AclSubject | None" = None,
+        acl_subject: AclSubject | None = None,
     ) -> VectorSearchResponse:
         try:
             if document_ids is not None and not document_ids:

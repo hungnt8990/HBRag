@@ -1,4 +1,5 @@
 ﻿import inspect
+import logging
 from typing import Annotated
 from uuid import UUID
 
@@ -6,12 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies.auth import get_current_user
-import logging
-
 from app.core.config import settings
-from app.services.cache.search_cache import get_search_cache
-
-logger = logging.getLogger("api.search")
 from app.db.session import get_db_session
 from app.models.user import User
 from app.repositories.auth import AuthRepository
@@ -28,26 +24,29 @@ from app.schemas.documents import (
     VectorSearchRequest,
     VectorSearchResponse,
 )
-from app.services.security.security_access_control import build_access_filter, build_subject_context
+from app.services.cache.search_cache import get_search_cache
 from app.services.documents.document_profiles import resolve_profile
-from app.services.retrieval.retrieval_elasticsearch_keyword_search import (
-    ElasticsearchKeywordSearchService,
-    get_elasticsearch_keyword_store,
-)
 from app.services.embeddings.embedding_sparse_factory import get_sparse_embedding_provider
 from app.services.graph import GraphRetrievalService, Neo4jClient, get_neo4j_client
 from app.services.graph.extractors.extractor_factory import build_graph_extractor
-from app.services.retrieval.retrieval_hybrid_search import HybridSearchError, HybridSearchService
+from app.services.llm_gateway import LLMGateway, get_llm_gateway
+from app.services.rerankers.reranker_service import RerankingError, RerankingService
 from app.services.retrieval.retrieval_document_index import (
     DocumentIndexStore,
     TwoStageHybridSearchService,
 )
+from app.services.retrieval.retrieval_elasticsearch_keyword_search import (
+    ElasticsearchKeywordSearchService,
+    get_elasticsearch_keyword_store,
+)
+from app.services.retrieval.retrieval_hybrid_search import HybridSearchError, HybridSearchService
 from app.services.retrieval.retrieval_keyword_search import KeywordSearchError, KeywordSearchService
-from app.services.llm_gateway import LLMGateway, get_llm_gateway
+from app.services.security.security_access_control import build_access_filter, build_subject_context
 from app.services.security.security_permissions import can_view_document, can_view_knowledge_base
-from app.services.rerankers.reranker_service import RerankingError, RerankingService
 from app.services.vector.vector_indexing_service import VectorIndexingService, VectorSearchError
 from app.services.vector.vector_store import QdrantVectorStore, get_vector_store
+
+logger = logging.getLogger("api.search")
 
 router = APIRouter(prefix="/api/search", tags=["search"])
 

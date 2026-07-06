@@ -12,6 +12,11 @@ from app.schemas.documents import (
     RerankSearchResponse,
     RerankSearchResult,
 )
+from app.services.graph.graph_models import GraphChunkCandidate
+from app.services.graph.graph_retrieval_service import GraphRetrievalService
+from app.services.llm_gateway import LLMGateway
+from app.services.rerankers.reranker_base import RerankCandidate
+from app.services.retrieval.retrieval_hybrid_search import HybridSearchService, is_identifier_lookup_query
 from app.services.security.security_access_control import (
     AccessAction,
     AccessFilter,
@@ -19,11 +24,6 @@ from app.services.security.security_access_control import (
     build_resource_context,
     can_access_resource,
 )
-from app.services.graph.graph_retrieval_service import GraphRetrievalService
-from app.services.graph.graph_models import GraphChunkCandidate
-from app.services.retrieval.retrieval_hybrid_search import HybridSearchService, is_identifier_lookup_query
-from app.services.rerankers.reranker_base import RerankCandidate
-from app.services.llm_gateway import LLMGateway
 
 DEFAULT_VECTOR_WEIGHT = 1.0
 DEFAULT_KEYWORD_WEIGHT = 1.0

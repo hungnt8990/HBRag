@@ -12,9 +12,9 @@ from app.api.routes.search import (
 )
 from app.main import app
 from app.services.embeddings.embedding_fake_provider import FakeEmbeddingProvider
+from app.services.embeddings.embedding_sparse import HashingSparseEmbeddingProvider
 from app.services.llm_gateway import LLMGateway, get_llm_gateway
 from app.services.llms.llm_fake_llm import FakeLLM
-from app.services.embeddings.embedding_sparse import HashingSparseEmbeddingProvider
 from app.services.vector.vector_store import VectorSearchResult
 
 DOCUMENT_ID = UUID("44444444-4444-4444-4444-444444444444")

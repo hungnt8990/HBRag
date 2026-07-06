@@ -3,8 +3,8 @@
 import re
 from typing import Any
 
-from app.services.parsers import ParsedElement
 from app.services.chunkers.chunker_table_relationships import normalize_metadata_value
+from app.services.parsers import ParsedElement
 
 GIS_OBJECT_RE = re.compile(
     r"^\s*\((?P<order>\d+)\)\s+(?P<object_code>F\d+_[A-Za-z0-9_]+)\s*[–-]\s*(?P<object_name>.+?)\s*[.;]?\s*$"

@@ -8,11 +8,11 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.services.security.security_access_control import flatten_access_payload, normalize_access_payload
 from app.services.chunkers.chunker_table_relationships import (
     parse_technology_area_rows_from_text,
     validate_technology_area_row,
 )
+from app.services.security.security_access_control import flatten_access_payload, normalize_access_payload
 
 NON_INDEXABLE_CHUNK_TYPES = {
     "administrative_footer",

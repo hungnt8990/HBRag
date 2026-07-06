@@ -29,12 +29,12 @@ class SearchResultCache:
         self._ttl = ttl_seconds
 
     @staticmethod
-    def _cache_key(query: str, acl_subject: "AclSubject", top_k: int) -> str:
+    def _cache_key(query: str, acl_subject: AclSubject, top_k: int) -> str:
         su = 1 if getattr(acl_subject, "is_super_admin", False) else 0
         raw = f"{query}|{acl_subject.id_pb}|{acl_subject.id_dv}|{su}|{top_k}"
         return "search:" + hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
-    async def get(self, query: str, acl_subject: "AclSubject", top_k: int, model_cls: type[T]) -> T | None:
+    async def get(self, query: str, acl_subject: AclSubject, top_k: int, model_cls: type[T]) -> T | None:
         try:
             raw = await self._redis.get(self._cache_key(query, acl_subject, top_k))
         except Exception as exc:  # Redis lỗi -> coi như miss
@@ -47,7 +47,7 @@ class SearchResultCache:
         except Exception:  # payload cache cũ/không hợp lệ
             return None
 
-    async def set(self, query: str, acl_subject: "AclSubject", top_k: int, result: Any) -> None:
+    async def set(self, query: str, acl_subject: AclSubject, top_k: int, result: Any) -> None:
         try:
             await self._redis.set(
                 self._cache_key(query, acl_subject, top_k),

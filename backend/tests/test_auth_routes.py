@@ -1,12 +1,12 @@
 from types import SimpleNamespace
 from uuid import UUID
 
+from conftest import TEST_ORGANIZATION_ID, TEST_USER_ID
 from fastapi.testclient import TestClient
 
 from app.api.routes import auth
 from app.core.security import hash_password
 from app.main import app
-from conftest import TEST_ORGANIZATION_ID, TEST_USER_ID
 
 
 class FakeAuthRepository:

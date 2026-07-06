@@ -475,6 +475,9 @@ async def _run_locked(args: argparse.Namespace, stamp: str) -> None:
     issuer_orgs = args.issuer_org if args.issuer_org else _list_env("KHO_JOB_ISSUER_ORG")
     id_filter = args.id if args.id else _list_env("KHO_JOB_ID")
     reset = args.reset if args.reset is not None else _int_env("KHO_JOB_RESET", 0)
+    # full_scan: cờ dòng lệnh --full-scan HOẶC env KHO_JOB_FULL_SCAN=1 -> chunk LẠI tất cả
+    # (bỏ kiểm tra "đã chunk"). Dùng để backfill field mới (vd org_list) vào chunk cũ.
+    full_scan = args.full_scan or _int_env("KHO_JOB_FULL_SCAN", 0) == 1
 
     # BANNER MODE — hiện NGAY khi bật job để biết đang chạy chế độ nào.
     scope_txt = (
@@ -486,6 +489,8 @@ async def _run_locked(args: argparse.Namespace, stamp: str) -> None:
     bar = cs.color("━" * 60, cs.CYAN)
     if reset == RESET_WIPE:
         mode_line = cs.color("  CHẾ ĐỘ 9 — XOÁ TOÀN BỘ CHUNK rồi CHUNK LẠI TỪ ĐẦU", cs.BOLD + cs.RED)
+    elif full_scan:
+        mode_line = cs.color("  CHẠY FULL — CHUNK LẠI TẤT CẢ (bỏ kiểm tra 'đã chunk', backfill field mới)", cs.BOLD + cs.YELLOW)
     else:
         mode_line = cs.color("  CHẾ ĐỘ 0 — CHẠY TIẾP (chỉ chunk văn bản CHƯA chunk)", cs.BOLD + cs.GREEN)
     print("\n".join([
@@ -509,13 +514,13 @@ async def _run_locked(args: argparse.Namespace, stamp: str) -> None:
 
     loggers.get("run").info(
         "Job kho_chunk: batch=%s interval=%ss limit=%s max_chunk=%s issuer_org=%s id=%s full_scan=%s reset=%s",
-        batch, interval, limit, max_chunks, issuer_orgs, id_filter, args.full_scan, reset,
+        batch, interval, limit, max_chunks, issuer_orgs, id_filter, full_scan, reset,
     )
     # MỘT runner + MỘT spinner cho CẢ vòng lặp -> dashboard cập nhật TẠI CHỖ, KHÔNG in dòng
     # mới mỗi lượt. Tổng kết chỉ in 1 lần khi thoát.
     runner = KhoChunkJobRunner(
         batch_size=batch, issuer_orgs=issuer_orgs, id_filter=id_filter,
-        full_scan=args.full_scan, limit=limit, max_chunks=max_chunks,
+        full_scan=full_scan, limit=limit, max_chunks=max_chunks,
     )
     runner._mode_reset = reset == RESET_WIPE
     live = sys.stdout.isatty()

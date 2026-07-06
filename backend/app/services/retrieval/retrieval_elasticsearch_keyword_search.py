@@ -6,17 +6,20 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 import httpx
 
 from app.core.config import settings
-from app.services.retrieval.retrieval_shared import es_client_kwargs
 from app.schemas.documents import KeywordSearchResponse, KeywordSearchResult
-from app.services.security.security_access_control import AccessFilter
-from app.services.retrieval.retrieval_keyword_search import KeywordSearchService
 from app.services.rag.rag_chunk import RagChunk, qdrant_payload
+from app.services.retrieval.retrieval_keyword_search import KeywordSearchService
+from app.services.retrieval.retrieval_shared import es_client_kwargs
+from app.services.security.security_access_control import AccessFilter
+
+if TYPE_CHECKING:
+    from app.services.security.security_acl_payload import AclSubject
 
 logger = logging.getLogger(__name__)
 
@@ -421,7 +424,7 @@ class ElasticsearchKeywordSearchService:
         top_k: int,
         document_ids: set[UUID] | set[str] | None = None,
         access_filter: AccessFilter | None = None,
-        acl_subject: "AclSubject | None" = None,
+        acl_subject: AclSubject | None = None,
         retrieval_enrichment_enabled: bool = False,
     ) -> KeywordSearchResponse:
         if document_ids is not None and not document_ids:
@@ -489,7 +492,7 @@ class ElasticsearchKeywordSearchService:
         query: str,
         top_k: int,
         document_ids: set[UUID] | set[str] | None,
-        acl_subject: "AclSubject | None" = None,
+        acl_subject: AclSubject | None = None,
     ) -> dict[str, Any]:
         clean_query = " ".join(str(query or "").split()).strip()
         exact_terms = KeywordSearchService._extract_exact_terms(clean_query)

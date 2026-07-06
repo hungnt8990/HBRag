@@ -6,8 +6,8 @@ from uuid import UUID
 from qdrant_client.models import Distance, PointStruct, SparseVector
 
 from app.core.config import settings
-from app.services.security.security_access_control import AccessFilter
 from app.services.embeddings.embedding_sparse import SparseEmbedding
+from app.services.security.security_access_control import AccessFilter
 from app.services.vector.vector_store import QdrantVectorStore
 
 

@@ -17,8 +17,9 @@ REM Pham vi don vi da duoc loc o buoc chunk (run_kho_chunk) nen job nay embed he
 
 REM RESET: 9 = XOA + TAO LAI 2 collection Qdrant (dense) + bo danh dau chunk ES de embed lai.
 REM GIU nguyen ES chunk (do run_kho_chunk quan) va KHONG dung kho_ai_dung_chung.
-REM 0 (mac dinh) = embed theo danh dau qdrant_indexed.
-set "KHO_QDRANT_RESET=9"
+REM Dang de 9 de CHAY FULL: re-embed toan bo (backfill field moi org_list vao payload, tranh
+REM point cu mo coi). Sau khi backfill xong, dat lai 0 de chi embed chunk chua danh dau.
+set "KHO_QDRANT_RESET=0"
 
 REM Embed lai vai doc theo id_full (UUIDv7) de test — ke ca da danh dau. De trong = quet pending.
 set "KHO_QDRANT_ID_FULL="

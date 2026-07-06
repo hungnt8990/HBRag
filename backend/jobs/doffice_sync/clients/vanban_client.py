@@ -72,7 +72,7 @@ class VanbanRecord:
         return (self.noi_dung or "")[:50_000] or None
 
     @classmethod
-    def from_source(cls, src: dict[str, Any]) -> "VanbanRecord":
+    def from_source(cls, src: dict[str, Any]) -> VanbanRecord:
         return cls(
             id_vb=str(src.get("id_vb")),
             ky_hieu=src.get("ky_hieu"),

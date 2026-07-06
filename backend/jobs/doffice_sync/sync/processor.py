@@ -19,8 +19,8 @@ from app.services.security.security_acl_payload import acl_keys_from_acl
 from app.services.security.security_acl_resolver import resolve_doffice_and_compress
 from jobs.doffice_sync.clients.quyen_client import QuyenRecord
 from jobs.doffice_sync.clients.vanban_client import VanbanRecord
-from jobs.doffice_sync.sync.checker import DOFFICE_SOURCE_TYPE, PgStatus
 from jobs.doffice_sync.stores.retry import upsert_retry
+from jobs.doffice_sync.sync.checker import DOFFICE_SOURCE_TYPE, PgStatus
 
 logger = logging.getLogger("doffice_sync.processor")
 

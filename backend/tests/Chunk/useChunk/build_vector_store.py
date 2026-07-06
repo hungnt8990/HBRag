@@ -52,6 +52,8 @@ for _stream in (sys.stdout, sys.stderr):
     except Exception:  # noqa: BLE001
         pass
 
+import uuid as _uuid  # noqa: E402
+
 import chunk_test  # noqa: E402  (load_cached_source / fetch_source / chunk_one / cfg)
 
 from app.core.config import settings  # noqa: E402
@@ -62,14 +64,14 @@ from app.services.embeddings.embedding_sparse_factory import (  # noqa: E402
 from app.services.ingestion.ingestion_doffice_business_fields import (  # noqa: E402
     derive_business_fields,
 )
+from app.services.ingestion.ingestion_doffice_forward_schema import (  # noqa: E402
+    build_forward_document_fields,
+)
 from app.services.ingestion.ingestion_doffice_unified import (  # noqa: E402
     _DOCMETA_EMBED_FIELDS,
     _DOCMETA_FIELDS,
     _DOCMETA_NAMESPACE,
     _build_c1_doc_filter_payload,
-)
-from app.services.ingestion.ingestion_doffice_forward_schema import (  # noqa: E402
-    build_forward_document_fields,
 )
 from app.services.rag.rag_chunk import (  # noqa: E402
     build_embedding_text,
@@ -78,8 +80,6 @@ from app.services.rag.rag_chunk import (  # noqa: E402
     should_index_chunk,
     stable_point_id,
 )
-
-import uuid as _uuid  # noqa: E402
 
 EMBED_BATCH = int(os.getenv("CHUNK_TEST_EMBED_BATCH", "16") or "16")
 

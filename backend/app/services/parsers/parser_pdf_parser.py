@@ -4,17 +4,17 @@ from typing import Any
 
 from pypdf import PdfReader
 
+from app.services.chunkers.chunker_table_relationships import (
+    TechnologyAreaRow,
+    parse_technology_area_rows_from_table,
+    parse_technology_area_rows_from_text,
+)
 from app.services.parsers.parser_base import DocumentParser, ParsedDocument, ParsedElement
 from app.services.parsers.parser_table_serialization import (
     build_table_row_record,
     infer_headers,
     rewrite_text_with_serialized_tables,
     serialize_table,
-)
-from app.services.chunkers.chunker_table_relationships import (
-    TechnologyAreaRow,
-    parse_technology_area_rows_from_table,
-    parse_technology_area_rows_from_text,
 )
 
 PDFPLUMBER_TABLE_SETTINGS = (

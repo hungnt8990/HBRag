@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 
 
 @dataclass
@@ -50,7 +50,7 @@ class JobConfig:
         return data
 
     @classmethod
-    def from_settings(cls, **overrides) -> "JobConfig":
+    def from_settings(cls, **overrides) -> JobConfig:
         """Khởi tạo từ app settings (doffice_es_url/username/password/verify_ssl)."""
         from app.core.config import settings
 

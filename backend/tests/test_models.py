@@ -76,6 +76,7 @@ def test_model_metadata_contains_initial_tables() -> None:
         "chat_messages",
         "citations",
         "retrieval_logs",
+        "api_request_logs",
         "organizations",
         "users",
         "roles",

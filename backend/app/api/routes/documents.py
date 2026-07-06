@@ -59,13 +59,6 @@ from app.schemas.documents import (
     GraphIndexRequest,
     GraphIndexResponse,
 )
-from app.services.security.security_access_control import (
-    AccessAction,
-    build_resource_context,
-    build_subject_context,
-    can_access_resource,
-    normalize_document_access_metadata,
-)
 from app.services.chunkers.chunker_chunk_enrichment_service import (
     ChunkEnrichmentChunksNotFoundError,
     ChunkEnrichmentDocumentNotFoundError,
@@ -81,6 +74,11 @@ from app.services.chunkers.chunker_chunking_service import (
 )
 from app.services.chunkers.chunker_chunking_service import (
     DocumentNotFoundError as ChunkDocumentNotFoundError,
+)
+from app.services.document_sources import (
+    DofficeDocumentNotFoundError,
+    DofficeElasticsearchSource,
+    DofficeSourceError,
 )
 from app.services.documents.document_parser_service import (
     DocumentFileNotFoundError,
@@ -98,22 +96,7 @@ from app.services.documents.document_service import (
     EmptyDocumentUploadError,
     UnsupportedDocumentTypeError,
 )
-from app.services.document_sources import (
-    DofficeDocumentNotFoundError,
-    DofficeElasticsearchSource,
-    DofficeSourceError,
-)
-from app.services.ingestion.ingestion_doffice_ingestion_service import (
-    DofficeIngestionError,
-    DofficeIngestionService,
-    DofficeIngestOptions,
-    EmptyDofficeDocumentError,
-)
-from app.services.retrieval.retrieval_elasticsearch_keyword_search import (
-    ElasticsearchKeywordStore,
-    get_elasticsearch_keyword_store,
-)
-from app.services.retrieval.retrieval_document_index import DocumentIndexStore
+from app.services.documents.document_storage import StorageClient, get_storage_client
 from app.services.embeddings.embedding_sparse_factory import get_sparse_embedding_provider
 from app.services.graph import (
     GraphDocumentChunksMissingError,
@@ -125,9 +108,27 @@ from app.services.graph import (
     get_neo4j_client,
 )
 from app.services.graph.extractors.extractor_factory import build_graph_extractor
+from app.services.ingestion.ingestion_doffice_ingestion_service import (
+    DofficeIngestionError,
+    DofficeIngestionService,
+    DofficeIngestOptions,
+    EmptyDofficeDocumentError,
+)
 from app.services.ingestion.ingestion_queue import IngestionJob, IngestionQueue, get_ingestion_queue
 from app.services.knowledge.knowledge_artifact_indexing_service import KnowledgeArtifactIndexingService
 from app.services.llm_gateway import LLMGateway, build_llm_gateway_or_error, get_llm_gateway
+from app.services.retrieval.retrieval_document_index import DocumentIndexStore
+from app.services.retrieval.retrieval_elasticsearch_keyword_search import (
+    ElasticsearchKeywordStore,
+    get_elasticsearch_keyword_store,
+)
+from app.services.security.security_access_control import (
+    AccessAction,
+    build_resource_context,
+    build_subject_context,
+    can_access_resource,
+    normalize_document_access_metadata,
+)
 from app.services.security.security_permissions import (
     can_assign_upload_organization,
     can_manage_document,
@@ -135,7 +136,6 @@ from app.services.security.security_permissions import (
     can_upload_to_knowledge_base,
     can_view_document,
 )
-from app.services.documents.document_storage import StorageClient, get_storage_client
 from app.services.vector.vector_indexing_service import (
     DocumentChunksNotFoundError,
     DocumentVectorIndexStatusError,

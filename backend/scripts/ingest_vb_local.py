@@ -30,6 +30,7 @@ from app.core.config import settings
 from app.db.session import AsyncSessionLocal, engine
 from app.models.document import Document
 from app.repositories.documents import DocumentRepository
+from app.services.chunkers.chunker_chunking_service import ChunkingService
 from app.services.document_sources.document_source_doffice_elasticsearch_source import (
     DofficeDocument,
     DofficeDocumentNotFoundError,
@@ -37,15 +38,14 @@ from app.services.document_sources.document_source_doffice_elasticsearch_source 
     _optional_int,
     _optional_string,
 )
-from app.services.chunkers.chunker_chunking_service import ChunkingService
 from app.services.documents.document_storage import get_storage_client
 from app.services.embeddings.embedding_sparse_factory import get_sparse_embedding_provider
-from app.services.llm_gateway import get_llm_gateway
 from app.services.ingestion.ingestion_doffice_content_normalizer import normalize_doffice_source
 from app.services.ingestion.ingestion_doffice_ingestion_service import (
     DofficeIngestionService,
     DofficeIngestOptions,
 )
+from app.services.llm_gateway import get_llm_gateway
 from app.services.retrieval.retrieval_elasticsearch_keyword_search import (
     get_elasticsearch_keyword_store,
 )

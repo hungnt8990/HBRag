@@ -6,9 +6,9 @@ from uuid import UUID, uuid4
 
 from app.models.knowledge_artifact import KnowledgeArtifact
 from app.schemas.documents import RerankSearchResponse
-from app.services.retrieval.retrieval_artifact_first_retrieval import ArtifactFirstRetrievalService
 from app.services.queries.query_contract_service import QueryContractService
 from app.services.rag.rag_runtime_config import RagRuntimeConfigValues
+from app.services.retrieval.retrieval_artifact_first_retrieval import ArtifactFirstRetrievalService
 
 DOCUMENT_ID = UUID("11111111-1111-1111-1111-111111111111")
 

@@ -42,7 +42,7 @@ def _decode_token() -> tuple[str, str, str]:
         payload_b64 += "=" * (-len(payload_b64) % 4)  # pad base64url
         payload = json.loads(base64.urlsafe_b64decode(payload_b64))
     except Exception as exc:  # noqa: BLE001
-        raise SystemExit(f"Token không giải mã được: {exc}")
+        raise SystemExit(f"Token không giải mã được: {exc}") from exc
     id_nv = str(payload.get("ID_NV") or "")
     id_dv = str(payload.get("IDDONVI") or "")
     if not id_nv or not id_dv:

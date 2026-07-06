@@ -27,7 +27,7 @@ class QuyenRecord:
         return bool(self.don_vi_list or self.phong_ban_list or self.ca_nhan_list)
 
     @classmethod
-    def from_source(cls, src: dict[str, Any]) -> "QuyenRecord":
+    def from_source(cls, src: dict[str, Any]) -> QuyenRecord:
         def _ints(value: Any) -> list[int]:
             return [int(x) for x in (value or []) if str(x).lstrip("-").isdigit()]
 

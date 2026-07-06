@@ -4,7 +4,7 @@ import asyncio
 import logging
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from qdrant_client import AsyncQdrantClient
@@ -27,8 +27,11 @@ from qdrant_client.models import (
 )
 
 from app.core.config import settings
-from app.services.security.security_access_control import AccessFilter
 from app.services.embeddings.embedding_sparse import SparseEmbedding
+from app.services.security.security_access_control import AccessFilter
+
+if TYPE_CHECKING:
+    from app.services.security.security_acl_payload import AclSubject
 
 logger = logging.getLogger(__name__)
 DEFAULT_DISTANCE = Distance.COSINE
@@ -134,6 +137,8 @@ class QdrantVectorStore:
         # Tên chuẩn BA (Kế hoạch nhóm 07) — "đi trước 1 bước": index sẵn để filter khi API trả
         # dữ liệu. GIỮ song song tên cũ (id_vb/ky_hieu/loai_vb/linh_vuc/ngay_vb) ở trên.
         "id",                       # BA #1  — khoá liên kết ES↔Qdrant
+        "id_full",                  # id doc nguồn (kho_ai): khoá gom chunk theo văn bản ->
+                                    # xoá point cũ khi re-embed (tránh point mồ côi do re-chunk)
         "document_no",              # BA #3  — số/ký hiệu VB
         "source_system",            # BA #5  — hệ thống nguồn (EOFFICE/DOFFICE)
         "doc_group",                # BA #11 — loại công văn
@@ -144,6 +149,7 @@ class QdrantVectorStore:
         "priority",                 # BA #30 — độ khẩn
         "reference_document_ids",   # BA #29 — VB căn cứ
         "related_document_ids",     # BA #28 — VB liên quan
+        "org_list",                 # array TẤT CẢ đơn vị liên quan VB — filter Qdrant theo đơn vị
         # ACL flatten (2 list keyword): allow ["dv_/pb_/nv_"] + deny ["pb_/nv_"].
         "acl_subjects",
         "acl_deny",
@@ -326,6 +332,26 @@ class QdrantVectorStore:
             wait=True,
         )
 
+    async def delete_points_by_field(self, field_name: str, value: str) -> None:
+        """Xoá MỌI point khớp ``payload[field_name] == value`` (idempotent re-embed).
+
+        Dùng khi khoá point ĐỔI giữa các lần ghi (vd nhánh kho_ai: point id = chunk UUIDv7
+        sinh MỚI mỗi lần re-chunk) -> upsert không đè được point cũ. Gọi trước khi upsert để
+        dọn point cũ của cùng văn bản (``field_name='id_full'``), tránh point mồ côi tích tụ.
+        Field NÊN được index (``PAYLOAD_KEYWORD_FIELDS``) để xoá nhanh.
+        """
+        if not await self._collection_present():
+            return
+        await self._client.delete(
+            collection_name=self.collection_name,
+            points_selector=FilterSelector(
+                filter=Filter(
+                    must=[FieldCondition(key=field_name, match=MatchValue(value=str(value)))]
+                )
+            ),
+            wait=True,
+        )
+
     async def retrieve_payloads_for_document(
         self,
         document_id: UUID | str,
@@ -414,7 +440,7 @@ class QdrantVectorStore:
         chunk_type: str | None = None,
         table_name: str | None = None,
         access_filter: AccessFilter | None = None,
-        acl_subject: "AclSubject | None" = None,
+        acl_subject: AclSubject | None = None,
         years: list[int] | None = None,
         months: list[int] | None = None,
         ngay_vb: str | None = None,
@@ -583,7 +609,7 @@ class QdrantVectorStore:
         chunk_type: str | None = None,
         table_name: str | None = None,
         access_filter: AccessFilter | None = None,
-        acl_subject: "AclSubject | None" = None,
+        acl_subject: AclSubject | None = None,
         years: list[int] | None = None,
         months: list[int] | None = None,
         ngay_vb: str | None = None,

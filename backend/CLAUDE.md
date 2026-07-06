@@ -50,15 +50,25 @@
   (`title+signer+summary` qua `clean_for_chunking`) rồi TỪNG chunk (không làm sạch lại), CHỈ DENSE ->
   `hbrag_doffice_docmeta` + `hbrag_doffice_chunks` -> đánh dấu `qdrant_indexed=true`. Chạy 1 lượt rồi dừng. Env
   `KHO_QDRANT_*`; `--id-full`, `--embed-batch` (mặc định 1).
+- **⚠️ Idempotent re-embed chunk (fix 2026-07-06)**: point id chunk = UUIDv7 sinh MỚI mỗi lần re-chunk -> upsert
+  KHÔNG đè point cũ -> point mồ côi tích tụ ở Qdrant (đã dọn 15.717 point). `_process_document` nay gọi
+  `chunks_store.delete_points_by_field("id_full", id_full)` TRƯỚC khi upsert chunk (docmeta không cần: point id =
+  id doc nguồn, ổn định). Cần payload index `id_full` (đã thêm vào `PAYLOAD_KEYWORD_FIELDS`, `_ensure_payload_indexes`
+  tự tạo trên collection sẵn có). ⚠️ `_cat/indices docs.count` của `kho_ai_dung_chung` (~69k) ĐẾM CẢ nested
+  `reference_documents` — số văn bản THẬT = `_count` = 16.354 (job đếm đúng, KHÔNG phải bug).
 - **SCHEMA field CHỐT (2026-07-05 rev2 — lưu ĐÚNG, không dư)**:
+  - **`org_list` (array, 2026-07-05)**: TẤT CẢ đơn vị liên quan văn bản (issuer + cv_den/cv_di/cv_noi_bo — nguồn
+    `kho_ai_dung_chung` gộp sẵn, keyword array, phủ 100%). LƯU ở CẢ 3 nơi (ES chunk + Qdrant docmeta + Qdrant chunk
+    doc-level). **Bộ lọc đơn vị (`--issuer-org`/`KHO_JOB_ISSUER_ORG`) nay lọc theo `org_list`** (văn bản khớp nếu 1
+    đơn vị lọc ∈ org_list) — KHÔNG còn `issuer_org_id`. Backfill chunk/point cũ: chạy full (xem mục Chạy full dưới).
   - ES chunk `kho_ai_dung_chung_chunk`: `id, id_full, document_id, title, source_system, doc_group, doc_type,
-    doc_category, issue_date, owner_department_id, security_level, acl_subjects, acl_deny, chunk_id, chunk_order,
+    doc_category, issue_date, owner_department_id, security_level, org_list, acl_subjects, acl_deny, chunk_id, chunk_order,
     chunk_text, chunk_type, section_path, content_hash` + 2 field cơ chế **bắt buộc**: `table_context` (để dựng
     payload Qdrant chunk) + `qdrant_indexed` (cờ đánh dấu). `id`=UUIDv7 chunk, `id_full`=`id` doc nguồn.
   - Qdrant docmeta `hbrag_doffice_docmeta` (point id=`id` doc nguồn): `id, document_id, source_system,
-    issuer_org_id, issuer_org_name, doc_group, doc_type, doc_category, keywords, issue_date, expiry_date,
+    issuer_org_id, issuer_org_name, org_list, doc_group, doc_type, doc_category, keywords, issue_date, expiry_date,
     owner_department_id, security_level, acl_subjects, acl_deny, related_document_ids, reference_document_ids, priority`.
-  - Qdrant chunk `hbrag_doffice_chunks` (point id=`id` chunk): `id, id_full, document_id, source_system, doc_group,
+  - Qdrant chunk `hbrag_doffice_chunks` (point id=`id` chunk): `id, id_full, document_id, source_system, org_list, doc_group,
     doc_type, doc_category, issue_date, owner_department_id, security_level, acl_subjects, acl_deny,
     related_document_ids, reference_document_ids, priority, chunk_id, chunk_order, chunk_text, chunk_type,
     table_context, section_path, content_hash`. Doc-level lấy từ record ES chunk (bù related/reference/priority từ
@@ -75,6 +85,12 @@
   - `run_kho_qdrant --reset 9` (`KHO_QDRANT_RESET`): `reset_qdrant_stage` = recreate 2 collection Qdrant dense-only
     + `unmark_all_chunks` (bỏ cờ `qdrant_indexed` mọi chunk ES) để embed lại. GIỮ nguyên ES chunk.
   - `--reset 0` (mặc định) = chạy theo trạng thái đã có.
+- **CHẠY FULL / backfill field mới (2026-07-05)**: thêm field vào chunk/point cũ (vd `org_list`) cần reprocess.
+  `run_kho_chunk` có cờ `--full-scan` HOẶC env `KHO_JOB_FULL_SCAN=1` (mới) = chunk LẠI tất cả (bỏ kiểm tra "đã
+  chunk"; delete_by_id_full + upsert -> chunk id MỚI). Backfill sạch: (1) `run_kho_chunk.bat` FULL_SCAN=1 chạy 1
+  lượt (re-chunk ES chunk + đánh dấu pending) -> (2) `run_kho_qdrant.bat` RESET=9 (recreate 2 collection + re-embed
+  all, tránh point cũ mồ côi do chunk id đổi). ⚠️ Xong backfill: đặt lại `KHO_JOB_FULL_SCAN=0` (full-scan lặp
+  trong loop = re-chunk 16k mỗi vòng, phí) + `KHO_QDRANT_RESET=0`. Cả 2 bat HIỆN đang để FULL (=1/=9).
 - ⚠️ Retrieval hiện hành query field tên CŨ (`id_vb/ky_hieu/trich_yeu/nam/thang/ngay_vb`) — nay payload dùng tên
   BA (`document_id/document_no/title/issue_date`), KHÔNG còn field compat. ACL (`acl_subjects/acl_deny`) + dense
   semantic + BM25 `chunk_text` VẪN chạy; MẤT: lọc năm/tháng, boost mã, BM25 boost ký hiệu. TODO: remap retrieval

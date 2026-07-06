@@ -293,14 +293,28 @@ npm run build
 cd backend
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
 
-python -m venv .venv
-#MacOS source .venv/bin/activate
+debug
 .\.venv\Scripts\Activate.ps1
+
+ubuntu
+source .venv/bin/activate
 
 alembic upgrade head
 pytest
 ruff check .
 uvicorn app.main:app --reload
 
+#debug
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --log-level debug
 
-codegraph index
+
+sudo systemctl stop hbrag-backend
+sudo systemctl status hbrag-backend
+sudo systemctl restart hbrag-backend
+sudo systemctl restart hbrag-backend
+journalctl -u hbrag-backend -f
+
+
+npm run build
+pm2 restart hbrag-frontend

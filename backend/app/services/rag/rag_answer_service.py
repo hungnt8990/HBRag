@@ -7,7 +7,7 @@ import re
 import unicodedata
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, replace
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from app.core.config import settings
@@ -19,6 +19,21 @@ from app.repositories.chat import ChatRepository, CitationCreate
 from app.repositories.document_logs import DocumentLogRepository
 from app.schemas.chat import RagChatResponse, RagCitationResponse, RagSessionContext
 from app.schemas.documents import RerankSearchResult
+from app.services.chunkers.chunker_table_aware_chunking import extract_entities_from_text
+from app.services.chunkers.chunker_table_relationships import (
+    is_trusted_relationship_metadata,
+    normalize_metadata_value,
+)
+from app.services.llm_gateway import LLMGateway
+from app.services.memory.memory_base import MemoryResult
+from app.services.queries.query_contract_service import QueryContract, QueryContractService
+from app.services.queries.query_intent_rules import is_field_detail_schema_query
+from app.services.queries.query_rewrite_service import QueryRewriteResult, QueryRewriteService
+from app.services.queries.query_scope_router import classify_query_scope, scoped_direct_answer
+from app.services.queries.query_strategy import QueryStrategy, classify_query_strategy
+from app.services.rerankers.reranker_service import RerankingService
+from app.services.retrieval.retrieval_artifact_first_retrieval import ArtifactFirstRetrievalResult, ArtifactFirstRetrievalService
+from app.services.retrieval.retrieval_hybrid_search import is_identifier_lookup_query
 from app.services.security.security_access_control import (
     AccessAction,
     AccessFilter,
@@ -28,21 +43,9 @@ from app.services.security.security_access_control import (
     build_subject_context,
     can_access_resource,
 )
-from app.services.retrieval.retrieval_artifact_first_retrieval import ArtifactFirstRetrievalResult, ArtifactFirstRetrievalService
-from app.services.retrieval.retrieval_hybrid_search import is_identifier_lookup_query
-from app.services.llm_gateway import LLMGateway
-from app.services.memory.memory_base import MemoryResult
-from app.services.queries.query_contract_service import QueryContract, QueryContractService
-from app.services.queries.query_intent_rules import is_field_detail_schema_query
-from app.services.queries.query_rewrite_service import QueryRewriteResult, QueryRewriteService
-from app.services.queries.query_scope_router import classify_query_scope, scoped_direct_answer
-from app.services.queries.query_strategy import QueryStrategy, classify_query_strategy
-from app.services.chunkers.chunker_table_aware_chunking import extract_entities_from_text
-from app.services.rerankers.reranker_service import RerankingService
-from app.services.chunkers.chunker_table_relationships import (
-    is_trusted_relationship_metadata,
-    normalize_metadata_value,
-)
+
+if TYPE_CHECKING:
+    from app.services.security.security_acl_payload import AclSubject
 
 MEMORY_RULES = (
     "User Memory and Session Summary are background notes only: never cite them, and if "
@@ -289,7 +292,7 @@ class RagAnswerService:
         graph_expansion_limit: int = 20,
         access_filter: AccessFilter | None = None,
         subject_context: SubjectContext | None = None,
-        acl_subject: "AclSubject | None" = None,
+        acl_subject: AclSubject | None = None,
         retrieval_enrichment_enabled: bool = False,
         query_intent_rules: dict[str, Any] | None = None,
     ) -> RagChatResponse:
@@ -537,7 +540,7 @@ class RagAnswerService:
         graph_expansion_limit: int = 20,
         access_filter: AccessFilter | None = None,
         subject_context: SubjectContext | None = None,
-        acl_subject: "AclSubject | None" = None,
+        acl_subject: AclSubject | None = None,
         retrieval_enrichment_enabled: bool = False,
         query_intent_rules: dict[str, Any] | None = None,
     ) -> AsyncIterator[RagStreamEvent]:

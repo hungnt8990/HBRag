@@ -329,7 +329,7 @@ def _ingestion_service(
     repository: FakeRepository,
     source: FakeSource | None = None,
     *,
-    document_index_store: "FakeDocumentIndexStore | None" = None,
+    document_index_store: FakeDocumentIndexStore | None = None,
     es_existing: set[str] | None = None,
 ):
     vector_store = FakeVectorStore()

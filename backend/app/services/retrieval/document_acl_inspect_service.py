@@ -18,11 +18,11 @@ from pydantic import BaseModel, Field
 from sqlalchemy import String, cast, select
 
 from app.core.config import settings
-from app.services.retrieval.retrieval_shared import es_client_kwargs
 from app.db.session import AsyncSessionLocal
 from app.models.document import Document
 from app.services.retrieval.document_search_service import DocumentSearchError
 from app.services.retrieval.retrieval_document_index import DocumentIndexStore
+from app.services.retrieval.retrieval_shared import es_client_kwargs
 from app.services.security.security_acl_compressor import CompressedAcl
 from app.services.security.security_acl_payload import AclSubject, acl_keys_from_acl, acl_subject_to_keys
 

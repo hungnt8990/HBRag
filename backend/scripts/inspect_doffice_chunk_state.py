@@ -15,7 +15,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from sqlalchemy import text  # noqa: E402
 
-from app.core.config import settings  # noqa: E402
 from app.db.session import AsyncSessionLocal  # noqa: E402
 from app.services.document_sources import DOFFICE_SOURCE_TYPE  # noqa: E402
 from app.services.vector.vector_store import get_doffice_chunks_vector_store  # noqa: E402

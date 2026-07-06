@@ -5,7 +5,7 @@ import logging
 import re
 import unicodedata
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID
 
 from app.repositories.retrieval_logs import RetrievalLogRepository
@@ -17,14 +17,17 @@ from app.schemas.documents import (
     VectorSearchResponse,
     VectorSearchResult,
 )
-from app.services.security.security_access_control import AccessFilter
-from app.services.retrieval.retrieval_keyword_search import KeywordSearchService
-from app.services.queries.query_intent_rules import is_field_detail_schema_query
 from app.services.chunkers.chunker_table_relationships import (
     analyze_person_area_membership_query,
     score_person_area_membership_match,
 )
+from app.services.queries.query_intent_rules import is_field_detail_schema_query
+from app.services.retrieval.retrieval_keyword_search import KeywordSearchService
+from app.services.security.security_access_control import AccessFilter
 from app.services.vector.vector_indexing_service import VectorIndexingService
+
+if TYPE_CHECKING:
+    from app.services.security.security_acl_payload import AclSubject
 
 DEFAULT_RRF_K = 60
 
@@ -453,7 +456,7 @@ class HybridSearchService:
         save_log: bool = True,
         document_ids: set[UUID] | None = None,
         access_filter: AccessFilter | None = None,
-        acl_subject: "AclSubject | None" = None,
+        acl_subject: AclSubject | None = None,
         retrieval_enrichment_enabled: bool = False,
         query_intent_rules: dict[str, Any] | None = None,
     ) -> HybridSearchResponse:
@@ -481,7 +484,7 @@ class HybridSearchService:
         save_log: bool = True,
         document_ids: set[UUID] | None = None,
         access_filter: AccessFilter | None = None,
-        acl_subject: "AclSubject | None" = None,
+        acl_subject: AclSubject | None = None,
         retrieval_enrichment_enabled: bool = False,
         query_intent_rules: dict[str, Any] | None = None,
     ) -> HybridSearchRun:

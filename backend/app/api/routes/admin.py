@@ -21,10 +21,10 @@ from app.db.session import get_db_session
 from app.repositories.documents import DocumentRepository
 from app.repositories.ingestion_profiles import IngestionProfileRepository
 from app.repositories.rag_runtime_config import RagRuntimeConfigRepository
+from app.services.chunkers.chunker_heading_rule_engine import detect_headings, heading_rules_from_config
 from app.services.documents.document_profiles import DEFAULT_PROFILE
 from app.services.documents.document_service import DocumentService
 from app.services.graph import Neo4jClient, get_neo4j_client
-from app.services.chunkers.chunker_heading_rule_engine import detect_headings, heading_rules_from_config
 from app.services.ingestion.ingestion_profiles import (
     get_profile_names,
     load_profile_configs,

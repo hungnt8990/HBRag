@@ -23,9 +23,16 @@ REM KHONG dung Qdrant (2 collection do run_kho_qdrant quan), Postgres, kho_ai_du
 REM 0 (mac dinh) = chi chunk van ban CHUA chunk.
 set "KHO_JOB_RESET=0"
 
-REM PHAM VI: chay FULL - quet TAT CA don vi (khong loc theo issuer_org_id).
-REM Neu can loc lai: set "KHO_JOB_ISSUER_ORG=256,258" (nhieu don vi ngan cach dau phay).
+REM PHAM VI: chay FULL - quet TAT CA don vi. Bo loc don vi gio dung ORG_LIST (mang tat ca
+REM don vi lien quan van ban: issuer + cv_den/cv_di/cv_noi_bo), KHONG con dung issuer_org_id.
+REM Neu can loc lai: set "KHO_JOB_ISSUER_ORG=256,258" (van ban khop neu 1 trong cac don vi
+REM nay nam trong org_list). De trong = TAT CA don vi.
 set "KHO_JOB_ISSUER_ORG="
+
+REM CHAY FULL: 1 = chunk LAI tat ca (bo kiem tra "da chunk") de backfill field moi (org_list)
+REM vao chunk cu. Sau khi da chay xong 1 luot phu song, dat lai 0 de chi chunk van ban CHUA chunk
+REM (khong re-chunk 16k van ban moi vong loop). 0 = chi chunk van ban chua co chunk.
+set "KHO_JOB_FULL_SCAN=0"
 
 REM Chi chunk vai doc theo field id (UUIDv7) de test. De trong = quet theo checkpoint.
 set "KHO_JOB_ID="

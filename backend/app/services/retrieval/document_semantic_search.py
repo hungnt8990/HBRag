@@ -106,7 +106,7 @@ async def run_semantic_document_fusion(
     top_n: int,
     acl_subject: Any,
     bm25_hits: list[dict[str, Any]] | None = None,
-    bm25_hits_task: "asyncio.Future[tuple[dict[str, Any], list[dict[str, Any]]]] | None" = None,
+    bm25_hits_task: asyncio.Future[tuple[dict[str, Any], list[dict[str, Any]]]] | None = None,
     document_ids: set[str] | None = None,
 ) -> SemanticFusionResult | None:
     """Run DOffice semantic fusion for /api/document-search/search.
@@ -137,7 +137,7 @@ async def _run_fusion_inner(
     top_n: int,
     acl_subject: Any,
     bm25_hits: list[dict[str, Any]] | None,
-    bm25_hits_task: "asyncio.Future[tuple[dict[str, Any], list[dict[str, Any]]]] | None",
+    bm25_hits_task: asyncio.Future[tuple[dict[str, Any], list[dict[str, Any]]]] | None,
 ) -> SemanticFusionResult | None:
     t_start = time.perf_counter()
     filters = _extract_metadata_filters(clean)

@@ -291,7 +291,7 @@ def normalize_doffice_source(source: dict[str, Any]) -> NormalizedDofficeDocumen
     clean_text = prepend_metadata_preamble(base_clean_text, metadata_preamble)
     plain_text = prepend_metadata_preamble(base_plain_text, metadata_preamble)
     markdown_text = prepend_metadata_preamble(base_markdown_text, metadata_preamble)
-    elements = build_elements(source=source, clean_text=base_clean_text, tables=tables, footer_text=footer_text, footer_span=footer_span, summary_text=summary_text, metadata=metadata, appendix_text=appendix_text, appendix_span=appendix_span, attached_text=attached_text, attached_span=attached_span)
+    elements = build_elements(source=source, clean_text=base_clean_text, tables=tables, footer_text=footer_text, footer_span=footer_span, summary_text=summary_text, metadata=metadata, appendix_text=appendix_text, appendix_span=appendix_span, attached_text=attached_text, attached_span=attached_span)  # noqa: E501
     content_hash = sha256_text("\n\n".join(part for part in (metadata_preamble, raw_text) if part.strip()))
     metadata_hash = sha256_json({key: source.get(key) for key in sorted(source) if key != "noi_dung"})
 
@@ -1109,7 +1109,7 @@ def _compact_multiline_cell(value: Any) -> str | list[str] | None:
     return unique[0] if unique else None
 
 
-def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[NormalizedTable], footer_text: str | None, footer_span: dict[str, int] | None = None, summary_text: str | None, metadata: dict[str, Any], appendix_text: str = "", appendix_span: dict[str, int] | None = None, attached_text: str = "", attached_span: dict[str, int] | None = None) -> list[NormalizedElement]:
+def build_elements(*, source: dict[str, Any], clean_text: str, tables: list[NormalizedTable], footer_text: str | None, footer_span: dict[str, int] | None = None, summary_text: str | None, metadata: dict[str, Any], appendix_text: str = "", appendix_span: dict[str, int] | None = None, attached_text: str = "", attached_span: dict[str, int] | None = None) -> list[NormalizedElement]:  # noqa: E501
     elements: list[NormalizedElement] = []
     if summary_text:
         elements.append(

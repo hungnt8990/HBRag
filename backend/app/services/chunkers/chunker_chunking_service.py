@@ -15,8 +15,8 @@ from app.repositories.documents import ChunkCreate, DocumentRepository
 from app.schemas.documents import ChunkPreview, DocumentChunkResponse
 from app.services.chunkers.chunker_gis_chunking import STRUCTURED_NO_OVERLAP_CHUNK_TYPES
 from app.services.chunkers.chunker_heading_rule_engine import DetectedHeading, detect_headings, heading_rules_from_config
-from app.services.rag.rag_chunk import rag_chunk_from_record, should_index_chunk
 from app.services.documents.document_storage import StorageClient
+from app.services.rag.rag_chunk import rag_chunk_from_record, should_index_chunk
 
 logger = logging.getLogger(__name__)
 
@@ -754,7 +754,6 @@ class ChunkingService:
     ) -> DocumentChunkResponse:
         from docling_core.types.doc import DoclingDocument
 
-        from app.services.chunkers.chunker_docling_router import route_docling_chunks
         from app.services.chunkers.chunker_docling_generic_chunking import (
             DoclingV6ChunkingResult,
             RegexVietnameseTokenizer,
@@ -763,6 +762,7 @@ class ChunkingService:
             enforce_token_limit,
             reindex_records,
         )
+        from app.services.chunkers.chunker_docling_router import route_docling_chunks
 
         parsed_metadata = dict(document_metadata.get("parsed_metadata") or {})
         artifact_paths = dict(parsed_metadata.get("artifact_paths") or {})

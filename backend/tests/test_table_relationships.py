@@ -1,5 +1,4 @@
-﻿from app.services.rag.rag_answer_service import build_system_prompt
-from app.services.chunkers.chunker_table_relationships import (
+﻿from app.services.chunkers.chunker_table_relationships import (
     analyze_person_area_membership_query,
     build_entity_profile_chunks,
     is_valid_staff_name,
@@ -8,6 +7,7 @@ from app.services.chunkers.chunker_table_relationships import (
     row_to_chunk,
     score_person_area_membership_match,
 )
+from app.services.rag.rag_answer_service import build_system_prompt
 
 STAFF_TABLE_TEXT = """
 DANH SÁCH NHÂN SỰ PHỤ TRÁCH TỪNG MẢNG CÔNG NGHỆ LÕI

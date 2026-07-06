@@ -19,10 +19,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
-from uuid import UUID
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
+from uuid import UUID
 
 from app.core.chunk_ids import deterministic_chunk_id
 from app.core.config import settings
@@ -30,14 +30,13 @@ from app.services.chunkers.chunker_text_cleaning import clean_for_chunking
 from app.services.document_sources import DOFFICE_SOURCE_TYPE
 from app.services.ingestion.ingestion_doffice_business_fields import derive_business_fields
 from app.services.ingestion.ingestion_doffice_content_normalizer import normalize_doffice_source
-from app.services.ingestion.ingestion_doffice_ingestion_service import DofficeIngestionService
+from app.services.ingestion.ingestion_doffice_forward_schema import build_forward_document_fields
 from app.services.security.security_acl_payload import (
     F_DENY,
     F_SUBJECTS,
     acl_deny_keys_from_acl,
     acl_keys_from_acl,
 )
-from app.services.ingestion.ingestion_doffice_forward_schema import build_forward_document_fields
 from app.services.security.security_acl_resolver import resolve_doffice_and_compress
 from app.services.vector.vector_indexing_service import VectorIndexingService
 
@@ -80,14 +79,14 @@ def _build_c1_doc_filter_payload(source: dict[str, Any]) -> dict[str, Any]:
     lấy qua lớp alias tập trung ``build_forward_document_fields`` -> API đổi tên chỉ sửa 1 nơi.
     """
     payload: dict[str, Any] = {}
-    for field in _C1_DOC_FILTER_INT_FIELDS:
-        coerced = _coerce_int(source.get(field))
+    for field_name in _C1_DOC_FILTER_INT_FIELDS:
+        coerced = _coerce_int(source.get(field_name))
         if coerced is not None:
-            payload[field] = coerced
-    for field in _C1_DOC_FILTER_STR_FIELDS:
-        value = source.get(field)
+            payload[field_name] = coerced
+    for field_name in _C1_DOC_FILTER_STR_FIELDS:
+        value = source.get(field_name)
         if value not in (None, ""):
-            payload[field] = str(value)
+            payload[field_name] = str(value)
     # Tên chuẩn BA (bỏ field rỗng). GIỮ song song trường lọc cũ ở trên trong giai đoạn chuyển tiếp.
     payload.update(build_forward_document_fields(source))
     return payload
@@ -597,10 +596,10 @@ class DofficeUnifiedIngestor:
 
         # ``document_id`` = khoá join nội bộ (documents.id); ``id`` = alias theo tên chuẩn BA #1.
         payload: dict[str, Any] = {"document_id": document_id, "id": str(document_id)}
-        for field in _DOCMETA_FIELDS:
-            value = source.get(field)
+        for field_name in _DOCMETA_FIELDS:
+            value = source.get(field_name)
             if value not in (None, ""):
-                payload[field] = value
+                payload[field_name] = value
         # Tên chuẩn BA "đi trước 1 bước" (document_no/source_system/issue_date/doc_type/...).
         payload.update(build_forward_document_fields(source))
         payload.update(acl_payload)  # acl_subjects (allow) + acl_deny — 2 list keyword

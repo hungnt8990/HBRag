@@ -48,16 +48,18 @@ def uuid7() -> str:
 # Field DOC-LEVEL (lấy TỪ doc nguồn kho_ai_dung_chung) LƯU vào record ES ``kho_ai_dung_chung_chunk``.
 # (id/id_full/chunk_id + field chunk-level gán riêng khi build record). ``security_level`` chưa có
 # ở nguồn hôm nay -> tự xuất hiện khi API bổ sung ("đi trước 1 bước", field rỗng KHÔNG ghi).
+# ``org_list`` (array) = TẤT CẢ đơn vị liên quan văn bản (issuer + cv_den/cv_di/cv_noi_bo, nguồn đã
+# gộp sẵn). Lưu ở CẢ 3 nơi (ES chunk + Qdrant chunk + Qdrant docmeta) -> bộ lọc đơn vị dùng org_list.
 KHO_ES_CHUNK_DOC_FIELDS: tuple[str, ...] = (
     "document_id", "title", "source_system", "doc_group", "doc_type", "doc_category",
-    "issue_date", "owner_department_id", "security_level", "acl_subjects", "acl_deny",
+    "issue_date", "owner_department_id", "security_level", "org_list", "acl_subjects", "acl_deny",
 )
 # Field CHUNK-LEVEL lưu record ES chunk: chunk_order, chunk_text, chunk_type, section_path,
 # content_hash, table_context (table_context cần để dựng payload Qdrant chunk ở job 2).
 
 # Payload Qdrant docmeta (Col2 ``hbrag_doffice_docmeta``) — point id = ``id`` (UUIDv7 doc nguồn).
 KHO_DOCMETA_PAYLOAD_FIELDS: tuple[str, ...] = (
-    "id", "document_id", "source_system", "issuer_org_id", "issuer_org_name",
+    "id", "document_id", "source_system", "issuer_org_id", "issuer_org_name", "org_list",
     "doc_group", "doc_type", "doc_category", "keywords", "issue_date", "expiry_date",
     "owner_department_id", "security_level", "acl_subjects", "acl_deny",
     "related_document_ids", "reference_document_ids", "priority",
@@ -65,7 +67,7 @@ KHO_DOCMETA_PAYLOAD_FIELDS: tuple[str, ...] = (
 # Payload Qdrant chunk (Col1 ``hbrag_doffice_chunks``) = phần DOC-LEVEL (từ doc nguồn, hoặc record
 # ES chunk nếu doc nguồn đã mất) + phần CHUNK-LEVEL (từ record ES chunk). Point id = ``id`` chunk.
 KHO_CHUNK_DOC_PAYLOAD_FIELDS: tuple[str, ...] = (
-    "document_id", "source_system", "doc_group", "doc_type", "doc_category",
+    "document_id", "source_system", "org_list", "doc_group", "doc_type", "doc_category",
     "issue_date", "owner_department_id", "security_level", "acl_subjects", "acl_deny",
     "related_document_ids", "reference_document_ids", "priority",
 )
@@ -79,7 +81,7 @@ RESET_WIPE = 9  # --reset 9: reset stage tương ứng của job (KHÔNG đụng
 KHO_CHUNK_JOB_NAME = "kho_ai_chunk"  # tiền tố job_name checkpoint (mọi phạm vi issuer_org)
 
 
-async def reset_es_chunk_stage(client: "KhoAiEsClient") -> None:
+async def reset_es_chunk_stage(client: KhoAiEsClient) -> None:
     """Reset STAGE CHUNK (dùng ở ``run_kho_chunk --reset 9``).
 
     Xoá + tạo lại RỖNG index ES ``kho_ai_dung_chung_chunk``. KHÔNG đụng Qdrant (2 collection
@@ -138,7 +140,9 @@ class KhoAiEsClient:
         if updated_after:
             filters.append({"range": {"updated_at": {"gte": updated_after}}})
         if issuer_org_filter:
-            filters.append({"terms": {"issuer_org_id": [str(v) for v in issuer_org_filter]}})
+            # Lọc theo ``org_list`` (array TẤT CẢ đơn vị liên quan) — văn bản khớp nếu MỘT trong
+            # các đơn vị lọc nằm trong org_list. Thay field cũ ``issuer_org_id`` (chỉ đơn vị ban hành).
+            filters.append({"terms": {"org_list": [str(v) for v in issuer_org_filter]}})
         return {"bool": {"filter": filters}} if filters else {"match_all": {}}
 
     async def count_documents(

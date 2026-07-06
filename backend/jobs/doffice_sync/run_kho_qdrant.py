@@ -134,6 +134,7 @@ def build_docmeta_embed_text(doc: dict[str, Any]) -> str:
 # Field kiểu DANH SÁCH -> khi rỗng ghi ``[]`` (thay vì ``null``) để schema đồng nhất, tiện lọc.
 _LIST_PAYLOAD_FIELDS = frozenset({
     "keywords", "acl_subjects", "acl_deny", "related_document_ids", "reference_document_ids",
+    "org_list",
 })
 
 
@@ -330,6 +331,10 @@ class KhoQdrantJobRunner:
             for rec, vec in zip(chunks, vectors, strict=True)
             if rec.get("id")
         ]
+        # Idempotent: chunk id (point id) sinh MỚI mỗi lần re-chunk -> upsert KHÔNG đè point cũ.
+        # Xoá point chunk CŨ của văn bản này (theo id_full) TRƯỚC khi ghi point mới, tránh
+        # point mồ côi tích tụ trong Qdrant. (docmeta không cần: point id = id doc nguồn, ổn định.)
+        await ctx["chunks_store"].delete_points_by_field("id_full", id_full)
         await ctx["chunks_store"].upsert_chunks(points)
         self.stats.chunk_points += len(points)
         await self._client.mark_chunks_indexed([str(rec.get("id")) for rec in chunks if rec.get("id")])

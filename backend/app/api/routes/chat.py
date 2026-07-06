@@ -22,19 +22,12 @@ from app.repositories.memory import MemoryRepository
 from app.repositories.rag_runtime_config import RagRuntimeConfigRepository
 from app.repositories.retrieval_logs import RetrievalLogRepository
 from app.schemas.chat import RagChatRequest, RagChatResponse, RagChatStreamRequest
-from app.services.security.security_access_control import (
-    build_access_filter,
-    build_subject_context,
-    role_names,
-)
-from app.services.retrieval.retrieval_artifact_first_retrieval import ArtifactFirstRetrievalService
 from app.services.documents.document_profiles import profile_config, resolve_profile
 from app.services.embeddings.embedding_sparse_factory import get_sparse_embedding_provider
 from app.services.knowledge.knowledge_artifact_indexing_service import KnowledgeArtifactIndexingService
 from app.services.llm_gateway import LLMGateway, get_llm_gateway
 from app.services.memory import MemoryResult, build_memory_provider
 from app.services.memory.memory_service import maybe_auto_save_memory
-from app.services.security.security_permissions import can_view_document, can_view_knowledge_base
 from app.services.queries.query_contract_service import QueryContractService
 from app.services.rag.rag_answer_service import (
     ChatSessionNotFoundError,
@@ -44,6 +37,13 @@ from app.services.rag.rag_answer_service import (
 )
 from app.services.rag.rag_runtime_config import default_rag_runtime_config, load_rag_runtime_config
 from app.services.rerankers.reranker_service import RerankingService
+from app.services.retrieval.retrieval_artifact_first_retrieval import ArtifactFirstRetrievalService
+from app.services.security.security_access_control import (
+    build_access_filter,
+    build_subject_context,
+    role_names,
+)
+from app.services.security.security_permissions import can_view_document, can_view_knowledge_base
 from app.services.vector.vector_store import get_artifact_vector_store
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])

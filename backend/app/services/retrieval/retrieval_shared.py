@@ -21,7 +21,7 @@ from typing import Any
 import httpx
 
 _ES_CLIENT_TIMEOUT_S = 30.0
-_ES_CLIENTS: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, httpx.AsyncClient]" = (
+_ES_CLIENTS: weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, httpx.AsyncClient] = (
     weakref.WeakKeyDictionary()
 )
 

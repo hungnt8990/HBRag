@@ -5,13 +5,13 @@ from docx.oxml.ns import qn
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 
+from app.services.chunkers.chunker_table_relationships import parse_technology_area_rows_from_table
 from app.services.parsers.parser_base import DocumentParser, ParsedDocument, ParsedElement
 from app.services.parsers.parser_table_serialization import (
     infer_headers,
     maybe_table_title,
     serialize_table,
 )
-from app.services.chunkers.chunker_table_relationships import parse_technology_area_rows_from_table
 
 BLOCK_SEPARATOR = "\n\n"
 

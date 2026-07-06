@@ -28,20 +28,20 @@ from app.repositories.documents import DocumentRepository
 from app.repositories.knowledge_artifacts import KnowledgeArtifactRepository
 from app.repositories.rag_runtime_config import RagRuntimeConfigRepository
 from app.repositories.retrieval_logs import RetrievalLogRepository
-from app.services.retrieval.retrieval_artifact_first_retrieval import ArtifactFirstRetrievalService
-from app.services.retrieval.retrieval_elasticsearch_keyword_search import (
-    ElasticsearchKeywordSearchService,
-    get_elasticsearch_keyword_store,
-)
 from app.services.embeddings.embedding_sparse_factory import get_sparse_embedding_provider
-from app.services.retrieval.retrieval_hybrid_search import HybridSearchService
-from app.services.retrieval.retrieval_keyword_search import KeywordSearchService
 from app.services.knowledge.knowledge_artifact_indexing_service import KnowledgeArtifactIndexingService
 from app.services.llm_gateway import get_llm_gateway
 from app.services.queries.query_contract_service import QueryContractService
 from app.services.rag.rag_answer_service import RagAnswerService
 from app.services.rag.rag_runtime_config import default_rag_runtime_config, load_rag_runtime_config
 from app.services.rerankers.reranker_service import RerankingService
+from app.services.retrieval.retrieval_artifact_first_retrieval import ArtifactFirstRetrievalService
+from app.services.retrieval.retrieval_elasticsearch_keyword_search import (
+    ElasticsearchKeywordSearchService,
+    get_elasticsearch_keyword_store,
+)
+from app.services.retrieval.retrieval_hybrid_search import HybridSearchService
+from app.services.retrieval.retrieval_keyword_search import KeywordSearchService
 from app.services.vector.vector_indexing_service import VectorIndexingService
 from app.services.vector.vector_store import get_artifact_vector_store, get_vector_store
 
@@ -453,6 +453,17 @@ def _flatten(values: list[Any]) -> list[str]:
         elif value is not None:
             flattened.append(str(value))
     return flattened
+
+
+def _dedupe(values: list[str]) -> list[str]:
+    """Loại trùng nhưng GIỮ thứ tự xuất hiện đầu tiên."""
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        if value not in seen:
+            seen.add(value)
+            result.append(value)
+    return result
 
 
 def _matches_expected(label: str, expected: set[str]) -> bool:

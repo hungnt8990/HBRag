@@ -23,9 +23,9 @@ from app.services.ingestion.ingestion_doffice_content_normalizer import (
     NormalizedDofficeDocument,
     normalize_doffice_source,
 )
-from app.services.retrieval.retrieval_elasticsearch_keyword_search import ElasticsearchKeywordStore
 from app.services.knowledge.knowledge_artifact_compiler import KnowledgeArtifactCompiler
 from app.services.knowledge.knowledge_artifact_indexing_service import KnowledgeArtifactIndexingService
+from app.services.retrieval.retrieval_elasticsearch_keyword_search import ElasticsearchKeywordStore
 from app.services.security.security_acl_compressor import OrgCatalog
 from app.services.security.security_acl_payload import to_chunk_payload_flat
 from app.services.security.security_acl_resolver import (
@@ -263,16 +263,16 @@ class DofficeIngestionService:
             if options.enable_enrichment and self._enrichment_service is not None:
                 _emit_progress(options, "enrich", "running", "Running chunk enrichment for DOffice document.", {"document_id": str(document_id)})
                 enrich_response = await self._enrichment_service.enrich_document(document_id, enabled=True, update_keyword_search_vector=True)
-                _emit_progress(options, "enrich", "succeeded", "Chunk enrichment completed.", {"document_id": str(document_id), "status": enrich_response.status, "enriched_count": enrich_response.enriched_count, "skipped_count": enrich_response.skipped_count, "failed_count": enrich_response.failed_count})
+                _emit_progress(options, "enrich", "succeeded", "Chunk enrichment completed.", {"document_id": str(document_id), "status": enrich_response.status, "enriched_count": enrich_response.enriched_count, "skipped_count": enrich_response.skipped_count, "failed_count": enrich_response.failed_count})  # noqa: E501
             else:
-                _emit_progress(options, "enrich", "succeeded", "Chunk enrichment skipped.", {"document_id": str(document_id), "enabled": options.enable_enrichment, "has_enrichment_service": self._enrichment_service is not None})
+                _emit_progress(options, "enrich", "succeeded", "Chunk enrichment skipped.", {"document_id": str(document_id), "enabled": options.enable_enrichment, "has_enrichment_service": self._enrichment_service is not None})  # noqa: E501
 
             _emit_progress(options, "index", "running", "Indexing DOffice chunks into Qdrant and Elasticsearch keyword store if enabled.", {"document_id": str(document_id), "artifact_count": artifact_count})
             index_response = await self._vector_indexing_service.index_document(document_id, use_enriched_content_for_embedding=options.enable_enrichment)
             # write_document_index=False: bản ghi document-level + ACL do job sync sở hữu;
             # chỉ gắn ACL cho point Qdrant + chunk-ES, KHÔNG đè hbrag_documents_v1.
             await self._attach_acl_from_source(document_id=document_id, source_document=source_document, write_document_index=False)
-            _emit_progress(options, "index", "succeeded", "Vector and keyword indexing completed (document-level giữ nguyên bản sync).", {"document_id": str(document_id), "status": index_response.status, "indexed_chunk_count": index_response.indexed_chunk_count, "indexed_artifact_count": artifact_count, "duration_ms": _duration_ms(started)})
+            _emit_progress(options, "index", "succeeded", "Vector and keyword indexing completed (document-level giữ nguyên bản sync).", {"document_id": str(document_id), "status": index_response.status, "indexed_chunk_count": index_response.indexed_chunk_count, "indexed_artifact_count": artifact_count, "duration_ms": _duration_ms(started)})  # noqa: E501
         except Exception as exc:
             logger.exception("DOffice retrieval-ingest failed id_vb=%s document=%s", clean_id, document_id)
             raise DofficeIngestionError(f"Failed to ingest DOffice document: {exc}") from exc

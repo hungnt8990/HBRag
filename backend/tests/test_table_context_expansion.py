@@ -7,9 +7,9 @@ from uuid import UUID, uuid4
 
 from docx import Document
 
+from app.services.chunkers.chunker_table_aware_chunking import table_aware_chunk_text
 from app.services.parsers.parser_docx_parser import DocxParser
 from app.services.rag.rag_answer_service import ContextChunk, RagAnswerService
-from app.services.chunkers.chunker_table_aware_chunking import table_aware_chunk_text
 
 DOCUMENT_ID = UUID("10000000-aaaa-4000-9000-000000000001")
 OTHER_DOCUMENT_ID = UUID("10000000-aaaa-4000-9000-000000000002")
