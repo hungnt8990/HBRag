@@ -1010,7 +1010,11 @@ class QdrantVectorStore:
 @lru_cache
 def get_vector_store() -> QdrantVectorStore:
     return QdrantVectorStore(
-        client=AsyncQdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key),
+        client=AsyncQdrantClient(
+            url=settings.qdrant_url,
+            api_key=settings.qdrant_api_key,
+            timeout=settings.qdrant_timeout,
+        ),
         collection_name=settings.qdrant_collection_name,
         vector_size=settings.embedding_dimension,
         upsert_batch_size=settings.qdrant_upsert_batch_size,
@@ -1026,7 +1030,11 @@ def get_vector_store() -> QdrantVectorStore:
 @lru_cache
 def get_artifact_vector_store() -> QdrantVectorStore:
     return QdrantVectorStore(
-        client=AsyncQdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key),
+        client=AsyncQdrantClient(
+            url=settings.qdrant_url,
+            api_key=settings.qdrant_api_key,
+            timeout=settings.qdrant_timeout,
+        ),
         collection_name=settings.qdrant_artifact_collection_name,
         vector_size=settings.embedding_dimension,
         upsert_batch_size=settings.qdrant_upsert_batch_size,
@@ -1047,7 +1055,11 @@ def _doffice_vector_store(collection_name: str) -> QdrantVectorStore:
     ``sparse_embedding_enabled`` (collection cũ còn schema sparse vẫn hợp lệ).
     """
     return QdrantVectorStore(
-        client=AsyncQdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key),
+        client=AsyncQdrantClient(
+            url=settings.qdrant_url,
+            api_key=settings.qdrant_api_key,
+            timeout=settings.qdrant_timeout,
+        ),
         collection_name=collection_name,
         vector_size=settings.embedding_dimension,
         upsert_batch_size=settings.qdrant_upsert_batch_size,

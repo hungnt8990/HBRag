@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     database_echo: bool = False
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: str | None = None
+    # Timeout (giây) cho client Qdrant. Mặc định qdrant_client REST là 5s — QUÁ NGẮN cho
+    # create_payload_index(wait=True)/ensure_datetime_indexes trên collection lớn (server
+    # dựng lại index >5s -> httpx ReadTimeout bọc thành ResponseHandlingException). Nâng lên
+    # để thao tác index/upsert nặng không bị đứt.
+    qdrant_timeout: float = 60.0
     qdrant_collection_name: str = "hbrag_chunks_v2"
     qdrant_artifact_collection_name: str = "hbrag_artifacts_v1"
     # Thiết kế DOffice 3-DB (job đồng bộ mới): 2 collection Qdrant + 1 index ES BM25.
