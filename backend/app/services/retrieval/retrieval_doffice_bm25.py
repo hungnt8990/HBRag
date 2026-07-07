@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 import httpx
 
 from app.core.config import settings
+from app.services.retrieval.retrieval_profile import get_retrieval_profile
 from app.services.retrieval.retrieval_shared import es_client_kwargs
 
 if TYPE_CHECKING:
@@ -26,18 +27,21 @@ logger = logging.getLogger(__name__)
 # Dùng lại synonyms_set viết tắt tiếng Việt (đẩy qua scripts/sync_es_synonyms.py).
 SYNONYMS_SET_NAME = "vi_abbreviations"
 
-# Trường text được BM25 (kèm boost khi search). noi_dung full nằm ở đây để tìm trên
-# toàn văn; ky_hieu boost cao vì là định danh tra cứu chính.
-_TEXT_SEARCH_FIELDS = (
-    ("ky_hieu", 6.0),
-    ("trich_yeu", 3.0),
-    ("tom_tat", 2.0),
-    ("noi_ban_hanh", 1.5),
-    ("nguoi_ky", 1.0),
-    ("ten_file", 1.0),
-    ("noi_dung_body", 1.2),
-    ("noi_dung", 1.0),
-)
+# Cấu hình domain (field + boost theo SCHEMA BA, lexicon, limits) đọc từ retrieval profile
+# (retrieval_profile.py — 2026-07-06 remap từ tên cũ ky_hieu/trich_yeu/nam/thang).
+_PROFILE = get_retrieval_profile()
+
+# Trường text được BM25 doc-level (kèm boost): document_no boost cao vì là định danh
+# tra cứu chính; ocr_content = toàn văn.
+_TEXT_SEARCH_FIELDS = _PROFILE.doc_text_fields
+
+# Index do job kho AI / nhóm BA quản (mapping riêng) — backend TUYỆT ĐỐI không PUT
+# mapping/ghi đè: chỉ đọc (search). Xem run_kho_chunk.py / kho_client.py.
+_PROTECTED_INDEX_PREFIX = "kho_ai_dung_chung"
+
+
+def _is_protected_index(index_name: str) -> bool:
+    return index_name.startswith(_PROTECTED_INDEX_PREFIX)
 
 _NOI_DUNG_BODY_START_RE = re.compile(
     r"(?:\n|^)(?:TỔNG CÔNG TY|TẬP ĐOÀN|CÔNG TY|ĐẢNG BỘ|ỦY BAN|BAN CHẤP HÀNH|Số\s*:)",
@@ -120,7 +124,7 @@ class DofficeBm25DocumentStore:
 
     def __init__(self, *, url: str | None = None, index_name: str | None = None, timeout_seconds: float = 30.0) -> None:
         self.url = (url or settings.elasticsearch_url).rstrip("/")
-        self.index_name = index_name or settings.doffice_documents_index_name
+        self.index_name = index_name or _PROFILE.es_doc_index or settings.doffice_documents_index_name
         self.timeout_seconds = timeout_seconds
         self._index_ready = False  # cache: ensure_index chỉ thật sự chạy 1 lần/process
 
@@ -181,6 +185,14 @@ class DofficeBm25DocumentStore:
             if resp.status_code == 200:
                 self._index_ready = True
                 return
+            # Index BA/job quản: KHÔNG PUT mapping (mapping của họ khác định nghĩa cũ ở đây).
+            # Thiếu index -> search trả rỗng (404), KHÔNG tự tạo sai mapping.
+            if _is_protected_index(self.index_name):
+                logger.warning(
+                    "Index %s (BA/job quản) chưa tồn tại — bỏ qua tạo, search sẽ trả rỗng.",
+                    self.index_name,
+                )
+                return
             resp = await client.put(f"{self.url}/{self.index_name}", json=self._index_definition())
             if resp.status_code < 400 or "resource_already_exists" in resp.text:
                 self._index_ready = True
@@ -190,6 +202,8 @@ class DofficeBm25DocumentStore:
             )
 
     async def delete_index(self) -> None:
+        if _is_protected_index(self.index_name):
+            raise RuntimeError(f"Index {self.index_name} do BA/job quản — không cho xoá từ store này.")
         self._index_ready = False
         async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.delete(f"{self.url}/{self.index_name}")
@@ -197,6 +211,47 @@ class DofficeBm25DocumentStore:
             raise RuntimeError(
                 f"Xóa index {self.index_name} lỗi: HTTP {resp.status_code} {resp.text[:300]}"
             )
+
+    async def fetch_doc_sources(
+        self,
+        document_ids: list[str],
+        *,
+        acl_subject: AclSubject | None = None,
+    ) -> dict[str, dict[str, Any]]:
+        """Lấy metadata văn bản (schema BA) theo ``document_id`` từ index nguồn — CHỈ ĐỌC.
+
+        Dùng để enrich candidate fusion (ES chunk/Qdrant payload KHÔNG có document_no/
+        signer/summary). Trả map ``document_id -> _source`` (đã lọc ACL)."""
+        ids = [str(d) for d in document_ids if d]
+        if not ids:
+            return {}
+        filters: list[dict[str, Any]] = [{"terms": {"document_id": ids}}]
+        if acl_subject is not None:
+            from app.services.security.security_acl_payload import build_es_acl_filter_flat
+
+            clause = build_es_acl_filter_flat(acl_subject)
+            if clause is not None:
+                filters.append(clause)
+        body = {
+            "size": len(ids),
+            "_source": list(_PROFILE.doc_source_fields),
+            "query": {"bool": {"filter": filters}},
+        }
+        from app.services.retrieval.retrieval_shared import get_es_http_client
+
+        resp = await get_es_http_client().post(f"{self.url}/{self.index_name}/_search", json=body)
+        if resp.status_code == 404:
+            return {}
+        if resp.status_code >= 400:
+            raise RuntimeError(f"fetch_doc_sources ES lỗi: HTTP {resp.status_code} {resp.text[:300]}")
+        hits = resp.json().get("hits", {}).get("hits", [])
+        out: dict[str, dict[str, Any]] = {}
+        for hit in hits:
+            source = hit.get("_source") or {}
+            doc_id = str(source.get("document_id") or "")
+            if doc_id and doc_id not in out:
+                out[doc_id] = source
+        return out
 
     async def upsert_document(
         self,
@@ -213,6 +268,10 @@ class DofficeBm25DocumentStore:
         ``noi_dung_clean`` = full nội dung đã làm sạch (KHÔNG cắt).
 
         ``acl_subjects`` = allow_list ["dv_/pb_/nv_"]; ``acl_deny`` = deny_list ["pb_/nv_"]."""
+        if _is_protected_index(self.index_name):
+            raise RuntimeError(
+                f"Index {self.index_name} do BA/job quản (mapping strict) — không ghi từ store này."
+            )
         await self.ensure_index()
         record: dict[str, Any] = {"document_id": document_id, "id_vb": str(id_vb)}
         for key in (
@@ -304,7 +363,7 @@ class DofficeBm25DocumentStore:
         years: list[int] | None = None,
         months: list[int] | None = None,
     ) -> list[dict[str, Any]]:
-        """BM25 thuần trên các trường văn bản, lọc ACL cứng. Trả [{document_id,id_vb,_score,...}]."""
+        """BM25 thuần trên các trường văn bản (schema BA), lọc ACL cứng. Trả [{document_id,_score,...}]."""
         await self.ensure_index()
         filters: list[dict[str, Any]] = []
         if acl_subject is not None:
@@ -314,16 +373,16 @@ class DofficeBm25DocumentStore:
             if clause is not None:
                 filters.append(clause)
         if years:
-            filters.append({"terms": {"nam": [int(y) for y in years]}})
+            filters.append({"terms": {_PROFILE.year_field: [int(y) for y in years]}})
         if months:
-            filters.append({"terms": {"thang": [int(m) for m in months]}})
+            filters.append({"terms": {_PROFILE.month_field: [int(m) for m in months]}})
         should = [
             {"match": {field: {"query": query, "boost": boost}}}
             for field, boost in _TEXT_SEARCH_FIELDS
         ]
         body = {
             "size": top_n,
-            "_source": ["document_id", "id_vb", "ky_hieu", "trich_yeu", "tom_tat", "ngay_vb", "nam"],
+            "_source": list(_PROFILE.doc_source_fields),
             "query": {"bool": {"should": should, "minimum_should_match": 1, "filter": filters}},
         }
         async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
@@ -341,13 +400,33 @@ class DofficeBm25DocumentStore:
         return results
 
 
-# Trường text BM25 cấp CHUNK (boost): chunk_text là chính, kèm ngữ cảnh heading + ký hiệu.
-_CHUNK_TEXT_SEARCH_FIELDS = (
-    ("chunk_text", 1.0),
-    ("section_path", 1.5),
-    ("ky_hieu", 4.0),
-    ("trich_yeu", 2.0),
-)
+# Trường text BM25 cấp CHUNK (boost) — SCHEMA BA index `kho_ai_dung_chung_chunk`:
+# chunk_text là chính, kèm ngữ cảnh heading (section_path) + tiêu đề văn bản (title)
+# + tên bảng (table_context). Chunk index KHÔNG có document_no — identifier lo ở doc-level.
+_CHUNK_TEXT_SEARCH_FIELDS = _PROFILE.chunk_text_fields
+
+
+def _issue_date_range_filter(years: list[int], months: list[int] | None) -> dict[str, Any]:
+    """Dựng filter range trên ``issue_date`` (kiểu date) từ năm (+tháng tuỳ chọn)."""
+    import calendar
+
+    clauses: list[dict[str, Any]] = []
+    months_norm = sorted({int(m) for m in months if 1 <= int(m) <= 12}) if months else None
+    for year in sorted({int(y) for y in years}):
+        if months_norm:
+            for month in months_norm:
+                last_day = calendar.monthrange(year, month)[1]
+                clauses.append({
+                    "range": {"issue_date": {
+                        "gte": f"{year}-{month:02d}-01",
+                        "lte": f"{year}-{month:02d}-{last_day:02d}",
+                    }}
+                })
+        else:
+            clauses.append({"range": {"issue_date": {"gte": f"{year}-01-01", "lte": f"{year}-12-31"}}})
+    if len(clauses) == 1:
+        return clauses[0]
+    return {"bool": {"should": clauses, "minimum_should_match": 1}}
 
 
 class DofficeChunkBm25Store:
@@ -358,7 +437,7 @@ class DofficeChunkBm25Store:
 
     def __init__(self, *, url: str | None = None, index_name: str | None = None, timeout_seconds: float = 30.0) -> None:
         self.url = (url or settings.elasticsearch_url).rstrip("/")
-        self.index_name = index_name or settings.doffice_chunks_index_name
+        self.index_name = index_name or _PROFILE.es_chunk_index or settings.doffice_chunks_index_name
         self.timeout_seconds = timeout_seconds
         self._index_ready = False
 
@@ -410,6 +489,14 @@ class DofficeChunkBm25Store:
             if resp.status_code == 200:
                 self._index_ready = True
                 return
+            # Index chunk kho AI do job run_kho_chunk tạo (mapping ở kho_client.py) —
+            # backend KHÔNG PUT mapping cũ đè lên. Thiếu index -> search trả rỗng.
+            if _is_protected_index(self.index_name):
+                logger.warning(
+                    "Index %s (job quản) chưa tồn tại — bỏ qua tạo, search sẽ trả rỗng.",
+                    self.index_name,
+                )
+                return
             resp = await client.put(f"{self.url}/{self.index_name}", json=self._index_definition())
             if resp.status_code < 400 or "resource_already_exists" in resp.text:
                 self._index_ready = True
@@ -419,6 +506,8 @@ class DofficeChunkBm25Store:
             )
 
     async def delete_index(self) -> None:
+        if _is_protected_index(self.index_name):
+            raise RuntimeError(f"Index {self.index_name} do job quản — không cho xoá từ store này.")
         self._index_ready = False
         async with httpx.AsyncClient(**es_client_kwargs(self.timeout_seconds)) as client:
             resp = await client.delete(f"{self.url}/{self.index_name}")
@@ -446,6 +535,10 @@ class DofficeChunkBm25Store:
         """Ghi/đè nhiều chunk (mỗi record phải có ``chunk_id`` làm _id) qua ES _bulk."""
         if not records:
             return
+        if _is_protected_index(self.index_name):
+            raise RuntimeError(
+                f"Index {self.index_name} do job kho AI ghi (schema BA) — không ghi từ store này."
+            )
         await self.ensure_index()
         lines: list[str] = []
         for rec in records:
@@ -503,9 +596,11 @@ class DofficeChunkBm25Store:
         if document_ids:
             filters.append({"terms": {"document_id": [str(d) for d in document_ids]}})
         if years:
-            filters.append({"terms": {"nam": [int(y) for y in years]}})
-        if months:
-            filters.append({"terms": {"thang": [int(m) for m in months]}})
+            filters.append(_issue_date_range_filter(years, months))
+        elif months:
+            # Chunk index chỉ có issue_date (date) — lọc "tháng X mọi năm" không biểu diễn
+            # được bằng range; bỏ qua (nhánh doc-level lọc được qua issue_month).
+            logger.debug("search_chunks: bỏ qua filter tháng %s vì không kèm năm", months)
         fields = [f"{field}^{boost}" for field, boost in _CHUNK_TEXT_SEARCH_FIELDS]
         should: list[dict[str, Any]] = [
             {
@@ -535,7 +630,7 @@ class DofficeChunkBm25Store:
                     "multi_match": {
                         "query": query,
                         "type": "phrase",
-                        "fields": ["chunk_text^2", "section_path^3", "trich_yeu^3"],
+                        "fields": list(_PROFILE.chunk_phrase_fields),
                         "boost": 5.0,
                     }
                 },
@@ -543,7 +638,7 @@ class DofficeChunkBm25Store:
         query_block: dict[str, Any] = {"bool": {"should": should, "minimum_should_match": 1, "filter": filters}}
         body = {
             "size": top_n,
-            "_source": ["document_id", "id_vb", "chunk_id", "chunk_index", "chunk_type", "chunk_text", "ky_hieu", "trich_yeu", "ngay_vb"],
+            "_source": list(_PROFILE.chunk_source_fields),
             "highlight": {
                 "fields": {
                     "chunk_text": {
@@ -559,10 +654,8 @@ class DofficeChunkBm25Store:
                 "function_score": {
                     "query": query_block,
                     "functions": [
-                        {"filter": {"term": {"chunk_type": "legal_clause"}}, "weight": 1.8},
-                        {"filter": {"term": {"chunk_type": "document_section"}}, "weight": 1.4},
-                        {"filter": {"term": {"chunk_type": "footer_signature"}}, "weight": 0.35},
-                        {"filter": {"term": {"chunk_type": "table_of_contents"}}, "weight": 0.25},
+                        {"filter": {"term": {"chunk_type": chunk_type}}, "weight": weight}
+                        for chunk_type, weight in _PROFILE.chunk_type_weights
                     ],
                     "boost_mode": "multiply",
                     "score_mode": "multiply",
@@ -584,3 +677,75 @@ class DofficeChunkBm25Store:
             if source.get("document_id"):
                 results.append({**source, "_score": hit.get("_score"), "highlight": hit.get("highlight") or {}})
         return results
+
+    async def fetch_context_chunks(
+        self,
+        seeds: list[tuple[str, int]],
+        *,
+        acl_subject: AclSubject | None = None,
+        parent_chunk_types: frozenset[str] | set[str] = frozenset(),
+        parent_lookback: int = 40,
+    ) -> list[dict[str, Any]]:
+        """Lấy chunk ngữ cảnh từ ES cho các seed ``(id_full, chunk_order)``.
+
+        Mỗi seed lấy: hàng xóm ``chunk_order`` trong [n-1, n+1] + các chunk CHA
+        (``chunk_type`` ∈ parent_chunk_types, ``chunk_order`` ∈ [n-lookback, n)).
+        1 request ``_msearch`` cho mọi seed; luôn kèm ACL (không nới quyền dù cùng
+        văn bản). Trả list kết quả THEO THỨ TỰ seed, mỗi phần tử = list hit
+        (đã sort theo chunk_order tăng dần)."""
+        if not seeds:
+            return []
+        acl_clause = None
+        if acl_subject is not None:
+            from app.services.security.security_acl_payload import build_es_acl_filter_flat
+
+            acl_clause = build_es_acl_filter_flat(acl_subject)
+        lines: list[str] = []
+        for id_full, order in seeds:
+            n = int(order)
+            blocks: list[dict[str, Any]] = [
+                {"range": {"chunk_order": {"gte": n - 1, "lte": n + 1}}},
+            ]
+            if parent_chunk_types and n > 0:
+                blocks.append({
+                    "bool": {"filter": [
+                        {"terms": {"chunk_type": sorted(parent_chunk_types)}},
+                        {"range": {"chunk_order": {"gte": max(0, n - parent_lookback), "lt": n}}},
+                    ]}
+                })
+            filters: list[dict[str, Any]] = [{"term": {"id_full": str(id_full)}}]
+            if acl_clause is not None:
+                filters.append(acl_clause)
+            body = {
+                "size": parent_lookback + 4,
+                "_source": [
+                    "document_id", "id", "id_full", "chunk_id", "chunk_order",
+                    "chunk_type", "chunk_text", "section_path", "title", "content_hash",
+                ],
+                "sort": [{"chunk_order": "asc"}],
+                "query": {"bool": {
+                    "filter": filters,
+                    "should": blocks,
+                    "minimum_should_match": 1,
+                }},
+            }
+            lines.append(json.dumps({"index": self.index_name}))
+            lines.append(json.dumps(body, ensure_ascii=False))
+        from app.services.retrieval.retrieval_shared import get_es_http_client
+
+        resp = await get_es_http_client().post(
+            f"{self.url}/_msearch",
+            content=("\n".join(lines) + "\n").encode("utf-8"),
+            headers={"Content-Type": "application/x-ndjson"},
+        )
+        if resp.status_code >= 400:
+            raise RuntimeError(f"fetch_context_chunks ES lỗi: HTTP {resp.status_code} {resp.text[:300]}")
+        responses = resp.json().get("responses", [])
+        out: list[list[dict[str, Any]]] = []
+        for item in responses:
+            hits = (item.get("hits") or {}).get("hits", []) if isinstance(item, dict) else []
+            out.append([hit.get("_source") or {} for hit in hits])
+        # msearch trả đúng số response = số seed; nếu lệch (lỗi cục bộ) thì đệm rỗng.
+        while len(out) < len(seeds):
+            out.append([])
+        return out

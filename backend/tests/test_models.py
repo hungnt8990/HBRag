@@ -74,6 +74,7 @@ def test_model_metadata_contains_initial_tables() -> None:
         "chunks",
         "chat_sessions",
         "chat_messages",
+        "doffice_chat_messages",
         "citations",
         "retrieval_logs",
         "api_request_logs",

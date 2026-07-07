@@ -21,9 +21,10 @@ from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 from app.services.retrieval.retrieval_document_index import DocumentIndexStore
 from app.services.retrieval.retrieval_doffice_bm25 import DofficeChunkBm25Store
+from app.services.retrieval.retrieval_profile import get_retrieval_profile
 from app.services.retrieval.retrieval_shared import TtlCache, get_es_http_client
 from app.services.security.acl_bypass_users import is_bypass_user
-from app.services.security.security_acl_payload import AclSubject, acl_subject_to_keys
+from app.services.security.security_acl_payload import AclSubject
 
 logger = logging.getLogger("document_search")
 
@@ -87,20 +88,24 @@ class DocumentSearchResponse(BaseModel):
     results: list[DocumentSearchHit]
 
 
-_SOURCE_FIELDS = [
-    "document_id", "id_vb", "ky_hieu", "trich_yeu",
-    "tom_tat", "noi_ban_hanh", "nguoi_ky", "ngay_vb", "nam",
-]
+# Cấu hình domain (schema BA index nguồn `kho_ai_dung_chung` + lexicon đơn vị/loại VB)
+# đọc từ retrieval profile — 2026-07-06 remap từ tên cũ, xem retrieval_profile.py.
+_PROFILE = get_retrieval_profile()
+
+_SOURCE_FIELDS = list(_PROFILE.doc_source_fields)
+
+# Field định danh (số/ký hiệu VB) — ref/exact/org-boost query trên field này.
+_ID_FIELD = _PROFILE.doc_identifier_field
 
 _HIGHLIGHT = {
     "fields": {
-        "noi_dung": {
+        _PROFILE.doc_highlight_fields[0]: {
             "fragment_size": 200,
             "number_of_fragments": 3,
             "pre_tags": ["<mark>"],
             "post_tags": ["</mark>"],
         },
-        "trich_yeu": {
+        _PROFILE.doc_highlight_fields[1]: {
             "fragment_size": 150,
             "number_of_fragments": 1,
             "pre_tags": ["<mark>"],
@@ -120,7 +125,7 @@ _QUESTION_RE = re.compile(
 # Mã THỂ THỨC văn bản (đứng trước SỐ khi tra cứu ký hiệu, vd "qd 258" = quyết định số 258).
 # Khác danh sách synonym (synonym là viết tắt NỘI DUNG); đây là LOẠI văn bản để nhận diện
 # truy vấn dạng tra cứu số/ký hiệu -> không cho "quyết định" (rất phổ biến) làm nhiễu BM25.
-_DOC_TYPE_ABBR = {"qd", "tb", "kh", "ct", "nq", "bc", "ttr", "hd", "qc", "cv", "gm", "tl", "tt", "cd", "nd"}
+_DOC_TYPE_ABBR = set(_PROFILE.doc_type_abbr)
 _NUM_RE = re.compile(r"\d{1,5}")
 
 # Từ đệm quanh mã/số hiệu khi tra cứu (số, theo, của, và, mã) — KHÔNG tính là nội dung.
@@ -178,18 +183,11 @@ def _parse_ref(query: str) -> tuple[list[str], list[str]]:
 # Năm tường minh trong câu hỏi -> map vào field `nam` (năm văn bản).
 _YEAR_RE = re.compile(r"\b(?:19|20)\d{2}\b")
 
-# Mã đơn vị xuất hiện trong ky_hieu -> ưu tiên văn bản CỦA đơn vị được nhắc trong câu hỏi.
-# (Có thể tách ra file config sau, giống vi_synonyms.) cpcit trong ky_hieu viết là '-IT'.
-_ORG_CODES = {
-    "evncpc", "evn", "evnict", "cpcit", "cpc", "cpccc", "cdmt", "evnspc", "evnnpc",
-    "dnpc", "khpc", "glpc", "qnpc", "qbpc", "qtpc", "ttpc", "pypc", "knpc", "dlpc", "bdpc", "klpc",
-}
-_ORG_ALIAS = {"cpcit": "it"}
-_ORG_ISSUER_QUERY = {
-    "cpcit": "cong ty cntt dien luc mien trung",
-    "evncpc": "tong cong ty dien luc mien trung",
-    "cpc": "tong cong ty dien luc mien trung",
-}
+# Mã đơn vị xuất hiện trong document_no -> ưu tiên văn bản CỦA đơn vị được nhắc trong câu
+# hỏi. Danh sách + alias + câu issuer nằm ở retrieval profile (cpcit trong document_no = '-IT').
+_ORG_CODES = set(_PROFILE.org_codes)
+_ORG_ALIAS = dict(_PROFILE.org_alias)
+_ORG_ISSUER_QUERY = dict(_PROFILE.org_issuer_query)
 
 
 def _extract_years(query: str) -> list[int]:
@@ -286,22 +284,23 @@ async def resolve_acl_subject(id_nv: int) -> AclSubject:
 
 
 def build_acl_filters(acl_subject: AclSubject) -> list[dict]:
+    """ACL filter chuẩn flat (``acl_subjects``/``acl_deny`` dạng ``dv_/pb_/nv_``).
+
+    2026-07-06: trước đây must_not dùng ``acl_deny_nv``/``acl_deny_pb`` (schema SỐ cũ) —
+    index BA lưu ``acl_deny`` chuỗi prefix -> DENY KHÔNG được áp (lỗ hổng). Dùng chung
+    ``build_es_acl_filter_flat`` (xử lý cả 2 định dạng, deny đúng)."""
     if acl_subject.is_super_admin:
         return []
-    clause: dict = {
-        "bool": {
-            "filter": [{"terms": {"acl_subjects": acl_subject_to_keys(acl_subject)}}],
-            "must_not": [{"terms": {"acl_deny_nv": [acl_subject.id_nv]}}],
-        }
-    }
-    if acl_subject.id_pb is not None:
-        clause["bool"]["must_not"].append({"terms": {"acl_deny_pb": [acl_subject.id_pb]}})
-    return [clause]
+    from app.services.security.security_acl_payload import build_es_acl_filter_flat
+
+    clause = build_es_acl_filter_flat(acl_subject)
+    return [clause] if clause is not None else []
 
 
 # Recency decay (gauss) — ưu tiên văn bản mới nhưng vẫn giữ độ liên quan (boost_mode=multiply).
 # Trong vòng OFFSET ngày: không giảm điểm; sau đó giảm dần, đến SCALE thì còn ~DECAY.
-_RECENCY_FIELD = "ngay_vb.date"
+# Kiểu date trong index BA (trước: ngay_vb.date — không tồn tại -> ES 400).
+_RECENCY_FIELD = _PROFILE.recency_date_field
 _RECENCY_OFFSET = "30d"
 _RECENCY_SCALE = "365d"
 _RECENCY_DECAY = 0.5
@@ -332,7 +331,7 @@ def _recency_function() -> dict:
 
 
 def _org_boost_functions(query: str) -> list[dict]:
-    """Hàm NHÂN điểm cho VB CỦA đơn vị được nhắc (mã đơn vị nằm trong ``ky_hieu``, vd '-IT').
+    """Hàm NHÂN điểm cho VB CỦA đơn vị được nhắc (mã đơn vị nằm trong ``document_no``, vd '-IT').
 
     ``filter`` + ``weight`` trong function_score (score_mode=multiply) -> ưu tiên đơn vị TRONG
     nhóm đã liên quan chủ đề, không kéo VB lạc chủ đề lên top.
@@ -340,12 +339,12 @@ def _org_boost_functions(query: str) -> list[dict]:
     functions: list[dict] = []
     for org in _extract_orgs(query):
         functions.append(
-            {"filter": {"match": {"ky_hieu": _ORG_ALIAS.get(org, org)}}, "weight": _ORG_BOOST_WEIGHT}
+            {"filter": {"match": {_ID_FIELD: _ORG_ALIAS.get(org, org)}}, "weight": _ORG_BOOST_WEIGHT}
         )
         issuer_query = _ORG_ISSUER_QUERY.get(org)
         if issuer_query:
             functions.append(
-                {"filter": {"match": {"noi_ban_hanh": issuer_query}}, "weight": _ORG_ISSUER_BOOST_WEIGHT}
+                {"filter": {"match": {"issuer_org_name": issuer_query}}, "weight": _ORG_ISSUER_BOOST_WEIGHT}
             )
     return functions
 
@@ -375,17 +374,17 @@ def build_query_body(
     fuzzy_fallback: bool = False,
 ) -> dict:
     if search_type == "ref":
-        # Tra cứu số/ký hiệu rời ("qd 258"). Ký hiệu lưu dạng "258/QĐ-IT" -> token [258, qd, it].
+        # Tra cứu số/ký hiệu rời ("qd 258"). Số ký hiệu lưu dạng "258/QĐ-IT" -> token [258, qd, it].
         # match_phrase "<số> <loại>" khớp ĐÚNG thứ tự số->loại -> đẩy 258/QĐ lên trên 258/BC.
         nums, types = _parse_ref(query)
         should: list[dict] = []
         for n in nums:
             for t in types:
-                should.append({"match_phrase": {"ky_hieu": {"query": f"{n} {t}", "boost": 12.0}}})
-            should.append({"match": {"ky_hieu": {"query": n, "boost": 4.0}}})
-            should.append({"term": {"id_vb": {"value": n, "boost": 3.0}}})
+                should.append({"match_phrase": {_ID_FIELD: {"query": f"{n} {t}", "boost": 12.0}}})
+            should.append({"match": {_ID_FIELD: {"query": n, "boost": 4.0}}})
+            should.append({"term": {_PROFILE.doc_key_field: {"value": n, "boost": 3.0}}})
         for t in types:  # loại văn bản (IDF thấp, boost nhẹ để phân biệt khi cùng số)
-            should.append({"match": {"ky_hieu": {"query": t, "boost": 1.0}}})
+            should.append({"match": {_ID_FIELD: {"query": t, "boost": 1.0}}})
         return {
             "size": top_n,
             "_source": _SOURCE_FIELDS,
@@ -401,9 +400,10 @@ def build_query_body(
             "query": {
                 "bool": {
                     "should": [
-                        {"term": {"ky_hieu": {"value": query, "boost": 10.0}}},
-                        {"match": {"ky_hieu": {"query": query, "boost": 6.0}}},
-                        {"term": {"id_vb": {"value": query, "boost": 10.0}}},
+                        # document_no là text + .keyword -> term trên .keyword (khớp nguyên văn).
+                        {"term": {f"{_ID_FIELD}.keyword": {"value": query, "boost": 10.0}}},
+                        {"match": {_ID_FIELD: {"query": query, "boost": 6.0}}},
+                        {"term": {_PROFILE.doc_key_field: {"value": query, "boost": 10.0}}},
                     ],
                     "filter": acl_filters,
                     "minimum_should_match": 1,
@@ -416,19 +416,12 @@ def build_query_body(
     # trước đây kéo mọi văn bản của đơn vị lên top bất kể chủ đề. Nội dung giờ chỉ còn chủ đề thật.
     content_query = _strip_org_tokens(query)
 
-    # ký hiệu: match thường (KHÔNG fuzzy — là mã, fuzzy dễ khớp sai số văn bản).
-    # nội dung primary: ưu tiên phrase + AND/high-MSM trên field body đã bỏ boilerplate (nếu index v2 có);
+    # số ký hiệu: match thường (KHÔNG fuzzy — là mã, fuzzy dễ khớp sai số văn bản).
+    # nội dung primary: title/summary là tinh nhất, ocr_content = toàn văn (boost thấp);
     # fuzzy chỉ được bật ở lượt fallback khi primary quá ít kết quả.
-    content_fields = [
-        "trich_yeu^4",
-        "tom_tat^2.5",
-        "keywords^1.5",
-        "noi_dung_body^1.4",
-        "noi_dung^0.6",
-        "noi_ban_hanh^0.5",
-    ]
+    content_fields = list(_PROFILE.doc_content_fields)
     should = [
-        {"match": {"ky_hieu": {"query": content_query, "boost": 6.0}}},
+        {"match": {_ID_FIELD: {"query": content_query, "boost": 6.0}}},
         {
             "multi_match": {
                 "query": content_query,
@@ -452,7 +445,7 @@ def build_query_body(
             "multi_match": {
                 "query": content_query,
                 "type": "phrase_prefix",
-                "fields": ["trich_yeu^3", "tom_tat^2", "noi_dung_body^1", "noi_dung^0.4"],
+                "fields": list(_PROFILE.doc_phrase_prefix_fields),
                 "boost": 0.35,
             }
         },
@@ -466,7 +459,7 @@ def build_query_body(
                 "multi_match": {
                     "query": content_query,
                     "type": "phrase",
-                    "fields": ["trich_yeu^6", "tom_tat^3", "noi_dung_body^2", "noi_dung^0.8"],
+                    "fields": list(_PROFILE.doc_phrase_fields),
                     "boost": 5.0,
                 }
             }
@@ -488,10 +481,10 @@ def build_query_body(
             }
         )
 
-    # Năm tường minh -> FILTER CỨNG theo `nam` (áp cả lên knn) vì vector ngữ nghĩa KHÔNG phân
-    # biệt được năm; chỉ boost trong phần BM25 sẽ bị điểm knn lấn át ở chế độ hybrid.
+    # Năm tường minh -> FILTER CỨNG theo year_field (áp cả lên knn) vì vector ngữ nghĩa KHÔNG
+    # phân biệt được năm; chỉ boost trong phần BM25 sẽ bị điểm knn lấn át ở chế độ hybrid.
     years = _extract_years(query)
-    extra_filters = [{"terms": {"nam": years}}] if years else []
+    extra_filters = [{"terms": {_PROFILE.year_field: years}}] if years else []
 
     # Có năm tường minh -> KHÔNG ép "mới nhất" (người dùng đã chỉ định năm; filter nam lo việc đó).
     apply_recency = prefer_recent and not years
@@ -515,6 +508,8 @@ def build_query_body(
             "query": scored_query,
         }
 
+    # ⚠️ Nhánh knn CHỈ chạy khi doffice_retrieval_enabled=False; index BA `kho_ai_dung_chung`
+    # KHÔNG có field `embedding` -> đừng bật use_vector khi trỏ index này (fusion Qdrant lo semantic).
     return {
         "size": top_n,
         "_source": _SOURCE_FIELDS,
@@ -531,6 +526,43 @@ def build_query_body(
     }
 
 
+async def run_doc_bm25(
+    query: str,
+    *,
+    top_n: int,
+    acl_subject: AclSubject,
+    document_ids: set[str] | None = None,
+    prefer_recent: bool = True,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """ES BM25 doc-level TÁI DÙNG (chat parity với /search): detect kiểu -> build body
+    (recency + org boost + filter năm) -> search (+ fuzzy fallback khi quá ít kết quả).
+
+    ``document_ids``: giới hạn phạm vi theo nhóm văn bản (chat trên nhóm). KHÔNG embed/knn —
+    semantic do fusion Qdrant đảm nhiệm. Trả ``(data, hits)`` như ``_doc_bm25`` của /search."""
+    search_type = detect_search_type(query)
+    filters = build_acl_filters(acl_subject)
+    if document_ids:
+        filters = [*filters, {"terms": {_PROFILE.doc_key_field: sorted(str(d) for d in document_ids)}}]
+    body = build_query_body(query, top_n, search_type, filters, None, prefer_recent=prefer_recent)
+    store = DocumentIndexStore(url=settings.two_stage_document_index_url or settings.elasticsearch_url)
+    store.index_name = _PROFILE.es_doc_index or settings.doffice_documents_index_name
+    data = await _search_es(store, body)
+    hits = data.get("hits", {}).get("hits", [])
+    if (
+        search_type not in {"exact", "ref"}
+        and len(hits) < settings.document_search_fuzzy_fallback_min_results
+    ):
+        fallback_body = build_query_body(
+            query, top_n, search_type, filters, None,
+            prefer_recent=prefer_recent, fuzzy_fallback=True,
+        )
+        fallback_data = await _search_es(store, fallback_body)
+        fallback_hits = fallback_data.get("hits", {}).get("hits", [])
+        if len(fallback_hits) > len(hits):
+            return fallback_data, fallback_hits
+    return data, hits
+
+
 async def _search_es(store: DocumentIndexStore, body: dict[str, Any]) -> dict[str, Any]:
     # Client keep-alive dùng CHUNG theo loop — không bắt tay TCP/TLS lại mỗi request.
     resp = await get_es_http_client().post(f"{store.url}/{store.index_name}/_search", json=body)
@@ -541,7 +573,7 @@ async def _search_es(store: DocumentIndexStore, body: dict[str, Any]) -> dict[st
 
 def _hit_key(hit: dict[str, Any]) -> str:
     src = hit.get("_source") or {}
-    return str(src.get("id_vb") or src.get("document_id") or "")
+    return str(src.get("document_id") or src.get("id") or "")
 
 
 def _apply_chunk_rerank(
@@ -565,7 +597,7 @@ def _apply_chunk_rerank(
 
     seen_chunk_docs: set[str] = set()
     for rank, chunk in enumerate(chunk_hits, start=1):
-        key = str(chunk.get("id_vb") or chunk.get("document_id") or "")
+        key = str(chunk.get("document_id") or "")
         if not key or key in seen_chunk_docs:
             continue
         entry = entries.get(key)
@@ -583,8 +615,8 @@ def _apply_chunk_rerank(
         hit = dict(entry["hit"])
         if entry["chunk_highlights"]:
             hl = dict(hit.get("highlight") or {})
-            existing = hl.get("noi_dung") or hl.get("trich_yeu") or []
-            hl["noi_dung"] = [*entry["chunk_highlights"], *existing][:3]
+            existing = hl.get("ocr_content") or hl.get("title") or []
+            hl["ocr_content"] = [*entry["chunk_highlights"], *existing][:3]
             hit["highlight"] = hl
         hit["_score"] = round(float(entry["rrf"]) * 10_000, 6)
         reranked.append(hit)
@@ -726,19 +758,27 @@ async def execute_document_search(request: DocumentSearchRequest) -> DocumentSea
     for hit in data.get("hits", {}).get("hits", []):
         src = hit.get("_source") or {}
         hl = hit.get("highlight") or {}
-        highlights = hl.get("noi_dung", []) or hl.get("trich_yeu", [])
+        # ES trả highlight key theo field BA (ocr_content/title); nhánh fusion nội bộ dùng "noi_dung".
+        highlights = (
+            hl.get("ocr_content", []) or hl.get("noi_dung", []) or hl.get("title", []) or hl.get("trich_yeu", [])
+        )
         semantic = hit.get("_semantic") or {}
+        issue_date = str(src.get("issue_date") or "")
+        issue_year = src.get("issue_year")
+        if issue_year is None and len(issue_date) >= 4 and issue_date[:4].isdigit():
+            issue_year = int(issue_date[:4])
+        # Response GIỮ tên field cũ (không vỡ API/FE) — giá trị map từ schema BA.
         results.append(
             DocumentSearchHit(
-                document_id=src.get("document_id", ""),
-                id_vb=src.get("id_vb"),
-                ky_hieu=src.get("ky_hieu"),
-                trich_yeu=src.get("trich_yeu"),
-                tom_tat=src.get("tom_tat"),
-                noi_ban_hanh=src.get("noi_ban_hanh"),
-                nguoi_ky=src.get("nguoi_ky"),
-                ngay_vb=src.get("ngay_vb"),
-                nam=src.get("nam"),
+                document_id=str(src.get("document_id", "")),
+                id_vb=str(src.get("document_id")) if src.get("document_id") else None,
+                ky_hieu=src.get("document_no") or src.get("ky_hieu"),
+                trich_yeu=src.get("title") or src.get("trich_yeu"),
+                tom_tat=src.get("summary") or src.get("tom_tat"),
+                noi_ban_hanh=src.get("issuer_org_name") or src.get("noi_ban_hanh"),
+                nguoi_ky=src.get("signer") or src.get("nguoi_ky"),
+                ngay_vb=issue_date[:10] or src.get("ngay_vb"),
+                nam=issue_year,
                 score=float(hit.get("_score") or 0.0),
                 bm25_score=semantic.get("bm25_score"),
                 semantic_score=semantic.get("semantic_score"),

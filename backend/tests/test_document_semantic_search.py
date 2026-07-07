@@ -43,8 +43,8 @@ def test_add_vector_like_results_uses_per_query_rank(monkeypatch) -> None:
     candidates: dict[str, sem._Candidate] = {}
     # Cung 1 van ban dung rank=1 o CA HAI query -> cong 2 lan w/(k+1).
     results = [
-        {"rank": 1, "query_index": 0, "score": 0.9, "metadata": {"id_vb": "111"}, "document_id": "d1", "chunk_id": "c1", "content": "x"},
-        {"rank": 1, "query_index": 1, "score": 0.8, "metadata": {"id_vb": "111"}, "document_id": "d1", "chunk_id": "c2", "content": "y"},
+        {"rank": 1, "query_index": 0, "score": 0.9, "metadata": {"document_id": "111"}, "document_id": "111", "chunk_id": "c1", "content": "x"},
+        {"rank": 1, "query_index": 1, "score": 0.8, "metadata": {"document_id": "111"}, "document_id": "111", "chunk_id": "c2", "content": "y"},
     ]
     sem._add_vector_like_results(candidates, results, weight=1.0, source_flag="vector_chunk", rrf_k=60)
     assert set(candidates) == {"111"}
@@ -52,18 +52,15 @@ def test_add_vector_like_results_uses_per_query_rank(monkeypatch) -> None:
     assert abs(candidates["111"].fused_score - expected) < 1e-9
 
 
-def test_get_candidate_merges_document_id_only_candidate() -> None:
-    """Guard: candidate cu key theo document_id (payload thieu id_vb) duoc GOP khi
-    xuat hien key id_vb kem document_id trung."""
+def test_get_candidate_same_document_id_returns_same_candidate() -> None:
+    """Key candidate = document_id (có mặt ở mọi payload kho AI) -> cùng văn bản từ
+    nhiều nguồn (docmeta/chunk/BM25) gộp về CÙNG một candidate, không tách đôi điểm."""
     candidates: dict[str, sem._Candidate] = {}
-    old = sem._get_candidate(candidates, "doc-uuid-1", {"document_id": "doc-uuid-1"})
+    old = sem._get_candidate(candidates, "111", {"document_id": "111"})
     old.fused_score = 0.5
-    merged = sem._get_candidate(
-        candidates, "12345", {"id_vb": "12345", "document_id": "doc-uuid-1"}
-    )
+    merged = sem._get_candidate(candidates, "111", {"document_id": "111", "title": "A"})
     assert merged is old
-    assert merged.key == "12345"
-    assert set(candidates) == {"12345"}
+    assert set(candidates) == {"111"}
 
 
 # --------------------------- cross-encoder rerank ---------------------------
@@ -231,10 +228,10 @@ def test_extract_query_identifiers() -> None:
 
 def test_candidate_identifier_match() -> None:
     c = sem._Candidate(key="x")
-    c.source = {"ky_hieu": "258/QĐ-IT", "id_vb": "850373"}
+    c.source = {"document_no": "258/QĐ-IT", "document_id": "850373"}
     assert sem._candidate_identifier_match(c, {"258/QĐ-IT"}, set()) == "code"
-    assert sem._candidate_identifier_match(c, set(), {"258"}) == "number"      # phần số ky_hieu
-    assert sem._candidate_identifier_match(c, set(), {"850373"}) == "number"   # id_vb
+    assert sem._candidate_identifier_match(c, set(), {"258"}) == "number"      # phần số document_no
+    assert sem._candidate_identifier_match(c, set(), {"850373"}) == "number"   # document_id
     assert sem._candidate_identifier_match(c, set(), {"999"}) is None
 
 
@@ -242,11 +239,11 @@ def test_apply_identifier_boost_lifts_matched_doc_to_top(monkeypatch) -> None:
     monkeypatch.setattr(sem.settings, "document_search_identifier_code_boost", 1.0)
     monkeypatch.setattr(sem.settings, "document_search_identifier_number_boost", 0.5)
     matched = sem._Candidate(key="850373")
-    matched.source = {"ky_hieu": "258/QĐ-IT", "id_vb": "850373"}
+    matched.source = {"document_no": "258/QĐ-IT", "document_id": "850373"}
     matched.final_score = 0.3
     matched.evidence = {"status": "weak"}
     semantic = sem._Candidate(key="999")
-    semantic.source = {"ky_hieu": "12/TB-IT", "id_vb": "999"}
+    semantic.source = {"document_no": "12/TB-IT", "document_id": "999"}
     semantic.final_score = 0.9
     semantic.evidence = {"status": "strong"}
     cands = [semantic, matched]

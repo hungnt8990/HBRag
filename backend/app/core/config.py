@@ -176,6 +176,21 @@ class Settings(BaseSettings):
     # Tìm kiếm văn bản CHỈ qua ES BM25 + ACL (bỏ kNN/embed) — bật khi model embedding
     # chết/chậm để API không treo chờ embed. False = cho phép hybrid (kNN+BM25) như cũ.
     document_search_bm25_only: bool = True
+    # Retrieval profile (retrieval_profile.py): cấu hình domain (field/boost/lexicon/limits)
+    # cho pipeline retrieval — bài toán mới chỉ cần thêm profile, không sửa lõi.
+    document_search_retrieval_profile: str = "kho_ai"
+    # Chat multi-turn: LLM condense câu hỏi nối tiếp thành câu độc lập trước retrieval.
+    document_chat_condense_timeout_s: float = 2.5
+    document_chat_history_max_messages: int = 6
+    # Adaptive passage: evidence strong + top-1 rerank cao -> chỉ đưa N passage đầu vào LLM
+    # (giảm nhiễu + latency). 0 = tắt.
+    document_chat_strong_top_n: int = 5
+    document_chat_strong_rerank_min: float = 0.7
+    # Session/short-term memory (/chat): backend tự lưu session_id + lịch sử. Lượt gần nhất cách
+    # hiện tại QUÁ ttl (giờ) -> KHÔNG nạp lịch sử làm ngữ cảnh (vẫn ghi tiếp để đánh giá).
+    document_chat_session_short_term_ttl_h: float = 4.0
+    # Số message MỚI nhất nạp làm short-term khi hội thoại còn "tươi".
+    document_chat_session_load_messages: int = 20
     document_search_fuzzy_fallback_min_results: int = 3
     document_search_chunk_rerank_enabled: bool = True
     document_search_chunk_rerank_multiplier: int = 3

@@ -144,7 +144,6 @@ class QdrantVectorStore:
         "doc_group",                # BA #11 — loại công văn
         "doc_type",                 # BA #12 — loại văn bản
         "doc_category",             # BA #13 — nhóm nghiệp vụ
-        "issue_date",               # BA #18 — ngày ban hành
         "owner_department_id",      # BA #22 — phòng ban chủ trì
         "priority",                 # BA #30 — độ khẩn
         "reference_document_ids",   # BA #29 — VB căn cứ
@@ -170,6 +169,10 @@ class QdrantVectorStore:
         "acl_deny_pb",
         "acl_deny_nv",
     )
+    # BA #18 issue_date (2026-07-06): index DATETIME (payload ISO "2026-04-22T00:00:00",
+    # Qdrant mặc định UTC khi thiếu timezone) -> filter năm/tháng bằng DatetimeRange,
+    # KHÔNG cần backfill nam/thang. _ensure_payload_indexes tự migrate index keyword cũ.
+    PAYLOAD_DATETIME_FIELDS = ("issue_date",)
 
     def __init__(
         self,
@@ -184,6 +187,7 @@ class QdrantVectorStore:
         upsert_retry_count: int = 2,
         hybrid_candidate_multiplier: int = 4,
         auto_recreate_collection: bool = False,
+        date_filter_field: str | None = None,
     ) -> None:
         if vector_size <= 0:
             raise ValueError("vector_size must be greater than 0.")
@@ -204,6 +208,9 @@ class QdrantVectorStore:
         self.upsert_retry_count = upsert_retry_count
         self.hybrid_candidate_multiplier = hybrid_candidate_multiplier
         self.auto_recreate_collection = auto_recreate_collection
+        # Field date (payload ISO datetime) dùng lọc năm/tháng qua DatetimeRange thay cho
+        # nam/thang int (payload kho AI không có 2 field đó). None = lọc kiểu cũ nam/thang.
+        self.date_filter_field = date_filter_field
         self.distance = DEFAULT_DISTANCE
         self._payload_indexes_ready = False
         self._collection_validated = False
@@ -460,6 +467,7 @@ class QdrantVectorStore:
             years=years,
             months=months,
             ngay_vb=ngay_vb,
+            date_field=self.date_filter_field,
         )
 
         from qdrant_client.models import QuantizationSearchParams, SearchParams
@@ -613,6 +621,7 @@ class QdrantVectorStore:
         years: list[int] | None = None,
         months: list[int] | None = None,
         ngay_vb: str | None = None,
+        date_field: str | None = None,
     ) -> Filter | None:
         must: list[FieldCondition] = []
         must_not: list[FieldCondition] = []
@@ -638,11 +647,45 @@ class QdrantVectorStore:
         ):
             if value is not None:
                 must.append(FieldCondition(key=key, match=MatchValue(value=value)))
-        # Lọc thời gian văn bản (metadata filter từ query): nam/thang (int index), ngay_vb (keyword).
-        if years:
-            must.append(FieldCondition(key="nam", match=MatchAny(any=[int(y) for y in years])))
-        if months:
-            must.append(FieldCondition(key="thang", match=MatchAny(any=[int(m) for m in months])))
+        # Lọc thời gian văn bản (metadata filter từ query):
+        # - date_field đặt (store kho AI: "issue_date" datetime index) -> DatetimeRange theo
+        #   năm/tháng, KHÔNG cần field nam/thang trong payload.
+        # - date_field None (store cũ) -> nam/thang (int index), ngay_vb (keyword) như trước.
+        if date_field and years:
+            from qdrant_client.models import DatetimeRange
+
+            import calendar
+
+            date_conditions: list[FieldCondition] = []
+            months_norm = sorted({int(m) for m in months if 1 <= int(m) <= 12}) if months else None
+            for year in sorted({int(y) for y in years}):
+                if months_norm:
+                    for month in months_norm:
+                        last_day = calendar.monthrange(year, month)[1]
+                        date_conditions.append(FieldCondition(
+                            key=date_field,
+                            range=DatetimeRange(
+                                gte=f"{year}-{month:02d}-01T00:00:00Z",
+                                lte=f"{year}-{month:02d}-{last_day:02d}T23:59:59Z",
+                            ),
+                        ))
+                else:
+                    date_conditions.append(FieldCondition(
+                        key=date_field,
+                        range=DatetimeRange(
+                            gte=f"{year}-01-01T00:00:00Z",
+                            lte=f"{year}-12-31T23:59:59Z",
+                        ),
+                    ))
+            if len(date_conditions) == 1:
+                must.append(date_conditions[0])
+            else:
+                must.append(Filter(should=date_conditions))
+        else:
+            if years:
+                must.append(FieldCondition(key="nam", match=MatchAny(any=[int(y) for y in years])))
+            if months:
+                must.append(FieldCondition(key="thang", match=MatchAny(any=[int(m) for m in months])))
         if ngay_vb:
             must.append(FieldCondition(key="ngay_vb", match=MatchValue(value=str(ngay_vb))))
         if access_filter is not None and not settings.access_read_all_documents:
@@ -839,6 +882,50 @@ class QdrantVectorStore:
                 field_name=field_name,
                 field_schema=PayloadSchemaType.INTEGER,
             )
+        await self._ensure_datetime_indexes()
+
+    async def _ensure_datetime_indexes(self) -> None:
+        """Index DATETIME cho field ngày (DatetimeRange filter). Field từng được index
+        KEYWORD (lối cũ) -> xoá index cũ rồi tạo lại datetime — CHỈ thao tác index,
+        không đụng payload/vector."""
+        if not self.PAYLOAD_DATETIME_FIELDS:
+            return
+        schema: dict[str, Any] = {}
+        try:
+            info = await self._client.get_collection(self.collection_name)
+            schema = dict(getattr(info, "payload_schema", None) or {})
+        except Exception:
+            logger.debug(
+                "Không đọc được payload_schema collection %s — vẫn thử tạo index datetime.",
+                self.collection_name,
+            )
+        for field_name in self.PAYLOAD_DATETIME_FIELDS:
+            current = schema.get(field_name)
+            current_type = getattr(current, "data_type", None)
+            current_value = str(getattr(current_type, "value", current_type) or "").lower()
+            if current_value == "datetime":
+                continue
+            if current is not None:
+                try:
+                    await self._client.delete_payload_index(
+                        collection_name=self.collection_name,
+                        field_name=field_name,
+                        wait=True,
+                    )
+                    logger.info(
+                        "Đã xoá index %s (%s) trên %s để tạo lại DATETIME.",
+                        field_name, current_value or "?", self.collection_name,
+                    )
+                except Exception:
+                    logger.warning(
+                        "Không xoá được index cũ %s trên %s — filter ngày có thể không áp.",
+                        field_name, self.collection_name, exc_info=True,
+                    )
+                    continue
+            await self._create_payload_index_if_needed(
+                field_name=field_name,
+                field_schema=PayloadSchemaType.DATETIME,
+            )
 
     async def _create_payload_index_if_needed(
         self,
@@ -970,6 +1057,8 @@ def _doffice_vector_store(collection_name: str) -> QdrantVectorStore:
         upsert_retry_count=settings.qdrant_upsert_retry_count,
         hybrid_candidate_multiplier=settings.qdrant_hybrid_candidate_multiplier,
         auto_recreate_collection=settings.auto_recreate_collection,
+        # Payload kho AI chỉ có issue_date (ISO datetime) — lọc năm/tháng qua DatetimeRange.
+        date_filter_field="issue_date",
     )
 
 

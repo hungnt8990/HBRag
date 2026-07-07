@@ -37,6 +37,10 @@ from app.services.retrieval.document_chat_service import (
     DocumentChatRequest,
     stream_document_chat,
 )
+from app.services.retrieval.document_chat_session_service import (
+    persist_turn,
+    resolve_session,
+)
 from app.services.retrieval.document_search_service import (
     DocumentSearchError,
     DocumentSearchRequest,
@@ -217,8 +221,12 @@ def _format_chat_sse(event: ChatStreamEvent) -> str:
         "- Có danh sách `document_id` → CHỈ lọc & hỏi trên nội dung nhóm văn bản đó.\n"
         "- Rỗng/`null` → hỏi trên **TOÀN BỘ** văn bản người dùng được ACL cho phép.\n\n"
         "Người hỏi lấy từ `jwtToken` (decode `ID_NV`, không verify chữ ký) → quyền ACL luôn được áp.\n\n"
+        "**Session & short-term memory** (`session_id`):\n"
+        "- LẦN ĐẦU bỏ trống `session_id` → backend tạo mới, trả về ở `meta.session_id`.\n"
+        "- LẦN SAU gửi lại `session_id` đó → backend nạp lịch sử gần đây làm ngữ cảnh (hỏi nối tiếp).\n"
+        "- Lượt cuối cách hiện tại quá ngưỡng (mặc định 4h) → KHÔNG nạp lịch sử nhưng vẫn ghi tiếp.\n\n"
         "**Luồng SSE** (`text/event-stream`), các `event`:\n"
-        "- `meta`  : phạm vi truy hồi (`documents`|`all`).\n"
+        "- `meta`  : `session_id` + phạm vi truy hồi (`documents`|`all`).\n"
         "- `sources`: danh sách nguồn `[i]` (document_id, ký hiệu, trích yếu, điểm...).\n"
         "- `delta` : từng đoạn văn bản trả lời (`{\"text\": \"...\"}`) — ghép lại thành câu trả lời.\n"
         "- `done`  : câu trả lời đầy đủ + `evidence_summary` + tổng nguồn.\n"
@@ -244,13 +252,29 @@ async def document_chat(request: DocumentChatRequest, http_request: Request) -> 
     scope_ids = {str(d).strip() for d in (request.document_ids or []) if str(d).strip()} or None
     client_ip = http_request.client.host if http_request.client else None
 
+    # Session + short-term memory: lần đầu (không có session_id hợp lệ) -> sinh mới; lần sau ->
+    # nạp lịch sử gần đây (nếu lượt cuối còn trong ngưỡng ttl). Backend LUÔN sở hữu session_id.
+    resolved = await resolve_session(requested_session_id=request.session_id, id_nv=id_nv)
+    session_id = resolved.session_id
+    # Ưu tiên short-term của session; nếu không có session_id mà FE vẫn gửi history -> dùng history
+    # (backward-compat client cũ). Session hết hạn (>ttl) -> không nạp lịch sử.
+    if resolved.short_term_used:
+        effective_history = resolved.history
+    elif not request.session_id and request.history:
+        effective_history = request.history
+    else:
+        effective_history = None
+
     async def event_stream() -> Any:
         status_str = "success"
         error_msg: str | None = None
         total_sources = 0
         answer_chars = 0
+        answer_text = ""
+        citations: list[dict[str, Any]] = []
         evidence: str | None = None
         used_vector: bool | None = None
+        rewritten_query: str | None = None
         try:
             async for ev in stream_document_chat(
                 query=request.query,
@@ -259,10 +283,17 @@ async def document_chat(request: DocumentChatRequest, http_request: Request) -> 
                 top_n=request.top_n,
                 answer_mode=request.answer_mode,
                 answer_style=request.answer_style,
+                history=effective_history,
+                session_id=session_id,
             ):
-                if ev.event == "done":
+                if ev.event == "meta":
+                    rewritten_query = ev.data.get("rewritten_query")
+                elif ev.event == "sources":
+                    citations = ev.data.get("citations") or []
+                elif ev.event == "done":
                     total_sources = int(ev.data.get("total_sources") or 0)
-                    answer_chars = len(ev.data.get("answer") or "")
+                    answer_text = ev.data.get("answer") or ""
+                    answer_chars = len(answer_text)
                     evidence = ev.data.get("evidence_summary")
                     used_vector = ev.data.get("used_vector")
                 elif ev.event == "error":
@@ -274,6 +305,24 @@ async def document_chat(request: DocumentChatRequest, http_request: Request) -> 
             error_msg = f"{type(exc).__name__}: {exc}"
             yield _format_chat_sse(ChatStreamEvent("error", {"message": "Lỗi hệ thống."}))
         finally:
+            # Lưu lượt hội thoại vào lịch sử (giữ để đánh giá + làm short-term lần sau). Nuốt lỗi.
+            await persist_turn(
+                session_id=session_id,
+                id_nv=id_nv,
+                id_pb=acl_subject.id_pb,
+                id_dv=acl_subject.id_dv,
+                user_query=request.query,
+                assistant_answer=answer_text,
+                assistant_meta={
+                    "citations": citations,
+                    "evidence_summary": evidence,
+                    "used_vector": used_vector,
+                    "total_sources": total_sources,
+                    "rewritten_query": rewritten_query,
+                    "status": status_str,
+                },
+                document_ids=sorted(scope_ids) if scope_ids else None,
+            )
             await log_api_request(
                 endpoint="document-search/chat",
                 method="POST",
@@ -297,6 +346,14 @@ async def document_chat(request: DocumentChatRequest, http_request: Request) -> 
                     "document_ids": sorted(scope_ids) if scope_ids else None,
                     "answer_mode": request.answer_mode,
                     "answer_style": request.answer_style,
+                    # Session/short-term: id hội thoại + có nạp lịch sử làm ngữ cảnh không.
+                    "session_id": str(session_id),
+                    "session_is_new": resolved.is_new,
+                    "short_term_used": resolved.short_term_used,
+                    # Multi-turn: số message lịch sử (đưa vào LLM) + câu hỏi đã condense (nếu có).
+                    "history_len": len(effective_history or []),
+                    "condensed": bool(rewritten_query),
+                    "rewritten_query": rewritten_query,
                 },
                 response_summary={
                     "total_sources": total_sources,

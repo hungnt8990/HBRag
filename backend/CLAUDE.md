@@ -91,10 +91,9 @@
   lượt (re-chunk ES chunk + đánh dấu pending) -> (2) `run_kho_qdrant.bat` RESET=9 (recreate 2 collection + re-embed
   all, tránh point cũ mồ côi do chunk id đổi). ⚠️ Xong backfill: đặt lại `KHO_JOB_FULL_SCAN=0` (full-scan lặp
   trong loop = re-chunk 16k mỗi vòng, phí) + `KHO_QDRANT_RESET=0`. Cả 2 bat HIỆN đang để FULL (=1/=9).
-- ⚠️ Retrieval hiện hành query field tên CŨ (`id_vb/ky_hieu/trich_yeu/nam/thang/ngay_vb`) — nay payload dùng tên
-  BA (`document_id/document_no/title/issue_date`), KHÔNG còn field compat. ACL (`acl_subjects/acl_deny`) + dense
-  semantic + BM25 `chunk_text` VẪN chạy; MẤT: lọc năm/tháng, boost mã, BM25 boost ký hiệu. TODO: remap retrieval
-  (`document_semantic_search`/`retrieval_doffice_bm25`) sang schema BA.
+- **✅ Retrieval ĐÃ remap schema BA (2026-07-06)**: mọi query/filter/boost dùng tên BA
+  (`document_id/document_no/title/summary/signer/issuer_org_name/issue_date/issue_year/id_full/chunk_order`),
+  bỏ hẳn tên cũ (`id_vb/ky_hieu/trich_yeu/nam/thang/ngay_vb`). Chi tiết mục **Retrieval nâng cấp** dưới.
 
 ## Jobs (`jobs/doffice_sync/`) — nguồn doffice_vanban CŨ (giữ tham khảo)
 - **run_unified/run_pg_es** (`run_pg_es.bat`=`--skip-qdrant`): pipeline **6 LUỒNG VẬT LÝ tách rời** (mỗi luồng 1 pool+queue):
@@ -171,6 +170,65 @@
   `main._validate_vector_store_on_startup`. Chỉ dùng DOffice.
 - Bảng PG rỗng (citations, graph_*, document_files...) ĐỪNG drop: gắn ORM model + query (list_documents), drop sẽ vỡ app + lệch alembic.
 - Alembic: DB chia sẻ có revision không trên branch hiện tại -> ĐỪNG `alembic upgrade` mù.
+
+## Retrieval nâng cấp schema BA + profile + chat multi-turn (2026-07-06)
+- **Remap toàn bộ retrieval sang schema BA** (`document_id/document_no/title/summary/signer/issuer_org_name/
+  issue_date/issue_year/id_full/chunk_order`) — bỏ tên cũ. Sửa: `retrieval_doffice_bm25.py` (doc + chunk BM25 field/
+  boost/`_source`), `document_search_service.py` (ref/exact/content/org-boost/recency `issue_date`/filter năm
+  `issue_year`), `document_semantic_search.py` (`_source_from_metadata`, `_rerank_content`, identifier boost,
+  CRAG grading), `document_chat_service.py` (`_citation`/`_passage_text`). `DocumentSearchHit` GIỮ field cũ
+  (map BA->cũ ở boundary) nên FE không vỡ; `_citation` trả CẢ key BA + key cũ song song.
+- **⚠️ Fix lỗ hổng ACL doc-BM25**: `build_acl_filters` cũ dùng `acl_deny_nv/pb` (số) -> DENY KHÔNG áp trên index BA
+  (`acl_deny` chuỗi `pb_/nv_`). Nay dùng `build_es_acl_filter_flat` (siết đúng). Verify: ID_NV lạ -> 0 kết quả.
+- **Filter năm/tháng Qdrant qua `issue_date`** (payload không có `nam/thang`): `_payload_filter` thêm nhánh
+  `date_field` -> `DatetimeRange`; 2 collection kho AI đặt `date_filter_field="issue_date"` + index payload đổi
+  KEYWORD->DATETIME (`_ensure_datetime_indexes` tự migrate; đã migrate live 2 collection). KHÔNG re-embed. ES chunk/doc
+  lọc range trên `issue_date` (chunk) / `terms issue_year` (doc).
+- **Context expansion chuyển PG -> ES** (pipeline kho AI KHÔNG ghi chunk vào PG): `DofficeChunkBm25Store.fetch_context_chunks`
+  (`_msearch` theo `id_full`+`chunk_order`±1 + chunk CHA, kèm ACL). Bỏ import PG `Chunk`/`AsyncSessionLocal`.
+- **Enrich doc-source**: ES chunk + Qdrant payload KHÔNG có `document_no/summary/signer` -> `_enrich_doc_sources`
+  1 call `fetch_doc_sources` trên index nguồn (chỉ đọc, kèm ACL) bù metadata cho rerank/citation/identifier boost.
+- **Guard index BA/job**: store KHÔNG PUT mapping / ghi / xoá index tên `kho_ai_dung_chung*` (`_is_protected_index`) —
+  thiếu index thì search trả rỗng, không tự tạo sai mapping.
+- **Retrieval profile config-driven** (`retrieval_profile.py`): dataclass `RetrievalProfile` gom field/boost/lexicon
+  (`org_codes`/`org_alias`/`doc_type_abbr`)/chunk_type weights/limits; `KHO_AI_PROFILE` mặc định, chọn qua setting
+  `document_search_retrieval_profile`. Bài toán mới = thêm 1 profile (`register_retrieval_profile`), KHÔNG sửa lõi.
+  Trọng số RRF/CRAG/rerank vẫn ở settings.
+- **Chat parity + multi-turn** (`document_chat_service.py`): (1) `/chat` nay chạy nhánh BM25 doc-level SONG SONG
+  (`run_doc_bm25` tách từ search — recency + org boost + identifier) như `/search`, fallback dùng hits ES khi fusion
+  rỗng. (2) Request thêm `history` (list `{role,content}`, backward-compat) -> `_condense_query` LLM viết lại câu nối
+  tiếp thành câu độc lập (tái dùng `should_rewrite_with_context`/`QueryRewriteService`, `asyncio.wait_for` timeout
+  `document_chat_condense_timeout_s`=2.5s, lỗi/timeout -> query gốc). `meta.rewritten_query` khi khác gốc; prompt trả
+  lời chèn 2-4 turn cuối; log `history_len`/`condensed`. Verify live: câu "văn bản này do ai ký?" + history ->
+  condense đầy đủ ngữ cảnh -> trả lời đúng người ký.
+- **Session + short-term memory server-side (2026-07-07)**: `/chat` nay backend TỰ quản hội thoại (không bắt FE gửi
+  `history`). **1 BẢNG DUY NHẤT** `doffice_chat_messages` (mỗi lượt user/assistant = 1 dòng, `session_id` UUID nhóm
+  hội thoại; KHÔNG bảng session riêng — chủ/thời điểm lượt cuối/thứ tự đều suy từ message: `actor_id_nv`, `created_at`
+  mới nhất, `seq`). TÁCH khỏi `chat_sessions`/`chat_messages` legacy (gắn `users.id` UUID + Citation; ở đây người hỏi =
+  `ID_NV` int từ JWT). Model `app/models/doffice_chat.py`, repo `repositories/doffice_chat.py`, service
+  `document_chat_session_service.py` (`resolve_session`/`persist_turn` — tự mở session, NUỐT lỗi, không chặn chat).
+  **Luồng**: request thêm `session_id` (optional) -> LẦN ĐẦU rỗng -> sinh `session_id` mới (chưa ghi row), trả ở
+  **`meta.session_id`** (SSE); LẦN SAU gửi lại -> nạp short-term (tối đa `document_chat_session_load_messages`=20
+  message cuối) làm `history`. Row chỉ sinh ở `persist_turn` cuối lượt (ghi user + assistant). **Ngưỡng 4h**
+  (`document_chat_session_short_term_ttl_h`): lượt cuối cách hiện tại > ttl -> KHÔNG nạp short-term nhưng VẪN ghi tiếp
+  vào cùng session (giữ TOÀN BỘ lịch sử — gồm câu trả lời LLM — để đánh giá). **Bind theo chủ**: session khớp
+  `actor_id_nv` mới nạp; lệch chủ -> `session_id` mới (chống rò rỉ); `session_id` lạ chưa có message -> dùng lại id đó
+  (vô hại). Backward-compat: không có `session_id` mà FE vẫn gửi `history` -> dùng `history` như cũ. Assistant kèm
+  citations/evidence vào cột `meta` JSONB; phạm vi lượt hỏi vào `document_ids`. Bảng tạo lúc **startup**
+  (`_ensure_doffice_chat_tables_on_startup`, checkfirst — KHÔNG alembic mù) + migration `0017` có guard. Log
+  `api_request_logs` thêm `session_id`/`session_is_new`/`short_term_used`. Verify live 7 kịch bản (tạo/tái dùng/hết
+  hạn vẫn ghi tiếp/bind chủ/id lạ) PASS. 476 unit test pass.
+- **Cải tiến chất lượng**: (a) docmeta->chunk expansion (`_expand_chunkless_candidates`: candidate chỉ trúng
+  docmeta/BM25 doc-level -> BM25 top-3 chunk của doc làm passage); (b) dedup context theo `content_hash`;
+  (c) ngân sách context theo KÝ TỰ (`max_context_total_chars`=12000, `_select_context_by_budget`); (d) adaptive
+  passage chat (evidence strong + top-1 rerank>=`document_chat_strong_rerank_min` -> chỉ `document_chat_strong_top_n`=5).
+- **Fix `neće` (2026-07-06)**: LLM sinh token lạc (language leakage) do payload gateway không set temperature ->
+  thêm `llm_temperature`(=0)/`llm_top_p` (`config.py`) đưa vào payload `ExternalLLMClient.chat/stream_chat`.
+- Verify live (JWT ID_NV 90288): mã `40/QĐ-IT` -> exact 0.33s; `Võ Văn Hòa nâng lương` -> fusion strong, citation đủ
+  title/signer; `năm 2025` -> mọi hit đều 2025; chủ đề EVNCPC -> context_items>0. 472 unit test pass.
+- **TODO còn lại**: 9 field nghiệp vụ (`doc_type/doc_category/keywords/expiry_date/owner_department_id/security_level/
+  related/reference_document_ids/priority`) hiện null ở nguồn -> filter/boost theo chúng chưa có tác dụng đến khi API
+  nguồn bổ sung. Route decode JWT không verify chữ ký (bypass ACL nếu giả ID_NV) — cần JWKS khi ra khỏi gateway nội bộ.
 
 ## Document-search fusion (2026-07-02)
 - `/api/document-search/search` + `DOFFICE_RETRIEVAL_ENABLED=true` -> `run_semantic_document_fusion`

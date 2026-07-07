@@ -37,8 +37,8 @@ def test_build_query_body_ref_phrase() -> None:
     should = body["query"]["bool"]["should"]
     phrases = [c for c in should if "match_phrase" in c]
     # phrase đảo về thứ tự "<số> <loại>" để khớp "258/QĐ"
-    assert any(c["match_phrase"]["ky_hieu"]["query"] == "258 qd" for c in phrases)
-    assert "noi_dung" not in str(body["query"])  # ref không đụng noi_dung (tránh nhiễu)
+    assert any(c["match_phrase"]["document_no"]["query"] == "258 qd" for c in phrases)
+    assert "ocr_content" not in str(body["query"])  # ref không đụng toàn văn (tránh nhiễu)
 
 
 def test_detect_mode() -> None:
@@ -53,11 +53,11 @@ def test_build_query_body_primary_bm25_is_boilerplate_aware_without_fuzzy() -> N
     mm = [c for c in should if "multi_match" in c]
     assert body["query"]["bool"]["minimum_should_match"] == 1
     assert not any(c["multi_match"].get("fuzziness") == "AUTO" for c in mm)
-    assert any("noi_dung_body" in field for c in mm for field in c["multi_match"].get("fields", []))
+    assert any("ocr_content" in field for c in mm for field in c["multi_match"].get("fields", []))
     assert any(c["multi_match"].get("type") == "phrase_prefix" for c in mm)
-    # ký hiệu không fuzzy
-    kh = [c for c in should if "match" in c and "ky_hieu" in c["match"]]
-    assert kh and "fuzziness" not in kh[0]["match"]["ky_hieu"]
+    # số ký hiệu không fuzzy
+    kh = [c for c in should if "match" in c and "document_no" in c["match"]]
+    assert kh and "fuzziness" not in kh[0]["match"]["document_no"]
 
 
 def test_build_query_body_fuzzy_only_in_fallback() -> None:
@@ -88,9 +88,9 @@ def test_build_query_body_year_org_boost() -> None:
     assert not any("gauss" in fn for fn in fs["functions"])
     # ...nhưng org được NHÂN điểm (weight) để ưu tiên đơn vị, KHÔNG loại VB khác
     org_fn = next(fn for fn in fs["functions"] if "weight" in fn)
-    assert org_fn["filter"]["match"]["ky_hieu"] == "evncpc" and org_fn["weight"] > 1.0
+    assert org_fn["filter"]["match"]["document_no"] == "evncpc" and org_fn["weight"] > 1.0
     # năm là FILTER cứng (áp được cả lên knn ở hybrid)
-    assert {"terms": {"nam": [2025]}} in fs["query"]["bool"]["filter"]
+    assert {"terms": {"issue_year": [2025]}} in fs["query"]["bool"]["filter"]
 
 
 def test_build_query_body_org_multiplicative_boost() -> None:
@@ -100,7 +100,7 @@ def test_build_query_body_org_multiplicative_boost() -> None:
     fs = body["query"]["function_score"]
     assert fs["score_mode"] == "multiply" and fs["boost_mode"] == "multiply"
     org_fn = next(fn for fn in fs["functions"] if fn.get("weight"))
-    assert org_fn["filter"]["match"]["ky_hieu"] == "it"  # cpcit -> mã 'IT' trong ky_hieu
+    assert org_fn["filter"]["match"]["document_no"] == "it"  # cpcit -> mã 'IT' trong document_no
     assert org_fn["weight"] > 1.0
     assert any("gauss" in fn for fn in fs["functions"])
 
@@ -113,7 +113,7 @@ def test_detect_org_query_uses_bm25() -> None:
 def test_build_query_body_recency() -> None:
     on = dss.build_query_body("quy trinh", 10, "bm25", [], None, prefer_recent=True)
     fs = on["query"]["function_score"]
-    assert fs["functions"][0]["gauss"]["ngay_vb.date"]  # decay theo ngày
+    assert fs["functions"][0]["gauss"]["issue_date"]  # decay theo ngày ban hành (field date BA)
     assert fs["boost_mode"] == "multiply" and "bool" in fs["query"]
     off = dss.build_query_body("quy trinh", 10, "bm25", [], None, prefer_recent=False)
     assert "function_score" not in off["query"]
@@ -125,12 +125,12 @@ def test_build_query_body_recency() -> None:
 def test_chunk_rerank_keeps_response_shape_and_uses_chunk_highlight() -> None:
     doc_hits = [
         {
-            "_source": {"document_id": "d1", "id_vb": "1", "ky_hieu": "1/QD", "trich_yeu": "A"},
+            "_source": {"document_id": "d1", "document_no": "1/QD", "title": "A"},
             "_score": 9.0,
-            "highlight": {"noi_dung": ["doc"]},
+            "highlight": {"ocr_content": ["doc"]},
         },
         {
-            "_source": {"document_id": "d2", "id_vb": "2", "ky_hieu": "2/QD", "trich_yeu": "B"},
+            "_source": {"document_id": "d2", "document_no": "2/QD", "title": "B"},
             "_score": 8.0,
             "highlight": {},
         },
@@ -138,16 +138,14 @@ def test_chunk_rerank_keeps_response_shape_and_uses_chunk_highlight() -> None:
     chunk_hits = [
         {
             "document_id": "d2",
-            "id_vb": "2",
-            "ky_hieu": "2/QD",
-            "trich_yeu": "B",
+            "title": "B",
             "_score": 7.0,
             "highlight": {"chunk_text": ["<mark>tien luong</mark>"]},
         }
     ]
     ranked = dss._apply_chunk_rerank(doc_hits, chunk_hits, 2)
-    assert [h["_source"]["id_vb"] for h in ranked] == ["2", "1"]
-    assert ranked[0]["highlight"]["noi_dung"][0] == "<mark>tien luong</mark>"
+    assert [h["_source"]["document_id"] for h in ranked] == ["d2", "d1"]
+    assert ranked[0]["highlight"]["ocr_content"][0] == "<mark>tien luong</mark>"
 
 
 def test_build_acl_filters() -> None:

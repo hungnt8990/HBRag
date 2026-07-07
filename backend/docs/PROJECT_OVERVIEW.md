@@ -3,6 +3,36 @@
 > Tài liệu này mô tả tổng thể backend để người mới (hoặc Claude ở phiên sau) đọc là
 > hiểu dự án có gì. **Mỗi khi hoàn thành một thay đổi đáng kể, phải cập nhật file này.**
 >
+> 🔎 **2026-07-06 — RETRIEVAL remap schema BA + profile + chat multi-turn**: `/api/document-search/search` &
+> `/chat` nay query/filter/boost hoàn toàn theo schema BA (`document_id/document_no/title/summary/signer/
+> issuer_org_name/issue_date/issue_year/id_full/chunk_order`) — bỏ tên cũ (`id_vb/ky_hieu/trich_yeu/nam/thang`).
+> Điểm chính: (1) **Fix lỗ hổng ACL** doc-BM25 (`build_acl_filters` cũ bỏ sót deny vì dùng `acl_deny_nv/pb` số ->
+> nay `build_es_acl_filter_flat`); (2) **filter năm/tháng Qdrant** qua `DatetimeRange` trên `issue_date` (index
+> payload đổi KEYWORD->DATETIME, đã migrate live 2 collection, KHÔNG re-embed); (3) **context expansion** chuyển
+> PG->ES (`fetch_context_chunks` msearch `id_full`+`chunk_order`±1+cha, kèm ACL — pipeline kho AI không ghi chunk
+> vào PG); (4) **enrich doc-source** từ index nguồn (bù `document_no/summary/signer` cho rerank/citation); (5)
+> **retrieval profile** config-driven (`retrieval_profile.py`, setting `document_search_retrieval_profile`) — bài
+> toán mới thêm 1 profile không sửa lõi; (6) **chat parity** (BM25 doc-level song song) + **multi-turn** (`history`
+> -> `_condense_query` LLM viết lại câu nối tiếp thành câu độc lập); (7) cải tiến: docmeta->chunk expansion, dedup
+> `content_hash`, ngân sách context theo ký tự, adaptive passage. `DocumentSearchHit` GIỮ field cũ (map ở boundary)
+> -> FE không vỡ. Kèm fix `neće` (LLM language leakage): thêm `llm_temperature`=0/`llm_top_p` vào payload gateway.
+> Verify live (JWT 90288): mã exact 0.33s, fusion `Võ Văn Hòa` strong + citation đủ signer, filter năm 2025 chuẩn,
+> multi-turn "ai ký?" condense đúng, ACL ID_NV lạ -> 0 kết quả. 472 unit test pass. Chi tiết: `backend/CLAUDE.md`
+> mục "Retrieval nâng cấp schema BA".
+>
+> 💬 **2026-07-07 — CHAT session + short-term memory server-side**: `/api/document-search/chat` nay backend TỰ
+> quản hội thoại (không bắt FE gửi `history`). Request thêm `session_id` (optional): LẦN ĐẦU bỏ trống -> backend
+> tạo session mới & trả về ở **`meta.session_id`** (SSE); LẦN SAU FE gửi lại -> nạp short-term (tối đa 20 message
+> cuối) làm ngữ cảnh hỏi nối tiếp. **Ngưỡng 4h** (`document_chat_session_short_term_ttl_h`): lượt cuối cách hiện
+> tại > ttl -> KHÔNG nạp short-term nhưng VẪN ghi tiếp vào cùng session (giữ TOÀN BỘ lịch sử — gồm câu trả lời LLM
+> — để đánh giá). Lưu ở **1 BẢNG DUY NHẤT** `doffice_chat_messages` (mỗi lượt user/assistant = 1 dòng, `session_id`
+> nhóm hội thoại; không bảng session riêng — chủ/thời điểm/thứ tự suy từ message). TÁCH khỏi `chat_sessions`/
+> `chat_messages` legacy (gắn `users.id` — ở đây người hỏi = `ID_NV` int từ JWT). Bind theo chủ (`actor_id_nv`)
+> chống rò rỉ; backward-compat giữ `history` khi không có `session_id`. Model `app/models/doffice_chat.py`, repo
+> `repositories/doffice_chat.py`, service `document_chat_session_service.py`. Bảng tạo lúc startup (checkfirst) +
+> migration `0017`. Verify live 7 kịch bản PASS, 476 unit test pass. Chi tiết: `backend/CLAUDE.md` mục "Session +
+> short-term memory server-side".
+>
 > 🗄️ **2026-07-06 — CHUYỂN PostgreSQL sang kho dùng chung**: DB PostgreSQL chuyển từ
 > `10.72.113.21/hbrag` (user `hbrag`) sang **`10.72.117.227:5432` / DB `kho_ai_dung_chung`** (user
 > `admin_kho_ai`, PostgreSQL 17.10). Đã **migrate 1:1 toàn bộ 31 bảng** (pg_dump -Fc | pg_restore -j4 qua
@@ -34,7 +64,7 @@
 > + chunk theo 2 list riêng (chunk = doc-level từ record ES chunk, bù related/reference/priority từ doc nguồn +
 > chunk-level). `--reset 9` xoá thêm **checkpoint PostgreSQL** (`clear_prefix("kho_ai_chunk")`), vẫn KHÔNG đụng
 > `kho_ai_dung_chung`. Retrieval hiện hành query field tên cũ -> nay MẤT lọc năm/tháng + boost mã (ACL + dense +
-> BM25 chunk_text còn chạy); TODO remap retrieval sang schema BA. Verify live: chunk+embed doc có ACL -> payload
+> BM25 chunk_text còn chạy); ~~TODO remap retrieval~~ **ĐÃ remap 2026-07-06 (xem banner đầu file)**. Verify live: chunk+embed doc có ACL -> payload
 > đúng spec (acl_subjects/acl_deny/doc_group... khớp; field rỗng bỏ), reset sạch 0 point/0 chunk, nguồn 16354 nguyên.
 > Chi tiết field + vận hành: `backend/CLAUDE.md` mục "Nhánh KHO AI DÙNG CHUNG". 104 test pass.
 >

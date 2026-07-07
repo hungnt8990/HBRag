@@ -5,11 +5,16 @@ Luồng (3 nhánh đầu chạy SONG SONG — LLM expansion không chặn search
       lexical do ES BM25 nhánh (c) đảm nhiệm — sparse Qdrant tắt qua sparse_embedding_enabled);
   (b) nhánh MỞ RỘNG: LLM sinh 1-3 query liên quan -> embed -> search Qdrant;
   (c) ES chunk BM25 (query gốc, strip org).
-Sau đó: RRF weighted fusion (rank TÍNH THEO TỪNG query) -> context builder (chunk hàng xóm
-±1 + chunk CHA heading/điều-mục từ PG) -> cross-encoder rerank (Qwen3-Reranker qua
-LLMGateway) -> CRAG-lite (rule + LLM chấm lại candidate mơ hồ) -> retry 1 vòng khi top yếu
--> trả hits + evidence_summary. Metadata filter nam/thang bắt tường minh từ query, áp cả
-Qdrant + ES; quá chặt (kết quả < 3) thì tự bỏ filter chạy lại.
+Sau đó: RRF weighted fusion (rank TÍNH THEO TỪNG query) -> enrich metadata văn bản từ index
+nguồn `kho_ai_dung_chung` (document_no/title/summary/signer — ES chunk + Qdrant payload không
+có) -> context builder (chunk hàng xóm ±1 + chunk CHA heading/điều-mục từ ES chunk index —
+pipeline kho AI KHÔNG ghi chunk vào PG) -> cross-encoder rerank (bge-reranker qua LLMGateway)
+-> CRAG-lite (rule + LLM chấm lại candidate mơ hồ) -> retry 1 vòng khi top yếu -> trả hits +
+evidence_summary. Metadata filter năm/tháng bắt tường minh từ query, áp cả Qdrant (DatetimeRange
+trên issue_date) + ES (range issue_date); quá chặt (kết quả < 3) thì tự bỏ filter chạy lại.
+
+2026-07-06: remap toàn bộ sang SCHEMA BA (document_id/document_no/title/summary/issue_date/
+id_full/chunk_order) — bỏ tên cũ id_vb/ky_hieu/trich_yeu/nam/thang.
 
 Trọng số/ngưỡng cấu hình qua settings ``document_search_fusion_*`` / ``document_search_crag_*``
 / ``document_search_rerank_*`` (app/core/config.py). Log INFO 1 dòng timing từng khâu.
@@ -26,17 +31,16 @@ import unicodedata
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any
-from uuid import UUID
-
-from sqlalchemy import and_, or_, select
 
 from app.core.config import settings
-from app.db.session import AsyncSessionLocal
-from app.models.chunk import Chunk
 from app.services.embeddings.embedding_sparse_factory import get_sparse_embedding_provider
 from app.services.llm_gateway import get_llm_gateway
 from app.services.rag.rag_chunk import build_query_embedding_text
-from app.services.retrieval.retrieval_doffice_bm25 import DofficeChunkBm25Store
+from app.services.retrieval.retrieval_doffice_bm25 import (
+    DofficeBm25DocumentStore,
+    DofficeChunkBm25Store,
+)
+from app.services.retrieval.retrieval_profile import get_retrieval_profile
 from app.services.retrieval.retrieval_shared import TtlCache
 from app.services.vector.vector_store import (
     VectorSearchResult,
@@ -51,18 +55,20 @@ logger = logging.getLogger(__name__)
 _EXPANSION_CACHE = TtlCache(maxsize=256, ttl_seconds=600.0)
 _EMBED_CACHE = TtlCache(maxsize=512, ttl_seconds=600.0)
 
-# Phạm vi văn bản (list id_vb/document_id) cho MỘT lần fusion — set ở đầu ``run_semantic_document_fusion``,
+# Phạm vi văn bản (list document_id) cho MỘT lần fusion — set ở đầu ``run_semantic_document_fusion``,
 # đọc ở các nhánh search leaf (Qdrant + ES BM25). Dùng ContextVar để KHÔNG phải thay đổi chữ ký hàng loạt
 # hàm trung gian, và để phạm vi LUÔN được áp (không bị nhánh filter-fallback/CRAG-retry vô tình bỏ như
 # metadata filter năm/tháng). ContextVar an toàn đa request: mỗi request/asyncio task có bản sao riêng.
 _DOC_SCOPE: ContextVar[frozenset[str] | None] = ContextVar("doffice_doc_scope", default=None)
 
-MAX_CONTEXT_CHARS_PER_CHUNK = 1800
-MAX_CONTEXT_ITEMS = 8
+# Giới hạn context + chunk_type "cha" đọc từ retrieval profile (cấu hình domain).
+_PROFILE = get_retrieval_profile()
+MAX_CONTEXT_CHARS_PER_CHUNK = _PROFILE.max_context_chars_per_chunk
+MAX_CONTEXT_ITEMS = _PROFILE.max_context_items
 # Cửa sổ tìm chunk CHA (heading/điều-mục) đứng trước seed trong cùng văn bản.
-PARENT_LOOKBACK_CHUNKS = 40
+PARENT_LOOKBACK_CHUNKS = _PROFILE.parent_lookback_chunks
 # chunk_type được coi là "cha" (heading/điều/mục) khi mở rộng ngữ cảnh parent-child.
-PARENT_CHUNK_TYPES = {"legal_clause", "document_section", "document_header"}
+PARENT_CHUNK_TYPES = set(_PROFILE.parent_chunk_types)
 # Fusion cho kết quả quá ít khi có metadata filter -> bỏ filter chạy lại.
 MIN_RESULTS_BEFORE_FILTER_FALLBACK = 3
 
@@ -190,7 +196,13 @@ async def _run_fusion_inner(
         return None
     t_fuse = time.perf_counter()
 
-    await _build_context(candidates)
+    # Enrich metadata văn bản (document_no/title/summary/signer) từ index nguồn — ES chunk
+    # và Qdrant payload KHÔNG mang các field này; rerank/citation/identifier-boost cần chúng.
+    await _enrich_doc_sources(candidates, acl_subject=acl_subject)
+    # Candidate chỉ trúng qua docmeta/BM25 doc-level (không có chunk nào) -> kéo top chunk
+    # thật từ ES để passage/rerank có NỘI DUNG thay vì chỉ title/summary.
+    await _expand_chunkless_candidates(clean, candidates, acl_subject=acl_subject)
+    await _build_context(candidates, acl_subject=acl_subject)
     t_context = time.perf_counter()
     await _apply_cross_encoder_rerank(clean, candidates)
     t_rerank = time.perf_counter()
@@ -224,7 +236,9 @@ async def _run_fusion_inner(
             )
             if retried:
                 candidates = retried
-                await _build_context(candidates)
+                await _enrich_doc_sources(candidates, acl_subject=acl_subject)
+                await _expand_chunkless_candidates(clean, candidates, acl_subject=acl_subject)
+                await _build_context(candidates, acl_subject=acl_subject)
                 await _apply_cross_encoder_rerank(clean, candidates)
                 for candidate in candidates:
                     candidate.evidence = _crag_lite_evidence(clean, candidate)
@@ -482,7 +496,7 @@ async def _search_qdrant_store(
         seen: set[str] = set()
         for rank, result in enumerate(results, start=1):
             payload = _vector_result_payload(result)
-            key = str(payload.get("chunk_id") or payload.get("id_vb") or payload.get("document_id") or "")
+            key = str(payload.get("chunk_id") or payload.get("id") or payload.get("document_id") or "")
             if not key or key in seen:
                 continue
             seen.add(key)
@@ -567,7 +581,7 @@ def _fuse_candidates(
         candidate.fused_score += float(settings.document_search_fusion_w_bm25_doc) / (rrf_k + rank)
         candidate.source_flags.add("bm25_document")
         hl = hit.get("highlight") or {}
-        candidate.highlights.extend((hl.get("noi_dung") or hl.get("trich_yeu") or [])[:3])
+        candidate.highlights.extend((hl.get("ocr_content") or hl.get("title") or [])[:3])
 
     _add_vector_like_results(
         candidates, vector_docmeta,
@@ -627,45 +641,38 @@ def _add_vector_like_results(
 
 
 def _get_candidate(candidates: dict[str, _Candidate], key: str, source: dict[str, Any]) -> _Candidate:
-    """Lấy/tạo candidate theo key, GỘP candidate document_id-only khi biết id_vb tương ứng.
-
-    Guard cho dữ liệu cũ: nếu trước đó cùng văn bản được key bằng document_id (payload
-    thiếu id_vb) và giờ xuất hiện key id_vb kèm document_id trùng -> merge để không tách đôi điểm.
-    """
+    """Lấy/tạo candidate theo key (``document_id`` — có mặt ở MỌI payload kho AI)."""
     existing = candidates.get(key)
     if existing is not None:
         return existing
-    doc_id = str(source.get("document_id") or "").strip()
-    id_vb = str(source.get("id_vb") or "").strip()
-    if id_vb and doc_id and doc_id != key and doc_id in candidates and key == id_vb:
-        old = candidates.pop(doc_id)
-        old.key = key
-        candidates[key] = old
-        return old
     candidate = _Candidate(key=key, source=dict(source))
     candidates[key] = candidate
     return candidate
 
 
 def _doc_key(payload: dict[str, Any]) -> str:
-    return str(payload.get("id_vb") or payload.get("document_id") or "").strip()
+    return str(payload.get("document_id") or payload.get("id_full") or payload.get("id") or "").strip()
 
 
 def _source_from_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
-    # Ép kiểu về đúng schema DocumentSearchHit: payload Qdrant docmeta có thể lưu
-    # id_vb/nam là int, ngay_vb không phải str -> tránh pydantic ValidationError (500).
-    id_vb = metadata.get("id_vb")
-    ngay_vb = metadata.get("ngay_vb") or metadata.get("issued_date")
+    """Source nội bộ theo KEY BA chuẩn (document_no/title/summary/issue_date...). Payload
+    Qdrant/record ES chunk chỉ điền được một phần — phần còn lại do _enrich_doc_sources bù.
+    Ép str để tránh pydantic ValidationError (payload có thể lưu số)."""
+    issue_date = metadata.get("issue_date")
+    issue_date_str = str(issue_date)[:10] if issue_date not in (None, "") else None
+    issue_year = _optional_int(metadata.get("issue_year"))
+    if issue_year is None and issue_date_str and issue_date_str[:4].isdigit():
+        issue_year = int(issue_date_str[:4])
     return {
         "document_id": str(metadata.get("document_id") or ""),
-        "id_vb": str(id_vb) if id_vb not in (None, "") else None,
-        "ky_hieu": metadata.get("ky_hieu") or metadata.get("document_code"),
-        "trich_yeu": metadata.get("trich_yeu") or metadata.get("document_title") or metadata.get("subject"),
-        "tom_tat": metadata.get("tom_tat"),
-        "noi_ban_hanh": metadata.get("noi_ban_hanh") or metadata.get("issuing_org"),
-        "nguoi_ky": metadata.get("nguoi_ky"),
-        "ngay_vb": str(ngay_vb) if ngay_vb not in (None, "") else None,
-        "nam": _optional_int(metadata.get("nam")),
+        "id_full": str(metadata.get("id_full") or metadata.get("id") or "") or None,
+        "document_no": metadata.get("document_no"),
+        "title": metadata.get("title"),
+        "summary": metadata.get("summary"),
+        "issuer_org_name": metadata.get("issuer_org_name"),
+        "signer": metadata.get("signer"),
+        "issue_date": issue_date_str,
+        "issue_year": issue_year,
     }
 
 
@@ -675,8 +682,14 @@ def _chunk_context_seed(payload: dict[str, Any], *, source: str, rank: int, scor
     return {
         "chunk_id": str(payload.get("chunk_id") or metadata.get("chunk_id") or ""),
         "document_id": str(payload.get("document_id") or metadata.get("document_id") or ""),
-        "chunk_index": _optional_int(payload.get("chunk_index") or metadata.get("chunk_index")),
+        # id_full + chunk_order (schema BA): khoá mở rộng ngữ cảnh trên ES chunk index.
+        "id_full": str(payload.get("id_full") or metadata.get("id_full") or ""),
+        "chunk_index": _optional_int(
+            payload.get("chunk_order") or metadata.get("chunk_order")
+            or payload.get("chunk_index") or metadata.get("chunk_index")
+        ),
         "chunk_type": payload.get("chunk_type") or metadata.get("chunk_type"),
+        "section_path": payload.get("section_path") or metadata.get("section_path"),
         "content": content,
         "metadata": metadata,
         "source": source,
@@ -685,138 +698,213 @@ def _chunk_context_seed(payload: dict[str, Any], *, source: str, rank: int, scor
     }
 
 
-# ===================== Context builder (hàng xóm + cha) =====================
+# ================= Enrich metadata văn bản từ index nguồn =================
 
 
-async def _build_context(candidates: list[_Candidate]) -> None:
-    seed_chunk_ids = []
+async def _enrich_doc_sources(candidates: list[_Candidate], *, acl_subject: Any) -> None:
+    """Bù metadata văn bản (document_no/title/summary/signer/issuer_org_name) từ index nguồn
+    `kho_ai_dung_chung` — ES chunk chỉ mang title, Qdrant payload không mang các field này.
+    1 call _search theo terms document_id (kèm ACL), KHÔNG đè giá trị đã có."""
+    doc_ids = {
+        str(candidate.source.get("document_id") or candidate.key).strip()
+        for candidate in candidates
+        if not (candidate.source.get("document_no") and candidate.source.get("title"))
+    }
+    doc_ids.discard("")
+    if not doc_ids:
+        return
+    store = DofficeBm25DocumentStore(
+        url=settings.two_stage_document_index_url or settings.elasticsearch_url,
+    )
+    try:
+        sources = await store.fetch_doc_sources(sorted(doc_ids), acl_subject=acl_subject)
+    except Exception:
+        logger.warning("Enrich doc-source từ index nguồn lỗi — giữ metadata sẵn có.", exc_info=True)
+        return
+    for candidate in candidates:
+        doc_id = str(candidate.source.get("document_id") or candidate.key).strip()
+        src = sources.get(doc_id)
+        if not src:
+            continue
+        issue_date = str(src.get("issue_date") or "")
+        enriched = {
+            "document_no": src.get("document_no"),
+            "title": src.get("title"),
+            "summary": src.get("summary"),
+            "signer": src.get("signer"),
+            "issuer_org_name": src.get("issuer_org_name"),
+            "issue_date": issue_date[:10] or None,
+            "issue_year": src.get("issue_year"),
+        }
+        for key, value in enriched.items():
+            if value not in (None, "") and candidate.source.get(key) in (None, ""):
+                candidate.source[key] = value
+
+
+# Số candidate không-chunk được kéo chunk từ ES + số chunk mỗi doc (docmeta->chunk expansion).
+_CHUNKLESS_EXPAND_MAX_DOCS = 5
+_CHUNKLESS_EXPAND_TOP_CHUNKS = 3
+
+
+async def _expand_chunkless_candidates(
+    query: str, candidates: list[_Candidate], *, acl_subject: Any
+) -> None:
+    """Candidate KHÔNG có chunk (chỉ trúng docmeta semantic / BM25 doc-level) -> BM25 top chunk
+    của chính văn bản đó từ ES chunk index (filter document_id + ACL) làm seed passage."""
+    targets = [c for c in candidates[: _CHUNKLESS_EXPAND_MAX_DOCS * 2] if not c.chunks][
+        :_CHUNKLESS_EXPAND_MAX_DOCS
+    ]
+    if not targets:
+        return
+    store = _context_store()
+
+    async def _one(candidate: _Candidate) -> None:
+        doc_id = str(candidate.source.get("document_id") or candidate.key).strip()
+        if not doc_id:
+            return
+        try:
+            chunks = await store.search_chunks(
+                query,
+                top_n=_CHUNKLESS_EXPAND_TOP_CHUNKS,
+                acl_subject=acl_subject,
+                ensure=False,
+                document_ids={doc_id},
+            )
+        except Exception:
+            logger.debug("docmeta->chunk expansion lỗi doc=%s", doc_id, exc_info=True)
+            return
+        for rank, chunk in enumerate(chunks, start=1):
+            candidate.chunks.append(
+                _chunk_context_seed(
+                    chunk, source="docmeta_expansion", rank=rank,
+                    score=float(chunk.get("_score") or 0.0),
+                )
+            )
+
+    await asyncio.gather(*(_one(candidate) for candidate in targets))
+
+
+# ===================== Context builder (hàng xóm + cha, từ ES chunk) =====================
+
+
+def _context_store() -> DofficeChunkBm25Store:
+    return DofficeChunkBm25Store(
+        url=settings.two_stage_document_index_url or settings.elasticsearch_url,
+    )
+
+
+async def _build_context(candidates: list[_Candidate], *, acl_subject: Any) -> None:
+    """Mở rộng ngữ cảnh từ ES chunk index (pipeline kho AI KHÔNG ghi chunk vào PG):
+    hàng xóm ``chunk_order`` ±1 + chunk CHA (heading/điều-mục gần nhất đứng trước seed).
+    1 request ``_msearch`` cho mọi seed, luôn kèm ACL."""
+    seeds: list[tuple[str, int]] = []
+    seen_seeds: set[tuple[str, int]] = set()
     for candidate in candidates:
         for chunk in candidate.chunks[:4]:
-            chunk_id = _safe_uuid(chunk.get("chunk_id"))
-            if chunk_id is not None:
-                seed_chunk_ids.append(chunk_id)
-    db_context = await _load_db_context(seed_chunk_ids)
-    by_seed: dict[str, list[dict[str, Any]]] = {}
-    for item in db_context:
-        seed_id = str(item.get("seed_chunk_id") or item.get("chunk_id") or "")
-        by_seed.setdefault(seed_id, []).append(item)
+            id_full = str(chunk.get("id_full") or "")
+            order = chunk.get("chunk_index")
+            if not id_full or not isinstance(order, int):
+                continue
+            seed = (id_full, order)
+            if seed not in seen_seeds:
+                seen_seeds.add(seed)
+                seeds.append(seed)
+
+    by_seed: dict[tuple[str, int], list[dict[str, Any]]] = {}
+    if seeds:
+        try:
+            responses = await _context_store().fetch_context_chunks(
+                seeds,
+                acl_subject=acl_subject,
+                parent_chunk_types=frozenset(PARENT_CHUNK_TYPES),
+                parent_lookback=PARENT_LOOKBACK_CHUNKS,
+            )
+        except Exception:
+            logger.warning("Document search context ES expansion failed.", exc_info=True)
+            responses = []
+        for seed, hits in zip(seeds, responses):
+            by_seed[seed] = _select_context_hits(seed, hits)
 
     for candidate in candidates:
         merged: list[dict[str, Any]] = []
         seen: set[str] = set()
         for chunk in candidate.chunks:
-            chunk_id = str(chunk.get("chunk_id") or "")
-            for db_chunk in by_seed.get(chunk_id, []):
-                _append_context(merged, seen, db_chunk)
+            id_full = str(chunk.get("id_full") or "")
+            order = chunk.get("chunk_index")
+            if id_full and isinstance(order, int):
+                for es_chunk in by_seed.get((id_full, order), []):
+                    _append_context(merged, seen, es_chunk)
             _append_context(merged, seen, chunk)
         # Văn bản đọc liền mạch: sắp theo (document_id, chunk_index); chunk thiếu index xếp cuối.
         merged.sort(key=lambda item: (
             str(item.get("document_id") or ""),
             item.get("chunk_index") if isinstance(item.get("chunk_index"), int) else 1 << 30,
         ))
-        candidate.context = merged[:MAX_CONTEXT_ITEMS]
+        candidate.context = _select_context_by_budget(merged)
 
 
-async def _load_db_context(chunk_ids: list[UUID]) -> list[dict[str, Any]]:
-    """Kéo từ PG: chunk hàng xóm ±1 + chunk CHA (heading/điều-mục gần nhất đứng trước seed).
-
-    Gộp thành 2 query OR (trước đây mỗi seed 1 query -> N+1)."""
-    if not chunk_ids:
-        return []
-    try:
-        async with AsyncSessionLocal() as session:
-            result = await session.execute(select(Chunk).where(Chunk.id.in_(chunk_ids)))
-            seeds = list(result.scalars().all())
-            if not seeds:
-                return []
-            wanted: dict[UUID, str] = {chunk.id: str(chunk.id) for chunk in seeds}
-
-            neighbor_conditions = [
-                and_(
-                    Chunk.document_id == seed.document_id,
-                    Chunk.chunk_index >= max(0, int(seed.chunk_index) - 1),
-                    Chunk.chunk_index <= int(seed.chunk_index) + 1,
-                )
-                for seed in seeds
-            ]
-            result = await session.execute(
-                select(Chunk).where(or_(*neighbor_conditions)).order_by(Chunk.chunk_index.asc())
-            )
-            neighbors = list(result.scalars().all())
-            for neighbor in neighbors:
-                seed_id = next(
-                    (
-                        str(seed.id)
-                        for seed in seeds
-                        if seed.document_id == neighbor.document_id
-                        and abs(int(seed.chunk_index) - int(neighbor.chunk_index)) <= 1
-                    ),
-                    None,
-                )
-                if seed_id is not None:
-                    wanted.setdefault(neighbor.id, seed_id)
-
-            # Chunk CHA: heading/điều-mục gần nhất ĐỨNG TRƯỚC seed (parent-child theo cấu trúc
-            # văn bản). Lấy 1 cửa sổ lookback rồi chọn nearest per seed trong Python.
-            parent_conditions = [
-                and_(
-                    Chunk.document_id == seed.document_id,
-                    Chunk.chunk_index < int(seed.chunk_index),
-                    Chunk.chunk_index >= max(0, int(seed.chunk_index) - PARENT_LOOKBACK_CHUNKS),
-                )
-                for seed in seeds
-                if int(seed.chunk_index) > 0
-            ]
-            parents_pool: list[Chunk] = []
-            if parent_conditions:
-                result = await session.execute(
-                    select(Chunk).where(or_(*parent_conditions)).order_by(Chunk.chunk_index.asc())
-                )
-                parents_pool = [
-                    chunk
-                    for chunk in result.scalars().all()
-                    if str((chunk.chunk_metadata or {}).get("chunk_type") or "") in PARENT_CHUNK_TYPES
-                ]
-            for seed in seeds:
-                nearest: Chunk | None = None
-                for chunk in parents_pool:
-                    if chunk.document_id != seed.document_id:
-                        continue
-                    if int(chunk.chunk_index) >= int(seed.chunk_index):
-                        continue
-                    if nearest is None or int(chunk.chunk_index) > int(nearest.chunk_index):
-                        nearest = chunk
-                if nearest is not None:
-                    wanted.setdefault(nearest.id, str(seed.id))
-
-            result = await session.execute(
-                select(Chunk).where(Chunk.id.in_(list(wanted))).order_by(Chunk.chunk_index.asc())
-            )
-            chunks = list(result.scalars().all())
-    except Exception:
-        logger.warning("Document search context DB expansion failed.", exc_info=True)
-        return []
-
-    return [_chunk_model_context(chunk, seed_chunk_id=wanted.get(chunk.id)) for chunk in chunks]
+def _select_context_by_budget(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Chọn context theo NGÂN SÁCH ký tự (max_context_total_chars) thay vì chỉ đếm item —
+    chunk nhỏ không chiếm slot ngang chunk lớn. Trần item = 2×MAX_CONTEXT_ITEMS."""
+    budget = _PROFILE.max_context_total_chars
+    selected: list[dict[str, Any]] = []
+    total = 0
+    for item in items:
+        length = len(str(item.get("content") or ""))
+        if selected and total + length > budget:
+            break
+        selected.append(item)
+        total += length
+        if len(selected) >= MAX_CONTEXT_ITEMS * 2:
+            break
+    return selected
 
 
-def _chunk_model_context(chunk: Chunk, *, seed_chunk_id: str | None) -> dict[str, Any]:
-    metadata = dict(chunk.chunk_metadata or {})
+def _select_context_hits(seed: tuple[str, int], hits: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Từ pool hit của 1 seed: giữ hàng xóm ±1 + chunk CHA GẦN NHẤT đứng trước seed."""
+    _, order = seed
+    selected: list[dict[str, Any]] = []
+    nearest_parent: dict[str, Any] | None = None
+    for hit in hits:
+        hit_order = _optional_int(hit.get("chunk_order"))
+        if hit_order is None:
+            continue
+        if abs(hit_order - order) <= 1:
+            selected.append(hit)
+            continue
+        chunk_type = str(hit.get("chunk_type") or "")
+        if chunk_type in PARENT_CHUNK_TYPES and hit_order < order:
+            if nearest_parent is None or hit_order > _optional_int(nearest_parent.get("chunk_order")):
+                nearest_parent = hit
+    if nearest_parent is not None:
+        selected.insert(0, nearest_parent)
+    return [_es_chunk_context(hit) for hit in selected]
+
+
+def _es_chunk_context(record: dict[str, Any]) -> dict[str, Any]:
     return {
-        "chunk_id": str(chunk.id),
-        "seed_chunk_id": seed_chunk_id,
-        "document_id": str(chunk.document_id),
-        "chunk_index": chunk.chunk_index,
-        "chunk_type": metadata.get("chunk_type"),
-        "content": str(chunk.content or "")[:MAX_CONTEXT_CHARS_PER_CHUNK],
-        "metadata": metadata,
-        "source": "postgres_context",
+        "chunk_id": str(record.get("id") or record.get("chunk_id") or ""),
+        "document_id": str(record.get("document_id") or ""),
+        "id_full": str(record.get("id_full") or ""),
+        "chunk_index": _optional_int(record.get("chunk_order")),
+        "chunk_type": record.get("chunk_type"),
+        "section_path": record.get("section_path"),
+        "content_hash": record.get("content_hash"),
+        "content": str(record.get("chunk_text") or "")[:MAX_CONTEXT_CHARS_PER_CHUNK],
+        "metadata": {"title": record.get("title"), "section_path": record.get("section_path")},
+        "source": "es_context",
         "score": None,
     }
 
 
 def _append_context(target: list[dict[str, Any]], seen: set[str], item: dict[str, Any]) -> None:
-    key = str(item.get("chunk_id") or item.get("content") or "")[:200]
+    metadata = item.get("metadata") or {}
+    # Dedup ưu tiên content_hash (chunk trùng nội dung do re-chunk/overlap không chiếm 2 slot),
+    # fallback chunk_id rồi prefix content.
+    key = str(
+        item.get("content_hash") or metadata.get("content_hash")
+        or item.get("chunk_id") or item.get("content") or ""
+    )[:200]
     if not key or key in seen:
         return
     seen.add(key)
@@ -891,12 +979,12 @@ def _clean_rerank_text(text: str) -> str:
 
 def _rerank_content(candidate: _Candidate) -> str:
     parts: list[str] = []
-    trich_yeu = str(candidate.source.get("trich_yeu") or "").strip()
-    if trich_yeu:
-        parts.append(trich_yeu)
-    tom_tat = str(candidate.source.get("tom_tat") or "").strip()
-    if tom_tat:
-        parts.append(tom_tat[:400])
+    title = str(candidate.source.get("title") or "").strip()
+    if title:
+        parts.append(title)
+    summary = str(candidate.source.get("summary") or "").strip()
+    if summary:
+        parts.append(summary[:400])
     best_chunk = max(
         candidate.chunks,
         key=lambda chunk: float(chunk.get("score") or 0.0),
@@ -942,14 +1030,15 @@ def _extract_query_identifiers(query: str) -> tuple[set[str], set[str]]:
 
 
 def _candidate_identifier_match(candidate: _Candidate, codes: set[str], numbers: set[str]) -> str | None:
-    ky_hieu = _norm_code(candidate.source.get("ky_hieu"))
-    id_vb = str(candidate.source.get("id_vb") or "").strip()
+    document_no = _norm_code(candidate.source.get("document_no"))
+    document_id = str(candidate.source.get("document_id") or "").strip()
     for code in codes:
-        if code and ky_hieu and code in ky_hieu:  # mã đầy đủ khớp -> tin cậy cao
+        if code and document_no and code in document_no:  # mã đầy đủ khớp -> tin cậy cao
             return "code"
-    kh_number = ky_hieu.split("/")[0] if "/" in ky_hieu else ky_hieu
+    no_number = document_no.split("/")[0] if "/" in document_no else document_no
     for num in numbers:
-        if num and (num == id_vb or num == kh_number):  # số văn bản khớp id_vb hoặc phần số ky_hieu
+        # số văn bản khớp document_id hoặc phần số của document_no
+        if num and (num == document_id or num == no_number):
             return "number"
     return None
 
@@ -1057,8 +1146,8 @@ async def _llm_grade_ambiguous(query: str, candidates: list[_Candidate]) -> None
             json.dumps(
                 {
                     "key": candidate.key,
-                    "ky_hieu": candidate.source.get("ky_hieu"),
-                    "trich_yeu": candidate.source.get("trich_yeu"),
+                    "document_no": candidate.source.get("document_no"),
+                    "title": candidate.source.get("title"),
                     "evidence": excerpt[:900],
                 },
                 ensure_ascii=False,
@@ -1140,13 +1229,6 @@ def _candidate_to_hit(candidate: _Candidate, expanded_queries: list[str]) -> dic
             "source_flags": sorted(candidate.source_flags),
         },
     }
-
-
-def _safe_uuid(value: Any) -> UUID | None:
-    try:
-        return UUID(str(value))
-    except (TypeError, ValueError):
-        return None
 
 
 def _optional_int(value: Any) -> int | None:

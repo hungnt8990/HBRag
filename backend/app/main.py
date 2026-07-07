@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     await _ensure_api_log_table_on_startup()
+    await _ensure_doffice_chat_tables_on_startup()
     await _load_ingestion_profiles_on_startup()
     await _load_rag_runtime_config_on_startup()
     await _validate_vector_store_on_startup()
@@ -74,6 +75,24 @@ async def _ensure_api_log_table_on_startup() -> None:
         logger.info("Bảng api_request_logs sẵn sàng (checkfirst).")
     except Exception:
         logger.exception("Không tạo được bảng api_request_logs khi startup — API vẫn chạy, log sẽ bị bỏ.")
+
+
+async def _ensure_doffice_chat_tables_on_startup() -> None:
+    """Tạo bảng ``doffice_chat_messages`` nếu CHƯA có (checkfirst) — lịch sử hội thoại /chat.
+
+    Cùng lý do với ``api_request_logs``: DB chia sẻ có revision alembic ngoài branch -> KHÔNG
+    ``alembic upgrade`` mù. ``create(checkfirst=True)`` chỉ tạo khi thiếu. Migration 0017 vẫn có
+    (môi trường quản bằng alembic) + guard "bảng đã tồn tại -> bỏ qua".
+    """
+    from app.db.session import engine
+    from app.models.doffice_chat import DofficeChatMessage
+
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(DofficeChatMessage.__table__.create, checkfirst=True)
+        logger.info("Bảng doffice_chat_messages sẵn sàng (checkfirst).")
+    except Exception:
+        logger.exception("Không tạo được bảng doffice_chat_messages khi startup — chat vẫn chạy, lịch sử bị bỏ.")
 
 
 async def _load_ingestion_profiles_on_startup() -> None:

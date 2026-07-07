@@ -6,6 +6,7 @@ from app.models.danh_muc import DonVi, NhanVien, PhongBan
 from app.models.document import Document, DocumentFile
 from app.models.document_log import DocumentAccessLog, DocumentPipelineLog
 from app.models.doffice import DofficeRawDocument
+from app.models.doffice_chat import DofficeChatMessage
 from app.models.graph import GraphDocumentStatus, GraphExtractionLog
 from app.models.ingestion_profile import IngestionProfileConfig
 from app.models.knowledge_artifact import KnowledgeArtifact
@@ -26,6 +27,7 @@ __all__ = [
     "DocumentAccessLog",
     "DocumentFile",
     "DocumentPipelineLog",
+    "DofficeChatMessage",
     "DofficeRawDocument",
     "DonVi",
     "GraphDocumentStatus",
